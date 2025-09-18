@@ -1,0 +1,463 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<metadata>
+	<idinfo>
+		<citation>
+			<citeinfo>
+				<origin>State of Connecticut</origin>
+				<pubdate>2016</pubdate>
+				<title>Connecticut Statewide LiDAR 2016</title>
+				<edition>1.0</edition>
+				<geoform>raster digital data</geoform>
+				<pubinfo>
+					<pubplace>Connecticut</pubplace>
+					<publish>Capitol Region Council of Governments</publish>
+				</pubinfo>
+				<onlink>http://crcog.org</onlink>
+			</citeinfo>
+		</citation>
+		<descript>
+			<abstract>This metadata record describes the hydro-flattened bare earth digital elevation model (DEM) derived from the classified LiDAR data for the 2016 Connecticut LiDAR project covering approximately 5,240 square miles.</abstract>
+			<purpose>To acquire detailed surface elevation data for use in conservation planning, design, research, floodplain mapping, dam safety assessments, and hydrologic modeling. LAS and bare earth DEM data products are suitable for 1 foot contour generation. USGS LiDAR Base Specification 1.2, QL2. 19.6 cm VVA.</purpose>
+			<supplinf>Project Projection, Datums and Units.  Projection - State Plane Connecticut.  Horizontal datum - North American Datum of 1983 (NAD83 (2011)).  Vertical datum - North American Vertical Datum of 1988 (NAVD88) using the latest geoid (Geoid12b) for converting ellipsoidal heights to orthometric heights.  Units - US feet</supplinf>
+			<langdata>en</langdata></descript>
+		<timeperd>
+			<timeinfo>
+				<rngdates><begdate>20160311</begdate><enddate>20160416</enddate></rngdates></timeinfo>
+			<current>ground condition</current>
+		</timeperd>
+		<status>
+			<progress>Complete</progress>
+			<update>Unknown</update>
+		</status>
+		<spdom>
+			<bounding>
+				<westbc>-73.745809</westbc>
+				<eastbc>-71.782632</eastbc>
+				<northbc>42.063615</northbc>
+				<southbc>40.971166</southbc>
+			</bounding>
+			<lbounding>
+				<leftbc>727500</leftbc>
+				<rightbc>1265000</rightbc>
+				<topbc>947503</topbc>
+				<bottombc>552503</bottombc>
+			</lbounding>
+		</spdom>
+		<keywords>
+			<theme>
+				<themekt>CT</themekt>
+				<themekey>LiDAR</themekey>
+				<themekey>mapping</themekey>
+				<themekey>point cloud</themekey>
+				<themekey>Ground points</themekey>
+				<themekey>Unclassified points</themekey>
+				<themekey>Water points</themekey>
+				<themekey>Overlap points</themekey>
+				<themekey>ALS70</themekey>
+				<themekey>Intensity return</themekey>
+				<themekey>LAS</themekey>
+				<themekey>Digital Elevation Model (DEM)</themekey>
+				<themekey>Digital Terrain Model (DTM)</themekey>
+				<themekey>IMG</themekey>
+				<themekey>Grid</themekey>
+				<themekey>Bare Earth</themekey>
+				<themekey>First Return</themekey>
+				<themekey>Contour</themekey>
+			</theme>
+			<place>
+				<placekt>CT</placekt>
+				<placekey>Connecticut</placekey>
+				<placekey>CT Statewide</placekey>
+				<placekey>United States</placekey></place>
+			<temporal>
+				<tempkt>none</tempkt>
+				<tempkey>2016</tempkey>
+			</temporal>
+		</keywords>
+		<accconst>This data may be used by the requested party for stated purposes and may be re-distributed.</accconst>
+		<useconst>This data is for planning purposes only and should not be used for legal or cadastral purposes. Any conclusions drawn from analysis of this information are not the responsibility of Sanborn Map Company. Users should be aware that temporal changes may have occurred since this dataset was collected and some parts of this dataset may no longer represent actual surface conditions. Users should not use these data for critical applications without a full awareness of its limitations.
+
+Contact:
+State of Connecticut</useconst>
+		<ptcontac>
+			<cntinfo>
+				<cntperp>
+					<cntper>Erik D. Snowden</cntper>
+					<cntorg>Capitol Region Council of Governments</cntorg>
+				</cntperp>
+				<cntpos>IT/GIS Coordinator</cntpos>
+				<cntaddr>
+					<addrtype>mailing address</addrtype>
+					<address>241 Main Street</address>
+					<city>Hartford</city>
+					<state>CT</state>
+					<postal>06106</postal>
+					<country>U.S.A.</country>
+				</cntaddr>
+				<cntvoice>860.522.2217 x217  </cntvoice>
+				<cntemail>esnowden@crcog.org</cntemail>
+				<hours>8:00 AM - 5:00 PM</hours>
+				<cntfax>860.724.1274</cntfax></cntinfo>
+		</ptcontac>
+		<native>Microsoft Windows 7; ESRI ArcCatalog 9.3.1.1850</native>
+		<secinfo><secsys>unknown</secsys><secclass>Unclassified</secclass><sechandl>unknown</sechandl></secinfo><natvform>Bare Earth DEM</natvform></idinfo>
+	<dataqual>
+		<attracc>
+			<attraccr>State of Connecticut:
+
+The LiDAR surface was evaluated using a collection of 181 GPS surveyed checkpoints for the raw NVA report. The DEM was compared to these checkpoints yielding a better result than was required for the project. 
+
+Raw NVA Control Accuracy Report (feet)
+
+      --------- Report Disclaimer ---------
+
+      This report does not guarantee accuracy. The report only reflects one statistical representation of the control points, LIDAR data and surface used. This report does not replace a thorough quality control process.
+
+      --------- Report Summary ---------
+Average dz       	0.004
+Minimum dz       	-0.829
+Maximum dz       	0.622
+Average magnitude	0.170
+Root mean square 	0.227
+Std deviation    	0.228
+
+----------------------------------------------------------------------------------------
+
+Attribute accuracy is tested after the LiDAR processing stage.  After classification of the LiDAR data, DEMs are created using the bare earth points. The NVA report is generated from the comparison of the DEM and the ground control collected within the project area.
+
+The DEM surface was evaluated using a collection of 181 GPS surveyed checkpoints for the NVA report. The DEM was compared to these checkpoints yielding much better result than was required for the project. 
+
+NVA Control Accuracy Report (feet)
+
+      --------- Report Disclaimer ---------
+
+      This report does not guarantee accuracy. The report only reflects one statistical representation of the control points, LIDAR data and surface used. This report does not replace a thorough quality control process.
+
+      --------- Report Summary ---------
+Average dz       	0.004
+Minimum dz       	-0.778
+Maximum dz       	0.576
+Average magnitude	0.158
+Root mean square 	0.207
+Std deviation    	0.207
+
+----------------------------------------------------------------------------------------
+
+Attribute accuracy is tested after the LiDAR processing stage.  After classification of the LiDAR data, DEMs are created using the bare earth points. The VVA report is generated from the comparison of the DEM and the ground control collected within the project area.  
+
+The DEM was evaluated using a collection of 95 GPS surveyed checkpoints. The DEM was compared to these checkpoints yielding much better result than was required for the project. 
+
+VVA Control Accuracy Report (feet)
+
+      --------- Report Disclaimer ---------
+
+      This report does not guarantee accuracy. The report only reflects one statistical representation of the control points, LIDAR data and surface used. This report does not replace a thorough quality control process.
+
+      --------- Report Summary ---------
+Average dz       	0.147
+Minimum dz       	-0.771
+Maximum dz       	0.625
+Average magnitude	0.212
+Root mean square 	0.261
+Std deviation    	0.217
+
+----------------------------------------------------------------------------------------</attraccr>
+		</attracc>
+		<logic>LiDAR data is collected within the project area and processed. After the DEMs were created, the dataset was verified against control.  Well-distributed control was collected for the entire state of Connecticut.  Accuracy is reported for the state as a whole.</logic>
+		<complete>LiDAR data is collected for the project area.  Post processing of the simultaneously acquired GPS/INS is performed and applied to the laser returns to output a point cloud in the specified project coordinate system and datums.  The point cloud data is then subjected to automated classification routines to assign all points in the point cloud to ground, water, overlap and unclassified point classes.  Anomalous laser returns that occur infrequently are removed entirely from the data set.  Once clean bare earth points are established, DEMs are created using bare earth points and hydro features. The DEM surface is then compared to the survey checkpoints. These accuracies must pass the NVA and VVA accuracy specifications.</complete>
+		<posacc>
+			<horizpa>
+				<horizpar>Horizontal positional accuracy for the Connecticut LiDAR is dependent upon the quality of the GPS/INS solution, sensor calibration and ground conditions at the time of data capture.  The data set was produced to meet ASPRS Positional Accuracy Standards for Digital Geospatial Data (2014) for a 1.0 meter RMSEx/RMSEy.</horizpar>
+				<qhorizpa>
+					<horizpav>1.0</horizpav>
+					<horizpae>For Connecticut, this value is computed by comparing ground control to a DEM derived from the classified LiDAR data and represents the RMSE of residuals on controls within the project area.</horizpae>
+				</qhorizpa>
+			</horizpa>
+			<vertacc>
+				<vertaccr>For the DEM data derived from the classified point cloud, the NVA and VVA were computed. The vertical accuracy was tested with independent survey check points located in various terrain types within Connecticut. These check points were not used in the calibration or post processing of the lidar point cloud data. The survey check points were distributed throughout the state. Specifications for this project require that the NVA be 19.6 cm or better @ 95 percent confidence level.</vertaccr>
+				<qvertpa>
+					<vertaccv>0.070m RMSE, or 0.138m NVA @ 95 percent Confidence Level</vertaccv>
+					<vertacce>The raw NVA was tested using 181 independent survey check points located in flat terrain types within the state of Connecticut The survey checkpoints were distributed throughout the block area. The 181 independent check points were surveyed using static GPS base stations collecting point location for 20 minute intervals. Elevations were measured for the x,y,z location of each check point. Elevations interpolated from the DEM surface were then compared to the elevation values of the surveyed control. This data set was tested to meet ASPRS Positional Accuracy Standards for Digital Geospatial Data (2014) for a 10cm RMSEz Vertical Accuracy Class. Actual NVA accuracy was found to be RMSEz = 7cm, equating to +/- 13.8cm at 95% confidence level.</vertacce>
+				</qvertpa>
+				<qvertpa><vertaccv>0.063m RMSE, or 0.125 m NVA @ 95 percent Confidence Level</vertaccv><vertacce>The NVA was tested using 181 independent survey check points located in bare earth terrain types within the state of Connecticut. The 181 independent check points contained all NVA points and were surveyed using static GPS base stations collecting point location for 20 minute intervals. Elevations were measured for the x,y,z location of each check point. Elevations interpolated from the DEM surface were then compared to the elevation values of the surveyed control. This data set was tested to meet ASPRS Positional Accuracy Standards for Digital Geospatial Data (2014) for a 10cm RMSEz Vertical Accuracy Class. Actual NVA accuracy was found to be RMSEz = 6.3cm, equating to +/- 12.5cm at 95% confidence level.</vertacce></qvertpa><qvertpa><vertacce>The VVA was tested using 95 independent survey check points located in various vegetation terrain types within the state of Connecticut. The 95 independent check points were surveyed using static GPS base stations collecting point location for 20 minute intervals. Elevations were measured for the x,y,z location of each check point. Elevations interpolated from the DEM surface were then compared to the elevation values of the surveyed control. This data set was tested to meet ASPRS Positional Accuracy Standards for Digital Geospatial Data (2014) for a 10cm RMSEz Vertical Accuracy Class. Actual NVA accuracy was found to be RMSEz = 6.3cm, equating to +/- 12.5cm at 95% confidence level. Actual VVA accuracy was found to be +/- 17cm at the 95th percentile.</vertacce><vertaccv>0.080m RMSE, or 0.170m VVA @ 95th Percentile</vertaccv></qvertpa></vertacc>
+		</posacc>
+		<lineage>
+			<srcinfo>
+				<srccite>
+					<citeinfo>
+						<origin>Sanborn Map Company Inc.</origin>
+						<pubdate>Unpublished Material</pubdate>
+						<title>LiDAR Data</title>
+						<edition>1.0</edition>
+						<geoform>Remote sensing image</geoform>
+						<pubinfo>
+							<pubplace>None</pubplace>
+							<publish>None</publish>
+						</pubinfo>
+					</citeinfo>
+				</srccite>
+				<typesrc>disc</typesrc>
+				<srctime>
+					<timeinfo>
+						<sngdate><caldate>2016</caldate></sngdate></timeinfo>
+					<srccurr>ground condition</srccurr>
+				</srctime>
+				<srccitea>LIDAR and GPS_RAW</srccitea>
+				<srccontr>Aerial LiDAR and GPS/IMU data are recorded for the defined project area at an altitude, flight speed, scanner swath width and scanner pulse frequency to achieve the design goals of the project.</srccontr>
+			</srcinfo>
+			<srcinfo>
+				<srccite>
+					<citeinfo>
+						<origin>Sanborn Map Company Inc.</origin>
+						<pubdate>2010</pubdate>
+						<title>Ground control</title>
+						<edition>1.0</edition>
+						<geoform>tabular digital data</geoform>
+						<pubinfo>
+							<pubplace>None</pubplace>
+							<publish>None</publish>
+						</pubinfo>
+					</citeinfo>
+				</srccite>
+				<typesrc>disc</typesrc>
+				<srctime>
+					<timeinfo>
+						<sngdate>
+							<caldate>2016</caldate>
+						</sngdate>
+					</timeinfo>
+					<srccurr>Ground condition</srccurr>
+				</srctime>
+				<srccitea>CONT</srccitea>
+				<srccontr>Targeted ground control is used to create a digital control file and control report as well as QC check of LiDAR accuracy.  Predefined points (NGS when available) within the project area are targeted.</srccontr>
+			</srcinfo>
+			<srcinfo>
+				<srccite>
+					<citeinfo>
+						<origin>Sanborn Map Company Inc.</origin>
+						<pubdate>Unpublished material</pubdate>
+						<title>Post processed GPS/INS</title>
+						<edition>1.0</edition>
+						<geoform>Tabular digital data</geoform>
+					</citeinfo>
+				</srccite>
+				<srcscale>1200</srcscale>
+				<typesrc>disk</typesrc>
+				<srctime>
+					<timeinfo>
+						<sngdate>
+							<caldate>2016</caldate>
+						</sngdate>
+					</timeinfo>
+					<srccurr>Ground condition</srccurr>
+				</srctime>
+				<srccitea>GPS</srccitea>
+				<srccontr>Post processed GPS/INS is applied to the lidar point data to georeference each point in the project coordinate system</srccontr>
+			</srcinfo>
+			<srcinfo>
+				<srccite>
+					<citeinfo>
+						<origin>Sanborn Map Company Inc.</origin>
+						<pubdate>Unpublished material</pubdate>
+						<title>Post processed lidar</title>
+						<edition>1.0</edition>
+						<geoform>Point digital data</geoform>
+					</citeinfo>
+				</srccite>
+				<srcscale>1200</srcscale>
+				<typesrc>Disk</typesrc>
+				<srctime>
+					<timeinfo>
+						<sngdate>
+							<caldate>2016</caldate>
+						</sngdate>
+					</timeinfo>
+					<srccurr>ground condition</srccurr>
+				</srctime>
+				<srccitea>LAS</srccitea>
+				<srccontr>The post processed lidar data has been projected and oriented in the specified coordinate system as an un-classified point cloud.</srccontr>
+			</srcinfo>
+			<srcinfo>
+				<srccite>
+					<citeinfo>
+						<origin>Sanborn Map Company Inc.</origin>
+						<pubdate>Unpublished material</pubdate>
+						<title>Classified lidar</title>
+						<edition>1.0</edition>
+						<geoform>Point digital data</geoform>
+					</citeinfo>
+				</srccite>
+				<srcscale>1200</srcscale>
+				<typesrc>disk</typesrc>
+				<srctime>
+					<timeinfo>
+						<sngdate>
+							<caldate>2016</caldate>
+						</sngdate>
+					</timeinfo>
+					<srccurr>ground condition</srccurr>
+				</srctime>
+				<srccitea>LAS</srccitea>
+				<srccontr>The classified lidar point cloud is used to derive various data products such as, but not limited to, bare earth gridded DEM, triangulated irregular networks (TIN), contours, digital surface models (DSM).  The output format is fully compliant LAS v1.4, Point Record Format 6</srccontr>
+			</srcinfo>
+			<srcinfo>
+				<srccite>
+					<citeinfo>
+						<origin>Capitol Region Council of Governments</origin>
+						<pubdate>Unpublished Material</pubdate>
+						<title>Tile Definition</title>
+						<edition>1.0</edition>
+						<geoform>raster digital data</geoform>
+					</citeinfo>
+				</srccite>
+				<srcscale>1200</srcscale>
+				<typesrc>disk</typesrc>
+				<srctime>
+					<timeinfo>
+						<sngdate>
+							<caldate>2016</caldate>
+						</sngdate>
+					</timeinfo>
+					<srccurr>ground condition</srccurr>
+				</srctime>
+				<srccitea>TLDEF</srccitea>
+				<srccontr>The tile definition defines discreet non-overlapping rectangular areas used as cut lines to break up the large classified lidar dataset into smaller, more manageable data tiles.  Each tile is 2500ft by 2500ft in dimension.</srccontr>
+			</srcinfo>
+			<procstep>
+				<procdesc>At selected locations throughout the site, accurate GPS coordinates and elevations are surveyed and the points are marked with targets.</procdesc>
+				<srcused>None</srcused>
+				<procdate>2016</procdate>
+				<srcprod>CONT</srcprod>
+			</procstep>
+			<procstep>
+				<procdesc>New LiDAR data is captured for the project area using a Leica ALS70 w/MPiA LiDAR instrument an integrated IPAS20 GPS/INS system mounted within a Aero Commander twin engine airplane.</procdesc>
+				<srcused>None</srcused>
+				<procdate>2016</procdate>
+				<srcprod>LIDAR, GPS_RAW</srcprod>
+			</procstep>
+			<procstep>
+				<procdesc>The airborne GPS data is post-processed in Intertial Explorer software and LEICA CloudPro software to determine the LiDAR sensor's angle and orientation in the terrain (project) coordinate system and datums during the survey.</procdesc>
+				<srcused>GPS_RAW</srcused>
+				<procdate>2016</procdate>
+				<srcprod>GPS_SOL</srcprod>
+			</procstep>
+			<procstep>
+				<procdesc>The post processed GPS/INS solution is applied to the raw lidar data to orient and project the data points into the project area reference system as an unclassified point cloud.</procdesc>
+				<srcused>LIDAR, GPS_SOL</srcused>
+				<procdate>2016</procdate>
+				<srcprod>LAS</srcprod>
+			</procstep>
+			<procstep>
+				<procdesc>The georeferenced lidar data is then classified and edited in Terrasolid Terrascan software.  Data is classified to produce:  Class 1:  unclassified,  Class 2:  ground,  Class 7:  low point,  Class 9: water,  Class 10: ignored ground, Class 17: bridge deck,  Class 18: high noise. </procdesc>
+				<srcused>CONT, GPS_SOL, LIDAR</srcused>
+				<procdate>2016</procdate>
+				<srcprod>LAS</srcprod>
+			</procstep>
+			<procstep>
+				<procdesc>The bare earth points of the processed lidar data are then output to a DEM tile format. The DEM is compared to the ground control and elevation differences between the surface and surveyed elevation are recorded in tabular form.  Vertical accuracy statistics are then developed to produce vertical RMSE and overall accuracy estimates and reports.</procdesc>
+				<srcused>CONT, LIDAR</srcused>
+				<procdate>2016</procdate>
+				<srcprod>None</srcprod>
+			</procstep>
+		</lineage>
+	</dataqual>
+	<spdoinfo>
+		<direct>Raster</direct>
+	</spdoinfo>
+	<spref>
+		<horizsys>
+			<geodetic>
+				<horizdn>North American Datum of 1983 (2011)</horizdn>
+				<ellips>Geodetic Reference System 80</ellips>
+				<semiaxis>6378137.000000</semiaxis>
+				<denflat>298.257222101004</denflat>
+			</geodetic>
+			<cordsysn><geogcsn>GCS_North_American_1983</geogcsn><projcsn>NAD_1983_2011_State_Plane_Connecticut_FIPS_0600</projcsn></cordsysn><planar><mapproj><mapprojn>Lambert Conformal Conic</mapprojn><lambertc><stdparll>41.2</stdparll><stdparll>41.8666666666667</stdparll><longcm>-72.75</longcm><latprjo>40.8333333333333</latprjo><feast>999999.999996</feast><fnorth>499999.999998</fnorth></lambertc></mapproj><planci><plance>coordinate pair</plance><coordrep><absres>2</absres><ordres>2</ordres></coordrep><plandu>survey feet</plandu></planci></planar></horizsys>
+		<vertdef>
+			<altsys>
+				<altdatum>North American Vertical Datum of 1988(GEOID12b)</altdatum>
+				<altres>0.1</altres>
+				<altunits>feet</altunits>
+				<altenc>Explicit elevation coordinate included with horizontal coordinates</altenc>
+			</altsys>
+		</vertdef>
+	</spref>
+	<distinfo>
+		<distrib>
+			<cntinfo>
+				<cntperp>
+					<cntper>Erik D. Snowden</cntper>
+					<cntorg>Capitol Region Council of Governments</cntorg>
+				</cntperp>
+				<cntpos>IT/GIS Coordinator</cntpos>
+				<cntaddr>
+					<addrtype>mailing address</addrtype>
+					<address>241 Main Street</address>
+					<city>Hartford</city>
+					<state>CT</state>
+					<postal>06106</postal>
+					<country>U.S.A.</country>
+				</cntaddr>
+				<cntvoice>860.522.2217 x217  </cntvoice>
+				<cntemail>esnowden@crcog.org</cntemail>
+				<hours>8:00 AM - 5:00 PM</hours>
+				<cntfax>860.724.1274</cntfax></cntinfo>
+		</distrib>
+		<resdesc>Connecticut 2016 LiDAR project</resdesc>
+		<distliab>The Capitol Region Council of Governments digital data have been tested and their documentation carefully reviewed.  However, the Capitol Region Council of Governments and its representatives make no warranty or representation, either expressed or implied, with respect to the digital data and their documentation, their quality, performance, merchantability, or fitness for a particular purpose.  The digital data are distributed on "as is" basis, and the user assumes all risk to their quality, the results obtained from their use, and the performance of the data.  In no event will the Capitol Region Council of Governments or its representatives be liable for any direct, indirect, special, incidental or consequential damages resulting from and defect in the State of Connecticut or in their documentation.  This disclaimer of warranty is exclusive and in lieu of all others, oral or written, express or implied.  No agent or employee is authorized to make any modification, extension, or addition to this warranty.</distliab>
+		<stdorder>
+			<digform>
+				<digtinfo>
+					<formname>DEM</formname>
+					<formvern>1.4</formvern><transize>6.4</transize><dssize>19800</dssize></digtinfo>
+				<digtopt>
+					<onlinopt>
+						<computer>
+							<networka>
+								<networkr>http://crcog.org</networkr>
+							</networka>
+						</computer>
+						<accinstr>unknown</accinstr>
+					</onlinopt>
+					<offoptn><offmedia>5 - 1/2 inch hard drive</offmedia><recfmt>LAS</recfmt></offoptn></digtopt>
+			</digform>
+			<fees>unknown</fees>
+			<ordering>Capitol Region Council of Governments</ordering>
+			<turnarnd>unknown</turnarnd></stdorder>
+		<availabl>
+			<timeinfo>
+				<sngdate>
+					<caldate>2016</caldate>
+				</sngdate>
+			</timeinfo>
+		</availabl>
+	</distinfo>
+	<metainfo>
+		<metd>2016</metd>
+		<metc>
+			<cntinfo>
+				<cntperp>
+					<cntper>Shawn Benham</cntper>
+					<cntorg>Sanborn Map Co</cntorg>
+				</cntperp>
+				<cntpos>Project Manager</cntpos>
+				<cntaddr>
+					<addrtype>mailing address</addrtype>
+					<address>1935 Jamboree Dr</address>
+					<city>Colorado Springs</city>
+					<state>CO</state>
+					<postal>80920</postal>
+					<country>U.S.A.</country>
+				</cntaddr>
+				<cntvoice>719.502.1296</cntvoice>
+				<cntemail>sbenham@sanborn.com</cntemail>
+				<hours>8:00 AM - 5:00 PM</hours>
+			</cntinfo>
+		</metc>
+		<metstdn>FGDC CSDGM</metstdn>
+		<metstdv>FGDC-STD-001-1998</metstdv>
+	</metainfo>
+	<Esri><CreaDate>20170323</CreaDate><CreaTime>0</CreaTime><SyncOnce>TRUE</SyncOnce><ModDate>20170518</ModDate><ModTime>15234500</ModTime><MetaID>{8DE3DE1B-30AB-48D1-9B5B-D8574399589A}</MetaID></Esri><distInfo><distributor><distorTran><onLineSrc><linkage Sync="FALSE"></linkage><protocol Sync="TRUE">Local Area Network</protocol></onLineSrc></distorTran></distributor></distInfo><eainfo><overview><eadetcit>USGS Base Specification 1.2, QL2 meeting 19.6 cm NVA</eadetcit><dsoverv>Bare Earth - DEM</dsoverv><eaover>Bare Earth only
+
+Classes:
+2 - Bare-Earth Ground</eaover></overview></eainfo><mdDateSt Sync="TRUE">20170518</mdDateSt></metadata>
