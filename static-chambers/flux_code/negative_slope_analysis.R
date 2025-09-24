@@ -3,6 +3,8 @@ library(dplyr)
 library(lme4)      # for mixed-effects models
 library(broom.mixed) # for tidy model output
 
+final_dataset<-read.csv('/Users/jongewirtzman/My Drive/Research/YMF Tree Microbiomes & Methane/tree-methanogens/flux_code/methanogen_tree_flux_complete_dataset.csv')
+
 # Prepare the data
 analysis_data <- final_dataset %>%
   mutate(height_numeric = as.numeric(measurement_height)) %>%

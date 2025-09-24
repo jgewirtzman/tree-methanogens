@@ -1,0 +1,476 @@
+,✴✴✴TARGET MASS FOR SOIL: 250 mg✴✴✴,,,,,,,,,,,,
+Inner Core Sample ID,Sample Mass Added to Tube (mg),Date Weighed,Name of Weigher,Notes,Sample Archived,Sample Notes,Extraction Plate ID,Plate Well No.,Plate Position,Blank Well?,Sample Added to Extraction Plate,Name of Person Adding to Plate,Date Plate Extracted
+"ACRU_RM1
+Soil_Organic
+Lab ID: 1d",250.3,2-Aug,QW,,TRUE,,Plate 2,63,G8,,8/5/2022,Cade,8/5/2022
+"ACRU_RM10
+Soil_Organic
+Lab ID: 2d",,,,,FALSE,Missing sample,Plate 2,64,H8,Yes,8/5/2022,Cade,8/5/2022
+"ACRU_RM14
+Soil_Organic
+Lab ID: 3d",253.4,2-Aug,QW,,TRUE,,Plate 2,65,A9,,8/5/2022,Cade,8/5/2022
+"ACRU_RM2
+Soil_Organic
+Lab ID: 4d",251.6,2-Aug,QW,,TRUE,,Plate 2,66,B9,,8/5/2022,Cade,8/5/2022
+"ACRU_RM3
+Soil_Organic
+Lab ID: 5d",253.5,2-Aug,QW,,TRUE,,Plate 2,67,C9,,8/5/2022,Cade,8/5/2022
+"ACRU_RM301A
+Soil_Organic
+Lab ID: 6d",,,,,FALSE,"Only one bag of soil was labled 301, so unsure if it's A or B",Plate 2,68,D9,Yes,8/5/2022,Cade,8/5/2022
+"ACRU_RM301B
+Soil_Organic
+Lab ID: 7d",,,,,FALSE,,Plate 2,69,E9,Yes,8/5/2022,Cade,8/5/2022
+"ACRU_RM302
+Soil_Organic
+Lab ID: 8d",250.2,2-Aug,QW,,TRUE,,Plate 2,70,F9,,8/5/2022,Cade,8/5/2022
+"ACRU_RM303
+Soil_Organic
+Lab ID: 9d",252.8,2-Aug,QW,,TRUE,,Plate 2,71,G9,,8/5/2022,Cade,8/5/2022
+"ACRU_RM304
+Soil_Organic
+Lab ID: 10d",250.8,2-Aug,QW,,TRUE,,Plate 2,72,H9,,8/5/2022,Cade,8/5/2022
+"ACRU_RM4
+Soil_Organic
+Lab ID: 11d",252,2-Aug,QW,,TRUE,,Plate 2,73,A10,,8/5/2022,Cade,8/5/2022
+"ACRU_RM5
+Soil_Organic
+Lab ID: 12d",251.8,2-Aug,QW,,TRUE,,Plate 2,74,B10,,8/5/2022,Cade,8/5/2022
+"ACRU_RM501
+Soil_Organic
+Lab ID: 13d",250,2-Aug,QW,,TRUE,,Plate 2,75,C10,,8/5/2022,Cade,8/5/2022
+"ACRU_RM502
+Soil_Organic
+Lab ID: 14d",250.7,2-Aug,QW,,TRUE,,Plate 2,76,D10,,8/5/2022,Cade,8/5/2022
+"ACRU_RM503
+Soil_Organic
+Lab ID: 15d",251.4,2-Aug,QW,,TRUE,,Plate 2,77,E10,,8/5/2022,Cade,8/5/2022
+"ACRU_RMS1
+Soil_Organic
+Lab ID: 16d",251.1,2-Aug,QW,,TRUE,,Plate 2,78,F10,,8/5/2022,Cade,8/5/2022
+"ACSA_SM1
+Soil_Organic
+Lab ID: 17d",253.4,2-Aug,QW,,TRUE,,Plate 2,79,G10,,8/5/2022,Cade,8/5/2022
+"ACSA_SM10
+Soil_Organic
+Lab ID: 18d",250.8,2-Aug,QW,,TRUE,,Plate 2,80,H10,,8/5/2022,Cade,8/5/2022
+"ACSA_SM11
+Soil_Organic
+Lab ID: 19d",255.1,2-Aug,QW,,TRUE,,Plate 2,81,A11,,8/5/2022,Cade,8/5/2022
+"ACSA_SM12
+Soil_Organic
+Lab ID: 20d",251.3,2-Aug,QW,,TRUE,,Plate 2,82,B11,,8/5/2022,Cade,8/5/2022
+"ACSA_SM13
+Soil_Organic
+Lab ID: 21d",250,2-Aug,QW,,TRUE,,Plate 2,83,C11,,8/5/2022,Cade,8/5/2022
+"ACSA_SM14
+Soil_Organic
+Lab ID: 22d",250.6,2-Aug,QW,,TRUE,,Plate 2,84,D11,,8/5/2022,Cade,8/5/2022
+"ACSA_SM15
+Soil_Organic
+Lab ID: 23d",,,,,FALSE,"There are two bags labeled SM15, so holding off on weighing for the time being",Plate 2,85,E11,Yes,8/5/2022,Cade,8/5/2022
+"ACSA_SM2
+Soil_Organic
+Lab ID: 24d",243.5,2-Aug,QW,,TRUE,,Plate 2,86,F11,,8/5/2022,Cade,8/5/2022
+"ACSA_SM3
+Soil_Organic
+Lab ID: 25d",253.1,2-Aug,QW,,TRUE,,Plate 2,87,G11,,8/5/2022,Cade,8/5/2022
+"ACSA_SM5
+Soil_Organic
+Lab ID: 26d",252.3,2-Aug,QW,,TRUE,,Plate 2,88,H11,,8/5/2022,Cade,8/5/2022
+"ACSA_SM6
+Soil_Organic
+Lab ID: 27d",259,2-Aug,QW,,TRUE,,Plate 2,89,A12,,8/5/2022,Cade,8/5/2022
+"ACSA_SM7
+Soil_Organic
+Lab ID: 28d",356.8,2-Aug,QW,,TRUE,,Plate 2,90,B12,,8/5/2022,Cade,8/5/2022
+"ACSA_SM8
+Soil_Organic
+Lab ID: 29d",254.4,2-Aug,QW,,TRUE,,Plate 2,91,C12,,8/5/2022,Cade,8/5/2022
+"ACSA_SM9
+Soil_Organic
+Lab ID: 30d",275.3,2-Aug,QW,,TRUE,,Plate 2,92,D12,,8/5/2022,Cade,8/5/2022
+"ACSA _SM4
+Soil_Organic
+Lab ID: 31d",258.3,2-Aug,QW,,TRUE,,Plate 2,93,E12,,8/5/2022,Cade,8/5/2022
+"BEAL_CUL8R
+Soil_Organic
+Lab ID: 32d",252.7,8/2/2022,CB,,TRUE,,Plate 2,94,F12,,8/5/2022,Cade,8/5/2022
+"BEAL_YB10
+Soil_Organic
+Lab ID: 33d",256.8,8/2/2022,CB,,TRUE,,Plate 2,95,G12,,8/5/2022,Cade,8/5/2022
+"BEAL_YB11
+Soil_Organic
+Lab ID: 34d",260.8,8/2/2022,CB,,TRUE,,Plate 2,96,H12,,8/5/2022,Cade,8/5/2022
+"BEAL_YB11'
+Soil_Organic
+Lab ID: 35d",,,,,FALSE,Sample is missing,Plate 7,1,A1,Yes,9/11/2022,Jon,
+"BEAL_YB12
+Soil_Organic
+Lab ID: 36d",,,,,FALSE,Missing sample ,Plate 7,2,B1,Yes,9/11/2022,Jon,
+"BEAL_YB13
+Soil_Organic
+Lab ID: 37d",259.7,8/2/2022,CB,,TRUE,,Plate 7,3,C1,,9/11/2022,Jon,
+"BEAL_YB14
+Soil_Organic
+Lab ID: 38d",260.7,8/2/2022,CB,,TRUE,,Plate 7,4,D1,,9/11/2022,Jon,
+"BEAL_YB15
+Soil_Organic
+Lab ID: 39d",252.5,8/2/2022,CB,,TRUE,,Plate 7,5,E1,,9/11/2022,Jon,
+"BEAL_YB2
+Soil_Organic
+Lab ID: 40d",,,,,FALSE,The Sample is missing ,Plate 7,6,F1,Yes,9/11/2022,Jon,
+"BEAL_YB3
+Soil_Organic
+Lab ID: 41d",256.5,8/2/2022,CB,,TRUE,,Plate 7,7,G1,,9/11/2022,Jon,
+"BEAL_YB4
+Soil_Organic
+Lab ID: 42d",263.1,8/2/2022,CB,,TRUE,,Plate 7,8,H1,,9/11/2022,Jon,
+"BEAL_YB5
+Soil_Organic
+Lab ID: 43d",261.6,8/2/2022,CB,,TRUE,,Plate 7,9,A2,,9/11/2022,Jon,
+"BEAL_YB9
+Soil_Organic
+Lab ID: 44d",269.7,8/2/2022,CB,,TRUE,,Plate 7,10,B2,,9/11/2022,Jon,
+"BEAL_YB9
+Soil_Organic
+Lab ID: 45d",,,,,FALSE,Sample is missing,Plate 7,11,C2,Yes,9/11/2022,Jon,
+"BEAL_YBYB
+Soil_Organic
+Lab ID: 46d",250,5-Aug,QW,,TRUE,,Plate 7,12,D2,,9/11/2022,Jon,
+"BELE_BB1
+Soil_Organic
+Lab ID: 47d",255.2,8/3/2022,QW,,TRUE,,Plate 7,13,E2,,9/11/2022,Jon,
+"BELE_BB10
+Soil_Organic
+Lab ID: 48d",263.1,8/3/2022,QW,,TRUE,,Plate 7,14,F2,,9/11/2022,Jon,
+"BELE_BB10'
+Soil_Organic
+Lab ID: 49d",252.3,8/3/2022,QW,,TRUE,,Plate 7,15,G2,,9/11/2022,Jon,
+"BELE_BB11
+Soil_Organic
+Lab ID: 50d",251.8,8/3/2022,QW,,TRUE,,Plate 7,16,H2,,9/11/2022,Jon,
+"BELE_BB12
+Soil_Organic
+Lab ID: 51d",255.6,8/3/2022,QW,,TRUE,,Plate 7,17,A3,,9/11/2022,Jon,
+"BELE_BB13
+Soil_Organic
+Lab ID: 52d",258.5,8/3/2022,QW,,TRUE,,Plate 7,18,B3,,9/11/2022,Jon,
+"BELE_BB14
+Soil_Organic
+Lab ID: 53d",252.2,8/3/2022,QW,,TRUE,,Plate 7,19,C3,,9/11/2022,Jon,
+"BELE_BB16
+Soil_Organic
+Lab ID: 54d",250.1,8/3/2022,QW,,TRUE,,Plate 7,20,D3,,9/11/2022,Jon,
+"BELE_BB16'
+Soil_Organic
+Lab ID: 55d",256.6,8/3/2022,QW,,TRUE,,Plate 7,21,E3,,9/11/2022,Jon,
+"BELE_BB3
+Soil_Organic
+Lab ID: 56d",240.4,9/11/2022,JG,,FALSE,Sample was missing; Jon found sample on 9/11/22,Plate 7,22,F3,,9/11/2022,Jon,
+"BELE_BB5
+Soil_Organic
+Lab ID: 57d",252.6,8/3/2022,QW,,TRUE,,Plate 7,23,G3,,9/11/2022,Jon,
+"BELE_BB6
+Soil_Organic
+Lab ID: 58d",254,8/3/2022,QW,,TRUE,,Plate 7,24,H3,,9/11/2022,Jon,
+"BELE_BB7
+Soil_Organic
+Lab ID: 59d",251.1,8/3/2022,QW,,TRUE,,Plate 7,25,A4,,9/11/2022,Jon,
+"BELE_BB8
+Soil_Organic
+Lab ID: 60d",250.5,8/3/2022,QW,,TRUE,,Plate 7,26,B4,,9/11/2022,Jon,
+"BELE_BB9
+Soil_Organic
+Lab ID: 61d",253,8/3/2022,QW,The soil in the sample is mixed with a lot of pine needles. ,TRUE,,Plate 7,27,C4,,9/11/2022,Jon,
+"BELE_BBGT1
+Soil_Organic
+Lab ID: 62d",250,8/3/2022,QW,Sample is mixed with pine needles.,TRUE,,Plate 7,28,D4,,9/11/2022,Jon,
+"BELE_BBX1
+Soil_Organic
+Lab ID: 63d",257,8/3/2022,QW, The sample is a mixture of soil+ pine needles.,TRUE,,Plate 7,29,E4,,9/11/2022,Jon,
+"BELE_BBX6
+Soil_Organic
+Lab ID: 64d",256.1,8/3/2022,QW, The sample is a mixture of soil + pine needles.,TRUE,,Plate 7,30,F4,,9/11/2022,Jon,
+"BELE_BBX7
+Soil_Organic
+Lab ID: 65d",259.6,8/3/2022,QW,,TRUE,,Plate 7,31,G4,,9/11/2022,Jon,
+"BEPA_PB1
+Soil_Organic
+Lab ID: 66d",252.2,8/4/2022,QW,,TRUE,,Plate 7,32,H4,,9/11/2022,Jon,
+"BEPA_PB2
+Soil_Organic
+Lab ID: 67d",259.6,8/4/2022,QW,,TRUE,,Plate 7,33,A5,,9/11/2022,Jon,
+"BEPA_PB3
+Soil_Organic
+Lab ID: 68d",250.3,8/4/2022,QW,,TRUE,,Plate 7,34,B5,,9/11/2022,Jon,
+"BEPA_PB4
+Soil_Organic
+Lab ID: 69d",251.9,8/4/2022,QW,,TRUE,,Plate 7,35,C5,,9/11/2022,Jon,
+"BEPA_PB5
+Soil_Organic
+Lab ID: 70d",261.9,8/4/2022,QW,,TRUE,,Plate 7,36,D5,,9/11/2022,Jon,
+"BEPA_PB501
+Soil_Organic
+Lab ID: 71d",250.6,8/4/2022,QW,,TRUE,,Plate 7,37,E5,,9/11/2022,Jon,
+"CAOV_SH1
+Soil_Organic
+Lab ID: 72d",250.5,5-Aug,QW,,TRUE,,Plate 7,38,F5,,9/11/2022,Jon,
+"FAGR_AB1
+Soil_Organic
+Lab ID: 73d",250,8/4/2022,QW,,TRUE,,Plate 7,39,G5,,9/11/2022,Jon,
+"FAGR_AB10
+Soil_Organic
+Lab ID: 74d",250.6,8/4/2022,QW,,TRUE,,Plate 7,40,H5,,9/11/2022,Jon,
+"FAGR_AB11
+Soil_Organic
+Lab ID: 75d",250.4,8/4/2022,QW,,TRUE,,Plate 7,41,A6,,9/11/2022,Jon,
+"FAGR_AB2
+Soil_Organic
+Lab ID: 76d",255.6,8/4/2022,QW,,TRUE,,Plate 7,42,B6,,9/11/2022,Jon,
+"FAGR_AB3
+Soil_Organic
+Lab ID: 77d",,,,,FALSE,The sample is missing,Plate 7,43,C6,Yes,9/11/2022,Jon,
+"FAGR_AB3/5
+Soil_Organic
+Lab ID: 78d",256.6,8/4/2022,QW,,TRUE,,Plate 7,44,D6,,9/11/2022,Jon,
+"FAGR_AB4
+Soil_Organic
+Lab ID: 79d",254.7,8/4/2022,QW,,TRUE,,Plate 7,45,E6,,9/11/2022,Jon,
+"FAGR_AB4/6
+Soil_Organic
+Lab ID: 80d",252.7,8/4/2022,QW,,TRUE,,Plate 7,46,F6,,9/11/2022,Jon,
+"FAGR_AB5
+Soil_Organic
+Lab ID: 81d",252.7,8/4/2022,QW,,TRUE,,Plate 7,47,G6,,9/11/2022,Jon,
+"FAGR_AB501
+Soil_Organic
+Lab ID: 82d",250.7,8/4/2022,QW,,TRUE,,Plate 7,48,H6,,9/11/2022,Jon,
+"FAGR_AB6
+Soil_Organic
+Lab ID: 83d",252.7,8/4/2022,QW,,TRUE,,Plate 7,49,A7,,9/11/2022,Jon,
+"FAGR_AB6'
+Soil_Organic
+Lab ID: 84d",250,8/4/2022,QW,,TRUE,,Plate 7,50,B7,,9/11/2022,Jon,
+"FAGR_AB9
+Soil_Organic
+Lab ID: 85d",255.5,8/4/2022,QW,,TRUE,,Plate 7,51,C7,,9/11/2022,Jon,
+"FAGR_ABT14P
+Soil_Organic
+Lab ID: 86d",252.8,8/4/2022,QW,,TRUE,,Plate 7,52,D7,,9/11/2022,Jon,
+"FRAM_WA1
+Soil_Organic
+Lab ID: 87d",250.7,8/4/2022,QW,,TRUE,,Plate 7,53,E7,,9/11/2022,Jon,
+"FRAM_WA10
+Soil_Organic
+Lab ID: 88d",251.6,5-Aug,QW,,TRUE,,Plate 7,54,F7,,9/11/2022,Jon,
+"FRAM_WA101
+Soil_Organic
+Lab ID: 89d",251.6,8/4/2022,QW,,TRUE,,Plate 7,55,G7,,9/11/2022,Jon,
+"FRAM_WA102
+Soil_Organic
+Lab ID: 90d",,,,,FALSE,Missing sample,Plate 7,56,H7,Yes,9/11/2022,Jon,
+"FRAM_WA102
+Soil_Organic
+Lab ID: 91d",,,,,FALSE,Sample is missing ,Plate 7,57,A8,Yes,9/11/2022,Jon,
+"FRAM_WA103
+Soil_Organic
+Lab ID: 92d",,,,,FALSE,Sample is missing ,Plate 7,58,B8,Yes,9/11/2022,Jon,
+"FRAM_WA103*
+Soil_Organic
+Lab ID: 93d",,,,,FALSE,The sample is missing ,Plate 7,59,C8,Yes,9/11/2022,Jon,
+"FRAM_WA104
+Soil_Organic
+Lab ID: 94d",254,8/4/2022,QW,,TRUE,,Plate 7,60,D8,,9/11/2022,Jon,
+"FRAM_WA12
+Soil_Organic
+Lab ID: 95d",250,8/4/2022,QW,,TRUE,,Plate 7,61,E8,,9/11/2022,Jon,
+"FRAM_WA14
+Soil_Organic
+Lab ID: 96d",,,,,FALSE,Sample is missing ,Plate 7,62,F8,Yes,9/11/2022,Jon,
+"FRAM_WA14
+Soil_Organic
+Lab ID: 97d",,,,,FALSE,Missing sample,Plate 7,63,G8,Yes,9/11/2022,Jon,
+"FRAM_WA15
+Soil_Organic
+Lab ID: 98d",254.7,8/4/2022,QW,,TRUE,,Plate 7,64,H8,,9/11/2022,Jon,
+"FRAM_WA5
+Soil_Organic
+Lab ID: 99d",252,8/4/2022,QW,,TRUE,,Plate 7,65,A9,,9/11/2022,Jon,
+"FRAM_WAX1
+Soil_Organic
+Lab ID: 100d",,,,,FALSE,The sample is missing ,Plate 7,66,B9,Yes,9/11/2022,Jon,
+"KALA_ML2
+Soil_Organic
+Lab ID: 101d",253.2,4-Aug,QW,,TRUE,,Plate 7,67,C9,,9/11/2022,Jon,
+"KALA_MLGP
+Soil_Organic
+Lab ID: 102d",257.8,4-Aug,QW,,TRUE,,Plate 7,68,D9,,9/11/2022,Jon,
+"PIST_WP101
+Soil_Organic
+Lab ID: 103d",250.7,5-Aug,QW,,TRUE,,Plate 7,69,E9,,9/11/2022,Jon,
+"PIST_WP102
+Soil_Organic
+Lab ID: 104d",,,,,FALSE,Missing sample ,Plate 7,70,F9,Yes,9/11/2022,Jon,
+"PIST_WP103
+Soil_Organic
+Lab ID: 105d",262.2,5-Aug,QW,,TRUE,,Plate 7,71,G9,,9/11/2022,Jon,
+"PIST_WP2
+Soil_Organic
+Lab ID: 106d",258.5,5-Aug,QW,,TRUE,,Plate 7,72,H9,,9/11/2022,Jon,
+"PIST_WP3
+Soil_Organic
+Lab ID: 107d",255.5,5-Aug,QW,,TRUE,,Plate 7,73,A10,,9/11/2022,Jon,
+"PIST_WP4
+Soil_Organic
+Lab ID: 108d",252.7,5-Aug,QW,,TRUE,,Plate 7,74,B10,,9/11/2022,Jon,
+"PIST_WP401
+Soil_Organic
+Lab ID: 109d",250,5-Aug,QW,,TRUE,,Plate 7,75,C10,,9/11/2022,Jon,
+"PIST_WP402
+Soil_Organic
+Lab ID: 110d",253,5-Aug,QW,,TRUE,,Plate 7,76,D10,,9/11/2022,Jon,
+"PIST_WP403
+Soil_Organic
+Lab ID: 111d",250,5-Aug,QW,,TRUE,,Plate 7,77,E10,,9/11/2022,Jon,
+"PIST_WP5
+Soil_Organic
+Lab ID: 112d",250.1,5-Aug,QW,,TRUE,,Plate 7,78,F10,,9/11/2022,Jon,
+"PIST_WP6
+Soil_Organic
+Lab ID: 113d",253.2,5-Aug,QW,,TRUE,,Plate 7,79,G10,,9/11/2022,Jon,
+"PIST_WP7
+Soil_Organic
+Lab ID: 114d",261.8,5-Aug,QW,,TRUE,,Plate 7,80,H10,,9/11/2022,Jon,
+"PIST_WP8
+Soil_Organic
+Lab ID: 115d",254.6,5-Aug,QW,,TRUE,,Plate 7,81,A11,,9/11/2022,Jon,
+"PIST_WP9
+Soil_Organic
+Lab ID: 116d",257,5-Aug,QW,,TRUE,,Plate 7,82,B11,,9/11/2022,Jon,
+"PIST_WPBERENICE
+Soil_Organic
+Lab ID: 117d",255.2,5-Aug,QW,,TRUE,,Plate 7,83,C11,,9/11/2022,Jon,
+"PIST_WPX2
+Soil_Organic
+Lab ID: 118d",254.4,5-Aug,QW,,TRUE,,Plate 7,84,D11,,9/11/2022,Jon,
+"PIST_WPX22
+Soil_Organic
+Lab ID: 119d",,,,,FALSE,The sample is missing ,Plate 7,85,E11,Yes,9/11/2022,Jon,
+"PIST_WPX5
+Soil_Organic
+Lab ID: 120d",255.6,5-Aug,QW,,TRUE,,Plate 7,86,F11,,9/11/2022,Jon,
+"PIST_WPX7
+Soil_Organic
+Lab ID: 121d",256.8,5-Aug,QW,,TRUE,,Plate 7,87,G11,,9/11/2022,Jon,
+"PRSE_BC1
+Soil_Organic
+Lab ID: 122d",254.5,8/4/2022,QW,,TRUE,,Plate 7,88,H11,,9/11/2022,Jon,
+"PRSE_BC2
+Soil_Organic
+Lab ID: 123d",256,8/4/2022,QW,,TRUE,,Plate 7,89,A12,,9/11/2022,Jon,
+"PRSE_BC4
+Soil_Organic
+Lab ID: 124d",253.8,8/4/2022,QW,,TRUE,,Plate 7,90,B12,,9/11/2022,Jon,
+"QUAL_WO1
+Soil_Organic
+Lab ID: 125d",251.2,5-Aug,QW,,TRUE,,Plate 7,91,C12,,9/11/2022,Jon,
+"QURU_BOWSER
+Soil_Organic
+Lab ID: 126d",,,,,FALSE,Missing sample,Plate 7,92,D12,Yes,9/11/2022,Jon,
+"QURU_RO1
+Soil_Organic
+Lab ID: 127d",251.1,8/4/2022,QW,,TRUE,,Plate 7,93,E12,,9/11/2022,Jon,
+"QURU_RO10
+Soil_Organic
+Lab ID: 128d",250.5,8/4/2022,QW,,TRUE,,Plate 7,94,F12,,9/11/2022,Jon,
+"QURU_RO101
+Soil_Organic
+Lab ID: 129d",250.1,8/4/2022,QW,,TRUE,,Plate 7,95,G12,,9/11/2022,Jon,
+"QURU_RO102
+Soil_Organic
+Lab ID: 130d",255.6,8/4/2022,QW,,TRUE,,Plate 7,96,H12,,9/11/2022,Jon,
+"QURU_RO103
+Soil_Organic
+Lab ID: 131d",250.5,8/4/2022,QW,,TRUE,,Plate 8,1,A1,,9/11/2022,Jon,
+"QURU_RO104
+Soil_Organic
+Lab ID: 132d",254.9,8/4/2022,QW,,TRUE,,Plate 8,2,B1,,9/11/2022,Jon,
+"QURU_RO105
+Soil_Organic
+Lab ID: 133d",251.9,8/4/2022,QW,,TRUE,,Plate 8,3,C1,,9/11/2022,Jon,
+"QURU_RO11
+Soil_Organic
+Lab ID: 134d",251.2,8/4/2022,QW,,TRUE,,Plate 8,4,D1,,9/11/2022,Jon,
+"QURU_RO13
+Soil_Organic
+Lab ID: 135d",250.9,8/4/2022,QW,,TRUE,,Plate 8,5,E1,,9/11/2022,Jon,
+"QURU_RO2
+Soil_Organic
+Lab ID: 136d",251.4,8/4/2022,QW,,TRUE,,Plate 8,6,F1,,9/11/2022,Jon,
+"QURU_RO3
+Soil_Organic
+Lab ID: 137d",254.8,8/4/2022,QW,,TRUE,,Plate 8,7,G1,,9/11/2022,Jon,
+"QURU_RO7
+Soil_Organic
+Lab ID: 138d",245.7,9/11/2022,JG,,FALSE,The sample was previously missing; found by Jon on 9/11/22,Plate 8,8,H1,,9/11/2022,Jon,
+"QURU_RO8
+Soil_Organic
+Lab ID: 139d",,,,,FALSE,sample was previously thought missing; see 138d,Plate 8,9,A2,Yes,9/11/2022,Jon,
+"QURU_RO9
+Soil_Organic
+Lab ID: 140d",250.5,8/4/2022,QW,,TRUE,,Plate 8,10,B2,,9/11/2022,Jon,
+"QUVE_BO1
+Soil_Organic
+Lab ID: 141d",250.8,8/4/2022,QW,,TRUE,,Plate 8,11,C2,,9/11/2022,Jon,
+"SAAL_SA1
+Soil_Organic
+Lab ID: 142d",252.1,5-Aug,QW,,TRUE,,Plate 8,12,D2,,9/11/2022,Jon,
+"TSCA_H101
+Soil_Organic
+Lab ID: 143d",259.2,5-Aug,QW,,TRUE,,Plate 8,13,E2,,9/11/2022,Jon,
+"TSCA_H102
+Soil_Organic
+Lab ID: 144d",251.3,5-Aug,QW,,TRUE,,Plate 8,14,F2,,9/11/2022,Jon,
+"TSCA_H103
+Soil_Organic
+Lab ID: 145d",251.4,5-Aug,QW,,TRUE,,Plate 8,15,G2,,9/11/2022,Jon,
+"TSCA_H104
+Soil_Organic
+Lab ID: 146d",253.2,5-Aug,QW,,TRUE,,Plate 8,16,H2,,9/11/2022,Jon,
+"TSCA_H2
+Soil_Organic
+Lab ID: 147d",250,5-Aug,QW,,TRUE,,Plate 8,17,A3,,9/11/2022,Jon,
+"TSCA_H3
+Soil_Organic
+Lab ID: 148d",,,,,FALSE,Sample previously thought missing; see notes,Plate 8,18,B3,Yes,9/11/2022,Jon,
+"TSCA_H301
+Soil_Organic
+Lab ID: 149d",235.1,14-Sep,JG,Jon spilled sample and reweighed 9/14,TRUE,,Plate 8,19,C3,,9/11/2022,Jon,
+"TSCA_H4
+Soil_Organic
+Lab ID: 150d",252.9,5-Aug,QW,Sample has a big % of humidity(H20).,TRUE,,Plate 8,20,D3,,9/11/2022,Jon,
+"TSCA_H5
+Soil_Organic
+Lab ID: 151d",254,5-Aug,QW,The sample is very humed.,TRUE,,Plate 8,21,E3,,9/11/2022,Jon,
+"TSCA_H8
+Soil_Organic
+Lab ID: 152d",252.2,5-Aug,QW,,TRUE,,Plate 8,22,F3,,9/11/2022,Jon,
+"TSCA_H9
+Soil_Organic
+Lab ID: 153d",250.6,5-Aug,QW,,TRUE,,Plate 8,23,G3,,9/11/2022,Jon,
+"TSCA_HX2
+Soil_Organic
+Lab ID: 154d",250,5-Aug,QW,,TRUE,,Plate 8,24,H3,,9/11/2022,Jon,
+"TSCA_HX3
+Soil_Organic
+Lab ID: 155d",250,5-Aug,QW,,TRUE,,Plate 8,25,A4,,9/11/2022,Jon,
+"TSCA_HX4
+Soil_Organic
+Lab ID: 156d",250.1,5-Aug,QW,,TRUE,,Plate 8,26,B4,,9/11/2022,Jon,
+"TSCA_HX5
+Soil_Organic
+Lab ID: 157d",,,,,FALSE,The sample is missing.,Plate 8,27,C4,Yes,9/11/2022,Jon,
+"TSCA_HZ1
+Soil_Organic
+Lab ID: 158d",257.8,5-Aug,QW,,TRUE,,Plate 8,28,D4,,9/11/2022,Jon,

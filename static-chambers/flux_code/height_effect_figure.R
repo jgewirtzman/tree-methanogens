@@ -245,3 +245,179 @@ combined_plot <- grid.arrange(p_top, p_bottom, ncol = 1, heights = c(2.5, 1))
 
 # Display the combined plot
 print(combined_plot)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Load gghalves library
+library(gghalves)
+
+# Calculate actual data breaks for each species (from document 2 method)
+species_breaks <- plot_data_top %>%
+  group_by(species, species_label) %>%
+  summarise(
+    data_min = min(CH4_best.flux, na.rm = TRUE),
+    data_max = max(CH4_best.flux, na.rm = TRUE),
+    .groups = 'drop'
+  ) %>%
+  mutate(
+    data_mid = (data_min + data_max) / 2,
+    breaks_list = map2(data_min, data_max, ~ c(.x, (.x + .y)/2, .y))
+  )
+
+# Enhanced breaks calculation that works with facet_wrap
+enhanced_breaks_function <- function(x) {
+  # This is tricky - we need to figure out which species panel we're in
+  # We'll use the data range to match against our pre-calculated breaks
+  
+  # Try to match the current panel's data range to our species breaks
+  current_min <- min(x, na.rm = TRUE)
+  current_max <- max(x, na.rm = TRUE)
+  
+  # Find the best matching species based on data range
+  best_match <- NULL
+  min_diff <- Inf
+  
+  for(i in 1:nrow(species_breaks)) {
+    range_diff <- abs((species_breaks$data_min[i] - current_min)) + 
+      abs((species_breaks$data_max[i] - current_max))
+    
+    if(range_diff < min_diff) {
+      min_diff <- range_diff
+      best_match <- i
+    }
+  }
+  
+  # If we found a good match, use those breaks
+  if(!is.null(best_match) && min_diff < 0.001) {
+    return(species_breaks$breaks_list[[best_match]])
+  } else {
+    # Fallback to original method
+    if(is.na(current_max) || is.na(current_min)) return(c(0))
+    if(current_max == current_min) return(c(current_min))
+    mid_val <- (current_min + current_max) / 2
+    return(c(current_min, mid_val, current_max))
+  }
+}
+
+# Top panel with enhanced breaks but keeping facet_wrap for better spacing
+p_top_half <- ggplot(plot_data_top, aes(x = factor(height_m), y = CH4_best.flux)) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray60", alpha = 0.7) +
+  geom_half_boxplot(alpha = 0.6, outlier.shape = NA, fill = boxplot_color, color = "gray30", side = "r") +
+  geom_half_point(alpha = 0.4, size = 0.8, color = "gray20", side = "l",
+                  transformation = position_jitter(width = 0.2, height = 0)) +
+  facet_wrap(~ species_label, scales = "free", ncol = 3) +
+  coord_flip() +
+  scale_y_continuous(
+    breaks = enhanced_breaks_function,
+    labels = function(x) {
+      ifelse(abs(x) < 0.001, "0", 
+             ifelse(abs(x) < 0.01, sprintf("%.3f", x),
+                    ifelse(abs(x) < 0.1, sprintf("%.2f", x), 
+                           sprintf("%.1f", x))))
+    }
+  ) +
+  labs(
+    x = "Height (m)",
+    y = expression("CH"[4]*" flux (nmol m"^-2*" s"^-1*")")
+  ) +
+  theme_minimal() +
+  theme(
+    strip.text = element_text(size = 8, face = "italic"),
+    axis.title = element_text(size = 10),
+    axis.text = element_text(size = 8),
+    panel.grid.minor = element_blank(),
+    panel.spacing = unit(0.5, "lines")
+  )
+
+# Combine panels with better proportions
+combined_plot_half <- grid.arrange(p_top_half, p_bottom, ncol = 1, heights = c(2.5, 1))
+
+# Display the combined plot with half-boxplots
+print(combined_plot_half)
+
+
+# Load gghalves library
+library(gghalves)
+
+# Calculate actual data breaks for each species (from document 2 method)
+species_breaks <- plot_data_top %>%
+  group_by(species, species_label) %>%
+  summarise(
+    data_min = min(CH4_best.flux, na.rm = TRUE),
+    data_max = max(CH4_best.flux, na.rm = TRUE),
+    .groups = 'drop'
+  ) %>%
+  mutate(
+    data_mid = (data_min + data_max) / 2,
+    breaks_list = map2(data_min, data_max, ~ c(.x, (.x + .y)/2, .y))
+  )
+
+# Create individual half-boxplot plots with tighter spacing
+create_species_plot_half <- function(species_name, species_data, breaks_data) {
+  current_breaks <- breaks_data$breaks_list[[which(breaks_data$species == species_name)]]
+  current_label <- breaks_data$species_label[breaks_data$species == species_name]
+  
+  ggplot(species_data, aes(x = factor(height_m), y = CH4_best.flux)) +
+    geom_hline(yintercept = 0, linetype = "dashed", color = "gray60", alpha = 0.7) +
+    geom_half_boxplot(alpha = 0.6, outlier.shape = NA, fill = boxplot_color, color = "gray30", side = "r") +
+    geom_half_point(alpha = 0.4, size = 0.8, color = "gray20", side = "l",
+                    transformation = position_jitter(width = 0.2, height = 0)) +
+    coord_flip() +
+    scale_y_continuous(
+      breaks = current_breaks,
+      labels = function(x) {
+        ifelse(abs(x) < 0.001, "0", 
+               ifelse(abs(x) < 0.01, sprintf("%.3f", x),
+                      ifelse(abs(x) < 0.1, sprintf("%.2f", x), 
+                             sprintf("%.1f", x))))
+      }
+    ) +
+    labs(x = "", y = "") +  # Remove individual axis labels
+    ggtitle(current_label) +
+    theme_minimal() +
+    theme(
+      strip.text = element_text(size = 8, face = "italic"),
+      plot.title = element_text(size = 8, face = "italic", margin = margin(b = 2)),
+      axis.title = element_text(size = 10),
+      axis.text = element_text(size = 8),
+      panel.grid.minor = element_blank(),
+      plot.margin = margin(t = 2, r = 2, b = 2, l = 2)  # Tighter margins
+    )
+}
+
+# Create individual half-boxplot plots for each species
+species_list <- sort(unique(plot_data_top$species))
+plot_list_half <- list()
+
+for(sp in species_list) {
+  sp_data <- plot_data_top %>% filter(species == sp)
+  if(nrow(sp_data) > 0) {
+    plot_list_half[[sp]] <- create_species_plot_half(sp, sp_data, species_breaks)
+  }
+}
+
+# Arrange plots in a grid with tighter spacing
+p_top_half <- grid.arrange(
+  grobs = plot_list_half, 
+  ncol = 3,
+  left = textGrob("Height (m)", rot = 90, vjust = 1),
+  bottom = textGrob(expression("CH"[4]*" flux (nmol m"^-2*" s"^-1*")"), vjust = 0),
+  padding = unit(0.1, "line")  # Reduce padding between plots
+)
+
+# Combine panels with better proportions
+combined_plot_half <- grid.arrange(p_top_half, p_bottom, ncol = 1, heights = c(2.5, 1))
+
+# Display the combined plot with half-boxplots
+print(combined_plot_half)

@@ -1,0 +1,235 @@
+Tree_ID_normalized,primary_id,sources,plots,name_variants,variant_1,variant_2,name_in_datasheets,name_in_trees_dbh,name_in_labels,name_in_flux_temp,name_in_flux_dimensions,name_in_soil_data,name_in_ddpcr_data
+7809,7809,"datasheets, flux_dimensions",Ridge,2,7809,NA,7809,NA,NA,NA,7809,NA,NA
+ab 3/5,AB 3/5,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",7,AB 3/5,AB3/5,AB 3/5,AB3/5,AB3/5,AB 3/5,AB 3/5,AB3/5,AB3/5
+ab 4/6,AB 4/6,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",7,AB 4/6,AB4/6,AB 4/6,AB4/6,AB4/6,AB 4/6,AB 4/6,AB4/6,AB4/6
+ab 6',AB 6prime,"datasheets, flux_temp, flux_dimensions",Lowland,3,AB 6prime,NA,AB 6prime,NA,NA,AB 6prime,AB 6prime,NA,NA
+ab1,AB1,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",7,AB1,NA,AB1,AB1,AB1,AB1,AB1,AB1,AB1
+ab10,AB10,"trees_dbh, labels, soil_data, ddpcr_data, datasheets, flux_temp, flux_dimensions","Ridge, Unknown",7,AB10,NA,AB10,AB10,AB10,AB10,AB10,AB10,AB10
+ab11,AB11,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Ridge, Unknown",7,AB11,NA,AB11,AB11,AB11,AB11,AB11,AB11,AB11
+ab2,AB2,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, ddpcr_data","Lowland, Unknown",6,AB2,NA,AB2,AB2,AB2,AB2,AB2,NA,AB2
+ab2/3,AB2/3,soil_data,Unknown,1,AB2/3,NA,NA,NA,NA,NA,NA,AB2/3,NA
+ab3,AB3,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, ddpcr_data","Lowland, Unknown",6,AB3,NA,AB3,AB3,AB3,AB3,AB3,NA,AB3
+ab4,AB4,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",7,AB4,NA,AB4,AB4,AB4,AB4,AB4,AB4,AB4
+ab5,AB5,"trees_dbh, labels, soil_data, ddpcr_data, datasheets, flux_temp, flux_dimensions","Lowland, Unknown",7,AB5,NA,AB5,AB5,AB5,AB5,AB5,AB5,AB5
+ab501,AB501,"datasheets, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",5,AB501,NA,AB501,NA,NA,AB501,AB501,AB501,AB501
+ab6,AB6,"trees_dbh, labels, soil_data, ddpcr_data, datasheets, flux_temp, flux_dimensions","Lowland, Unknown",7,AB6,NA,AB6,AB6,AB6,AB6,AB6,AB6,AB6
+ab6',AB6',"trees_dbh, labels, soil_data, ddpcr_data","Lowland, Unknown",4,AB6',NA,NA,AB6',AB6',NA,NA,AB6',AB6'
+ab8,AB8,"trees_dbh, labels",Lowland,2,AB8,NA,NA,AB8,AB8,NA,NA,NA,NA
+ab9,AB9,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Ridge, Unknown",7,AB9,NA,AB9,AB9,AB9,AB9,AB9,AB9,AB9
+abt 14p,ABT 14P,"datasheets, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",5,ABT 14P,ABT14P,ABT 14P,NA,NA,ABT 14P,ABT 14P,ABT14P,ABT14P
+bb1,BB1,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",7,BB1,NA,BB1,BB1,BB1,BB1,BB1,BB1,BB1
+bb10,BB10,"trees_dbh, labels, soil_data, ddpcr_data, datasheets, flux_temp, flux_dimensions","Ridge, Unknown",7,BB10,NA,BB10,BB10,BB10,BB10,BB10,BB10,BB10
+bb10',BB10',"trees_dbh, labels, soil_data, ddpcr_data, datasheets, flux_temp, flux_dimensions","Ridge, Unknown",7,BB10',BB10prime,BB10prime,BB10',BB10',BB10prime,BB10prime,BB10',BB10'
+bb11,BB11,"trees_dbh, labels, soil_data, ddpcr_data, datasheets, flux_temp, flux_dimensions","Ridge, Unknown",7,BB11,NA,BB11,BB11,BB11,BB11,BB11,BB11,BB11
+bb12,BB12,"trees_dbh, labels, soil_data, ddpcr_data, datasheets, flux_temp, flux_dimensions","Ridge, Unknown",7,BB12,NA,BB12,BB12,BB12,BB12,BB12,BB12,BB12
+bb13,BB13,"trees_dbh, labels, soil_data, ddpcr_data, datasheets, flux_temp, flux_dimensions","Ridge, Unknown",7,BB13,NA,BB13,BB13,BB13,BB13,BB13,BB13,BB13
+bb14,BB14,"trees_dbh, labels, soil_data, ddpcr_data, datasheets, flux_temp, flux_dimensions","Ridge, Unknown",7,BB14,NA,BB14,BB14,BB14,BB14,BB14,BB14,BB14
+bb16,BB16,"trees_dbh, labels, soil_data, ddpcr_data, datasheets, flux_temp, flux_dimensions","Ridge, Unknown",7,BB16,NA,BB16,BB16,BB16,BB16,BB16,BB16,BB16
+bb16',BB16',"trees_dbh, labels, soil_data, ddpcr_data, datasheets, flux_temp, flux_dimensions","Ridge, Unknown",7,BB16',BB16prime,BB16prime,BB16',BB16',BB16prime,BB16prime,BB16',BB16'
+bb2,BB2,"trees_dbh, labels",Lowland,2,BB2,NA,NA,BB2,BB2,NA,NA,NA,NA
+bb3,BB3,"datasheets, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",5,BB3,NA,BB3,NA,NA,BB3,BB3,BB3,BB3
+bb4,BB4,"trees_dbh, labels",Lowland,2,BB4,NA,NA,BB4,BB4,NA,NA,NA,NA
+bb5,BB5,"trees_dbh, labels, soil_data, ddpcr_data, datasheets, flux_temp, flux_dimensions","Ridge, Unknown",7,BB5,NA,BB5,BB5,BB5,BB5,BB5,BB5,BB5
+bb6,BB6,"trees_dbh, labels, soil_data, ddpcr_data, datasheets, flux_temp, flux_dimensions","Ridge, Unknown",7,BB6,NA,BB6,BB6,BB6,BB6,BB6,BB6,BB6
+bb7,BB7,"trees_dbh, labels, soil_data, ddpcr_data, datasheets, flux_temp, flux_dimensions","Ridge, Unknown",7,BB7,NA,BB7,BB7,BB7,BB7,BB7,BB7,BB7
+bb8,BB8,"trees_dbh, labels, soil_data, ddpcr_data, datasheets, flux_temp, flux_dimensions","Ridge, Unknown",7,BB8,NA,BB8,BB8,BB8,BB8,BB8,BB8,BB8
+bb9,BB9,"trees_dbh, labels, soil_data, ddpcr_data, datasheets, flux_temp, flux_dimensions","Ridge, Unknown",7,BB9,NA,BB9,BB9,BB9,BB9,BB9,BB9,BB9
+bbgt1,BBGT1,"soil_data, ddpcr_data, datasheets, flux_temp, flux_dimensions","Unknown, Lab",5,BBGT1,NA,BBGT1,NA,NA,BBGT1,BBGT1,BBGT1,BBGT1
+bbx1,BBX1,"trees_dbh, labels, soil_data, ddpcr_data, datasheets, flux_temp, flux_dimensions","Lab, Unknown",7,BBX1,NA,BBX1,BBX1,BBX1,BBX1,BBX1,BBX1,BBX1
+bbx2,BBX2,"trees_dbh, labels",Lab,2,BBX2,NA,NA,BBX2,BBX2,NA,NA,NA,NA
+bbx3,BBX3,"trees_dbh, labels",Lab,2,BBX3,NA,NA,BBX3,BBX3,NA,NA,NA,NA
+bbx4,BBX4,"trees_dbh, labels",Lab,2,BBX4,NA,NA,BBX4,BBX4,NA,NA,NA,NA
+bbx6,BBX6,"trees_dbh, labels, soil_data, ddpcr_data, datasheets, flux_temp, flux_dimensions","Lab, Unknown",7,BBX6,NA,BBX6,BBX6,BBX6,BBX6,BBX6,BBX6,BBX6
+bbx7,BBX7,"trees_dbh, labels, soil_data, ddpcr_data, datasheets, flux_temp, flux_dimensions","Lab, Unknown",7,BBX7,NA,BBX7,BBX7,BBX7,BBX7,BBX7,BBX7,BBX7
+bbz1,BBZ1,"datasheets, flux_temp, flux_dimensions",Lab,3,BBZ1,NA,BBZ1,NA,NA,BBZ1,BBZ1,NA,NA
+bc1,BC1,"trees_dbh, labels, soil_data, ddpcr_data, datasheets, flux_dimensions","Lowland, Unknown",6,BC1,NA,BC1,BC1,BC1,NA,BC1,BC1,BC1
+bc2,BC2,"trees_dbh, labels, soil_data, ddpcr_data, datasheets, flux_temp, flux_dimensions","Ridge, Unknown, Lowland, NA",7,BC2,NA,BC2,BC2,BC2,BC2,BC2,BC2,BC2
+bc4,BC4,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, NA, Unknown",7,BC4,NA,BC4,BC4,BC4,BC4,BC4,BC4,BC4
+bc5,BC5,"trees_dbh, labels",Lowland,2,BC5,NA,NA,BC5,BC5,NA,NA,NA,NA
+bo1,BO1,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",7,BO1,NA,BO1,BO1,BO1,BO1,BO1,BO1,BO1
+bo2,BO2,"trees_dbh, labels",Lowland,2,BO2,NA,NA,BO2,BO2,NA,NA,NA,NA
+bo3,BO3,"trees_dbh, labels",Lowland,2,BO3,NA,NA,BO3,BO3,NA,NA,NA,NA
+bowser,Bowser dead red oak,"datasheets, flux_temp, flux_dimensions, ddpcr_data","Ridge, Unknown",4,Bowser dead red oak,BOWSER,Bowser dead red oak,NA,NA,Bowser dead red oak,Bowser dead red oak,NA,BOWSER
+cul8r,YBCUL8R,"soil_data, ddpcr_data",Unknown,2,YBCUL8R,CUL8R,NA,NA,NA,NA,NA,YBCUL8R,CUL8R
+h1,H1,"trees_dbh, labels",Lowland,2,H1,NA,NA,H1,H1,NA,NA,NA,NA
+h10,H10,"trees_dbh, labels",Lowland,2,H10,NA,NA,H10,H10,NA,NA,NA,NA
+h101,H101,"datasheets, flux_temp, flux_dimensions, soil_data, ddpcr_data","Ridge, Unknown",5,H101,NA,H101,NA,NA,H101,H101,H101,H101
+h102,H102,"datasheets, flux_temp, flux_dimensions, soil_data, ddpcr_data","Ridge, Unknown",5,H102,NA,H102,NA,NA,H102,H102,H102,H102
+h103,H103,"datasheets, flux_temp, flux_dimensions, soil_data, ddpcr_data","Ridge, Unknown",5,H103,NA,H103,NA,NA,H103,H103,H103,H103
+h104,H104,"datasheets, flux_temp, flux_dimensions, soil_data, ddpcr_data","Ridge, Unknown",5,H104,NA,H104,NA,NA,H104,H104,H104,H104
+h11,H11,"trees_dbh, labels",Lowland,2,H11,NA,NA,H11,H11,NA,NA,NA,NA
+h12,H12,"trees_dbh, labels",Lowland,2,H12,NA,NA,H12,H12,NA,NA,NA,NA
+h12',H12',"trees_dbh, labels",Lowland,2,H12',NA,NA,H12',H12',NA,NA,NA,NA
+h14,H14,"trees_dbh, labels",Lowland,2,H14,NA,NA,H14,H14,NA,NA,NA,NA
+h15,H15,"trees_dbh, labels",Lowland,2,H15,NA,NA,H15,H15,NA,NA,NA,NA
+h2,H2,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",7,H2,NA,H2,H2,H2,H2,H2,H2,H2
+h3,H3,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",7,H3,NA,H3,H3,H3,H3,H3,H3,H3
+h301,H301,"datasheets, flux_temp, flux_dimensions, soil_data, ddpcr_data","Ridge, Unknown",5,H301,NA,H301,NA,NA,H301,H301,H301,H301
+h4,H4,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",7,H4,NA,H4,H4,H4,H4,H4,H4,H4
+h5,H5,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",7,H5,NA,H5,H5,H5,H5,H5,H5,H5
+h6,H6,"trees_dbh, labels",Lowland,2,H6,NA,NA,H6,H6,NA,NA,NA,NA
+h7,HM7,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions",Lowland,5,HM7,H7,HM7,H7,H7,HM7,HM7,NA,NA
+h8,H8,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",7,H8,NA,H8,H8,H8,H8,H8,H8,H8
+h9,H9,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",7,H9,NA,H9,H9,H9,H9,H9,H9,H9
+hx1,HX1,"trees_dbh, labels",Lab,2,HX1,NA,NA,HX1,HX1,NA,NA,NA,NA
+hx2,HX2,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lab, Unknown",7,HX2,NA,HX2,HX2,HX2,HX2,HX2,HX2,HX2
+hx3,HX3,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lab, Unknown",7,HX3,NA,HX3,HX3,HX3,HX3,HX3,HX3,HX3
+hx4,HX4,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lab, Unknown",7,HX4,NA,HX4,HX4,HX4,HX4,HX4,HX4,HX4
+hx5,HX5,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lab, Unknown",7,HX5,NA,HX5,HX5,HX5,HX5,HX5,HX5,HX5
+hx6,HX6,"trees_dbh, labels",Lab,2,HX6,NA,NA,HX6,HX6,NA,NA,NA,NA
+hz1,HZ1,"datasheets, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lab, Unknown",5,HZ1,Hz1,HZ1,NA,NA,HZ1,HZ1,Hz1,HZ1
+ml1,ML1,"datasheets, flux_temp, flux_dimensions, soil_data","Lowland, Unknown",4,ML1,NA,ML1,NA,NA,ML1,ML1,ML1,NA
+ml2,ML2,"datasheets, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",5,ML2,NA,ML2,NA,NA,ML2,ML2,ML2,ML2
+ml3,ML3,"datasheets, flux_temp, flux_dimensions, soil_data","Lowland, Unknown",4,ML3,NA,ML3,NA,NA,ML3,ML3,ML3,NA
+mlgp,MLGP,"datasheets, flux_dimensions, soil_data, ddpcr_data","Ridge, Unknown",4,MLGP,NA,MLGP,NA,NA,NA,MLGP,MLGP,MLGP
+pb1,PB1,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",7,PB1,NA,PB1,PB1,PB1,PB1,PB1,PB1,PB1
+pb2,PB2,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",7,PB2,NA,PB2,PB2,PB2,PB2,PB2,PB2,PB2
+pb3,PB3,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",7,PB3,NA,PB3,PB3,PB3,PB3,PB3,PB3,PB3
+pb4,PB4,"trees_dbh, labels, soil_data, ddpcr_data, datasheets, flux_temp, flux_dimensions","Lowland, Unknown",10,PB4,PB4?,PB4 | PB4?,PB4,PB4,PB4 | PB4?,PB4 | PB4?,PB4,PB4
+pb5,PB5,"trees_dbh, labels, soil_data, ddpcr_data","Lowland, Unknown",4,PB5,NA,NA,PB5,PB5,NA,NA,PB5,PB5
+pb501,OB501,"datasheets, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",5,OB501,PB501,OB501,NA,NA,OB501,OB501,PB501,PB501
+rm1,RM1,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",7,RM1,NA,RM1,RM1,RM1,RM1,RM1,RM1,RM1
+rm10,RM10,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",7,RM10,NA,RM10,RM10,RM10,RM10,RM10,RM10,RM10
+rm105,RM105,"datasheets, flux_temp, flux_dimensions",Ridge,3,RM105,NA,RM105,NA,NA,RM105,RM105,NA,NA
+rm11,RM11,"trees_dbh, labels",Lowland,2,RM11,NA,NA,RM11,RM11,NA,NA,NA,NA
+rm12,RM12,"trees_dbh, labels",Lowland,2,RM12,NA,NA,RM12,RM12,NA,NA,NA,NA
+rm13,RM13,"trees_dbh, labels",Lowland,2,RM13,NA,NA,RM13,RM13,NA,NA,NA,NA
+rm14,RM14,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",7,RM14,NA,RM14,RM14,RM14,RM14,RM14,RM14,RM14
+rm16,RM16,"trees_dbh, labels",Lowland,2,RM16,NA,NA,RM16,RM16,NA,NA,NA,NA
+rm2,RM2,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",7,RM2,NA,RM2,RM2,RM2,RM2,RM2,RM2,RM2
+rm3,RM3,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",7,RM3,NA,RM3,RM3,RM3,RM3,RM3,RM3,RM3
+rm301,RM301,"datasheets, flux_temp, flux_dimensions, soil_data","Ridge, Unknown",4,RM301,NA,RM301,NA,NA,RM301,RM301,RM301,NA
+rm301a,RM301A,ddpcr_data,Unknown,1,RM301A,NA,NA,NA,NA,NA,NA,NA,RM301A
+rm301b,RM301B,ddpcr_data,Unknown,1,RM301B,NA,NA,NA,NA,NA,NA,NA,RM301B
+rm302,RM302,"datasheets, flux_temp, flux_dimensions, soil_data, ddpcr_data","Ridge, Unknown",5,RM302,NA,RM302,NA,NA,RM302,RM302,RM302,RM302
+rm303,RM303,"datasheets, flux_temp, flux_dimensions, soil_data, ddpcr_data","Ridge, Unknown",5,RM303,NA,RM303,NA,NA,RM303,RM303,RM303,RM303
+rm304,RM304,"datasheets, flux_temp, flux_dimensions, soil_data, ddpcr_data","Ridge, Unknown",5,RM304,NA,RM304,NA,NA,RM304,RM304,RM304,RM304
+rm4,RM4,"datasheets, trees_dbh, labels, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",6,RM4,NA,RM4,RM4,RM4,NA,RM4,RM4,RM4
+rm5,RM5,"trees_dbh, labels, soil_data, ddpcr_data, datasheets, flux_dimensions","Lowland, Unknown",6,RM5,NA,RM5,RM5,RM5,NA,RM5,RM5,RM5
+rm501,RM501,"datasheets, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",5,RM501,NA,RM501,NA,NA,RM501,RM501,RM501,RM501
+rm502,RM502,"datasheets, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",5,RM502,NA,RM502,NA,NA,RM502,RM502,RM502,RM502
+rm503,RM503,"datasheets, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",5,RM503,NA,RM503,NA,NA,RM503,RM503,RM503,RM503
+rm6,RM6,"trees_dbh, labels",Lowland,2,RM6,NA,NA,RM6,RM6,NA,NA,NA,NA
+rm7,RM7,"trees_dbh, labels",Lowland,2,RM7,NA,NA,RM7,RM7,NA,NA,NA,NA
+rm8,RM8,"trees_dbh, labels",Lowland,2,RM8,NA,NA,RM8,RM8,NA,NA,NA,NA
+rm9,RM9,"trees_dbh, labels",Lowland,2,RM9,NA,NA,RM9,RM9,NA,NA,NA,NA
+rms1,RMS1,"soil_data, ddpcr_data",Unknown,2,RMS1,NA,NA,NA,NA,NA,NA,RMS1,RMS1
+rms1 stem,RMS1 (STEM),"datasheets, flux_temp, flux_dimensions","Lowland, NA",3,RMS1 (STEM),NA,RMS1 (STEM),NA,NA,RMS1 (STEM),RMS1 (STEM),NA,NA
+ro1,RO1,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",7,RO1,NA,RO1,RO1,RO1,RO1,RO1,RO1,RO1
+ro10,RO10,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",7,RO10,NA,RO10,RO10,RO10,RO10,RO10,RO10,RO10
+ro101,RO101,"datasheets, flux_temp, flux_dimensions, soil_data, ddpcr_data","Ridge, Unknown",5,RO101,NA,RO101,NA,NA,RO101,RO101,RO101,RO101
+ro102,RO102,"datasheets, flux_temp, flux_dimensions, soil_data, ddpcr_data","Ridge, Unknown",5,RO102,NA,RO102,NA,NA,RO102,RO102,RO102,RO102
+ro103,RO103,"datasheets, flux_temp, flux_dimensions, soil_data, ddpcr_data","Ridge, Unknown",5,RO103,NA,RO103,NA,NA,RO103,RO103,RO103,RO103
+ro104,RO104,"datasheets, flux_temp, flux_dimensions, soil_data, ddpcr_data","Ridge, Unknown",5,RO104,NA,RO104,NA,NA,RO104,RO104,RO104,RO104
+ro105,RO105,"soil_data, ddpcr_data",Unknown,2,RO105,NA,NA,NA,NA,NA,NA,RO105,RO105
+ro11,RO11,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",7,RO11,NA,RO11,RO11,RO11,RO11,RO11,RO11,RO11
+ro12,RO12,"trees_dbh, labels",Lowland,2,RO12,NA,NA,RO12,RO12,NA,NA,NA,NA
+ro13,RO13,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",7,RO13,NA,RO13,RO13,RO13,RO13,RO13,RO13,RO13
+ro14,RO14,"trees_dbh, labels",Lowland,2,RO14,NA,NA,RO14,RO14,NA,NA,NA,NA
+ro15,RO15,"trees_dbh, labels",Lowland,2,RO15,NA,NA,RO15,RO15,NA,NA,NA,NA
+ro16,RO16,"trees_dbh, labels",Lowland,2,RO16,NA,NA,RO16,RO16,NA,NA,NA,NA
+ro17,RO17,"trees_dbh, labels",Ridge,2,RO17,NA,NA,RO17,RO17,NA,NA,NA,NA
+ro18,RO18,"trees_dbh, labels",Ridge,2,RO18,NA,NA,RO18,RO18,NA,NA,NA,NA
+ro2,RO2,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",7,RO2,NA,RO2,RO2,RO2,RO2,RO2,RO2,RO2
+ro3,RO3,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",7,RO3,NA,RO3,RO3,RO3,RO3,RO3,RO3,RO3
+ro4,RO4,"trees_dbh, labels",Lowland,2,RO4,NA,NA,RO4,RO4,NA,NA,NA,NA
+ro5,RO5,"trees_dbh, labels",Lowland,2,RO5,NA,NA,RO5,RO5,NA,NA,NA,NA
+ro6,RO6,"trees_dbh, labels",Lowland,2,RO6,NA,NA,RO6,RO6,NA,NA,NA,NA
+ro7,RO7,"trees_dbh, labels, soil_data, ddpcr_data, datasheets, flux_temp, flux_dimensions","Lowland, Unknown",7,RO7,NA,RO7,RO7,RO7,RO7,RO7,RO7,RO7
+ro8,RO8,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",7,RO8,NA,RO8,RO8,RO8,RO8,RO8,RO8,RO8
+ro9,RO9,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",7,RO9,NA,RO9,RO9,RO9,RO9,RO9,RO9,RO9
+sf1,SF1,"datasheets, flux_temp, flux_dimensions, ddpcr_data","Lab, Unknown",4,SF1,SA1,SF1,NA,NA,SF1,SF1,NA,SA1
+sh1,SH1,"datasheets, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lab, Unknown",5,SH1,NA,SH1,NA,NA,SH1,SH1,SH1,SH1
+sm1,SM1,"trees_dbh, labels, soil_data, ddpcr_data, datasheets, flux_dimensions","Lab, Unknown",6,SM1,NA,SM1,SM1,SM1,NA,SM1,SM1,SM1
+sm10,SM10,"trees_dbh, labels, soil_data, ddpcr_data, datasheets, flux_dimensions","Lab, Unknown",6,SM10,NA,SM10,SM10,SM10,NA,SM10,SM10,SM10
+sm11,SM11,"trees_dbh, labels, soil_data, ddpcr_data, datasheets, flux_temp, flux_dimensions","Lab, Unknown",7,SM11,NA,SM11,SM11,SM11,SM11,SM11,SM11,SM11
+sm12,SM12,"trees_dbh, labels, soil_data, ddpcr_data, datasheets, flux_temp, flux_dimensions","Lab, Unknown",7,SM12,NA,SM12,SM12,SM12,SM12,SM12,SM12,SM12
+sm13,SM13,"trees_dbh, labels, soil_data, ddpcr_data, datasheets, flux_temp, flux_dimensions","Lab, Unknown",7,SM13,NA,SM13,SM13,SM13,SM13,SM13,SM13,SM13
+sm14,SM14,"trees_dbh, labels, soil_data, ddpcr_data, datasheets, flux_temp, flux_dimensions","Lab, Unknown",7,SM14,NA,SM14,SM14,SM14,SM14,SM14,SM14,SM14
+sm15,SM15,"trees_dbh, labels, soil_data, ddpcr_data, datasheets, flux_temp, flux_dimensions","Lab, Unknown",7,SM15,NA,SM15,SM15,SM15,SM15,SM15,SM15,SM15
+sm2,SM2,"trees_dbh, labels, soil_data, ddpcr_data, datasheets, flux_dimensions","Lab, Unknown",6,SM2,NA,SM2,SM2,SM2,NA,SM2,SM2,SM2
+sm3,SM3,"trees_dbh, labels, soil_data, ddpcr_data, datasheets, flux_dimensions","Lab, Unknown",6,SM3,NA,SM3,SM3,SM3,NA,SM3,SM3,SM3
+sm4,SM4,"trees_dbh, labels, soil_data, datasheets, flux_dimensions","Lab, Unknown",5,SM4,NA,SM4,SM4,SM4,NA,SM4,SM4,NA
+sm5,SM5,"trees_dbh, labels, soil_data, ddpcr_data, datasheets, flux_dimensions","Lab, Unknown",6,SM5,NA,SM5,SM5,SM5,NA,SM5,SM5,SM5
+sm6,SM6,"trees_dbh, labels, soil_data, ddpcr_data, datasheets, flux_dimensions","Lab, Unknown",6,SM6,NA,SM6,SM6,SM6,NA,SM6,SM6,SM6
+sm7,SM7,"trees_dbh, labels, soil_data, ddpcr_data, datasheets, flux_dimensions","Lab, Unknown",6,SM7,NA,SM7,SM7,SM7,NA,SM7,SM7,SM7
+sm8,SM8,"trees_dbh, labels, soil_data, ddpcr_data, datasheets, flux_dimensions","Lab, Unknown",6,SM8,NA,SM8,SM8,SM8,NA,SM8,SM8,SM8
+sm9,SM9,"trees_dbh, labels, soil_data, ddpcr_data, datasheets, flux_dimensions","Lab, Unknown",6,SM9,NA,SM9,SM9,SM9,NA,SM9,SM9,SM9
+smr1,SMR1,"trees_dbh, labels",Ridge,2,SMR1,NA,NA,SMR1,SMR1,NA,NA,NA,NA
+untagged,Untagged,"trees_dbh, labels","Lowland, Ridge",4,Untagged,NA,NA,Untagged,Untagged,NA,NA,NA,NA
+wa1,WA1,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, ddpcr_data","Lab, Unknown",6,WA1,NA,WA1,WA1,WA1,WA1,WA1,NA,WA1
+wa10,WA10,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lab, Unknown",7,WA10,NA,WA10,WA10,WA10,WA10,WA10,WA10,WA10
+wa101,WA101,"datasheets, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lab, Unknown",5,WA101,NA,WA101,NA,NA,WA101,WA101,WA101,WA101
+wa102,WA102,"datasheets, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lab, Unknown",5,WA102,NA,WA102,NA,NA,WA102,WA102,WA102,WA102
+wa103,WA103,"datasheets, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lab, Unknown",5,WA103,NA,WA103,NA,NA,WA103,WA103,WA103,WA103
+wa104,WA104,"datasheets, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lab, Unknown",5,WA104,NA,WA104,NA,NA,WA104,WA104,WA104,WA104
+wa105,WA105,"datasheets, flux_temp, flux_dimensions, soil_data","Lab, Unknown",4,WA105,NA,WA105,NA,NA,WA105,WA105,WA105,NA
+wa11,WA11,"trees_dbh, labels",Lab,2,WA11,NA,NA,WA11,WA11,NA,NA,NA,NA
+wa12,WA12,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lab, Unknown",7,WA12,NA,WA12,WA12,WA12,WA12,WA12,WA12,WA12
+wa13,WA13,"trees_dbh, labels",Lab,2,WA13,NA,NA,WA13,WA13,NA,NA,NA,NA
+wa14,WA14,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, ddpcr_data","Lab, Unknown",6,WA14,NA,WA14,WA14,WA14,WA14,WA14,NA,WA14
+wa14/1/xv,WA14/1/XV,soil_data,Unknown,1,WA14/1/XV,NA,NA,NA,NA,NA,NA,WA14/1/XV,NA
+wa15,WA15,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lab, Unknown",7,WA15,NA,WA15,WA15,WA15,WA15,WA15,WA15,WA15
+wa2,WA2,"trees_dbh, labels",Lab,2,WA2,NA,NA,WA2,WA2,NA,NA,NA,NA
+wa3,WA3,"trees_dbh, labels",Lab,2,WA3,NA,NA,WA3,WA3,NA,NA,NA,NA
+wa4,WA4,"trees_dbh, labels",Lab,2,WA4,NA,NA,WA4,WA4,NA,NA,NA,NA
+wa5,WA5,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lab, Unknown",7,WA5,NA,WA5,WA5,WA5,WA5,WA5,WA5,WA5
+wa6,WA6,"trees_dbh, labels",Lab,2,WA6,NA,NA,WA6,WA6,NA,NA,NA,NA
+wa7,WA7,"trees_dbh, labels",Lab,2,WA7,NA,NA,WA7,WA7,NA,NA,NA,NA
+wa8,WA8,"trees_dbh, labels",Lab,2,WA8,NA,NA,WA8,WA8,NA,NA,NA,NA
+wa9,WA9,"trees_dbh, labels",Lab,2,WA9,NA,NA,WA9,WA9,NA,NA,NA,NA
+wax1,WAX1,"datasheets, flux_temp, flux_dimensions, ddpcr_data","Lab, Unknown",4,WAX1,NA,WAX1,NA,NA,WAX1,WAX1,NA,WAX1
+wo1,WO1,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",7,WO1,NA,WO1,WO1,WO1,WO1,WO1,WO1,WO1
+wo2,WO2,"trees_dbh, labels",Lowland,2,WO2,NA,NA,WO2,WO2,NA,NA,NA,NA
+wp bernice,WP Bernice?,"datasheets, flux_temp, flux_dimensions, soil_data","Lab, Unknown",4,WP Bernice?,WPBERNICE,WP Bernice?,NA,NA,WP Bernice?,WP Bernice?,WPBERNICE,NA
+wp06,WP06,soil_data,Unknown,1,WP06,NA,NA,NA,NA,NA,NA,WP06,NA
+wp08,WP08,soil_data,Unknown,1,WP08,NA,NA,NA,NA,NA,NA,WP08,NA
+wp1,WP1,"trees_dbh, labels",Lowland,2,WP1,NA,NA,WP1,WP1,NA,NA,NA,NA
+wp10,WP10,"trees_dbh, labels",Lowland,2,WP10,NA,NA,WP10,WP10,NA,NA,NA,NA
+wp101,WP101,"datasheets, flux_temp, flux_dimensions, soil_data, ddpcr_data","Ridge, Unknown",5,WP101,NA,WP101,NA,NA,WP101,WP101,WP101,WP101
+wp102,WP102,"datasheets, flux_temp, flux_dimensions, soil_data, ddpcr_data","Ridge, Unknown",5,WP102,NA,WP102,NA,NA,WP102,WP102,WP102,WP102
+wp103,WP103,"datasheets, flux_temp, flux_dimensions, soil_data, ddpcr_data","Ridge, Unknown",5,WP103,NA,WP103,NA,NA,WP103,WP103,WP103,WP103
+wp11,WP11,"trees_dbh, labels",Lowland,2,WP11,NA,NA,WP11,WP11,NA,NA,NA,NA
+wp12,WP12,"trees_dbh, labels",Lowland,2,WP12,NA,NA,WP12,WP12,NA,NA,NA,NA
+wp13,WP13,"trees_dbh, labels",Lowland,2,WP13,NA,NA,WP13,WP13,NA,NA,NA,NA
+wp14,WP14,"trees_dbh, labels",Lowland,2,WP14,NA,NA,WP14,WP14,NA,NA,NA,NA
+wp2,WP2,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",7,WP2,NA,WP2,WP2,WP2,WP2,WP2,WP2,WP2
+wp3,WP3,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",7,WP3,NA,WP3,WP3,WP3,WP3,WP3,WP3,WP3
+wp4,WP4,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",7,WP4,NA,WP4,WP4,WP4,WP4,WP4,WP4,WP4
+wp401,WP401,"datasheets, flux_temp, flux_dimensions, soil_data, ddpcr_data","Ridge, Unknown",5,WP401,NA,WP401,NA,NA,WP401,WP401,WP401,WP401
+wp402,WP402,"datasheets, flux_temp, flux_dimensions, soil_data, ddpcr_data","Ridge, Unknown",5,WP402,NA,WP402,NA,NA,WP402,WP402,WP402,WP402
+wp403,WB403,"datasheets, flux_temp, flux_dimensions, soil_data, ddpcr_data","Ridge, Unknown",5,WB403,WP403,WB403,NA,NA,WB403,WB403,WP403,WP403
+wp5,WP5,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",7,WP5,NA,WP5,WP5,WP5,WP5,WP5,WP5,WP5
+wp6,WP6,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, ddpcr_data","Lowland, Unknown",6,WP6,NA,WP6,WP6,WP6,WP6,WP6,NA,WP6
+wp7,WP7,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",7,WP7,NA,WP7,WP7,WP7,WP7,WP7,WP7,WP7
+wp8,WP8,"datasheets, flux_temp, flux_dimensions, ddpcr_data","Lowland, Unknown",4,WP8,NA,WP8,NA,NA,WP8,WP8,NA,WP8
+wp9,WP9,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",7,WP9,NA,WP9,WP9,WP9,WP9,WP9,WP9,WP9
+wpbernice,WPBERENICE,ddpcr_data,Unknown,1,WPBERENICE,NA,NA,NA,NA,NA,NA,NA,WPBERENICE
+wpx1,WPX1,"trees_dbh, labels",Lab,2,WPX1,NA,NA,WPX1,WPX1,NA,NA,NA,NA
+wpx2,WPX2,"trees_dbh, labels, soil_data, ddpcr_data, datasheets, flux_temp, flux_dimensions","Lab, Unknown",7,WPX2,NA,WPX2,WPX2,WPX2,WPX2,WPX2,WPX2,WPX2
+wpx22,WPX22,"soil_data, ddpcr_data, datasheets, flux_temp, flux_dimensions","Unknown, Lab",5,WPX22,NA,WPX22,NA,NA,WPX22,WPX22,WPX22,WPX22
+wpx3,WPX3,"trees_dbh, labels",Lab,2,WPX3,NA,NA,WPX3,WPX3,NA,NA,NA,NA
+wpx4,WPX4,"trees_dbh, labels",Lab,2,WPX4,NA,NA,WPX4,WPX4,NA,NA,NA,NA
+wpx5,WPX5,"trees_dbh, labels, soil_data, ddpcr_data, datasheets, flux_temp, flux_dimensions","Lab, Unknown",7,WPX5,NA,WPX5,WPX5,WPX5,WPX5,WPX5,WPX5,WPX5
+wpx6,WPX6,"trees_dbh, labels",Lab,2,WPX6,NA,NA,WPX6,WPX6,NA,NA,NA,NA
+wpx7,WPX7,"soil_data, ddpcr_data, datasheets, flux_temp, flux_dimensions","Unknown, Lab",5,WPX7,NA,WPX7,NA,NA,WPX7,WPX7,WPX7,WPX7
+yb cul8r,YB CUL8R,"datasheets, flux_temp, flux_dimensions",Lowland,3,YB CUL8R,NA,YB CUL8R,NA,NA,YB CUL8R,YB CUL8R,NA,NA
+yb1,YB1,"trees_dbh, labels",Lowland,2,YB1,NA,NA,YB1,YB1,NA,NA,NA,NA
+yb10,YB10,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",7,YB10,NA,YB10,YB10,YB10,YB10,YB10,YB10,YB10
+yb11,YB11,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",7,YB11,NA,YB11,YB11,YB11,YB11,YB11,YB11,YB11
+yb11',YB11prime,"datasheets, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",5,YB11prime,YB11',YB11prime,NA,NA,YB11prime,YB11prime,YB11',YB11'
+yb12,YB12,"datasheets, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, NA, Unknown",5,YB12,NA,YB12,NA,NA,YB12,YB12,YB12,YB12
+yb13,YB13,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, NA, Unknown",7,YB13,NA,YB13,YB13,YB13,YB13,YB13,YB13,YB13
+yb14,YB14,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",7,YB14,NA,YB14,YB14,YB14,YB14,YB14,YB14,YB14
+yb15,YB15,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",7,YB15,NA,YB15,YB15,YB15,YB15,YB15,YB15,YB15
+yb16,YB16,"trees_dbh, labels",Lowland,2,YB16,NA,NA,YB16,YB16,NA,NA,NA,NA
+yb2,YB2,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",7,YB2,NA,YB2,YB2,YB2,YB2,YB2,YB2,YB2
+yb3,YB3,"trees_dbh, labels, soil_data, ddpcr_data, datasheets, flux_temp, flux_dimensions","Lowland, Unknown",7,YB3,NA,YB3,YB3,YB3,YB3,YB3,YB3,YB3
+yb4,YB4,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, NA, Unknown",7,YB4,NA,YB4,YB4,YB4,YB4,YB4,YB4,YB4
+yb5,YB5,"trees_dbh, labels, soil_data, ddpcr_data, datasheets, flux_temp, flux_dimensions","Lowland, Unknown, NA",7,YB5,NA,YB5,YB5,YB5,YB5,YB5,YB5,YB5
+yb6,YB6,"trees_dbh, labels",Lowland,2,YB6,NA,NA,YB6,YB6,NA,NA,NA,NA
+yb7,YB7,"trees_dbh, labels",Lowland,2,YB7,NA,NA,YB7,YB7,NA,NA,NA,NA
+yb8,YB8,"trees_dbh, labels",Lowland,2,YB8,NA,NA,YB8,YB8,NA,NA,NA,NA
+yb9,YB9,"datasheets, trees_dbh, labels, flux_temp, flux_dimensions, soil_data, ddpcr_data","Lowland, Unknown",7,YB9,NA,YB9,YB9,YB9,YB9,YB9,YB9,YB9
+ybx1,YBX1,"trees_dbh, labels",Lab,2,YBX1,NA,NA,YBX1,YBX1,NA,NA,NA,NA
+ybyb,YBYB,"soil_data, ddpcr_data, datasheets, flux_temp, flux_dimensions","Unknown, Lowland",5,YBYB,NA,YBYB,NA,NA,YBYB,YBYB,YBYB,YBYB
