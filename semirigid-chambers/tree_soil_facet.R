@@ -483,6 +483,10 @@ faceted_ch4_plot_same_axis <- ggplot() +
     panel.grid.minor = element_blank(),
     panel.border = element_rect(color = "grey80", fill = NA, size = 0.5)
   ) +
+  # Add lines connecting the mean points
+  geom_line(data = combined_facet_data_clean,
+            aes(x = Date_interval, y = mean_flux, color = Data_Type, group = Data_Type),
+            size = .8, alpha = 0.3) +
   scale_x_date(date_labels = "%b %Y", date_breaks = "3 months") +
   # Use pseudo-log transformation with custom breaks
   scale_y_continuous(
