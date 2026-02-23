@@ -676,3 +676,7 @@ core_grid <- ((p1 | p2 | p3) / p4) +
 final_plot <- cowplot::plot_grid(core_grid, legend_grob, ncol = 2, rel_widths = c(1, 0.22))
 
 print(final_plot)
+
+# Save combined internal gas figure
+ggsave("../../outputs/figures/supplementary/figS4S5_internal_gas_profiles.png",
+       final_plot, width = 16, height = 10, dpi = 300)

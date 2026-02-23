@@ -411,9 +411,8 @@ final_plot <- plot_grid(
 # Display the final combined plot
 print(final_plot)
 
-# Optional: Save the plot
-# ggsave("combined_three_panel_plot.png", final_plot, width = 16, height = 12, dpi = 300)
-
+# Save the plot
+ggsave("../../outputs/figures/main/fig1_temporal_flux_timeseries.png", final_plot, width = 16, height = 12, dpi = 300)
 
 # ===== CALCULATE STATISTICS FOR FIGURE CAPTION =====
 

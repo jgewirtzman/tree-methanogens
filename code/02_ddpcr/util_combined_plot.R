@@ -25,6 +25,10 @@ combined_plot <- plot_grid(barplot_improved, scatterplot, ncol = 2)
 
 print(combined_plot)
 
+# Save combined figure
+ggsave("../../outputs/figures/main/fig4_methanogen_methanotroph_abundance.png",
+       combined_plot, width = 18, height = 8, dpi = 300)
+
 
 
 # ===== EXTRACT STATISTICS FOR METHANOGEN QUANTIFICATION SECTION =====
