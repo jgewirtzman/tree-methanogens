@@ -728,6 +728,23 @@ cat("\nSoilRF trained:\n")
 cat("  OOB R²:", round(SoilRF$r.squared, 3), "\n")
 cat("  OOB RMSE (asinh):", round(sqrt(SoilRF$prediction.error), 4), "\n\n")
 
+## Save training data + feature matrices early (before QC, which may error)
+## Add predictions to tree_train_complete for downstream plotting
+tree_train_complete$pred_asinh <- TreeRF$predictions
+tree_train_complete$pred_flux <- sinh(tree_train_complete$pred_asinh)
+tree_train_complete$pred_flux_nmol <- tree_train_complete$pred_flux * 1000
+tree_train_complete$obs_flux_nmol <- tree_train_complete$stem_flux_corrected * 1000
+
+## Add predictions to soil data
+soil_train_complete <- soil_train[complete_rows_soil, ]
+soil_train_complete$pred_asinh <- SoilRF$predictions
+soil_train_complete$pred_flux <- sinh(soil_train_complete$pred_asinh)
+
+save(tree_train_complete, X_tree, X_soil,
+     soil_train_complete, complete_rows_soil,
+     file = "../../outputs/models/TRAINING_DATA.RData")
+cat("  Saved training data to outputs/models/TRAINING_DATA.RData\n")
+
 # =============================================================================
 # GEOMETRY CALCULATIONS
 # =============================================================================
@@ -1645,6 +1662,4 @@ cat("  % negative (uptake):", round(100 * mean(soil_train_subset$obs_flux_nmol <
 
 cat("\n✓ Quality control plots saved\n")
 
-## Save training data for downstream scripts (08_rf_publication_plots.R)
-save(tree_train_complete, file = "outputs/models/TRAINING_DATA.RData")
-cat("  Saved tree_train_complete to outputs/models/TRAINING_DATA.RData\n")
+## (Training data already saved earlier, after model fitting)

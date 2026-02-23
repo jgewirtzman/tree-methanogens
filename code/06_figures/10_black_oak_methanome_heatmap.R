@@ -1,5 +1,5 @@
 # ==============================================================================
-# Black Oak Methanogen/Methanotroph Heatmap (Figure S12)
+# Black Oak Methanogen/Methanotroph Heatmap (Figure S12, renumbered)
 # ==============================================================================
 # Purpose: Creates a heatmap of methanogenic and methanotrophic taxa across
 #   tissue types in a felled black oak (QUVE), based on 16S rRNA amplicon
@@ -171,13 +171,18 @@ p_mt <- ggplot(heatmap_mt, aes(x = Media, y = Row_Label, fill = Abundance)) +
   scale_fill_viridis_c(option = "C", name = expression(log[10]~"(Abundance + 1)"))
 
 # Stack with heights proportional to row counts
-p_mg <- p_mg + theme(legend.position = "none")
+tag_theme <- theme(plot.tag = element_text(size = 11, face = "bold"))
+p_mg <- p_mg + theme(legend.position = "none") + tag_theme
+p_mt <- p_mt + tag_theme
 p_abs <- p_mg / p_mt +
-  plot_layout(heights = c(n_rows_mg, n_rows_mt))
+  plot_layout(heights = c(n_rows_mg, n_rows_mt)) +
+  plot_annotation(tag_levels = "a",
+                  tag_prefix = "(",
+                  tag_suffix = ")")
 
 print(p_abs)
 
-ggsave("outputs/figures/supplementary/figS10_black_oak_methanome.png",
+ggsave("outputs/figures/supplementary/figS12_black_oak_methanome.png",
        p_abs, width = 12, height = 8, dpi = 300)
 
 # ==============================================================================

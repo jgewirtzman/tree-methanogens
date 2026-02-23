@@ -25,10 +25,11 @@
 
 library(tidyverse)
 library(ggridges)
+library(ggtext)
 
-# y-axis label for δ13CH4
-# Note: ‰ (permil) not renderable in R plotmath; VPDB implies per mille
-d13_label <- expression(delta^{13}*CH[4]~"(VPDB)")
+# Axis label for δ13CH4 (‰ VPDB) using ggtext HTML markup
+# (plotmath cannot render the per-mil unicode glyph on PNG devices)
+d13_label <- "\u03B4<sup>13</sup>CH<sub>4</sub> (\u2030 VPDB)"
 
 # ==============================================================================
 # STEP 1: Load and combine Picarro data from Runs 2, 3, 4
@@ -155,9 +156,10 @@ pathway_labels <- function(x_pos) {
   )
 }
 
-# Shared theme
+# Shared theme (element_markdown for axis titles so ggtext HTML renders ‰)
 iso_theme <- theme_classic(base_size = 12) +
-  theme(axis.title = element_text(size = 13),
+  theme(axis.title.x = element_markdown(size = 13),
+        axis.title.y = element_markdown(size = 13),
         axis.text = element_text(size = 11))
 
 # ==============================================================================
@@ -232,7 +234,7 @@ p3 <- ggplot(iso_conc, aes(x = ch4_ppm, y = d13CH4)) +
   iso_theme +
   theme(legend.text = element_text(face = "italic", size = 9),
         legend.title = element_text(size = 10)) +
-  labs(x = expression(CH[4]~"(ppm)"),
+  labs(x = "CH<sub>4</sub> (ppm)",
        y = d13_label) +
   annotate("text", x = 10^(xrange[2] + 0.15), y = -85,
            label = "Hydrogenotrophic", size = 3, fontface = "italic",
@@ -310,6 +312,8 @@ p4 <- ggplot() +
            color = "gray30", linewidth = 0.6) +
   annotate("text", x = -60, y = by - 2*bs - 0.04, label = "Methylotrophic",
            color = "gray30", size = 3, fontface = "italic") +
+  # More x-axis breaks for readability
+  scale_x_continuous(breaks = seq(-120, 40, by = 20)) +
   # Zoom x-axis to show core data + pathway ranges; outliers beyond are clipped
   coord_cartesian(xlim = c(-125, 40), clip = "off") +
   iso_theme +
@@ -319,8 +323,8 @@ p4 <- ggplot() +
   labs(x = d13_label, y = NULL)
 
 print(p4)
-ggsave("outputs/figures/supplementary/figS11_d13ch4_rainfall.png",
-       p4, width = 10, height = 5, dpi = 300)
+ggsave("outputs/figures/supplementary/figS6_d13ch4_rainfall.png",
+       p4, width = 8, height = 8, dpi = 300)
 
 # ==============================================================================
 # FIGURE 5: Keeling plot — 1/[CH4] vs δ13CH4
@@ -392,7 +396,7 @@ p5 <- ggplot() +
   iso_theme +
   theme(legend.text = element_text(face = "italic", size = 9),
         legend.title = element_text(size = 10)) +
-  labs(x = expression(1/CH[4]~"(ppm"^{-1}*")"),
+  labs(x = "1/CH<sub>4</sub> (ppm<sup>\u22121</sup>)",
        y = d13_label)
 
 print(p5)

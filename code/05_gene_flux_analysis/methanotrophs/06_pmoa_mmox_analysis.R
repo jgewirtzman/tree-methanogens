@@ -1,5 +1,5 @@
 # ==============================================================================
-# pmoA/mmoX Ratio Analysis (Figure S8)
+# pmoA/mmoX Ratio Analysis (Figure S10)
 # ==============================================================================
 # Purpose: Analyzes pMMO:sMMO balance (pmoA:mmoX ratio) and produces a
 #   2-panel figure: (A) pmoA vs mmoX abundance, (B) ratio vs total abundance.
@@ -10,7 +10,7 @@
 #   - Metadata: data/raw/picrust/16S_tree_sample_table_with_meta.csv
 #
 # Outputs:
-#   - figS8_methanotroph_abundance_patterns.pdf
+#   - figS10_methanotroph_abundance_patterns.pdf
 #
 # Required packages: ggplot2, cowplot, gridExtra
 # ==============================================================================
@@ -361,7 +361,12 @@ combined = plot_grid(plots, legend, ncol = 1, rel_heights = c(1, 0.1))
 combined
 
 
+## Add panel labels
+library(patchwork)
+p1_labeled <- p1 + labs(tag = "(a)") + theme(plot.tag = element_text(size = 11, face = "bold"))
+p2_labeled <- p2 + labs(tag = "(b)") + theme(plot.tag = element_text(size = 11, face = "bold"))
+
 ## Save
-ggsave("outputs/figures/supplementary/figS8_methanotroph_abundance_patterns.pdf",
-       arrangeGrob(p1, p2, ncol = 2),
+ggsave("outputs/figures/supplementary/figS10_methanotroph_abundance_patterns.pdf",
+       arrangeGrob(p1_labeled, p2_labeled, ncol = 2),
        width = 11, height = 5)

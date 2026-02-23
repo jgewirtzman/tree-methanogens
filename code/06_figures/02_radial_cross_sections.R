@@ -255,7 +255,7 @@ p_main <- ggplot(all_cloud, aes(x = x, y = y, fill = Clog)) +
   geom_circle(
     data = all_cloud %>% distinct(species_label, tree_rank, R),
     aes(x0 = 0, y0 = 0, r = R),
-    inherit.aes = FALSE, color = "black", size = 0.3
+    inherit.aes = FALSE, color = "black", linewidth = 0.3
   ) +
   facet_grid(species_label ~ tree_rank, switch = "both") +
   coord_equal() +
@@ -357,7 +357,7 @@ p_main <- ggplot(all_cloud, aes(x = x, y = y, fill = Clog)) +
   geom_circle(
     data = all_cloud %>% distinct(species_label, tree_rank, R),
     aes(x0 = 0, y0 = 0, r = R),
-    inherit.aes = FALSE, color = "black", size = 0.2  # Thinner borders
+    inherit.aes = FALSE, color = "black", linewidth = 0.2  # Thinner borders
   ) +
   facet_grid(species_label ~ tree_rank, switch = "both") +
   coord_equal() +
@@ -393,7 +393,7 @@ print(p_main)
 
 # Optional: If you want even more compression, save with adjusted dimensions
 # This creates a wider, shorter plot that emphasizes the grid layout
-ggsave("outputs/figures/supplementary/figS7_tree_radial_sections.pdf",
+ggsave("outputs/figures/supplementary/figS9_tree_radial_sections.pdf",
        p_main,
        width = 12,
        height = 5.1,
@@ -411,7 +411,7 @@ p_main <- ggplot(all_cloud, aes(x = x, y = y, fill = Clog)) +
   geom_circle(
     data = all_cloud %>% distinct(species_label, tree_rank, R),
     aes(x0 = 0, y0 = 0, r = R),
-    inherit.aes = FALSE, color = "black", size = 0.2  # Thinner borders
+    inherit.aes = FALSE, color = "black", linewidth = 0.2  # Thinner borders
   ) +
   facet_grid(species_label ~ tree_rank, switch = "both") +
   coord_equal() +
@@ -435,7 +435,7 @@ p_main <- ggplot(all_cloud, aes(x = x, y = y, fill = Clog)) +
     strip.background = element_rect(fill = NA, color = NA),  # Remove strip backgrounds
     legend.position = c(0.98, 0.98),  # Top right corner
     legend.justification = c("right", "top"),  # Anchor to top-right
-    legend.background = element_rect(fill = "white", color = "black", size = 0.3),  # White background with border
+    legend.background = element_rect(fill = "white", color = "black", linewidth = 0.3),  # White background with border
     legend.margin = margin(2, 2, 2, 2),  # Small margin inside legend box
     legend.box.margin = margin(0, 0, 0, 0),  # No extra margin around legend
     # Key adjustment: small positive spacing to avoid cutoff
@@ -457,7 +457,7 @@ p_main <- ggplot(all_cloud, aes(x = x, y = y, fill = Clog)) +
   geom_circle(
     data = all_cloud %>% distinct(species_label, tree_rank, R),
     aes(x0 = 0, y0 = 0, r = R),
-    inherit.aes = FALSE, color = "black", size = 0.2  # Thinner borders
+    inherit.aes = FALSE, color = "black", linewidth = 0.2  # Thinner borders
   ) +
   facet_grid(species_label ~ tree_rank, switch = "both") +
   coord_equal() +
@@ -478,7 +478,7 @@ p_main <- ggplot(all_cloud, aes(x = x, y = y, fill = Clog)) +
     strip.background = element_rect(fill = NA, color = NA),  # Remove strip backgrounds
     legend.position = c(0.98, 0.98),  # Top right corner
     legend.justification = c("right", "top"),  # Anchor to top-right
-    legend.background = element_rect(fill = "white", color = "black", size = 0.3),  # White background with border
+    legend.background = element_rect(fill = "white", color = "black", linewidth = 0.3),  # White background with border
     legend.margin = margin(2, 2, 2, 2),  # Small margin inside legend box
     legend.box.margin = margin(0, 0, 0, 0),  # No extra margin around legend
     # Key adjustment: small positive spacing to avoid cutoff
@@ -501,7 +501,7 @@ print(p_main)
 #   geom_circle(
 #     data = all_cloud %>% distinct(species_label, tree_rank, R),
 #     aes(x0 = 0, y0 = 0, r = R),
-#     inherit.aes = FALSE, color = "black", size = 0.2
+#     inherit.aes = FALSE, color = "black", linewidth = 0.2
 #   ) +
 #   # Add invisible points for legend with area scaling
 #   geom_point(
@@ -534,7 +534,7 @@ print(p_main)
 #     strip.background = element_rect(fill = NA, color = NA),
 #     legend.position = c(0.98, 0.98),
 #     legend.justification = c("right", "top"),
-#     legend.background = element_rect(fill = "white", color = "black", size = 0.3),
+#     legend.background = element_rect(fill = "white", color = "black", linewidth = 0.3),
 #     legend.margin = margin(2, 2, 2, 2),
 #     legend.box.margin = margin(0, 0, 0, 0),
 #     legend.box = "horizontal",

@@ -349,7 +349,7 @@ side_by_side
 
 ggsave("outputs/figures/main/fig8_radial_species_comparison.png",
        side_by_side,
-       width = 16,
+       width = 16.5,
        height = 10,
        dpi = 300,
        limitsize = FALSE)

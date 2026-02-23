@@ -1,0 +1,4 @@
+"Component","R²","RMSE (nmol/m²/s)","Training obs","Annual flux (mg CH4/m²/yr)"
+"Tree stems",0.151,0.1,353,NA
+"Soil",0.277,1,282,NA
+"Total plot",NA,NA,NA,NA
