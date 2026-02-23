@@ -1,20 +1,53 @@
-# R project files
+# ==============================================================================
+# .gitignore — tree-methanogens
+# ==============================================================================
+# Strategy: Track code, figures, and directory structure.
+# Data file *contents* are archived on Zenodo; only .gitkeep files are tracked
+# to preserve the directory layout for reproducibility.
+# ==============================================================================
+
+# --- R project files ---
 .Rproj.user
 .Rhistory
 .RData
 .Ruserdata
+*.Rproj
 
-# macOS
+# --- macOS ---
 .DS_Store
 
-# Large raw data (not tracked in git)
-data/raw/lgr/
-data/raw/rdata/
-data/raw/internal_gas/picarro/
+# --- Data files (archived on Zenodo, not in git) ---
+# Raw data
+data/raw/**/*.csv
+data/raw/**/*.txt
+data/raw/**/*.tsv
+data/raw/**/*.xlsx
+data/raw/**/*.xls
+data/raw/**/*.RData
+data/raw/**/*.rds
+data/raw/**/*.biom
+data/raw/**/*.fasta
+data/raw/**/*.fastq
+data/raw/**/*.gz
 
-# Large processed files
-data/processed/flux/lgr_manual_identification_results*.csv
+# Processed data (regenerable from code + raw data)
+data/processed/**/*.csv
+data/processed/**/*.txt
+data/processed/**/*.tsv
+data/processed/**/*.xlsx
+data/processed/**/*.RData
+data/processed/**/*.rds
 
-# Model objects (large binary files)
+# Keep .gitkeep files to preserve directory structure
+!data/**/.gitkeep
+
+# --- Model objects (large binary files) ---
 outputs/models/*.RData
-data/processed/integrated/*.RData
+outputs/models/*.rds
+
+# --- Deprecated directory (old code/data, not tracked) ---
+deprecated/
+
+# --- Temporary/auto-generated files ---
+Rplots.pdf
+*.Rplots.pdf
