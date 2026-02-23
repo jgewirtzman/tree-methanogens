@@ -223,7 +223,11 @@ p3 <- ggplot(flux_df, aes(y = flux, x = height, fill = ch4)) +
   guides(fill = guide_colorbar(barwidth = 8, barheight = 0.5, title.position = "top"))
 
 # Combine — each panel keeps its own legend
-fig7 <- p1a + p2 + p3 + plot_layout(nrow = 1)
+fig7 <- p1a + p2 + p3 + plot_layout(nrow = 1) +
+  plot_annotation(tag_levels = "a",
+                  tag_prefix = "(",
+                  tag_suffix = ")",
+                  theme = theme(plot.tag = element_text(size = 11, face = "bold")))
 
 print(fig7)
 

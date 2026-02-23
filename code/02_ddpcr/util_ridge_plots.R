@@ -157,7 +157,7 @@ create_gene_scatter_ggside_transformed_probe_mcra <- function(
       legend.position = "bottom",
       panel.grid.minor = element_blank(),
       panel.grid.major = element_blank(),
-      panel.border = element_rect(color = "black", fill = NA, size = 0.5),
+      panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5),
       legend.text = element_text(size = 10),
       legend.title = element_text(size = 10),
       ggside.axis.text.x = element_blank(),

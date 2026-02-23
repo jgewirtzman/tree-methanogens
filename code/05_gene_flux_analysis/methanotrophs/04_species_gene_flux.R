@@ -219,11 +219,12 @@ p_species_mcra_2x2 <- ggplot(analysis_mcra,
                   box.padding = 0.2, max.overlaps = 20) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
   annotate("label", x = Inf, y = Inf,
-           label = sprintf("R²=%.3f\np=%.3f",
+           label = sprintf("R\u00B2 = %.3f\np = %.3f",
                            cor_area_mcra$estimate^2,
                            cor_area_mcra$p.value),
-           hjust = 1.1, vjust = 1.1, size = 5,
+           hjust = 1.05, vjust = 1.2, size = 5,
            fill = "white", alpha = 0.9) +
+  coord_cartesian(clip = "off") +
   labs(x = expression("log"[10]*" median mcrA"),
        y = expression("Median CH"[4]*" flux (nmol m"^-2*" s"^-1*")")) +
   theme_classic(base_size = 11.7) +
@@ -244,11 +245,12 @@ p_species_methanotroph_2x2 <- ggplot(analysis_methanotroph,
                   box.padding = 0.2, max.overlaps = 20) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
   annotate("label", x = Inf, y = Inf,
-           label = sprintf("R²=%.3f\np=%.3f",
+           label = sprintf("R\u00B2 = %.3f\np = %.3f",
                            cor_area_methanotroph$estimate^2,
                            cor_area_methanotroph$p.value),
-           hjust = 1.1, vjust = 1.1, size = 5,
+           hjust = 1.05, vjust = 1.2, size = 5,
            fill = "white", alpha = 0.9) +
+  coord_cartesian(clip = "off") +
   labs(x = expression("log"[10]*" median (pmoA+mmoX)"),
        y = expression("Median CH"[4]*" flux (nmol m"^-2*" s"^-1*")")) +
   theme_classic(base_size = 11.7) +
@@ -270,11 +272,12 @@ p_species_ratio_2x2 <- ggplot(analysis_ratio,
   geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
   geom_vline(xintercept = 0, linetype = "dotted", color = "gray50", alpha = 0.5) +
   annotate("label", x = Inf, y = Inf,
-           label = sprintf("R²=%.3f\np=%.3f",
+           label = sprintf("R\u00B2 = %.3f\np = %.3f",
                            pearson_ratio$estimate^2,
                            pearson_ratio$p.value),
-           hjust = 1.1, vjust = 1.1, size = 5,
+           hjust = 1.05, vjust = 1.2, size = 5,
            fill = "white", alpha = 0.9) +
+  coord_cartesian(clip = "off") +
   labs(x = expression("log"[10]*" ratio"),
        y = expression("Median CH"[4]*" flux (nmol m"^-2*" s"^-1*")")) +
   theme_classic(base_size = 11.7) +
@@ -301,7 +304,7 @@ p_species_comparison_2x2 <- ggplot(species_comparison_data,
                               "pmoA+mmoX" = "pmoA+\nmmoX",
                               "Ratio" = "Ratio")) +
   ylim(0, y_limit) +
-  labs(x = "", y = sprintf("Model R²")) +
+  labs(x = "", y = expression("Model R"^2)) +
   theme_classic(base_size = 11.7) +
   theme(
     axis.title = element_text(size = 16),
@@ -328,8 +331,12 @@ species_2x2_layout <- (p_species_mcra_2x2 | p_species_methanotroph_2x2) /
 
 if (exists("combined_plot") && exists("species_2x2_layout")) {
 
-side_by_side <- combined_plot | species_2x2_layout +
-  plot_layout(widths = c(1, 1))
+side_by_side <- (combined_plot | species_2x2_layout) +
+  plot_layout(widths = c(1, 1)) +
+  plot_annotation(tag_levels = "a",
+                  tag_prefix = "(",
+                  tag_suffix = ")",
+                  theme = theme(plot.tag = element_text(size = 11, face = "bold")))
 
 side_by_side
 
@@ -342,8 +349,8 @@ side_by_side
 
 ggsave("outputs/figures/main/fig8_radial_species_comparison.png",
        side_by_side,
-       width = 12,
-       height = 7.5,
+       width = 16,
+       height = 10,
        dpi = 300,
        limitsize = FALSE)
 

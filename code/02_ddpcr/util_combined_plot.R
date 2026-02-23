@@ -53,7 +53,10 @@ barplot_improved <- result$plot +
 
 
 # Then use the improved version:
-combined_plot <- plot_grid(barplot_improved, scatterplot, ncol = 2)
+combined_plot <- plot_grid(barplot_improved, scatterplot, ncol = 2,
+                           labels = c("(a)", "(b)"),
+                           label_size = 11,
+                           label_fontface = "bold")
 
 print(combined_plot)
 
