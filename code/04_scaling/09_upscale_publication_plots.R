@@ -146,25 +146,25 @@ create_soil_month_map <- function(month_val, pred_df, shared_limits = NULL,
     scale_fill_gradient2(
       low = "blue", mid = "white", high = "red",
       midpoint = 0, limits = flux_limits, oob = scales::squish,
-      name = "Soil Flux\n(nmol/m²/s)"
+      name = expression(atop("Soil Flux", "(nmol " * m^{-2} * " " * s^{-1} * ")"))
     ) +
     scale_x_continuous(limits = xlim, expand = c(0, 0)) +
     scale_y_continuous(limits = ylim, expand = c(0, 0)) +
     coord_equal(xlim = xlim, ylim = ylim, clip = "off") +
     labs(
-      # no title -> removes month name from soil plots
+      title = month.name[month_val],
       subtitle = sprintf("Mean: %.2f\nUptake: %.1f%%", mean_flux, pct_uptake)
     ) +
     theme_minimal() +
     theme(
-      plot.title = element_blank(),                # ensure no leftover space
-      plot.subtitle = element_text(size = 9, hjust = 0.5, margin = margin(b = 2)),
+      plot.title = element_text(size = 13, face = "bold", hjust = 0.5),
+      plot.subtitle = element_text(size = 11, hjust = 0.5, margin = margin(b = 2)),
       axis.title = element_blank(),
       axis.text = element_blank(),
       axis.ticks = element_blank(),
       legend.position = if (show_legend) "right" else "none",
-      legend.title = element_text(size = 9),
-      legend.text  = element_text(size = 8)
+      legend.title = element_text(size = 11),
+      legend.text  = element_text(size = 10)
     )
 }
 
@@ -184,7 +184,7 @@ create_tree_month_map <- function(month_val, pred_df, shared_limits = NULL,
     scale_color_viridis_c(
       option = "plasma",
       limits = flux_limits, oob = scales::squish,
-      name = "Tree Flux\n(nmol/m²/s)"
+      name = expression(atop("Tree Flux", "(nmol " * m^{-2} * " " * s^{-1} * ")"))
     ) +
     scale_size_continuous(name = "Basal Area", range = c(0.3, 2.5), guide = "none") +
     scale_x_continuous(limits = xlim, expand = c(0, 0)) +
@@ -196,14 +196,14 @@ create_tree_month_map <- function(month_val, pred_df, shared_limits = NULL,
     ) +
     theme_minimal() +
     theme(
-      plot.title = element_text(size = 11, face = "bold", hjust = 0.5),
-      plot.subtitle = element_text(size = 9, hjust = 0.5, margin = margin(b = 2)),
+      plot.title = element_text(size = 13, face = "bold", hjust = 0.5),
+      plot.subtitle = element_text(size = 11, hjust = 0.5, margin = margin(b = 2)),
       axis.title = element_blank(),
       axis.text = element_blank(),
       axis.ticks = element_blank(),
       legend.position = if (show_legend) "right" else "none",
-      legend.title = element_text(size = 9),
-      legend.text  = element_text(size = 8)
+      legend.title = element_text(size = 11),
+      legend.text  = element_text(size = 10)
     )
 }
 
@@ -394,7 +394,8 @@ cat("  Saved: tree_flux_boxplot_by_species.png\n")
 p_species_spatial <- ggplot(species_dist_data, aes(x = x, y = y)) +
   geom_point(aes(color = mean_flux_nmol, size = BasalArea_m2), alpha = 0.7) +
   facet_wrap(~ species_full, ncol = 4) +
-  scale_color_viridis_c(option = "plasma", name = "Annual Mean Tree\nFlux (nmol/m²/s)") +
+  scale_color_viridis_c(option = "plasma",
+                        name = expression(atop("Annual Mean Tree", "Flux (nmol " * m^{-2} * " " * s^{-1} * ")"))) +
   scale_size_continuous(range = c(0.5, 2), guide = "none") +
   scale_x_continuous(limits = x_range, expand = c(0, 0)) +
   scale_y_continuous(limits = y_range, expand = c(0, 0)) +
@@ -402,11 +403,11 @@ p_species_spatial <- ggplot(species_dist_data, aes(x = x, y = y)) +
   labs(x = NULL, y = NULL) +
   theme_minimal() +
   theme(
-    strip.text = element_text(size = 8, face = "italic"),
+    strip.text = element_text(size = 10, face = "italic"),
     axis.text = element_blank(),
     axis.ticks = element_blank(),
-    legend.title = element_text(size = 9),
-    legend.text  = element_text(size = 8)
+    legend.title = element_text(size = 11),
+    legend.text  = element_text(size = 10)
   )
 
 # ggsave("outputs/figures/tree_flux_spatial_faceted_species.png", p_species_spatial, width = 14, height = 10, dpi = 150)
@@ -474,12 +475,27 @@ cat("  Saved: tree_flux_violin_by_species.png\n")
 # MEGA COMBINED PLOT (top: trees, mid: soil, bottom: spatial species)
 # =============================================================================
 
-mega_combined_plot <- (tree_row / soil_row / p_species_spatial) +
-  plot_layout(heights = c(1, 1, 1.5)) +
-  plot_annotation(
-    #title = "Seasonal & Species-Level CH₄ Flux Overview",
-    theme = theme(plot.title = element_text(size = 16, face = "bold", hjust = 0.5))
-  )
+# Add row labels via wrap_elements with grid text grobs
+library(grid)
+
+label_tree <- wrap_elements(
+  textGrob(expression(bold("(a) ") * bold("Tree CH"[4]*" Flux")),
+           gp = gpar(fontsize = 14, fontface = "bold"))
+)
+label_soil <- wrap_elements(
+  textGrob(expression(bold("(b) ") * bold("Soil CH"[4]*" Flux")),
+           gp = gpar(fontsize = 14, fontface = "bold"))
+)
+label_species <- wrap_elements(
+  textGrob(expression(bold("(c) ") * bold("Annual Mean Tree CH"[4]*" Flux by Species")),
+           gp = gpar(fontsize = 14, fontface = "bold"))
+)
+
+mega_combined_plot <- (label_tree / wrap_elements(tree_row) /
+                       label_soil / wrap_elements(soil_row) /
+                       label_species / wrap_elements(p_species_spatial)) +
+  plot_layout(heights = c(0.06, 1, 0.06, 1, 0.06, 1.5))
+
 mega_combined_plot
 
 ggsave("outputs/figures/main/fig9_upscaled_flux_seasonal.png",

@@ -314,7 +314,7 @@ p_mt_b <- ggplot(summary_mt_b, aes(x = species_label, y = proportion, fill = Fam
   scale_fill_manual(values = mt_colors, name = "Methanotroph\nFamily") +
   labs(x = NULL, y = "Proportion of\nmethanotrophs (%)") +
   theme_classic(base_size = 15) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1, face = "italic", size = 14),
+  theme(axis.text.x = element_text(angle = 55, hjust = 1, face = "italic", size = 9),
         axis.text.y = element_text(size = 15),
         axis.title.y = element_text(size = 16),
         legend.position = "right", legend.text = element_text(size = 13),
@@ -344,6 +344,6 @@ fig_combined <- p_mg_a / p_mg_b / p_mt_a / p_mt_b +
 print(fig_combined)
 
 ggsave("outputs/figures/main/fig5_combined_methane_cycling_composition.png",
-       fig_combined, width = 12, height = 12, dpi = 300)
+       fig_combined, width = 14, height = 12, dpi = 300)
 
 cat("Combined figure saved to outputs/figures/fig5_combined_methane_cycling_composition.png\n")

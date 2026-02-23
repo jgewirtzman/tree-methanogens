@@ -267,8 +267,8 @@ p_ridgeline <- ggplot(combined_data, aes(x = CH4_flux, y = Species_Latin)) +
     axis.text.y = element_text(face = "italic", size = 9),
     legend.position = "bottom",
     legend.direction = "horizontal",
-    panel.grid.major.x = element_line(color = "gray90", size = 0.3),
-    panel.grid.minor.x = element_line(color = "gray95", size = 0.2),
+    panel.grid.major.x = element_line(color = "gray90", linewidth = 0.3),
+    panel.grid.minor.x = element_line(color = "gray95", linewidth = 0.2),
     plot.margin = margin(5, 2, 5, 5, "pt")
   )
 
@@ -301,16 +301,16 @@ p_var_method2 <- ggplot(variance_method2, aes(x = Component, y = Variance, fill 
 p_effects <- ggplot(all_effects, aes(x = estimate, y = reorder(term_clean, estimate))) +
   geom_vline(xintercept = 0, linetype = "dashed", color = "gray50", alpha = 0.5) +
   geom_errorbarh(aes(xmin = conf.low, xmax = conf.high, color = category),
-                 height = 0, size = 0.6, alpha = 0.8) +
+                 height = 0, linewidth = 0.6, alpha = 0.8) +
   geom_point(aes(color = category, shape = significant), size = 2.5) +
   scale_color_manual(values = c("Environment" = "#2E7D32", 
                                 "Species" = "#1976D2"),
                      name = "Effect type") +
   scale_shape_manual(values = c("TRUE" = 16, "FALSE" = 1),
-                     labels = c("p ≥ 0.05", "p < 0.05"),
+                     labels = c(expression(p >= 0.05), expression(p < 0.05)),
                      name = "Significance") +
   facet_grid(category ~ ., scales = "free_y", space = "free_y") +
-  labs(x = "Standardized effect size (nmol/m²/s)",
+  labs(x = expression("Standardized effect size (nmol " * m^{-2} * " " * s^{-1} * ")"),
        y = "") +
   theme_bw() +
   theme(
@@ -329,8 +329,12 @@ p_effects <- ggplot(all_effects, aes(x = estimate, y = reorder(term_clean, estim
 # COMBINE ALL PLOTS
 # ========================================
 
-combined_plot <- p_ridgeline | (p_var_method2 / p_effects) +
-  plot_layout(widths = c(1.2, 1), heights = c(1, 2))
+combined_plot <- (p_ridgeline | (p_var_method2 / p_effects + plot_layout(heights = c(1, 2)))) +
+  plot_layout(widths = c(1.2, 1)) +
+  plot_annotation(tag_levels = "a",
+                  tag_prefix = "(",
+                  tag_suffix = ")",
+                  theme = theme(plot.tag = element_text(size = 11, face = "bold")))
 
 print(combined_plot)
 
@@ -355,7 +359,7 @@ cat(sprintf("Full additive model: %.1f%%\n", r2_full * 100))
 cat(sprintf("With interactions: %.1f%%\n", r2_interaction * 100))
 
 # Save plot
-ggsave("outputs/figures/main/fig3_variance_partitioning.png", plot = combined_plot, width = 12, height = 7.5, dpi = 300)
+ggsave("outputs/figures/main/fig3_variance_partitioning.png", plot = combined_plot, width = 10, height = 7, dpi = 300)
 
 
 
