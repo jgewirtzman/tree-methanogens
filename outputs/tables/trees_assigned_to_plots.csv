@@ -1,0 +1,48 @@
+"Label","Site","Sample","Species","D_stem","Latitude","Longitude","Elevation","Nearest_Plot","Nearest_Site","Distance_to_Plot"
+"853","Upland","853","PIST",50.1,41.989736,-72.128513,791.439,"Upland_1","Upland",2.43
+"970","Upland","970","ACRU",27.6,41.989736,-72.128513,791.439,"Upland_1","Upland",2.43
+"1133","Upland","1133","ACRU",31,41.98957,-72.130052,761.674,"Upland_2","Upland",4.45
+"1134","Upland","1134","QURU",44.7,41.989415,-72.13007,795.454,"Upland_2","Upland",0.71
+"1550","Upland","1550","ACRU",32.2,41.989442,-72.129867,768.411,"Upland_2","Upland",8.69
+"1637","Wetland","1637","ACRU",35.8,41.990339,-72.130579,674.511,"Wetland_1","Wetland",5.3
+"1640","Wetland","1640","TSCA",39,41.990347,-72.130576,733.908,"Wetland_1","Wetland",5.91
+"1641","Wetland","1641","ACRU",41.3,41.990231,-72.130592,733.039,"Wetland_1","Wetland",3.16
+"1830","Wetland","1830","ACRU",35,41.990179,-72.130388,725.763,"Wetland_2","Wetland",5.42
+"1885","Intermediate","1885","ACRU",34.7,41.990375,-72.129855,580.99,"Intermediate_2","Intermediate",4.99
+"1926","Wetland","1926","ACRU",43.3,41.990471,-72.130706,670.194,"Wetland_1","Wetland",11.66
+"3325","Upland","3325","TSCA",46.5,41.98949,-72.130067,769.489,"Upland_2","Upland",6.8
+"3354","Upland","3354","PIST",59.5,41.989222,-72.130127,776.762,"Upland_2","Upland",20.54
+"3355","Upland","3355","ACRU",29.8,41.989297,-72.130219,744.545,"Upland_2","Upland",12.86
+"3355","Upland","3359","BELE",30,41.989458,-72.130042,NA,"Upland_2","Upland",4.71
+"3533","Upland","3533","QURU",39.6,41.989515,-72.130033,762.773,"Upland_2","Upland",9.18
+"3564","Upland","3564","QURU",52.1,41.989615,-72.130073,743.939,"Upland_2","Upland",5.12
+"4103","Wetland","4103","FRAM",34,41.990461,-72.130723,636.197,"Wetland_1","Wetland",12.41
+"4156","Upland","4156","QURU",35.5,41.989741,-72.129104,662.296,"Upland_1","Upland",49.31
+"4181","Wetland","4181","BEAL",26,41.990513,-72.13076,595.553,"Wetland_1","Wetland",12.72
+"4190","Wetland","4190","BEAL",25,41.990335,-72.130591,678.221,"Wetland_1","Wetland",5.81
+"4246","Intermediate","4246","PIST",59.3,41.990336,-72.129814,580.539,"Intermediate_2","Intermediate",8.75
+"4261","Intermediate","4261","TSCA",43.2,41.99036,-72.129731,769.95,"Intermediate_1","Intermediate",6.29
+"4295","Wetland","4295","ACRU",33.8,41.990629,-72.130771,602.385,"Wetland_1","Wetland",24.02
+"4774","Upland","4774","BELE",47.1,41.989429,-72.128611,789.333,"Upland_1","Upland",10.09
+"","Upland","4783","QURU",55,41.989603,-72.128601,NA,"Upland_1","Upland",7.48
+"4797","Wetland","4797","BEAL",32.1,41.990321,-72.130565,745.533,"Wetland_1","Wetland",2.78
+"5078","Intermediate","5078","BEAL",37,41.990382,-72.129634,765.873,"Intermediate_1","Intermediate",3.61
+"5086","Intermediate","5086","ACRU",42.5,41.990203,-72.129864,764.991,"Intermediate_2","Intermediate",23.07
+"5091","Intermediate","5091","TSCA",29.7,41.990262,-72.129638,636.549,"Intermediate_1","Intermediate",8.74
+"","Intermediate","5092","BELE",36,41.990432,-72.129469,NA,"Intermediate_1","Intermediate",8.99
+"5099","Intermediate","5099","BELE",33.8,41.990479,-72.129795,578.12,"Intermediate_2","Intermediate",8.34
+"6326","Upland","6326","QUAL",35,41.989566,-72.128524,790.382,"Upland_1","Upland",12.82
+"6371","Intermediate","6371","ACRU",45.3,41.990542,-72.129698,748.514,"Intermediate_2","Intermediate",20.57
+"6393","Intermediate","6393","TSCA",37.6,41.990459,-72.129804,765.718,"Intermediate_2","Intermediate",5.92
+"7361","Upland","7361","ACRU",34.2,41.989492,-72.128582,789.635,"Upland_1","Upland",11
+"7397","Upland","7397","QURU",39.2,41.989542,-72.128576,789.684,"Upland_1","Upland",13.16
+"7447","Upland","7447","BELE",37,41.989635,-72.128716,785.684,"Upland_1","Upland",15.51
+"8833","Upland","8833","QURU",55,41.989705,-72.128729,789.298,"Upland_1","Upland",17.07
+"8835","Upland","8835","TSCA",48.7,41.989522,-72.128663,789.528,"Upland_1","Upland",4.37
+" UNTAGGED ACRU","Upland","Dead","ACRU",32.9,41.99032,-72.130795,731.986,"Wetland_1","Wetland",8.06
+"NO TAG BELE","Upland","No tag","BELE",37,41.98951,-72.128471,805.088,"Upland_1","Upland",14.53
+"UNTAGGED DEAD BEAL","Wetland","Dead","BEAL",32.2,41.990376,-72.130824,725.741,"Wetland_1","Wetland",3.34
+"UNTAGGED DEAD SNAG ACRU","Wetland","Dead","ACRU",34.1,41.989706,-72.128689,663.527,"Upland_1","Upland",12.85
+"UNTAGGED DEAD SNAG BELE","Intermediate","Dead","BELE",29.4,41.990355,-72.129585,601.891,"Intermediate_1","Intermediate",3.02
+"UNTAGGED DEAD TSCA","Intermediate","Dead","TSCA",40.5,41.990393,-72.129814,673.959,"Intermediate_2","Intermediate",2.91
+"UNTAGGED FRAM","Wetland","Dead","FRAM",30.3,41.99034,-72.130852,730.058,"Wetland_1","Wetland",2.77

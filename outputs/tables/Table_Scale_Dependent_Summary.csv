@@ -1,0 +1,5 @@
+"Analysis_Level","N","Predictor","R2","P_value","Interpretation","Significant"
+"Individual Trees",121,"Area-weighted mmoX (oxidation)",0.356,0.0061,"Oxidation capacity limits within-species flux variation","**"
+"Individual Trees",121,"Area-weighted mcrA (production)",0.311,0.4573,"Production varies among trees but species effect dominates","NS"
+"Species Medians",10,"Sapwood mmoX (oxidation)",0,0.9633,"Species have similar oxidation capacity","NS"
+"Species Medians",10,"Heartwood mcrA (production)",0.611,0.0075,"Production potential determines species baseline emissions","**"

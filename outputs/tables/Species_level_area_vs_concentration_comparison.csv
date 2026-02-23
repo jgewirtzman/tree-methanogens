@@ -1,0 +1,8 @@
+"Model","N_species","R2","P_value","Significant"
+"Heartwood mcrA",10,0.611,0.0075,"**"
+"Area-weighted mcrA",10,0.17,0.2367,"ns"
+"Sapwood mcrA",10,0.069,0.463,"ns"
+"Area-weighted mmoX",10,0.068,0.4671,"ns"
+"Heartwood mmoX",10,0.001,0.9503,"ns"
+"Sapwood + Heartwood mmoX",10,0.001,0.9972,"ns"
+"Sapwood mmoX",10,0,0.9633,"ns"

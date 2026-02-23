@@ -1,0 +1,16 @@
+"species","n","mean_dbh","sd_dbh","mean_flux","sd_flux"
+"Betula lenta",16,28.3,4.1,0.0114,0.0108
+"Tsuga canadensis",16,36.6,12,0.083,0.052
+"Pinus strobus",15,47.3,12.8,0.0436,0.0295
+"Acer rubrum",13,30.4,7,0.0853,0.0838
+"Fagus grandifolia",13,28.8,8.3,0.0731,0.0461
+"Quercus rubra",13,39.5,6.2,0.132,0.2205
+"Fraxinus americana",9,37,10.1,0.2513,0.4355
+"Betula alleghaniensis",8,25.3,4.2,0.6309,0.7128
+"Acer saccharum",7,30.1,6,0.2001,0.2756
+"Betula papyrifera",6,31.3,5,0.0369,0.0146
+"Prunus serotina",2,40,12.7,0.0406,0.0239
+"Carya ovata",1,28,NA,0.3942,NA
+"Quercus alba",1,36.5,NA,0.0628,NA
+"Quercus velutina",1,25,NA,0.1713,NA
+"Sassafras albidum",1,26,NA,0.0724,NA

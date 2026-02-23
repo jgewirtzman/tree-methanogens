@@ -1,0 +1,4 @@
+"Var1","Var2","Interaction_Coef","Interaction_P","Interaction_Type","Model_R2"
+"log_mcra_heart","log_methanotroph_sap",0.00528992462597543,0.000429500225033572,"Synergistic (both high = extra high flux)",0.583751107767883
+"log_mcra_heart","log_mcra_sap",0.00048392496493599,0.599051627469751,"No interaction",0.494214526725771
+"log_methanotroph_sap","log_mcra_sap",-0.00182897455355818,0.217984253105143,"Antagonistic (both high = dampened flux)",0.647739027203593

@@ -29,6 +29,12 @@ data/raw/**/*.biom
 data/raw/**/*.fasta
 data/raw/**/*.fastq
 data/raw/**/*.gz
+data/raw/**/*.nwk
+data/raw/**/*.gsheet
+data/raw/**/*.mxd
+data/raw/**/*.docx
+data/raw/**/*.png
+data/raw/**/*.json
 
 # Processed data (regenerable from code + raw data)
 data/processed/**/*.csv
@@ -37,6 +43,19 @@ data/processed/**/*.tsv
 data/processed/**/*.xlsx
 data/processed/**/*.RData
 data/processed/**/*.rds
+
+# Raw data subdirectories (nested directory structures)
+data/raw/lgr/semirigid_2020-2021/
+data/raw/lgr/static_2021/
+data/raw/lgr/static_2023/
+data/raw/inventory/spatial_data/
+data/raw/inventory/jon_r_files/
+data/raw/internal_gas/picarro/
+data/raw/ddpcr/Data Files/
+data/raw/field_data/static_chamber_scratch/
+
+# Processed metadata
+data/processed/metadata/
 
 # Keep .gitkeep files to preserve directory structure
 !data/**/.gitkeep
@@ -47,6 +66,13 @@ outputs/models/*.rds
 
 # --- Deprecated directory (old code/data, not tracked) ---
 deprecated/
+
+# --- Large diagnostic outputs ---
+outputs/figures/LGR3_flux_plots_*.pdf
+
+# --- Stray output files ---
+outputs/output.txt
+outputs/auxfile_goFlux_soilflux_with_weather.txt
 
 # --- Temporary/auto-generated files ---
 Rplots.pdf
