@@ -19,8 +19,8 @@ library(scales)
 
 # Read the datasets (using your existing data loading code)
 soil_dataset <- read.csv('../../data/processed/flux/semirigid_tree_final_complete_dataset_soil.csv')
-tree_dataset <- read.csv('../../outputs/figures/flux_code_misc/semirigid_tree_final_complete_dataset.csv')
-moisture_data <- read.csv('../../data/raw/field_data/ipad_data/Cleaned data/soilmoisture_total.csv')
+tree_dataset <- read.csv('../../data/processed/flux/semirigid_tree_final_complete_dataset.csv')
+moisture_data <- read.csv('../../data/raw/field_data/ipad_data/Cleaned data/soilmoisture_total.csv', fileEncoding = "UTF-8-BOM")
 
 # Convert Date columns to proper date format
 soil_dataset$Date <- as.Date(soil_dataset$Date)

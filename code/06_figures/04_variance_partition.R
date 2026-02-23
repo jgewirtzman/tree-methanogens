@@ -50,7 +50,7 @@ data_2023 <- ymf2023 %>%
     DBH = DBH..cm.,
     Air_temp = air_temp_C,
     Stem_temp = stem_temp_C,
-    Soil_temp = Soil.Temp...C.,
+    Soil_temp = Soil.Temp....C.,
     VWC = vwc_mean,
     CH4_flux = CH4_best.flux
   ) %>%
