@@ -1,0 +1,7 @@
+"Variable","Direction","Slope","Effect_Size","Effect_Category","Linearity_Type","%IncMSE"
+"log_mcra_heart","Negative",-0.0159,0.117,"Small","Strongly nonlinear",7.0401
+"log_methanotroph_sap","Negative",-0.0317,0.075,"Small","Moderately nonlinear",5.3513
+"log_mcra_sap","Positive",0.0148,0.0872,"Small","Strongly nonlinear",4.6475
+"log_soil_mcra","Positive",0.0073,0.0791,"Small","Strongly nonlinear",3.528
+"log_pmoa_sap","Negative",-0.012,0.0611,"Small","Strongly nonlinear",3.3524
+"log_mmox_sap","Negative",-0.0254,0.079,"Small","Moderately nonlinear",3.2192
