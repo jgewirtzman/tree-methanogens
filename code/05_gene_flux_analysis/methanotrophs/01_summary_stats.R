@@ -635,7 +635,7 @@ main_grid <- left_column | right_column
 combined_layout <- main_grid / legend_panel +
   plot_layout(heights = c(1, 0.08))
 
-ggsave("outputs/figures/supplementary/figS8_scale_dependent_genes.png", combined_layout,
+ggsave("outputs/figures/supplementary/figS10_scale_dependent_genes.png", combined_layout,
        width = 12, height = 15, dpi = 300)
 
 # ============================================================
@@ -919,7 +919,7 @@ mcra_vs_methanotroph_layout <- (p_tree_mcra_vs_methanotroph |
 # Save combined figure
 # ggsave("outputs/figures/Figure_mcrA_vs_Methanotroph.pdf", mcra_vs_methanotroph_layout,
 #        width = 12, height = 5)
-ggsave("outputs/figures/supplementary/figS11_mcra_vs_methanotroph.png", mcra_vs_methanotroph_layout,
+ggsave("outputs/figures/supplementary/figS13_mcra_vs_methanotroph.png", mcra_vs_methanotroph_layout,
        width = 13, height = 5.5, dpi = 300)
 
 # Save individual plots

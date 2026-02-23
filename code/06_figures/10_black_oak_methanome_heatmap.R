@@ -1,5 +1,5 @@
 # ==============================================================================
-# Black Oak Methanogen/Methanotroph Heatmap (Figure S12, renumbered)
+# Black Oak Methanogen/Methanotroph Heatmap (Figure S14)
 # ==============================================================================
 # Purpose: Creates a heatmap of methanogenic and methanotrophic taxa across
 #   tissue types in a felled black oak (QUVE), based on 16S rRNA amplicon
@@ -11,8 +11,7 @@
 #   - OTU_table.txt (from data/raw/16s/black_oak/)
 #
 # Outputs:
-#   - figS12_black_oak_methanome.png (absolute abundance heatmap)
-#   - figS12_black_oak_methanome_relative.png (relative abundance heatmap)
+#   - figS14_black_oak_methanome.png (absolute abundance heatmap)
 #
 # Required packages: tidyverse, viridis, cluster
 # ==============================================================================
@@ -28,48 +27,20 @@ library(cluster)
 otu_table <- read.table("data/raw/16s/black_oak/OTU_table.txt",
                         header = TRUE, sep = "\t", stringsAsFactors = FALSE)
 
-# Define methanogen families
+# Define methanogen families (consistent with Fig 5 / 08c)
 methanogen_families <- c(
-  "Bathyarchaeia Class",
-  "Methanobacteriaceae",
-  "Methanocellaceae",
-  "Methanocorpusculaceae",
-  "Methanomassiliicoccaceae",
-  "Methanomethylophilaceae",
-  "Methanomicrobiaceae",
-  "Methanoregulaceae",
-  "Methanosaetaceae",
-  "Methanosarcinaceae",
-  "Rice Cluster II",
-  "Methanopyraceae",
-  "Methanothermaceae",
-  "Methanocaldococcaceae",
-  "Methanoplanaceae",
-  "Methanospirillaceae"
+  "Methanobacteriaceae", "Methanomassiliicoccaceae", "Methanoregulaceae",
+  "Methanocellaceae", "Methanosaetaceae", "Methanomicrobiaceae",
+  "Methanosarcinaceae", "Methanomethyliaceae", "Methanocorpusculaceae"
 )
 
-# Define methanotroph families
-methanotroph_families <- c(
-  "Methylococcaceae",
-  "Methylacidiphilaceae",
-  "Beijerinckiaceae",
-  "Methylocystaceae",
-  "Methylomonadaceae",
-  "Methylophilaceae",
-  "Methylopilaceae",
-  "Methyloligellaceae",
-  "Methylomirabilaceae"
-)
-
-# Define methanotroph genera
-methanotroph_genera <- c(
-  "Methylobacterium-Methylorubrum",
-  "Methylocella",
-  "Methylorosula",
-  "Methylocapsa",
-  "1174-901-12",
-  "Roseiarcus"
-)
+# Define methanotroph taxa (consistent with Fig 5 / 08c — positive selection)
+mt_exclusive_families <- c("Methylococcaceae", "Methylacidiphilaceae",
+                            "Methylomonadaceae", "Methylomirabilaceae")
+beij_mt_genera <- c("Methylocapsa", "Methylocella", "Methylorosula", "Methylovirgula",
+                     "Methyloferula", "Methylobacterium-Methylorubrum", "1174-901-12", "Roseiarcus")
+mcyst_mt_genera <- c("Methylosinus", "Methylocystis")
+other_mt_families <- c("Methylophilaceae", "Methylopilaceae", "Methyloligellaceae")
 
 # ==============================================================================
 # STEP 2: Filter and classify taxa
@@ -78,10 +49,11 @@ otu_table <- otu_table %>%
   filter(!is.na(Family)) %>%
   mutate(Group = case_when(
     Family %in% methanogen_families ~ "Methanogen",
-    (Family %in% methanotroph_families &
-       !(Family %in% c("Methylopilaceae", "Beijerinckiaceae") &
-           Genus %in% c("Bosea", "Microvirga", "Psychroglaciecola"))) |
-      Genus %in% methanotroph_genera ~ "Methanotroph",
+    Family %in% mt_exclusive_families ~ "Methanotroph",
+    Family == "Beijerinckiaceae" & Genus %in% beij_mt_genera ~ "Methanotroph",
+    Family == "Methylocystaceae" & Genus %in% mcyst_mt_genera ~ "Methanotroph",
+    Family %in% other_mt_families ~ "Methanotroph",
+    Genus == "Crenothrix" ~ "Methanotroph",
     TRUE ~ NA_character_
   )) %>%
   filter(!is.na(Group))
@@ -182,7 +154,7 @@ p_abs <- p_mg / p_mt +
 
 print(p_abs)
 
-ggsave("outputs/figures/supplementary/figS12_black_oak_methanome.png",
+ggsave("outputs/figures/supplementary/figS14_black_oak_methanome.png",
        p_abs, width = 12, height = 8, dpi = 300)
 
 # ==============================================================================

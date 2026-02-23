@@ -30,9 +30,8 @@
 #
 # Outputs:
 #   - outputs/figures/main/fig6_picrust_mcra_no_mcra_heatmap.png
-#   - outputs/figures/supplementary/figSX_picrust_mcra_all_heatmap.png
-#   - outputs/figures/supplementary/figSX_picrust_pmoa_heatmap.png
-#   - outputs/figures/supplementary/figSX_picrust_mmox_heatmap.png
+#   - outputs/figures/supplementary/figS4_picrust_mcra_all_heatmap.png
+#   - outputs/figures/supplementary/figS5_picrust_pmoa_heatmap.png
 #
 # Required packages: tidyverse, pheatmap
 # ==============================================================================
@@ -230,7 +229,7 @@ make_pathway_heatmap(
   gene_col = "mcra_probe_loose",
   gene_label = "mcrA",
   ann_colors = ann_colors_mcra,
-  output_file = "outputs/figures/supplementary/figSX_picrust_mcra_all_heatmap.png",
+  output_file = "outputs/figures/supplementary/figS4_picrust_mcra_all_heatmap.png",
   fdr_threshold = 0.01,
   cellheight = 8,
   fontsize_row = 6
@@ -243,7 +242,7 @@ make_pathway_heatmap(
   gene_col = "pmoa_loose",
   gene_label = "pmoA",
   ann_colors = ann_colors_pmoa,
-  output_file = "outputs/figures/supplementary/figSX_picrust_pmoa_heatmap.png",
+  output_file = "outputs/figures/supplementary/figS5_picrust_pmoa_heatmap.png",
   fdr_threshold = 0.01,
   max_gene_contrib = 0.50,
   contrib_file = file.path(results_dir, "pathway_associations_pmoa_combined.csv"),
@@ -252,21 +251,20 @@ make_pathway_heatmap(
   fontsize_row = 8
 )
 
-## --- Supplementary: mmoX ---
-## mmoX may have few/no significant pathways at FDR < 0.01; try 0.05 as fallback
+## --- mmoX (currently 0 significant pathways at any threshold) ---
+## Kept for completeness; no figure is produced.
 sig_mmox <- make_pathway_heatmap(
   pvals_file = file.path(results_dir, "pathway_associations_mmox.csv"),
   meta_df = meta,
   gene_col = "mmox_loose",
   gene_label = "mmoX",
   ann_colors = ann_colors_mmox,
-  output_file = "outputs/figures/supplementary/figSX_picrust_mmox_heatmap.png",
+  output_file = "outputs/figures/supplementary/picrust_mmox_heatmap.png",
   fdr_threshold = 0.01,
   cellheight = 12,
   fontsize_row = 8
 )
 
-# If nothing at FDR < 0.01, try FDR < 0.05
 if (is.null(sig_mmox)) {
   cat("\nRetrying mmoX at FDR < 0.05...\n")
   make_pathway_heatmap(
@@ -275,7 +273,7 @@ if (is.null(sig_mmox)) {
     gene_col = "mmox_loose",
     gene_label = "mmoX",
     ann_colors = ann_colors_mmox,
-    output_file = "outputs/figures/supplementary/figSX_picrust_mmox_heatmap.png",
+    output_file = "outputs/figures/supplementary/picrust_mmox_heatmap.png",
     fdr_threshold = 0.05,
     cellheight = 12,
     fontsize_row = 8
