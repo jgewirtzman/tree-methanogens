@@ -11,8 +11,8 @@
 #   - merged_tree_dataset_final.csv (from data/processed/integrated/)
 # ==============================================================================
 
-ymf2023<-read.csv("../../data/processed/flux/methanogen_tree_flux_complete_dataset.csv")
-ymf2021<-read.csv('../../data/processed/integrated/merged_tree_dataset_final.csv')
+ymf2023<-read.csv("data/processed/flux/methanogen_tree_flux_complete_dataset.csv")
+ymf2021<-read.csv('data/processed/integrated/merged_tree_dataset_final.csv')
 
 library(ggplot2)
 library(ggridges)
@@ -355,7 +355,7 @@ cat(sprintf("Full additive model: %.1f%%\n", r2_full * 100))
 cat(sprintf("With interactions: %.1f%%\n", r2_interaction * 100))
 
 # Save plot
-ggsave("../../outputs/figures/main/fig3_variance_partitioning.png", plot = combined_plot, width = 12, height = 7.5, dpi = 300)
+ggsave("outputs/figures/main/fig3_variance_partitioning.png", plot = combined_plot, width = 12, height = 7.5, dpi = 300)
 
 
 

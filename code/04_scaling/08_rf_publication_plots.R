@@ -11,9 +11,19 @@
 #   - figure PDFs/PNGs (to outputs/figures/)
 # ==============================================================================
 
+library(dplyr)
 library(ggplot2)
 library(patchwork)  # For combining plots - install if needed
 library(scales)
+
+## Load required data from upstream pipeline
+if (!file.exists("outputs/models/RF_MODELS.RData") || !file.exists("outputs/models/TRAINING_DATA.RData")) {
+  stop("Required data files not found. Run 02_rf_models.R first to generate:\n",
+       "  - outputs/models/RF_MODELS.RData\n",
+       "  - outputs/models/TRAINING_DATA.RData")
+}
+load("outputs/models/RF_MODELS.RData")           # TreeRF, SoilRF
+load("outputs/models/TRAINING_DATA.RData")        # tree_train_complete
 
 cat("\n=== GENERATING PUBLICATION FIGURES ===\n")
 
@@ -94,8 +104,8 @@ fig1 <- ggplot(perf_data, aes(x = observed_nmol, y = predicted_nmol)) +
   theme(legend.position = "none",
         strip.text = element_text(size = 11, face = "bold"))
 
-# ggsave("../../outputs/figures/Figure1_Model_Performance.pdf", fig1, width = 7, height = 3.5, dpi = 300)
-# ggsave("../../outputs/figures/Figure1_Model_Performance.png", fig1, width = 7, height = 3.5, dpi = 300)
+# ggsave("outputs/figures/Figure1_Model_Performance.pdf", fig1, width = 7, height = 3.5, dpi = 300)
+# ggsave("outputs/figures/Figure1_Model_Performance.png", fig1, width = 7, height = 3.5, dpi = 300)
 
 # =============================================================================
 # FIGURE 2: SEASONAL PATTERNS
@@ -138,8 +148,8 @@ fig2 <- ggplot(monthly_plot_data, aes(x = month, y = flux_nmol, color = componen
   theme(legend.position = c(0.15, 0.85),
         legend.background = element_rect(fill = "white", color = "black", size = 0.3))
 
-# ggsave("../../outputs/figures/Figure2_Seasonal_Patterns.pdf", fig2, width = 7, height = 4, dpi = 300)
-# ggsave("../../outputs/figures/Figure2_Seasonal_Patterns.png", fig2, width = 7, height = 4, dpi = 300)
+# ggsave("outputs/figures/Figure2_Seasonal_Patterns.pdf", fig2, width = 7, height = 4, dpi = 300)
+# ggsave("outputs/figures/Figure2_Seasonal_Patterns.png", fig2, width = 7, height = 4, dpi = 300)
 
 # =============================================================================
 # FIGURE 3: FEATURE IMPORTANCE (TOP 10 EACH)
@@ -192,8 +202,8 @@ fig3 <- ggplot(imp_combined, aes(x = reorder(feature_clean, importance),
   theme(legend.position = "none",
         axis.text.y = element_text(size = 9))
 
-# ggsave("../../outputs/figures/Figure3_Feature_Importance.pdf", fig3, width = 8, height = 5, dpi = 300)
-# ggsave("../../outputs/figures/Figure3_Feature_Importance.png", fig3, width = 8, height = 5, dpi = 300)
+# ggsave("outputs/figures/Figure3_Feature_Importance.pdf", fig3, width = 8, height = 5, dpi = 300)
+# ggsave("outputs/figures/Figure3_Feature_Importance.png", fig3, width = 8, height = 5, dpi = 300)
 
 # =============================================================================
 # OPTIONAL FIGURE 4: RESIDUAL DIAGNOSTICS
@@ -243,8 +253,8 @@ p2 <- ggplot(resid_data, aes(sample = residual)) +
   theme(legend.position = "none", plot.title = element_text(size = 10))
 
 fig4 <- p1 / p2
-# ggsave("../../outputs/figures/FigureS1_Residual_Diagnostics.pdf", fig4, width = 7, height = 6, dpi = 300)
-# ggsave("../../outputs/figures/FigureS1_Residual_Diagnostics.png", fig4, width = 7, height = 6, dpi = 300)
+# ggsave("outputs/figures/FigureS1_Residual_Diagnostics.pdf", fig4, width = 7, height = 6, dpi = 300)
+# ggsave("outputs/figures/FigureS1_Residual_Diagnostics.png", fig4, width = 7, height = 6, dpi = 300)
 
 # =============================================================================
 # SUMMARY TABLE FOR MANUSCRIPT
@@ -277,7 +287,7 @@ summary_table <- data.frame(
   check.names = FALSE
 )
 
-write.csv(summary_table, "../../outputs/tables/Table1_Model_Summary.csv", row.names = FALSE)
+write.csv(summary_table, "outputs/tables/Table1_Model_Summary.csv", row.names = FALSE)
 print(summary_table)
 
 cat("\n=== PUBLICATION FIGURES COMPLETE ===\n")
@@ -515,9 +525,9 @@ FFFFGG
 final_fig <- pA + pB + pC + pD + pE + pF +
   plot_layout(design = layout, heights = c(1, 1, 1, 1, 1, 1))
 
-# ggsave("../../outputs/figures/Figure_Comprehensive_Model_Analysis.pdf", final_fig, 
+# ggsave("outputs/figures/Figure_Comprehensive_Model_Analysis.pdf", final_fig, 
 #        width = 12, height = 10, dpi = 300)
-# ggsave("../../outputs/figures/Figure_Comprehensive_Model_Analysis.png", final_fig, 
+# ggsave("outputs/figures/Figure_Comprehensive_Model_Analysis.png", final_fig, 
 #        width = 12, height = 10, dpi = 300)
 
 cat("\n✓ Comprehensive figure saved\n")
@@ -690,9 +700,9 @@ final_fig <- (pA | pC | p_tree_pd) /
   (pB | pD | p_soil_pd) +
   plot_layout(widths = c(1, 0.8, 1.8))
 
-# ggsave("../../outputs/figures/Figure_Comprehensive_Top6PD.pdf", final_fig, 
+# ggsave("outputs/figures/Figure_Comprehensive_Top6PD.pdf", final_fig, 
 #        width = 16, height = 8, dpi = 300)
-# ggsave("../../outputs/figures/Figure_Comprehensive_Top6PD.png", final_fig, 
+# ggsave("outputs/figures/Figure_Comprehensive_Top6PD.png", final_fig, 
 #        width = 16, height = 8, dpi = 300)
 
 # Alternative: Vertical layout for narrow journals
@@ -702,9 +712,9 @@ final_fig_vertical <- (pA | pB) /
   p_soil_pd +
   plot_layout(heights = c(1, 0.8, 1, 1))
 
-# ggsave("../../outputs/figures/Figure_Comprehensive_Top6PD_vertical.pdf", final_fig_vertical, 
+# ggsave("outputs/figures/Figure_Comprehensive_Top6PD_vertical.pdf", final_fig_vertical, 
 #        width = 10, height = 14, dpi = 300)
-# ggsave("../../outputs/figures/Figure_Comprehensive_Top6PD_vertical.png", final_fig_vertical, 
+# ggsave("outputs/figures/Figure_Comprehensive_Top6PD_vertical.png", final_fig_vertical, 
 #        width = 10, height = 14, dpi = 300)
 
 cat("\n✓ Comprehensive figure with top 6 non-interaction features created\n")
@@ -870,8 +880,8 @@ final_fig <- (pA | pC | tree_pd_panel) /
   (pB | pD | soil_pd_panel) +
   plot_layout(widths = c(1, 0.8, 1.2))
 
-# ggsave("../../outputs/figures/Figure_Final_2x2PD.pdf", final_fig, width = 15, height = 8, dpi = 300)
-# ggsave("../../outputs/figures/Figure_Final_2x2PD.png", final_fig, width = 15, height = 8, dpi = 300)
+# ggsave("outputs/figures/Figure_Final_2x2PD.pdf", final_fig, width = 15, height = 8, dpi = 300)
+# ggsave("outputs/figures/Figure_Final_2x2PD.png", final_fig, width = 15, height = 8, dpi = 300)
 
 cat("\n✓ Final figure with 2x2 partial dependence panels created\n")
 cat("\nStructure:\n")
@@ -953,9 +963,9 @@ final_fig_3row <- (pA | pC | tree_pd_panel) /
   plot_layout(widths = c(1, 0.8, 1.2),
               heights = c(1, 1, 0.6))
 
-# ggsave("../../outputs/figures/Figure_Final_3Rows.pdf", final_fig_3row, 
+# ggsave("outputs/figures/Figure_Final_3Rows.pdf", final_fig_3row, 
 #        width = 15, height = 11, dpi = 300)
-# ggsave("../../outputs/figures/Figure_Final_3Rows.png", final_fig_3row, 
+# ggsave("outputs/figures/Figure_Final_3Rows.png", final_fig_3row, 
 #        width = 15, height = 11, dpi = 300)
 
 # Option 2: Monthly plots together in one wider panel
@@ -967,9 +977,9 @@ final_fig_3row_alt <- (pA | pC | tree_pd_panel) /
   plot_layout(widths = c(1, 0.8, 1.2),
               heights = c(1, 1, 0.6))
 
-# ggsave("../../outputs/figures/Figure_Final_3Rows_alt.pdf", final_fig_3row_alt, 
+# ggsave("outputs/figures/Figure_Final_3Rows_alt.pdf", final_fig_3row_alt, 
 #        width = 15, height = 11, dpi = 300)
-ggsave("../../outputs/figures/supplementary/figS5_rf_predictions.png", final_fig_3row_alt, 
+ggsave("outputs/figures/supplementary/figS5_rf_predictions.png", final_fig_3row_alt, 
        width = 12, height = 8.8, dpi = 300)
 
 # Option 3: Single combined monthly plot (both on same panel)
@@ -1005,9 +1015,9 @@ final_fig_3row_single <- (pA | pC | tree_pd_panel) /
   plot_layout(widths = c(1, 0.8, 1.2),
               heights = c(1, 1, 0.6))
 
-# ggsave("../../outputs/figures/Figure_Final_3Rows_single.pdf", final_fig_3row_single, 
+# ggsave("outputs/figures/Figure_Final_3Rows_single.pdf", final_fig_3row_single, 
 #        width = 15, height = 11, dpi = 300)
-# ggsave("../../outputs/figures/Figure_Final_3Rows_single.png", final_fig_3row_single, 
+# ggsave("outputs/figures/Figure_Final_3Rows_single.png", final_fig_3row_single, 
 #        width = 15, height = 11, dpi = 300)
 
 cat("\n✓ Three versions created:\n")

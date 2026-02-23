@@ -125,7 +125,7 @@ check_data_quality <- function(merged_final) {
 
 # Main Bar Plot Function with Fixed Ordering
 create_mcra_barplot_by_species <- function(merged_final, species_mapping, 
-                                           tree_file = "../../data/processed/metadata/PhytoPhylo",
+                                           tree_file = "data/processed/metadata/PhytoPhylo",
                                            error_bar_width = 0.2) {
   
   # Process data
@@ -537,4 +537,4 @@ cat("Creating mcrA bar plot...\n")
 result <- create_mcra_barplot_by_species(merged_final, species_mapping)
 print(result$plot)
 
-# ggsave("../../outputs/figures/mcra_barplot.png", result$plot, width = 12, height = 8, dpi = 300)
+# ggsave("outputs/figures/mcra_barplot.png", result$plot, width = 12, height = 8, dpi = 300)

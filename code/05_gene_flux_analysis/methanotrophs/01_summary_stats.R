@@ -47,8 +47,8 @@ inv_pseudolog10 <- function(x) {
 # ============================================================
 
 # Load data (ensure paths are correct for your system)
-ymf2023 <- read.csv("../../../data/processed/flux/methanogen_tree_flux_complete_dataset.csv")
-ymf2021 <- read.csv('../../../data/processed/integrated/merged_tree_dataset_final.csv')
+ymf2023 <- read.csv("data/processed/flux/methanogen_tree_flux_complete_dataset.csv")
+ymf2021 <- read.csv('data/processed/integrated/merged_tree_dataset_final.csv')
 
 # Species mapping
 species_mapping <- c(
@@ -673,9 +673,9 @@ right_column <- p_species_mcra / p_species_pmoa / p_species_mmox /
 # Combine left and right columns
 combined_layout <- left_column | right_column
 
-# ggsave("../../../outputs/figures/Figure_Scale_Dependent_Complete_Genes.pdf", combined_layout,
+# ggsave("outputs/figures/Figure_Scale_Dependent_Complete_Genes.pdf", combined_layout,
 #        width = 8, height = 10)
-ggsave("../../../outputs/figures/supplementary/figS6_scale_dependent_genes.png", combined_layout,
+ggsave("outputs/figures/supplementary/figS6_scale_dependent_genes.png", combined_layout,
        width = 8, height = 10, dpi = 300)
 
 # ============================================================
@@ -686,9 +686,9 @@ individual_layout <- (p_tree_mcra | p_tree_pmoa) /
   (p_tree_mmox | p_tree_methanotroph) /
   (p_tree_ratio | p_tree_comparison)
 
-# ggsave("../../../outputs/figures/Figure_Individual_Only_Complete_Genes.pdf", individual_layout,
+# ggsave("outputs/figures/Figure_Individual_Only_Complete_Genes.pdf", individual_layout,
 #        width = 8, height = 10)
-# ggsave("../../../outputs/figures/Figure_Individual_Only_Complete_Genes.png", individual_layout,
+# ggsave("outputs/figures/Figure_Individual_Only_Complete_Genes.png", individual_layout,
 #        width = 8, height = 10, dpi = 300)
 
 # ============================================================
@@ -699,9 +699,9 @@ species_layout <- (p_species_mcra | p_species_pmoa) /
   (p_species_mmox | p_species_methanotroph) /
   (p_species_ratio | p_species_comparison)
 
-# ggsave("../../../outputs/figures/Figure_Species_Only_Complete_Genes.pdf", species_layout,
+# ggsave("outputs/figures/Figure_Species_Only_Complete_Genes.pdf", species_layout,
 #        width = 8, height = 10)
-# ggsave("../../../outputs/figures/Figure_Species_Only_Complete_Genes.png", species_layout,
+# ggsave("outputs/figures/Figure_Species_Only_Complete_Genes.png", species_layout,
 #        width = 8, height = 10, dpi = 300)
 
 # ============================================================
@@ -797,9 +797,9 @@ p_species_comparison_2x2 <- ggplot(species_comparison_data,
 species_2x2_layout <- (p_species_mcra_2x2 | p_species_methanotroph_2x2) /
   (p_species_ratio_2x2 | p_species_comparison_2x2)
 
-# ggsave("../../../outputs/figures/Figure_Species_2x2_Complete_Genes.pdf", species_2x2_layout,
+# ggsave("outputs/figures/Figure_Species_2x2_Complete_Genes.pdf", species_2x2_layout,
 #        width = 8, height = 8)
-# ggsave("../../../outputs/figures/Figure_Species_2x2_Complete_Genes.png", species_2x2_layout,
+# ggsave("outputs/figures/Figure_Species_2x2_Complete_Genes.png", species_2x2_layout,
 #        width = 8, height = 8, dpi = 300)
 
 cat("\n============================================================\n")
@@ -829,7 +829,7 @@ summary_table <- rbind(
 
 print(summary_table)
 
-write.csv(summary_table, "../../../outputs/tables/Scale_Dependent_Complete_Genes_Summary.csv", row.names = FALSE)
+write.csv(summary_table, "outputs/tables/Scale_Dependent_Complete_Genes_Summary.csv", row.names = FALSE)
 
 cat("\n### DATA FILTERING SUMMARY ###\n")
 cat("Trees with complete gene data:", nrow(tree_level_complete), "\n")
@@ -951,16 +951,16 @@ mcra_vs_methanotroph_layout <- p_tree_mcra_vs_methanotroph |
   p_species_mcra_vs_methanotroph
 
 # Save combined figure
-# ggsave("../../../outputs/figures/Figure_mcrA_vs_Methanotroph.pdf", mcra_vs_methanotroph_layout,
+# ggsave("outputs/figures/Figure_mcrA_vs_Methanotroph.pdf", mcra_vs_methanotroph_layout,
 #        width = 12, height = 5)
-ggsave("../../../outputs/figures/supplementary/figS9_mcra_vs_methanotroph.png", mcra_vs_methanotroph_layout,
+ggsave("outputs/figures/supplementary/figS9_mcra_vs_methanotroph.png", mcra_vs_methanotroph_layout,
        width = 12, height = 5, dpi = 300)
 
 # Save individual plots
-# ggsave("../../../outputs/figures/Figure_mcrA_vs_Methanotroph_Individual.pdf",
+# ggsave("outputs/figures/Figure_mcrA_vs_Methanotroph_Individual.pdf",
 #        p_tree_mcra_vs_methanotroph,
 #        width = 6, height = 5)
-# ggsave("../../../outputs/figures/Figure_mcrA_vs_Methanotroph_Species.pdf",
+# ggsave("outputs/figures/Figure_mcrA_vs_Methanotroph_Species.pdf",
 #        p_species_mcra_vs_methanotroph,
 #        width = 6, height = 5)
 

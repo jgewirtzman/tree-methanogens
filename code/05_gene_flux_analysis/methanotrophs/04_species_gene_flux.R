@@ -7,6 +7,13 @@
 #
 # Inputs:
 #   - merged_tree_dataset_final.csv (from data/processed/integrated/)
+#
+# UPSTREAM DEPENDENCIES (must be run first, or objects must exist in env):
+#   - 05_radial_gene_plots.R  -> p_mcra_result, p_sum_result, p_overlay
+#   - 01_summary_stats.R      -> analysis_mcra, analysis_methanotroph,
+#                                 analysis_ratio, cor_area_mcra,
+#                                 cor_area_methanotroph, pearson_ratio,
+#                                 species_comparison_data, y_limit
 # ==============================================================================
 
 library(dplyr)
@@ -31,7 +38,15 @@ break_species_name <- function(name) {
 
 # ============================================================
 # RE-CREATE RADIAL PLOTS WITH TWO-LINE SPECIES NAMES
+# Requires: p_mcra_result, p_sum_result, p_overlay from
+#   05_radial_gene_plots.R
 # ============================================================
+
+if (!exists("p_mcra_result") || !exists("p_sum_result") || !exists("p_overlay")) {
+  cat("WARNING: Radial plot objects (p_mcra_result, p_sum_result, p_overlay) not found.\n")
+  cat("  Run 05_radial_gene_plots.R first, or source it to populate these objects.\n")
+  cat("  Skipping radial plot section.\n\n")
+} else {
 
 # mcrA plot with two-line species names
 p_mcra_data <- p_mcra_result$plot$data
@@ -172,9 +187,27 @@ p_overlay <- ggplot(overlay_data_modified, aes(x = x, y = y)) +
 # Combine radial plots vertically
 combined_plot <- p_mcra / p_sum / p_overlay
 
+}  # end if (radial plot objects exist)
+
 # ============================================================
 # SPECIES COMPARISON 2x2 PLOTS
+# Requires: analysis_mcra, analysis_methanotroph, analysis_ratio,
+#   cor_area_mcra, cor_area_methanotroph, pearson_ratio,
+#   species_comparison_data, y_limit from 01_summary_stats.R
 # ============================================================
+
+required_analysis_objs <- c("analysis_mcra", "analysis_methanotroph",
+                            "analysis_ratio", "cor_area_mcra",
+                            "cor_area_methanotroph", "pearson_ratio",
+                            "species_comparison_data", "y_limit")
+missing_objs <- required_analysis_objs[!sapply(required_analysis_objs, exists)]
+
+if (length(missing_objs) > 0) {
+  cat("WARNING: Missing upstream objects for species comparison plots:\n")
+  cat("  ", paste(missing_objs, collapse = ", "), "\n")
+  cat("  Run 01_summary_stats.R first to populate these objects.\n")
+  cat("  Skipping species comparison and final figure sections.\n\n")
+} else {
 
 # Panel 1: Species - mcrA
 p_species_mcra_2x2 <- ggplot(analysis_mcra,
@@ -286,26 +319,36 @@ p_species_comparison_2x2 <- ggplot(species_comparison_data,
 species_2x2_layout <- (p_species_mcra_2x2 | p_species_methanotroph_2x2) /
   (p_species_ratio_2x2 | p_species_comparison_2x2)
 
+}  # end if (analysis objects exist)
+
 # ============================================================
 # FINAL SIDE-BY-SIDE LAYOUT
+# Requires both combined_plot (radial) and species_2x2_layout
 # ============================================================
 
-side_by_side <- combined_plot | species_2x2_layout + 
+if (exists("combined_plot") && exists("species_2x2_layout")) {
+
+side_by_side <- combined_plot | species_2x2_layout +
   plot_layout(widths = c(1, 1))
 
 side_by_side
 
 
-# ggsave("../../../outputs/figures/Figure_Radial_And_Species_Comparison.pdf",
+# ggsave("outputs/figures/Figure_Radial_And_Species_Comparison.pdf",
 #        side_by_side,
 #        width = 16,
 #        height = 10,
 #        limitsize = FALSE)
 
-ggsave("../../../outputs/figures/main/fig8_radial_species_comparison.png",
+ggsave("outputs/figures/main/fig8_radial_species_comparison.png",
        side_by_side,
        width = 12,
        height = 7.5,
        dpi = 300,
        limitsize = FALSE)
+
+} else {
+  cat("WARNING: Cannot create final figure - missing combined_plot and/or species_2x2_layout.\n")
+  cat("  Ensure both 05_radial_gene_plots.R and 01_summary_stats.R have been run.\n")
+}
 

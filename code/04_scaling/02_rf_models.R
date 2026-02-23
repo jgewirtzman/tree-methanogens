@@ -1644,3 +1644,7 @@ cat("  Mean predicted:", round(mean(soil_train_subset$pred_flux_nmol, na.rm = TR
 cat("  % negative (uptake):", round(100 * mean(soil_train_subset$obs_flux_nmol < 0, na.rm = TRUE), 1), "%\n")
 
 cat("\n✓ Quality control plots saved\n")
+
+## Save training data for downstream scripts (08_rf_publication_plots.R)
+save(tree_train_complete, file = "outputs/models/TRAINING_DATA.RData")
+cat("  Saved tree_train_complete to outputs/models/TRAINING_DATA.RData\n")
