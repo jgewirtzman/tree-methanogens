@@ -175,7 +175,7 @@ make_taxonomy_heatmap <- function(pvals, percent_mat, wood_df, p_cutoff,
   fig_height <- max(6, nrow(sig) * 0.3 + 3)
 
   ## Save as PNG
-  png(paste0("outputs/figures/", filename), width = 16, height = fig_height,
+  png(paste0("outputs/figures/", filename), width = 12, height = fig_height,
       units = "in", res = 300)
   pheatmap(t(sig_percent),
            color = colorRampPalette(c("dodgerblue", "white", "red"))(100),
@@ -201,12 +201,12 @@ make_taxonomy_heatmap <- function(pvals, percent_mat, wood_df, p_cutoff,
 # ==============================================================================
 
 make_taxonomy_heatmap(pvals_strict, percent_strict, wood, p_cutoff = 0.01,
-                       filename = "fig_taxonomy_mcra_strict.png",
+                       filename = "main/fig6_taxonomy_mcra_heatmap.png",
                        fig_title = "Family-level 16S associations with mcrA (prevalence > 20, p < 0.01)")
 
-make_taxonomy_heatmap(pvals_loose, percent_loose, wood, p_cutoff = 0.05,
-                       filename = "fig_taxonomy_mcra_loose.png",
-                       fig_title = "Family-level 16S associations with mcrA (prevalence > 2, p < 0.05)")
+# make_taxonomy_heatmap(pvals_loose, percent_loose, wood, p_cutoff = 0.05,
+#                        filename = "fig_taxonomy_mcra_loose.png",
+#                        fig_title = "Family-level 16S associations with mcrA (prevalence > 2, p < 0.05)")
 
 ## Save association tables
 write.csv(arrange(pvals_strict, p),

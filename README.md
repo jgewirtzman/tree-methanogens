@@ -129,31 +129,29 @@ See `code/04_scaling/RF_CH4_workflow_spec.md` for the detailed RF technical spec
 
 ## Figure-Script Reference
 
-| Figure | Description | Script |
-|--------|-------------|--------|
-| Fig 1 | Temporal flux across hydrological gradient | `04_scaling/08_rf_publication_plots.R`, `06_figures/06_soil_tree_timeseries.R` |
-| Fig 2 | Height-dependent flux patterns | `01_flux_processing/static/04_height_effect_analysis.R` |
-| Fig 3 | Variance partitioning | `06_figures/04_variance_partition.R`, `06_figures/01_correlation_plots.R` |
-| Fig 4 | Methanogen/methanotroph abundance | `02_ddpcr/04_species_barplots.R` |
-| Fig 5 | Methanogen/methanotroph 16S composition | `06_figures/08_methanogen_16s_composition.R`, `06_figures/08b_methanotroph_16s_composition.R`, `06_figures/08c_combined_methane_cycling_composition.R` |
-| Fig 6 | Bacterial family heatmap | `05_gene_flux_analysis/methanotrophs/07_picrust_analysis.R` |
-| Fig 7 | Felled oak vertical profiles | `06_figures/09_felled_oak_profiles.R` |
-| Fig 8 | Radial cross-sections + gene-flux | `06_figures/02_radial_cross_sections.R`, `05_gene_flux_analysis/methanotrophs/05_radial_gene_plots.R` |
-| Fig 9 | RF seasonal flux maps | `04_scaling/07_seasonal_maps.R`, `04_scaling/08_rf_publication_plots.R` |
-| S1-S2 | Methanotroph composition | `05_gene_flux_analysis/methanotrophs/02_rf_models.R` |
-| S3 | PICRUSt2 pathways | `05_gene_flux_analysis/methanotrophs/07_picrust_analysis.R` |
-| S4-S5 | Internal CH4 vs mcrA | `06_figures/05_internal_gas_plots.R`, `05_gene_flux_analysis/methanotrophs/06_pmoa_mmox_analysis.R` |
-| S6 | RF model predictions | `04_scaling/08_rf_publication_plots.R` |
-| S7 | Individual gene-flux models | `05_gene_flux_analysis/methanotrophs/04_species_gene_flux.R` |
-| S8 | Species gene-flux correlations | `05_gene_flux_analysis/methanotrophs/04_species_gene_flux.R` |
-| S9 | Individual tree cross-sections | `06_figures/02_radial_cross_sections.R`, `06_figures/03_threshold_analysis.R` |
-| S10 | pMMO:sMMO balance | `05_gene_flux_analysis/methanotrophs/06_pmoa_mmox_analysis.R` |
-| S11 | Methanogen-methanotroph independence | `05_gene_flux_analysis/methanotrophs/04_species_gene_flux.R` |
-| S12 | Black oak methanome heatmap | `06_figures/10_black_oak_methanome_heatmap.R` |
-| Isotope (Dataset 1) | δ¹³CH₄ — single dataset | `06_figures/11a_isotope_d13ch4_single.R` |
-| Isotope (Dataset 2) | δ¹³CH₄ — paired dataset | `06_figures/11b_isotope_d13ch4_paired.R` |
-| Taxonomy heatmap | Family-level 16S × mcrA associations | `06_figures/12a_taxonomy_mcra_heatmap.R` |
-| PICRUSt heatmap | MetaCyc pathway × mcrA associations | `06_figures/12b_picrust_pathway_heatmap.R` |
+| Figure | Output File | Description | Script |
+|--------|------------|-------------|--------|
+| Fig 1 | `fig1_temporal_flux_timeseries.png` | Temporal flux across hydrological gradient | `06_figures/06_soil_tree_timeseries.R` |
+| Fig 2 | `fig2_height_dependent_flux.png` | Height-dependent flux patterns | `01_flux_processing/static/04_height_effect_analysis.R` |
+| Fig 3 | `fig3_variance_partitioning.png` | Variance partitioning | `06_figures/04_variance_partition.R` |
+| Fig 4 | `fig4_methanogen_methanotroph_abundance.png` | Methanogen/methanotroph abundance | `02_ddpcr/util_combined_plot.R` |
+| Fig 5 | `fig5_combined_methane_cycling_composition.png` | Combined methane-cycling 16S composition | `06_figures/08c_combined_methane_cycling_composition.R` |
+| Fig 6 | `fig6_taxonomy_mcra_heatmap.png` | Family-level 16S × mcrA associations | `06_figures/12a_taxonomy_mcra_heatmap.R` |
+| Fig 7 | `fig7_felled_oak_profiles.png` | Felled oak vertical profiles | `06_figures/09_felled_oak_profiles.R` |
+| Fig 8 | `fig8_radial_species_comparison.png` | Radial cross-sections + species comparison | `05_gene_flux_analysis/methanotrophs/04_species_gene_flux.R` |
+| Fig 9 | `fig9_upscaled_flux_seasonal.png` | Upscaled seasonal flux overview | `04_scaling/09_upscale_publication_plots.R` |
+| S1 | `figS1_faprotax_heatmaps.pdf` | FAPROTAX functional heatmaps | — |
+| S2 | `figS2_picrust_pathway_heatmap.png` | MetaCyc pathway × mcrA heatmap | `06_figures/12b_picrust_pathway_heatmap.R` |
+| S3 | `figS3_internal_gas_beeswarm.png` | Internal gas beeswarm by species | `06_figures/05_internal_gas_plots.R` |
+| S4 | `figS4_internal_gas_profiles.png` | Internal gas multi-panel profiles | `06_figures/05_internal_gas_plots.R` |
+| S5 | `figS5_rf_predictions.png` | RF model predictions (3-row layout) | `04_scaling/08_rf_publication_plots.R` |
+| S6 | `figS6_scale_dependent_genes.png` | Scale-dependent gene abundance | `05_gene_flux_analysis/methanotrophs/01_summary_stats.R` |
+| S7 | `figS7_tree_radial_sections.pdf` | Tree radial mcrA cross-sections | `06_figures/02_radial_cross_sections.R` |
+| S8 | `figS8_methanotroph_abundance_patterns.pdf` | pmoA vs mmoX + ratio analysis | `05_gene_flux_analysis/methanotrophs/06_pmoa_mmox_analysis.R` |
+| S9 | `figS9_mcra_vs_methanotroph.png` | mcrA vs methanotroph independence | `05_gene_flux_analysis/methanotrophs/01_summary_stats.R` |
+| S10 | `figS10_black_oak_methanome.png` | Black oak methanome heatmap | `06_figures/10_black_oak_methanome_heatmap.R` |
+| S11 | `figS11_d13ch4_rainfall.png` | δ¹³CH₄ vs rainfall | `06_figures/11a_isotope_d13ch4_single.R` |
+| S12 | `figS12_moisture_overlay.png` | Moisture interpolation overlay | — |
 
 ## Key Datasets
 

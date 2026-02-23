@@ -537,4 +537,4 @@ cat("Creating mcrA bar plot...\n")
 result <- create_mcra_barplot_by_species(merged_final, species_mapping)
 print(result$plot)
 
-ggsave("../../outputs/figures/mcra_barplot.png", result$plot, width = 12, height = 8, dpi = 300)
+# ggsave("../../outputs/figures/mcra_barplot.png", result$plot, width = 12, height = 8, dpi = 300)

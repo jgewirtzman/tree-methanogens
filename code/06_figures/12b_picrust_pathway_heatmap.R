@@ -123,8 +123,8 @@ fig_height <- max(8, nrow(sig_pathways) * 0.3 + 3)
 # STEP 5: Generate and save heatmap
 # ==============================================================================
 
-png("outputs/figures/fig_picrust_mcra_pathways.png",
-    width = 16, height = fig_height, units = "in", res = 300)
+png("outputs/figures/supplementary/figS2_picrust_pathway_heatmap.png",
+    width = 12, height = fig_height, units = "in", res = 300)
 pheatmap(t(sig_percent),
          color = colorRampPalette(c("dodgerblue", "white", "red"))(100),
          scale = "row",

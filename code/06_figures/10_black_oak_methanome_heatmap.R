@@ -177,7 +177,7 @@ p_abs <- p_mg / p_mt +
 
 print(p_abs)
 
-ggsave("outputs/figures/figS12_black_oak_methanome.png",
+ggsave("../../outputs/figures/supplementary/figS10_black_oak_methanome.png",
        p_abs, width = 12, height = 8, dpi = 300)
 
 # ==============================================================================
@@ -232,8 +232,8 @@ p_rel <- p_rel_mg / p_rel_mt +
 
 print(p_rel)
 
-ggsave("outputs/figures/figS12_black_oak_methanome_relative.png",
-       p_rel, width = 12, height = 8, dpi = 300)
+# ggsave("outputs/figures/figS12_black_oak_methanome_relative.png",
+#        p_rel, width = 12, height = 8, dpi = 300)
 
 # ==============================================================================
 # STEP 5: Alpha Diversity Metrics
