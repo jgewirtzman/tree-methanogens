@@ -1,20 +1,41 @@
-
-
-
-
 # ==============================================================================
-# pmoA/mmoX Ratio Analysis (Figures S4-S5, S10)
+# pmoA/mmoX Ratio Analysis (Figure S8)
 # ==============================================================================
-# Purpose: Analyzes pMMO:sMMO balance (pmoA:mmoX ratio) and ammonia oxidation
-#   pathways.
+# Purpose: Analyzes pMMO:sMMO balance (pmoA:mmoX ratio) and produces a
+#   2-panel figure: (A) pmoA vs mmoX abundance, (B) ratio vs total abundance.
 #
-# Pipeline stage: 3 — Analysis
+# Pipeline stage: 4 — Publication Figures
 #
 # Inputs:
-#   - gene data (from data/processed/integrated/)
+#   - Metadata: data/raw/picrust/16S_tree_sample_table_with_meta.csv
+#
+# Outputs:
+#   - figS8_methanotroph_abundance_patterns.pdf
+#
+# Required packages: ggplot2, cowplot, gridExtra
 # ==============================================================================
 
-## For pmoA heatmap
+library(ggplot2)
+library(cowplot)
+library(gridExtra)
+library(dplyr)
+
+# ==============================================================================
+# STEP 0: Load and filter data
+# ==============================================================================
+
+meta <- read.csv("data/raw/picrust/16S_tree_sample_table_with_meta.csv",
+                  row.names = 1)
+meta$log16S <- log10(1 + meta$X16S_per_ul)
+
+wood <- meta %>%
+  filter(material == "Wood", !is.na(material)) %>%
+  filter(!is.na(mcra_probe_loose)) %>%
+  filter(X16S_per_ul >= 100)
+
+cat("Wood samples with mcrA + 16S >= 100:", nrow(wood), "\n")
+
+## For pmoA heatmap (legacy, kept for reference)
 annotation_colors_pmoa = list(
   core_type = c("heartwood" = "#8B4513", "sapwood" = "#DEB887"),
   log16S = colorRampPalette(c("white", "forestgreen"))(100),
@@ -23,7 +44,7 @@ annotation_colors_pmoa = list(
   mean_counts = colorRampPalette(c("white", "orange"))(100)
 )
 
-# pdf("../../../outputs/figures/pheatmap_picrust_pmoa.pdf", height = 8, width = 16)
+# pdf("outputs/figures/pheatmap_picrust_pmoa.pdf", height = 8, width = 16)
 # pheatmap(t(sig_pathways_percent_pmoa),
 #          color = colorRampPalette(c("dodgerblue", "white", "red"))(100),
 #          scale = "row",
@@ -61,7 +82,7 @@ ggplot(wood, aes(x = log10(1 + pmoa_loose),
   theme_bw() +
   theme(legend.position = "top")
 
-# ggsave("../../../outputs/figures/pmoa_vs_mmox.pdf", width = 6, height = 5)
+# ggsave("outputs/figures/pmoa_vs_mmox.pdf", width = 6, height = 5)
 
 
 ## Only samples where both are detected
@@ -79,7 +100,7 @@ ggplot(wood_both, aes(x = log10(pmoa_loose),
        color = "Core Type",
        title = "pmoA vs mmoX abundance (both detected)") +
   theme_bw()
-# ggsave("../../../outputs/figures/pmoa_vs_mmox_abundance.pdf", width = 6, height = 5)
+# ggsave("outputs/figures/pmoa_vs_mmox_abundance.pdf", width = 6, height = 5)
 
 ## Check correlation
 cat("\n=== Correlation between pmoA and mmoX abundance ===\n")
@@ -97,7 +118,7 @@ if("mean_orp" %in% names(wood)) {
          y = "log10(pmoA / mmoX)",
          title = "Does redox affect pmoA:mmoX ratio?") +
     theme_bw()
-  # ggsave("../../../outputs/figures/ratio_vs_orp.pdf", width = 6, height = 4)
+  # ggsave("outputs/figures/ratio_vs_orp.pdf", width = 6, height = 4)
 }
 
 if("CH4_int" %in% names(wood)) {
@@ -108,7 +129,7 @@ if("CH4_int" %in% names(wood)) {
          y = "log10(pmoA / mmoX)",
          title = "Does CH4 affect pmoA:mmoX ratio?") +
     theme_bw()
-  # ggsave("../../../outputs/figures/ratio_vs_ch4.pdf", width = 6, height = 4)
+  # ggsave("outputs/figures/ratio_vs_ch4.pdf", width = 6, height = 4)
 }
 
 ## Summary stats on the ratio
@@ -133,7 +154,7 @@ ggplot(wood_both, aes(x = log10(pmoa_loose + mmox_loose), y = ratio)) +
        y = "log10(pmoA / mmoX)",
        title = "Does total methanotroph abundance affect enzyme ratio?") +
   theme_bw()
-# ggsave("../../../outputs/figures/ratio_vs_total_methanotroph.pdf", width = 6, height = 4)
+# ggsave("outputs/figures/ratio_vs_total_methanotroph.pdf", width = 6, height = 4)
 
 ## Correlation with methanogen abundance
 cor.test(wood_both$ratio, log10(1 + wood_both$mcra_probe_loose))
@@ -341,6 +362,6 @@ combined
 
 
 ## Save
-ggsave("../../../outputs/figures/supplementary/figS8_methanotroph_abundance_patterns.pdf",
+ggsave("outputs/figures/supplementary/figS8_methanotroph_abundance_patterns.pdf",
        arrangeGrob(p1, p2, ncol = 2),
        width = 11, height = 5)

@@ -25,8 +25,8 @@ suppressPackageStartupMessages({
 
 # ---- Load data ----
 # Update these paths as needed
-ymf2023 <- read.csv("../../data/processed/flux/methanogen_tree_flux_complete_dataset.csv")
-ymf2021 <- read.csv("../../data/processed/integrated/merged_tree_dataset_final.csv")
+ymf2023 <- read.csv("data/processed/flux/methanogen_tree_flux_complete_dataset.csv")
+ymf2021 <- read.csv("data/processed/integrated/merged_tree_dataset_final.csv")
 
 merged_final <- ymf2021  # Adjust if ddPCR data is elsewhere
 
@@ -393,7 +393,7 @@ print(p_main)
 
 # Optional: If you want even more compression, save with adjusted dimensions
 # This creates a wider, shorter plot that emphasizes the grid layout
-ggsave("../../outputs/figures/supplementary/figS7_tree_radial_sections.pdf",
+ggsave("outputs/figures/supplementary/figS7_tree_radial_sections.pdf",
        p_main,
        width = 12,
        height = 5.1,

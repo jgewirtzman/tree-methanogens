@@ -8,16 +8,18 @@
 # Run after: 00_harmonization/02_harmonize_all_data.R
 #
 # Inputs:
-#   - methanogen_tree_flux_complete_dataset.csv (from data/processed/flux/)
+#   - goflux_auxfile.csv (from data/processed/flux/) — has measurement_height
+#   - CH4_best_flux_lgr_results.csv (from data/processed/flux/) — has CH4_best.flux
 #   - merged_tree_dataset_final.csv (from data/processed/integrated/)
 #   - tree_id_comprehensive_mapping.csv (from data/processed/tree_data/)
 #
 # Outputs:
-#   - combined_flux_plot.png
+#   - fig2_height_dependent_flux.png
 # ==============================================================================
 
 library(ggplot2)
 library(dplyr)
+library(purrr)
 library(lme4)
 library(gridExtra)
 library(grid)
@@ -26,9 +28,16 @@ library(scales)
 library(patchwork)
 library(gghalves)
 
-# Load the merged dataset
-final_dataset <- read.csv('../../../data/processed/flux/methanogen_tree_flux_complete_dataset.csv')
-merged_data <- read.csv('../../../data/processed/integrated/merged_tree_dataset_final.csv')
+# Load multi-height experiment data: join auxfile (has heights) with CH4 flux results
+aux <- read.csv('data/processed/flux/goflux_auxfile.csv')
+ch4_flux <- read.csv('data/processed/flux/CH4_best_flux_lgr_results.csv')
+final_dataset <- merge(ch4_flux, aux[, c("UniqueID", "measurement_height", "tree_id",
+                                          "species", "plot")],
+                       by = "UniqueID", all.x = TRUE)
+# Rename flux column to match expected name
+names(final_dataset)[names(final_dataset) == "best.flux"] <- "CH4_best.flux"
+
+merged_data <- read.csv('data/processed/integrated/merged_tree_dataset_final.csv')
 
 # Species name mapping
 species_mapping <- c(
@@ -242,7 +251,7 @@ p_middle <- ggplot(plot_data_middle, aes(x = reorder(species_label, height_coef)
 # =============================================================================
 
 # Load the mapping file and create lookup (from harmonization script)
-mapping <- read.csv("../../../data/processed/tree_data/tree_id_comprehensive_mapping.csv")
+mapping <- read.csv("data/processed/tree_data/tree_id_comprehensive_mapping.csv")
 mapping <- mapping %>% mutate(across(everything(), ~ifelse(.x == "NA", NA, .x)))
 
 create_comprehensive_lookup <- function(mapping) {
@@ -555,7 +564,7 @@ combined_plot <- p_top_gg / p_middle / p_bottom +
 print(combined_plot)
 
 # Save the plot as 8x7 inches
-ggsave("../../../outputs/figures/main/fig2_height_dependent_flux.png",
+ggsave("outputs/figures/main/fig2_height_dependent_flux.png",
        plot = combined_plot,
        width = 8,
        height = 8,
@@ -563,14 +572,14 @@ ggsave("../../../outputs/figures/main/fig2_height_dependent_flux.png",
        dpi = 300)
 
 # Alternative: save as PDF
-# ggsave("../../../outputs/figures/combined_flux_plot.pdf",
+# ggsave("outputs/figures/combined_flux_plot.pdf",
 #        plot = combined_plot,
 #        width = 8,
 #        height = 7,
 #        units = "in")
 
 # Alternative: save as TIFF for publication
-# ggsave("../../../outputs/figures/combined_flux_plot.tiff",
+# ggsave("outputs/figures/combined_flux_plot.tiff",
 #        plot = combined_plot,
 #        width = 8,
 #        height = 7,

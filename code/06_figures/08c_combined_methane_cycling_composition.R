@@ -343,7 +343,7 @@ fig_combined <- p_mg_a / p_mg_b / p_mt_a / p_mt_b +
 
 print(fig_combined)
 
-ggsave("../../outputs/figures/main/fig5_combined_methane_cycling_composition.png",
+ggsave("outputs/figures/main/fig5_combined_methane_cycling_composition.png",
        fig_combined, width = 12, height = 12, dpi = 300)
 
 cat("Combined figure saved to outputs/figures/fig5_combined_methane_cycling_composition.png\n")

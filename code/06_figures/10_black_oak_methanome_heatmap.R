@@ -177,7 +177,7 @@ p_abs <- p_mg / p_mt +
 
 print(p_abs)
 
-ggsave("../../outputs/figures/supplementary/figS10_black_oak_methanome.png",
+ggsave("outputs/figures/supplementary/figS10_black_oak_methanome.png",
        p_abs, width = 12, height = 8, dpi = 300)
 
 # ==============================================================================

@@ -23,7 +23,7 @@ library(wesanderson)
 theme_set(theme_bw(base_size = 12))
 
 # Define file paths
-base_path <- '../../data/raw/ddpcr/'
+base_path <- 'data/raw/ddpcr/'
 raw_data_path <- file.path(base_path, 'Raw Data')
 
 # ============================================================================
@@ -243,5 +243,5 @@ process_ddpcr_data <- function(base_path, raw_data_path) {
 final_data <- process_ddpcr_data(base_path, raw_data_path)
 
 # Optional: Save the processed data
- write.csv(final_data, "../../data/processed/molecular/processed_ddpcr_data.csv", row.names = FALSE)
+ write.csv(final_data, "data/processed/molecular/processed_ddpcr_data.csv", row.names = FALSE)
  

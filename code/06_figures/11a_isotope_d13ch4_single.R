@@ -319,7 +319,7 @@ p4 <- ggplot() +
   labs(x = d13_label, y = NULL)
 
 print(p4)
-ggsave("../../outputs/figures/supplementary/figS11_d13ch4_rainfall.png",
+ggsave("outputs/figures/supplementary/figS11_d13ch4_rainfall.png",
        p4, width = 10, height = 5, dpi = 300)
 
 # ==============================================================================

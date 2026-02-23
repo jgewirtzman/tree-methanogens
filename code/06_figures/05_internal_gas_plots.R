@@ -12,7 +12,7 @@
 
 library(tidyverse)
 
-tree_all<-read.csv('../../data/processed/integrated/merged_tree_dataset_final.csv')
+tree_all<-read.csv('data/processed/integrated/merged_tree_dataset_final.csv')
 
 # Species name mapping
 species_mapping <- c(
@@ -371,7 +371,7 @@ p_beeswarm <- ggplot(ridge_data, aes(x = Species_Latin, y = CH4_concentration)) 
 p_beeswarm
 
 # Save beeswarm figure (Fig S4)
-ggsave("../../outputs/figures/supplementary/figS3_internal_gas_beeswarm.png",
+ggsave("outputs/figures/supplementary/figS3_internal_gas_beeswarm.png",
        p_beeswarm, width = 10, height = 8, dpi = 300)
 
 
@@ -443,7 +443,7 @@ format_mixed_labels <- function(x) {
 }
 
 # --- PHYLOGENETIC COLOR CALCULATION ---
-tree_file <- "../../data/processed/metadata/PhytoPhylo"
+tree_file <- "data/processed/metadata/PhytoPhylo"
 
 all_species <- unique(c(conc_data$Species_Latin, o2_data$Species_Latin, 
                         flux_conc_data$Species_Latin, mcra_data$Species_Latin))
@@ -682,5 +682,5 @@ final_plot <- cowplot::plot_grid(core_grid, legend_grob, ncol = 2, rel_widths = 
 print(final_plot)
 
 # Save combined internal gas figure (Fig S5)
-ggsave("../../outputs/figures/supplementary/figS4_internal_gas_profiles.png",
+ggsave("outputs/figures/supplementary/figS4_internal_gas_profiles.png",
        final_plot, width = 12, height = 7.5, dpi = 300)

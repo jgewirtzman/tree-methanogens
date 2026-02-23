@@ -30,12 +30,12 @@ cat("Starting at:", format(Sys.time()), "\n\n")
 cat("Loading saved prediction data...\n")
 
 # Load soil predictions
-load("../../outputs/models/soil_monthly_predictions.RData")
+load("outputs/models/soil_monthly_predictions.RData")
 soil_predictions <- monthly_predictions
 rm(monthly_predictions)
 
 # Load tree predictions  
-load("../../outputs/models/tree_monthly_predictions.RData")
+load("outputs/models/tree_monthly_predictions.RData")
 tree_predictions <- monthly_predictions
 rm(monthly_predictions)
 
@@ -275,11 +275,11 @@ combined_figure <- (tree_row / soil_row) +
 # =============================================================================
 
 cat("\nSaving combined figure...\n")
-# ggsave("../../outputs/figures/combined_tree_soil_flux_seasonal.png",
+# ggsave("outputs/figures/combined_tree_soil_flux_seasonal.png",
 #        combined_figure, width = 16, height = 8, dpi = 300, bg = "white")
 cat("  Saved: combined_tree_soil_flux_seasonal.png\n")
 
-# ggsave("../../outputs/figures/combined_tree_soil_flux_seasonal.pdf",
+# ggsave("outputs/figures/combined_tree_soil_flux_seasonal.pdf",
 #        combined_figure, width = 16, height = 8, bg = "white")
 cat("  Saved: combined_tree_soil_flux_seasonal.pdf\n")
 
@@ -302,9 +302,22 @@ cat("Finished at:", format(Sys.time()), "\n")
 
 # =============================================================================
 # FACETED ANNUAL FLUX BY SPECIES (WITH FULL NAMES) + SPATIAL, BOXPLOTS, ETC.
-#   Assumes 'species_counts' and 'annual_avg' already exist in env
 #   Uses shared x/y extents for spatial faceting
 # =============================================================================
+
+## Derive annual_avg and species_counts from tree_predictions (loaded above)
+annual_avg <- tree_predictions %>%
+  group_by(tree_id, species, x, y, dbh_m, BasalArea_m2) %>%
+  summarise(
+    mean_flux_nmol = mean(flux_nmol_m2_s),
+    mean_flux_mg = mean(flux_mg_m2_d),
+    mean_moisture = mean(moisture_pct),
+    .groups = "drop"
+  )
+
+species_counts <- annual_avg %>%
+  dplyr::count(species) %>%
+  dplyr::arrange(desc(n))
 
 cat("\nCreating faceted annual flux distribution by species...\n")
 
@@ -350,7 +363,7 @@ p_species_dist <- ggplot(species_dist_data, aes(x = mean_flux_nmol)) +
     axis.text.y = element_text(size = 6)
   )
 
-# ggsave("../../outputs/figures/tree_flux_distribution_by_species.png", p_species_dist, width = 14, height = 10, dpi = 150)
+# ggsave("outputs/figures/tree_flux_distribution_by_species.png", p_species_dist, width = 14, height = 10, dpi = 150)
 cat("  Saved: tree_flux_distribution_by_species.png\n")
 
 # Boxplot + jitter
@@ -374,7 +387,7 @@ p_species_box <- ggplot(species_dist_data, aes(x = mean_flux_nmol, y = species_f
   theme_minimal() +
   theme(axis.text.y = element_text(size = 9, face = "italic"))
 
-# ggsave("../../outputs/figures/tree_flux_boxplot_by_species.png", p_species_box, width = 10, height = 8, dpi = 150)
+# ggsave("outputs/figures/tree_flux_boxplot_by_species.png", p_species_box, width = 10, height = 8, dpi = 150)
 cat("  Saved: tree_flux_boxplot_by_species.png\n")
 
 # Spatial faceting with shared XY extent
@@ -396,7 +409,7 @@ p_species_spatial <- ggplot(species_dist_data, aes(x = x, y = y)) +
     legend.text  = element_text(size = 8)
   )
 
-# ggsave("../../outputs/figures/tree_flux_spatial_faceted_species.png", p_species_spatial, width = 14, height = 10, dpi = 150)
+# ggsave("outputs/figures/tree_flux_spatial_faceted_species.png", p_species_spatial, width = 14, height = 10, dpi = 150)
 cat("  Saved: tree_flux_spatial_faceted_species.png\n")
 
 # Species stats table
@@ -419,7 +432,7 @@ faceted_species_stats <- species_dist_data %>%
 
 cat("\nStatistics for species with n>50 (excluding Kalmia latifolia):\n")
 print(faceted_species_stats %>% dplyr::select(species_full, n_trees, mean_flux, median_flux, cv_flux))
-write.csv(faceted_species_stats, "../../outputs/tables/tree_flux_faceted_species_stats.csv", row.names = FALSE)
+write.csv(faceted_species_stats, "outputs/tables/tree_flux_faceted_species_stats.csv", row.names = FALSE)
 
 # Bar + error
 faceted_species_stats$species_full_ordered <- factor(faceted_species_stats$species_full, levels = species_order$species_full)
@@ -437,7 +450,7 @@ p_species_bar <- ggplot(faceted_species_stats, aes(x = species_full_ordered, y =
   theme_minimal() +
   theme(axis.text.y = element_text(size = 9, face = "italic"))
 
-# ggsave("../../outputs/figures/tree_flux_barplot_by_species.png", p_species_bar, width = 10, height = 8, dpi = 150)
+# ggsave("outputs/figures/tree_flux_barplot_by_species.png", p_species_bar, width = 10, height = 8, dpi = 150)
 cat("  Saved: tree_flux_barplot_by_species.png\n")
 
 # Violin as option
@@ -454,7 +467,7 @@ p_species_violin <- ggplot(species_dist_data, aes(x = species_full_ordered, y = 
   theme_minimal() +
   theme(axis.text.y = element_text(size = 9, face = "italic"))
 
-# ggsave("../../outputs/figures/tree_flux_violin_by_species.png", p_species_violin, width = 10, height = 8, dpi = 150)
+# ggsave("outputs/figures/tree_flux_violin_by_species.png", p_species_violin, width = 10, height = 8, dpi = 150)
 cat("  Saved: tree_flux_violin_by_species.png\n")
 
 # =============================================================================
@@ -469,7 +482,7 @@ mega_combined_plot <- (tree_row / soil_row / p_species_spatial) +
   )
 mega_combined_plot
 
-ggsave("../../outputs/figures/main/fig9_upscaled_flux_seasonal.png",
+ggsave("outputs/figures/main/fig9_upscaled_flux_seasonal.png",
        mega_combined_plot, width = 12, height = 12, dpi = 300, bg = "white")
 
 cat("\n✓ All figures saved successfully!\n")

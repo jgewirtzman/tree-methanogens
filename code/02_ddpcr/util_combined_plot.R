@@ -1,8 +1,40 @@
 # ==============================================================================
-# Combined Gene Abundance Plot
+# Combined Gene Abundance Plot (Figure 4)
 # ==============================================================================
 # Purpose: Combined visualization of multiple gene types (barplot + scatter).
+#
+# Dependencies:
+#   - 04_species_barplots.R must be sourced first (defines plotting functions
+#     and species_mapping)
+#
+# Inputs:
+#   - data/processed/integrated/merged_tree_dataset_final.csv
+#
+# Outputs:
+#   - outputs/figures/main/fig4_methanogen_methanotroph_abundance.png
 # ==============================================================================
+
+library(tidyverse)
+library(cowplot)
+
+# Load data if not already in environment
+if (!exists("merged_final")) {
+  merged_final <- read_csv("data/processed/integrated/merged_tree_dataset_final.csv",
+                           show_col_types = FALSE)
+  cat("Loaded merged_final:", nrow(merged_final), "rows\n")
+}
+
+# Load plotting functions and species_mapping if not already defined
+if (!exists("species_mapping") || !exists("create_mcra_barplot_by_species")) {
+  source("code/02_ddpcr/04_species_barplots.R")
+  cat("Sourced 04_species_barplots.R\n")
+}
+
+# Load scatter plot function if not already defined
+if (!exists("create_gene_scatter_ggside_transformed_probe_mcra")) {
+  source("code/02_ddpcr/util_ridge_plots.R")
+  cat("Sourced util_ridge_plots.R\n")
+}
 
 # Generate your plots
 result <- create_mcra_barplot_by_species(merged_final, species_mapping)
@@ -26,7 +58,7 @@ combined_plot <- plot_grid(barplot_improved, scatterplot, ncol = 2)
 print(combined_plot)
 
 # Save combined figure
-ggsave("../../outputs/figures/main/fig4_methanogen_methanotroph_abundance.png",
+ggsave("outputs/figures/main/fig4_methanogen_methanotroph_abundance.png",
        combined_plot, width = 12, height = 5.3, dpi = 300)
 
 

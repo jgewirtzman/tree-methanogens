@@ -18,9 +18,9 @@ library(cowplot)
 library(scales)
 
 # Read the datasets (using your existing data loading code)
-soil_dataset <- read.csv('../../data/processed/flux/semirigid_tree_final_complete_dataset_soil.csv')
-tree_dataset <- read.csv('../../data/processed/flux/semirigid_tree_final_complete_dataset.csv')
-moisture_data <- read.csv('../../data/raw/field_data/ipad_data/Cleaned data/soilmoisture_total.csv', fileEncoding = "UTF-8-BOM")
+soil_dataset <- read.csv('data/processed/flux/semirigid_tree_final_complete_dataset_soil.csv')
+tree_dataset <- read.csv('data/processed/flux/semirigid_tree_final_complete_dataset.csv')
+moisture_data <- read.csv('data/raw/field_data/ipad_data/Cleaned data/soilmoisture_total.csv', fileEncoding = "UTF-8-BOM")
 
 # Convert Date columns to proper date format
 soil_dataset$Date <- as.Date(soil_dataset$Date)
@@ -412,7 +412,7 @@ final_plot <- plot_grid(
 print(final_plot)
 
 # Save the plot
-ggsave("../../outputs/figures/main/fig1_temporal_flux_timeseries.png", final_plot, width = 12, height = 9, dpi = 300)
+ggsave("outputs/figures/main/fig1_temporal_flux_timeseries.png", final_plot, width = 12, height = 9, dpi = 300)
 
 # ===== CALCULATE STATISTICS FOR FIGURE CAPTION =====
 

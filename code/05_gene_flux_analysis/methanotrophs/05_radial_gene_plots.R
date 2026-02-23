@@ -13,8 +13,7 @@
 #   - radial plot PDFs (to outputs/figures/)
 # ==============================================================================
 
-# Clear workspace and load libraries
-rm(list = ls())
+# Load libraries
 library(dplyr)
 library(tidyr)
 library(ggplot2)
@@ -25,7 +24,7 @@ library(ggnewscale)
 # LOAD DATA
 # ============================================================
 
-ymf2021 <- read.csv('../../../data/processed/integrated/merged_tree_dataset_final.csv')
+ymf2021 <- read.csv('data/processed/integrated/merged_tree_dataset_final.csv')
 
 species_mapping <- c(
   "ACRU" = "Acer rubrum",
@@ -232,8 +231,8 @@ if("mcrA" %in% tree_genes$gene) {
   p_mcra_result <- create_gene_species_plot(tree_genes, "mcrA", "inferno")
   if(!is.null(p_mcra_result)) {
     print(p_mcra_result$plot)
-    ggsave("../../../outputs/figures/radial_plot_mcra_species.pdf", p_mcra_result$plot, width = 12, height = 8)
-    cat("Saved: radial_plot_mcra_species.pdf\n")
+    # ggsave("outputs/figures/radial_plot_mcra_species.pdf", p_mcra_result$plot, width = 12, height = 8)
+    # cat("Saved: radial_plot_mcra_species.pdf\n")
   }
 }
 
@@ -242,8 +241,8 @@ if("pmoA" %in% tree_genes$gene) {
   p_pmoa_result <- create_gene_species_plot(tree_genes, "pmoA", "plasma")
   if(!is.null(p_pmoa_result)) {
     print(p_pmoa_result$plot)
-    ggsave("../../../outputs/figures/radial_plot_pmoa_species.pdf", p_pmoa_result$plot, width = 12, height = 8)
-    cat("Saved: radial_plot_pmoa_species.pdf\n")
+    # ggsave("outputs/figures/radial_plot_pmoa_species.pdf", p_pmoa_result$plot, width = 12, height = 8)
+    # cat("Saved: radial_plot_pmoa_species.pdf\n")
   }
 }
 
@@ -252,8 +251,8 @@ if("mmoX" %in% tree_genes$gene) {
   p_mmox_result <- create_gene_species_plot(tree_genes, "mmoX", "plasma")
   if(!is.null(p_mmox_result)) {
     print(p_mmox_result$plot)
-    ggsave("../../../outputs/figures/radial_plot_mmox_species.pdf", p_mmox_result$plot, width = 12, height = 8)
-    cat("Saved: radial_plot_mmox_species.pdf\n")
+    # ggsave("outputs/figures/radial_plot_mmox_species.pdf", p_mmox_result$plot, width = 12, height = 8)
+    # cat("Saved: radial_plot_mmox_species.pdf\n")
   }
 }
 
@@ -282,8 +281,8 @@ if(all(c("pmoA", "mmoX") %in% tree_genes$gene)) {
   p_sum_result <- create_gene_species_plot(sum_data, "pmoA+mmoX", "mako")
   if(!is.null(p_sum_result)) {
     print(p_sum_result$plot)
-    ggsave("../../../outputs/figures/radial_plot_sum_species.pdf", p_sum_result$plot, width = 12, height = 8)
-    cat("Saved: radial_plot_sum_species.pdf\n")
+    # ggsave("outputs/figures/radial_plot_sum_species.pdf", p_sum_result$plot, width = 12, height = 8)
+    # cat("Saved: radial_plot_sum_species.pdf\n")
   }
 }
 
@@ -422,8 +421,8 @@ if(all(c("mcrA", "pmoA", "mmoX") %in% tree_genes$gene)) {
       )
     
     print(p_overlay)
-    ggsave("../../../outputs/figures/radial_plot_overlay_species.pdf", p_overlay, width = 12, height = 8)
-    cat("Saved: radial_plot_overlay_species.pdf\n")
+    # ggsave("outputs/figures/radial_plot_overlay_species.pdf", p_overlay, width = 12, height = 8)
+    # cat("Saved: radial_plot_overlay_species.pdf\n")
   }
 }
 
@@ -457,18 +456,17 @@ p_sum <- p_sum_result$plot
 combined_plot <- p_mcra / p_sum / p_overlay
 
 # Save the combined figure
-ggsave("../../../outputs/figures/radial_plots_combined_vertical.pdf",
-       combined_plot,
-       width = 10,
-       height = 12,
-       limitsize = FALSE)
-
-# Save the combined figure
-ggsave("../../../outputs/figures/radial_plots_combined_vertical.png",
-       combined_plot,
-       width = 10,
-       height = 12,
-       limitsize = FALSE)
+# ggsave("outputs/figures/radial_plots_combined_vertical.pdf",
+#        combined_plot,
+#        width = 10,
+#        height = 12,
+#        limitsize = FALSE)
+#
+# ggsave("outputs/figures/radial_plots_combined_vertical.png",
+#        combined_plot,
+#        width = 10,
+#        height = 12,
+#        limitsize = FALSE)
 
 cat("\nSaved: radial_plots_combined_vertical.pdf\n")
 cat("Dimensions: 12 inches wide × 24 inches tall\n")

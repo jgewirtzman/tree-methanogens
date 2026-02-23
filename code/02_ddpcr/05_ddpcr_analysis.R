@@ -14,20 +14,18 @@
 #   - Analysis plots and summary statistics
 # ==============================================================================
 
-library(dplyr)
-library(ggplot2)
+library(tidyverse)
 library(ggpubr)
 library(wesanderson)
 library(RColorBrewer)
 library(cowplot)
-library(stringr)
 
 # Set theme
 theme_set(theme_bw(base_size = 12))
 
 # Load the merged final dataset (should already be loaded)
 if (!exists("merged_final")) {
-  merged_final <- read_csv("../../data/processed/integrated/merged_tree_dataset_final.csv")
+  merged_final <- read_csv("data/processed/integrated/merged_tree_dataset_final.csv")
 }
 
 cat("=== DATASET OVERVIEW ===\n")
