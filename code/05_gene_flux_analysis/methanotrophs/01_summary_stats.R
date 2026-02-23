@@ -342,7 +342,7 @@ p_tree_mcra <- ggplot(tree_level_complete,
               fill = "#FADBD8", alpha = 0.2, linewidth = 1) +
   geom_hline(yintercept = pseudolog10_individual(0), linetype = "dashed", color = "gray50") +
   annotate("label", x = Inf, y = Inf,
-           label = sprintf("R²=%.3f\np=%.3f", tree_mcra_r2, tree_mcra_p),
+           label = sprintf("p=%.3f", tree_mcra_p),
            hjust = 1.1, vjust = 1.1, size = 3.25, fill = "white", alpha = 0.9) +
   scale_y_continuous(
     breaks = pseudolog10_individual(c(0, 0.1, 1)),
@@ -365,7 +365,7 @@ p_tree_pmoa <- ggplot(tree_level_complete,
               fill = "#D6EAF8", alpha = 0.2, linewidth = 1) +
   geom_hline(yintercept = pseudolog10_individual(0), linetype = "dashed", color = "gray50") +
   annotate("label", x = Inf, y = Inf,
-           label = sprintf("R²=%.3f\np=%.3f", tree_pmoa_r2, tree_pmoa_p),
+           label = sprintf("p=%.3f", tree_pmoa_p),
            hjust = 1.1, vjust = 1.1, size = 3.25, fill = "white", alpha = 0.9) +
   scale_y_continuous(
     breaks = pseudolog10_individual(c(0, 0.1, 1)),
@@ -388,7 +388,7 @@ p_tree_mmox <- ggplot(tree_level_complete,
               fill = "#D6EAF8", alpha = 0.2, linewidth = 1) +
   geom_hline(yintercept = pseudolog10_individual(0), linetype = "dashed", color = "gray50") +
   annotate("label", x = Inf, y = Inf,
-           label = sprintf("R²=%.3f\np=%.3f", tree_mmox_r2, tree_mmox_p),
+           label = sprintf("p=%.3f", tree_mmox_p),
            hjust = 1.1, vjust = 1.1, size = 3.25, fill = "white", alpha = 0.9) +
   scale_y_continuous(
     breaks = pseudolog10_individual(c(0, 0.1, 1)),
@@ -411,7 +411,7 @@ p_tree_methanotroph <- ggplot(tree_level_complete,
               fill = "#D6EAF8", alpha = 0.2, linewidth = 1) +
   geom_hline(yintercept = pseudolog10_individual(0), linetype = "dashed", color = "gray50") +
   annotate("label", x = Inf, y = Inf,
-           label = sprintf("R²=%.3f\np=%.3f", tree_methanotroph_r2, tree_methanotroph_p),
+           label = sprintf("p=%.3f", tree_methanotroph_p),
            hjust = 1.1, vjust = 1.1, size = 3.25, fill = "white", alpha = 0.9) +
   scale_y_continuous(
     breaks = pseudolog10_individual(c(0, 0.1, 1)),
@@ -435,7 +435,7 @@ p_tree_ratio <- ggplot(tree_level_complete,
   geom_hline(yintercept = pseudolog10_individual(0), linetype = "dashed", color = "gray50") +
   geom_vline(xintercept = 0, linetype = "dotted", color = "gray50", alpha = 0.5) +
   annotate("label", x = Inf, y = Inf,
-           label = sprintf("R²=%.3f\np=%.3f", tree_ratio_r2, tree_ratio_p),
+           label = sprintf("p=%.3f", tree_ratio_p),
            hjust = 1.1, vjust = 1.1, size = 3.25, fill = "white", alpha = 0.9) +
   scale_y_continuous(
     breaks = pseudolog10_individual(c(0, 0.1, 1)),
@@ -450,81 +450,81 @@ p_tree_ratio <- ggplot(tree_level_complete,
 # RIGHT COLUMN: SPECIES LEVEL - LINEAR FLUX (WITH ERROR BARS)
 # ============================================================
 
-# Panel B1: Species - mcrA (with x error bars)
+# Panel B1: Species - mcrA
 p_species_mcra <- ggplot(analysis_mcra,
-                         aes(x = log10(median_mcra + 1), y = median_flux)) +
+                         aes(x = log10(median_mcra + 1), y = median_flux, color = species)) +
   geom_smooth(method = "lm", se = TRUE, color = "#E74C3C",
               fill = "#FADBD8", alpha = 0.2, linewidth = 1) +
-  geom_point(size = 3.25, alpha = 0.85, color = "#E74C3C") +
-  geom_text_repel(aes(label = species), size = 2.6, fontface = "italic",
-                  box.padding = 0.2, max.overlaps = 20) +
+  geom_point(size = 3.25, alpha = 0.85) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
   annotate("label", x = Inf, y = Inf,
-           label = sprintf("R²=%.3f\np=%.3f", cor_area_mcra$estimate^2, cor_area_mcra$p.value),
+           label = sprintf("p=%.3f", cor_area_mcra$p.value),
            hjust = 1.1, vjust = 1.1, size = 3.25, fill = "white", alpha = 0.9) +
+  scale_color_manual(values = species_palette, name = "Species") +
   labs(tag = "(b)", x = expression(log[10]~median~mcrA), y = y_lab_species) +
-  theme_pub_gene
+  theme_pub_gene +
+  theme(legend.position = "none")
 
-# Panel B2: Species - pmoA (with x error bars)
+# Panel B2: Species - pmoA
 p_species_pmoa <- ggplot(analysis_pmoa,
-                         aes(x = log10(median_pmoa + 1), y = median_flux)) +
+                         aes(x = log10(median_pmoa + 1), y = median_flux, color = species)) +
   geom_smooth(method = "lm", se = TRUE, color = "#3498DB",
               fill = "#D6EAF8", alpha = 0.2, linewidth = 1) +
-  geom_point(size = 3.25, alpha = 0.85, color = "#3498DB") +
-  geom_text_repel(aes(label = species), size = 2.6, fontface = "italic",
-                  box.padding = 0.2, max.overlaps = 20) +
+  geom_point(size = 3.25, alpha = 0.85) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
   annotate("label", x = Inf, y = Inf,
-           label = sprintf("R²=%.3f\np=%.3f", cor_area_pmoa$estimate^2, cor_area_pmoa$p.value),
+           label = sprintf("p=%.3f", cor_area_pmoa$p.value),
            hjust = 1.1, vjust = 1.1, size = 3.25, fill = "white", alpha = 0.9) +
+  scale_color_manual(values = species_palette, name = "Species") +
   labs(tag = "(d)", x = expression(log[10]~median~pmoA), y = "") +
-  theme_pub_gene
+  theme_pub_gene +
+  theme(legend.position = "none")
 
-# Panel B3: Species - mmoX (with x error bars)
+# Panel B3: Species - mmoX
 p_species_mmox <- ggplot(analysis_mmox,
-                         aes(x = log10(median_mmox + 1), y = median_flux)) +
+                         aes(x = log10(median_mmox + 1), y = median_flux, color = species)) +
   geom_smooth(method = "lm", se = TRUE, color = "#5DADE2",
               fill = "#D6EAF8", alpha = 0.2, linewidth = 1) +
-  geom_point(size = 3.25, alpha = 0.85, color = "#5DADE2") +
-  geom_text_repel(aes(label = species), size = 2.6, fontface = "italic",
-                  box.padding = 0.2, max.overlaps = 20) +
+  geom_point(size = 3.25, alpha = 0.85) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
   annotate("label", x = Inf, y = Inf,
-           label = sprintf("R²=%.3f\np=%.3f", cor_area_mmox$estimate^2, cor_area_mmox$p.value),
+           label = sprintf("p=%.3f", cor_area_mmox$p.value),
            hjust = 1.1, vjust = 1.1, size = 3.25, fill = "white", alpha = 0.9) +
+  scale_color_manual(values = species_palette, name = "Species") +
   labs(tag = "(f)", x = expression(log[10]~median~mmoX), y = "") +
-  theme_pub_gene
+  theme_pub_gene +
+  theme(legend.position = "none")
 
-# Panel B4: Species - Methanotrophs (with x error bars)
+# Panel B4: Species - Methanotrophs
 p_species_methanotroph <- ggplot(analysis_methanotroph,
-                                 aes(x = log10(median_methanotroph + 1), y = median_flux)) +
+                                 aes(x = log10(median_methanotroph + 1), y = median_flux, color = species)) +
   geom_smooth(method = "lm", se = TRUE, color = "#1F618D",
               fill = "#D6EAF8", alpha = 0.2, linewidth = 1) +
-  geom_point(size = 3.25, alpha = 0.85, color = "#1F618D") +
-  geom_text_repel(aes(label = species), size = 2.6, fontface = "italic",
-                  box.padding = 0.2, max.overlaps = 20) +
+  geom_point(size = 3.25, alpha = 0.85) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
   annotate("label", x = Inf, y = Inf,
-           label = sprintf("R²=%.3f\np=%.3f", cor_area_methanotroph$estimate^2, cor_area_methanotroph$p.value),
+           label = sprintf("p=%.3f", cor_area_methanotroph$p.value),
            hjust = 1.1, vjust = 1.1, size = 3.25, fill = "white", alpha = 0.9) +
+  scale_color_manual(values = species_palette, name = "Species") +
   labs(tag = "(h)", x = expression(log[10]~median~(pmoA+mmoX)), y = "") +
-  theme_pub_gene
+  theme_pub_gene +
+  theme(legend.position = "none")
 
 # Panel B5: Species - Ratio
 p_species_ratio <- ggplot(analysis_ratio,
-                          aes(x = median_log_ratio, y = median_flux)) +
+                          aes(x = median_log_ratio, y = median_flux, color = species)) +
   geom_smooth(method = "lm", se = TRUE, color = "#9B59B6",
               fill = "#EBDEF0", alpha = 0.2, linewidth = 1) +
-  geom_point(size = 3.25, alpha = 0.85, color = "#9B59B6") +
-  geom_text_repel(aes(label = species), size = 2.6, fontface = "italic",
-                  box.padding = 0.2, max.overlaps = 20) +
+  geom_point(size = 3.25, alpha = 0.85) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
   geom_vline(xintercept = 0, linetype = "dotted", color = "gray50", alpha = 0.5) +
   annotate("label", x = Inf, y = Inf,
-           label = sprintf("R²=%.3f\np=%.3f", pearson_ratio$estimate^2, pearson_ratio$p.value),
+           label = sprintf("p=%.3f", pearson_ratio$p.value),
            hjust = 1.1, vjust = 1.1, size = 3.25, fill = "white", alpha = 0.9) +
+  scale_color_manual(values = species_palette, name = "Species") +
   labs(tag = "(j)", x = expression(log[10]~ratio), y = "") +
-  theme_pub_gene
+  theme_pub_gene +
+  theme(legend.position = "none")
 
 # ============================================================
 # BOTTOM ROW: MODEL COMPARISONS (A6 and B6)
@@ -575,7 +575,7 @@ p_tree_comparison <- ggplot(tree_comparison_data,
                     labels = c("NS", "p < 0.05"),
                     name = "") +
   ylim(0, y_limit) +
-  labs(tag = "(k)", x = "", y = expression(R^2)) +
+  labs(tag = "(k)", x = "", y = expression(italic(R)^2)) +
   theme_pub_gene +
   theme(legend.position = "bottom",
         legend.text = element_text(size = 10))
@@ -678,9 +678,7 @@ p_species_mcra_2x2 <- ggplot(analysis_mcra,
                   box.padding = 0.2, max.overlaps = 20) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
   annotate("label", x = Inf, y = Inf,
-           label = sprintf("R²=%.3f\np=%.3f",
-                           cor_area_mcra$estimate^2,
-                           cor_area_mcra$p.value),
+           label = sprintf("p=%.3f", cor_area_mcra$p.value),
            hjust = 1.1, vjust = 1.1, size = 3.25,
            fill = "white", alpha = 0.9) +
   labs(x = expression("log"[10]*" median mcrA"),
@@ -701,9 +699,7 @@ p_species_methanotroph_2x2 <- ggplot(analysis_methanotroph,
                   box.padding = 0.2, max.overlaps = 20) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
   annotate("label", x = Inf, y = Inf,
-           label = sprintf("R²=%.3f\np=%.3f",
-                           cor_area_methanotroph$estimate^2,
-                           cor_area_methanotroph$p.value),
+           label = sprintf("p=%.3f", cor_area_methanotroph$p.value),
            hjust = 1.1, vjust = 1.1, size = 3.25,
            fill = "white", alpha = 0.9) +
   labs(x = expression("log"[10]*" median (pmoA+mmoX)"),
@@ -725,9 +721,7 @@ p_species_ratio_2x2 <- ggplot(analysis_ratio,
   geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
   geom_vline(xintercept = 0, linetype = "dotted", color = "gray50", alpha = 0.5) +
   annotate("label", x = Inf, y = Inf,
-           label = sprintf("R²=%.3f\np=%.3f",
-                           pearson_ratio$estimate^2,
-                           pearson_ratio$p.value),
+           label = sprintf("p=%.3f", pearson_ratio$p.value),
            hjust = 1.1, vjust = 1.1, size = 3.25,
            fill = "white", alpha = 0.9) +
   labs(x = expression("log"[10]*" ratio"),
