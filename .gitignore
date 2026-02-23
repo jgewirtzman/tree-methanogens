@@ -1,4 +1,20 @@
+# R project files
 .Rproj.user
 .Rhistory
 .RData
 .Ruserdata
+
+# macOS
+.DS_Store
+
+# Large raw data (not tracked in git)
+data/raw/lgr/
+data/raw/rdata/
+data/raw/internal_gas/picarro/
+
+# Large processed files
+data/processed/flux/lgr_manual_identification_results*.csv
+
+# Model objects (large binary files)
+outputs/models/*.RData
+data/processed/integrated/*.RData
