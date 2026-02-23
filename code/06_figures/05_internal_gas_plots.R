@@ -370,6 +370,10 @@ p_beeswarm <- ggplot(ridge_data, aes(x = Species_Latin, y = CH4_concentration)) 
   )
 p_beeswarm
 
+# Save beeswarm figure (Fig S4)
+ggsave("../../outputs/figures/supplementary/figS4_internal_gas_beeswarm.png",
+       p_beeswarm, width = 10, height = 8, dpi = 300)
+
 
 
 
@@ -677,6 +681,6 @@ final_plot <- cowplot::plot_grid(core_grid, legend_grob, ncol = 2, rel_widths = 
 
 print(final_plot)
 
-# Save combined internal gas figure
-ggsave("../../outputs/figures/supplementary/figS4S5_internal_gas_profiles.png",
+# Save combined internal gas figure (Fig S5)
+ggsave("../../outputs/figures/supplementary/figS5_internal_gas_profiles.png",
        final_plot, width = 16, height = 10, dpi = 300)
