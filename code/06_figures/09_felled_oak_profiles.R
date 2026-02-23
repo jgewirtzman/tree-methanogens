@@ -227,5 +227,5 @@ fig7 <- p1a + p2 + p3 + plot_layout(nrow = 1)
 
 print(fig7)
 
-ggsave("outputs/figures/fig7_felled_oak_profiles.png",
-       fig7, width = 14, height = 6, dpi = 300)
+ggsave("../../outputs/figures/main/fig7_felled_oak_profiles.png",
+       fig7, width = 12, height = 5.1, dpi = 300)

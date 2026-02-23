@@ -177,8 +177,8 @@ p1 <- ggplot(iso_clean, aes(x = sample_type, y = d13CH4)) +
   pathway_labels(2.55)
 
 print(p1)
-ggsave("outputs/figures/d13ch4_single_overall.png",
-       p1, width = 6, height = 7, dpi = 300)
+# ggsave("outputs/figures/d13ch4_single_overall.png",
+#        p1, width = 6, height = 7, dpi = 300)
 
 # ==============================================================================
 # FIGURE 2: δ13CH4 by species
@@ -205,8 +205,8 @@ p2 <- ggplot(iso_clean, aes(x = species_label, y = d13CH4)) +
   pathway_labels(n_species + 0.5)
 
 print(p2)
-ggsave("outputs/figures/d13ch4_single_by_species.png",
-       p2, width = 14, height = 7, dpi = 300)
+# ggsave("outputs/figures/d13ch4_single_by_species.png",
+#        p2, width = 14, height = 7, dpi = 300)
 
 # ==============================================================================
 # FIGURE 3: CH4 concentration vs δ13CH4
@@ -245,8 +245,8 @@ p3 <- ggplot(iso_conc, aes(x = ch4_ppm, y = d13CH4)) +
            color = "#7a5195", hjust = 1)
 
 print(p3)
-ggsave("outputs/figures/d13ch4_single_vs_concentration.png",
-       p3, width = 10, height = 7, dpi = 300)
+# ggsave("outputs/figures/d13ch4_single_vs_concentration.png",
+#        p3, width = 10, height = 7, dpi = 300)
 
 # ==============================================================================
 # FIGURE 4: Rainfall plot — δ13CH4 distribution with pathway brackets
@@ -319,7 +319,7 @@ p4 <- ggplot() +
   labs(x = d13_label, y = NULL)
 
 print(p4)
-ggsave("outputs/figures/d13ch4_single_rainfall.png",
+ggsave("../../outputs/figures/supplementary/figS11_d13ch4_rainfall.png",
        p4, width = 10, height = 5, dpi = 300)
 
 # ==============================================================================
@@ -396,7 +396,7 @@ p5 <- ggplot() +
        y = d13_label)
 
 print(p5)
-ggsave("outputs/figures/d13ch4_single_keeling.png",
-       p5, width = 10, height = 7, dpi = 300)
+# ggsave("outputs/figures/d13ch4_single_keeling.png",
+#        p5, width = 10, height = 7, dpi = 300)
 
 cat("Dataset 1 figures saved.\n")

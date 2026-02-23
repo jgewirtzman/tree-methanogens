@@ -306,7 +306,7 @@ fig5 <- p_a / p_b +
 
 print(fig5)
 
-ggsave("outputs/figures/fig5_methanogen_abundance_composition.png",
-       fig5, width = 14, height = 10, dpi = 300)
+# ggsave("outputs/figures/fig5_methanogen_abundance_composition.png",
+#        fig5, width = 14, height = 10, dpi = 300)
 
 cat("Figure 5 saved to outputs/figures/fig5_methanogen_abundance_composition.png\n")

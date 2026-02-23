@@ -275,12 +275,12 @@ combined_figure <- (tree_row / soil_row) +
 # =============================================================================
 
 cat("\nSaving combined figure...\n")
-ggsave("../../outputs/figures/combined_tree_soil_flux_seasonal.png",
-       combined_figure, width = 16, height = 8, dpi = 300, bg = "white")
+# ggsave("../../outputs/figures/combined_tree_soil_flux_seasonal.png",
+#        combined_figure, width = 16, height = 8, dpi = 300, bg = "white")
 cat("  Saved: combined_tree_soil_flux_seasonal.png\n")
 
-ggsave("../../outputs/figures/combined_tree_soil_flux_seasonal.pdf",
-       combined_figure, width = 16, height = 8, bg = "white")
+# ggsave("../../outputs/figures/combined_tree_soil_flux_seasonal.pdf",
+#        combined_figure, width = 16, height = 8, bg = "white")
 cat("  Saved: combined_tree_soil_flux_seasonal.pdf\n")
 
 # =============================================================================
@@ -350,7 +350,7 @@ p_species_dist <- ggplot(species_dist_data, aes(x = mean_flux_nmol)) +
     axis.text.y = element_text(size = 6)
   )
 
-ggsave("../../outputs/figures/tree_flux_distribution_by_species.png", p_species_dist, width = 14, height = 10, dpi = 150)
+# ggsave("../../outputs/figures/tree_flux_distribution_by_species.png", p_species_dist, width = 14, height = 10, dpi = 150)
 cat("  Saved: tree_flux_distribution_by_species.png\n")
 
 # Boxplot + jitter
@@ -374,7 +374,7 @@ p_species_box <- ggplot(species_dist_data, aes(x = mean_flux_nmol, y = species_f
   theme_minimal() +
   theme(axis.text.y = element_text(size = 9, face = "italic"))
 
-ggsave("../../outputs/figures/tree_flux_boxplot_by_species.png", p_species_box, width = 10, height = 8, dpi = 150)
+# ggsave("../../outputs/figures/tree_flux_boxplot_by_species.png", p_species_box, width = 10, height = 8, dpi = 150)
 cat("  Saved: tree_flux_boxplot_by_species.png\n")
 
 # Spatial faceting with shared XY extent
@@ -396,7 +396,7 @@ p_species_spatial <- ggplot(species_dist_data, aes(x = x, y = y)) +
     legend.text  = element_text(size = 8)
   )
 
-ggsave("../../outputs/figures/tree_flux_spatial_faceted_species.png", p_species_spatial, width = 14, height = 10, dpi = 150)
+# ggsave("../../outputs/figures/tree_flux_spatial_faceted_species.png", p_species_spatial, width = 14, height = 10, dpi = 150)
 cat("  Saved: tree_flux_spatial_faceted_species.png\n")
 
 # Species stats table
@@ -437,7 +437,7 @@ p_species_bar <- ggplot(faceted_species_stats, aes(x = species_full_ordered, y =
   theme_minimal() +
   theme(axis.text.y = element_text(size = 9, face = "italic"))
 
-ggsave("../../outputs/figures/tree_flux_barplot_by_species.png", p_species_bar, width = 10, height = 8, dpi = 150)
+# ggsave("../../outputs/figures/tree_flux_barplot_by_species.png", p_species_bar, width = 10, height = 8, dpi = 150)
 cat("  Saved: tree_flux_barplot_by_species.png\n")
 
 # Violin as option
@@ -454,7 +454,7 @@ p_species_violin <- ggplot(species_dist_data, aes(x = species_full_ordered, y = 
   theme_minimal() +
   theme(axis.text.y = element_text(size = 9, face = "italic"))
 
-ggsave("../../outputs/figures/tree_flux_violin_by_species.png", p_species_violin, width = 10, height = 8, dpi = 150)
+# ggsave("../../outputs/figures/tree_flux_violin_by_species.png", p_species_violin, width = 10, height = 8, dpi = 150)
 cat("  Saved: tree_flux_violin_by_species.png\n")
 
 # =============================================================================
@@ -469,7 +469,7 @@ mega_combined_plot <- (tree_row / soil_row / p_species_spatial) +
   )
 mega_combined_plot
 
-ggsave("../../outputs/figures/mega_combined_flux_figure.png",
-       mega_combined_plot, width = 16, height = 16, dpi = 300, bg = "white")
+ggsave("../../outputs/figures/main/fig9_upscaled_flux_seasonal.png",
+       mega_combined_plot, width = 12, height = 12, dpi = 300, bg = "white")
 
 cat("\n✓ All figures saved successfully!\n")

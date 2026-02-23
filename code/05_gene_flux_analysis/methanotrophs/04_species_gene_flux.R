@@ -296,16 +296,16 @@ side_by_side <- combined_plot | species_2x2_layout +
 side_by_side
 
 
-ggsave("../../../outputs/figures/Figure_Radial_And_Species_Comparison.pdf",
-       side_by_side,
-       width = 16,
-       height = 10,
-       limitsize = FALSE)
+# ggsave("../../../outputs/figures/Figure_Radial_And_Species_Comparison.pdf",
+#        side_by_side,
+#        width = 16,
+#        height = 10,
+#        limitsize = FALSE)
 
-ggsave("../../../outputs/figures/Figure_Radial_And_Species_Comparison.png",
+ggsave("../../../outputs/figures/main/fig8_radial_species_comparison.png",
        side_by_side,
-       width = 16,
-       height = 10,
+       width = 12,
+       height = 7.5,
        dpi = 300,
        limitsize = FALSE)
 

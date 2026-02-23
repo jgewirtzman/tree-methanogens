@@ -555,7 +555,7 @@ combined_plot <- p_top_gg / p_middle / p_bottom +
 print(combined_plot)
 
 # Save the plot as 8x7 inches
-ggsave("../../../outputs/figures/combined_flux_plot.png",
+ggsave("../../../outputs/figures/main/fig2_height_dependent_flux.png",
        plot = combined_plot,
        width = 8,
        height = 8,

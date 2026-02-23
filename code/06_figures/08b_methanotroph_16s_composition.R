@@ -337,7 +337,7 @@ fig_mt <- p_a / p_b +
 
 print(fig_mt)
 
-ggsave("outputs/figures/figX_methanotroph_abundance_composition.png",
-       fig_mt, width = 14, height = 10, dpi = 300)
+# ggsave("outputs/figures/figX_methanotroph_abundance_composition.png",
+#        fig_mt, width = 14, height = 10, dpi = 300)
 
 cat("Methanotroph figure saved to outputs/figures/figX_methanotroph_abundance_composition.png\n")

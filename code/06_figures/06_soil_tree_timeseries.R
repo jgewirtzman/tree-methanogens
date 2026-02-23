@@ -412,7 +412,7 @@ final_plot <- plot_grid(
 print(final_plot)
 
 # Save the plot
-ggsave("../../outputs/figures/main/fig1_temporal_flux_timeseries.png", final_plot, width = 16, height = 12, dpi = 300)
+ggsave("../../outputs/figures/main/fig1_temporal_flux_timeseries.png", final_plot, width = 12, height = 9, dpi = 300)
 
 # ===== CALCULATE STATISTICS FOR FIGURE CAPTION =====
 

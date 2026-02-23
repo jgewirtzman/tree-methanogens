@@ -199,8 +199,8 @@ p1 <- ggplot(iso_clean, aes(x = tissue_label, y = d13CH4)) +
   pathway_labels(n_groups + 0.55)
 
 print(p1)
-ggsave("outputs/figures/d13ch4_paired_overall.png",
-       p1, width = 6, height = 7, dpi = 300)
+# ggsave("outputs/figures/d13ch4_paired_overall.png",
+#        p1, width = 6, height = 7, dpi = 300)
 
 # ==============================================================================
 # FIGURE 2: δ13CH4 by species, colored by tissue
@@ -227,8 +227,8 @@ p2 <- ggplot(iso_clean, aes(x = species_label, y = d13CH4)) +
   pathway_labels(n_species + 0.5)
 
 print(p2)
-ggsave("outputs/figures/d13ch4_paired_by_species.png",
-       p2, width = 10, height = 7, dpi = 300)
+# ggsave("outputs/figures/d13ch4_paired_by_species.png",
+#        p2, width = 10, height = 7, dpi = 300)
 
 # ==============================================================================
 # FIGURE 3: CH4 concentration vs δ13CH4
@@ -270,8 +270,8 @@ p3 <- ggplot(iso_conc, aes(x = ch4_ppm, y = d13CH4)) +
            color = "#7a5195", hjust = 1)
 
 print(p3)
-ggsave("outputs/figures/d13ch4_paired_vs_concentration.png",
-       p3, width = 10, height = 7, dpi = 300)
+# ggsave("outputs/figures/d13ch4_paired_vs_concentration.png",
+#        p3, width = 10, height = 7, dpi = 300)
 
 # ==============================================================================
 # FIGURE 4: Rainfall plot — δ13CH4 distribution with pathway brackets
@@ -333,8 +333,8 @@ p4 <- ggplot(iso_rain, aes(x = d13CH4, y = tissue_label, fill = tissue_label,
        y = NULL)
 
 print(p4)
-ggsave("outputs/figures/d13ch4_paired_rainfall.png",
-       p4, width = 10, height = 6, dpi = 300)
+# ggsave("outputs/figures/d13ch4_paired_rainfall.png",
+#        p4, width = 10, height = 6, dpi = 300)
 
 # ==============================================================================
 # FIGURE 5: Keeling plot — 1/[CH4] vs δ13CH4
@@ -415,7 +415,7 @@ p5 <- ggplot() +
        y = d13_label)
 
 print(p5)
-ggsave("outputs/figures/d13ch4_paired_keeling.png",
-       p5, width = 10, height = 7, dpi = 300)
+# ggsave("outputs/figures/d13ch4_paired_keeling.png",
+#        p5, width = 10, height = 7, dpi = 300)
 
 cat("Dataset 2 figures saved.\n")
