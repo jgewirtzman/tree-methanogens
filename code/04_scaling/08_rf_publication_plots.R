@@ -12,9 +12,11 @@
 # ==============================================================================
 
 library(dplyr)
+library(tidyr)
 library(ggplot2)
 library(patchwork)  # For combining plots - install if needed
 library(scales)
+library(ranger)
 
 ## Load required data from upstream pipeline
 if (!file.exists("outputs/models/RF_MODELS.RData") || !file.exists("outputs/models/TRAINING_DATA.RData")) {
@@ -23,7 +25,31 @@ if (!file.exists("outputs/models/RF_MODELS.RData") || !file.exists("outputs/mode
        "  - outputs/models/TRAINING_DATA.RData")
 }
 load("outputs/models/RF_MODELS.RData")           # TreeRF, SoilRF
-load("outputs/models/TRAINING_DATA.RData")        # tree_train_complete
+load("outputs/models/TRAINING_DATA.RData")        # tree_train_complete, X_tree, X_soil, soil_train_complete
+
+## Load monthly predictions (for panels g/h and Figure 2)
+load("outputs/models/tree_monthly_predictions.RData")
+tree_monthly_raw <- monthly_predictions
+load("outputs/models/soil_monthly_predictions.RData")
+soil_monthly_raw <- monthly_predictions
+
+## Summarise by month for tree_results / soil_results
+tree_results <- tree_monthly_raw %>%
+  group_by(month) %>%
+  summarise(mean_flux = mean(flux_umol_m2_s, na.rm = TRUE), .groups = "drop")
+
+soil_results <- soil_monthly_raw %>%
+  group_by(month) %>%
+  summarise(mean_flux = mean(flux_umol_m2_s, na.rm = TRUE), .groups = "drop")
+
+## Build monthly_results (combined plot-level) for Figure 2
+monthly_results <- tree_results %>%
+  rename(Phi_tree_umol_m2_s = mean_flux) %>%
+  left_join(
+    soil_results %>% rename(Phi_soil_umol_m2_s = mean_flux),
+    by = "month"
+  ) %>%
+  mutate(Phi_plot_umol_m2_s = Phi_tree_umol_m2_s + Phi_soil_umol_m2_s)
 
 cat("\n=== GENERATING PUBLICATION FIGURES ===\n")
 
@@ -55,7 +81,7 @@ perf_data <- bind_rows(
     ) %>%
     dplyr::select(observed_nmol, predicted_nmol, source),
   
-  soil_train[complete_rows_soil,] %>%
+  soil_train_complete %>%
     mutate(
       observed_nmol = soil_flux_umol_m2_s * 1000,
       predicted_nmol = pred_flux * 1000,
@@ -221,7 +247,7 @@ tree_resid <- data.frame(
 
 soil_resid <- data.frame(
   fitted = SoilRF$predictions,
-  residual = soil_train[complete_rows_soil, "y_asinh"] - SoilRF$predictions,
+  residual = soil_train_complete$y_asinh - SoilRF$predictions,
   model = "Soil"
 )
 
@@ -276,14 +302,14 @@ summary_table <- data.frame(
   ),
   `Training obs` = c(
     nrow(tree_train_complete),
-    sum(complete_rows_soil),
+    nrow(soil_train_complete),
     NA
   ),
-  `Annual flux (mg CH4/m²/yr)` = c(
+  `Annual flux (mg CH4/m²/yr)` = if (exists("annual_summary")) c(
     round(annual_summary$annual_tree_mg_m2, 1),
     round(annual_summary$annual_soil_mg_m2, 1),
     round(annual_summary$annual_plot_mg_m2, 1)
-  ),
+  ) else c(NA, NA, NA),
   check.names = FALSE
 )
 
@@ -330,7 +356,7 @@ perf_data <- bind_rows(
     ) %>%
     dplyr::select(observed_nmol, predicted_nmol, source),
   
-  soil_train[complete_rows_soil,] %>%
+  soil_train_complete %>%
     mutate(
       observed_nmol = soil_flux_umol_m2_s * 1000,
       predicted_nmol = pred_flux * 1000,
@@ -365,7 +391,7 @@ stats_soil <- stats_by_source %>% filter(source == "Soil")
 # Panel A: Tree performance
 pA <- ggplot(perf_tree, aes(x = observed_nmol, y = predicted_nmol)) +
   geom_hex(bins = 40) +
-  geom_abline(slope = 1, intercept = 0, color = "red", size = 0.8, alpha = 0.8) +
+  geom_abline(slope = 1, intercept = 0, color = "red", linewidth = 0.8, alpha = 0.8) +
   annotate("text", x = -Inf, y = Inf, hjust = -0.1, vjust = 1.2,
            label = sprintf("CCC = %.3f\nR² = %.3f\nn = %d", 
                            stats_tree$ccc, stats_tree$r2, stats_tree$n),
@@ -385,7 +411,7 @@ pA <- ggplot(perf_tree, aes(x = observed_nmol, y = predicted_nmol)) +
 # Panel B: Soil performance
 pB <- ggplot(perf_soil, aes(x = observed_nmol, y = predicted_nmol)) +
   geom_hex(bins = 40) +
-  geom_abline(slope = 1, intercept = 0, color = "red", size = 0.8, alpha = 0.8) +
+  geom_abline(slope = 1, intercept = 0, color = "red", linewidth = 0.8, alpha = 0.8) +
   annotate("text", x = -Inf, y = Inf, hjust = -0.1, vjust = 1.2,
            label = sprintf("CCC = %.3f\nR² = %.3f\nn = %d", 
                            stats_soil$ccc, stats_soil$r2, stats_soil$n),
@@ -799,9 +825,11 @@ pd_tree_dbh <- compute_pd(TreeRF, as.data.frame(X_tree), "dbh_within_z")
 p_tree_air <- ggplot(pd_tree_air, aes(x = x, y = y_mean)) +
   geom_ribbon(aes(ymin = y_lower, ymax = y_upper), alpha = 0.2, fill = "#2E7D32") +
   geom_line(color = "#2E7D32", size = 1) +
-  labs(x = "Air temperature (°C)", y = "") +
+  labs(x = "Air temperature (°C)", y = "",
+       title = "(e) Tree partial dependence") +
   theme_bw(base_size = 9) +
-  theme(panel.grid.minor = element_blank())
+  theme(panel.grid.minor = element_blank(),
+        plot.title = element_text(face = "bold", size = 10))
 
 p_tree_moist <- ggplot(pd_tree_soil_moist, aes(x = x, y = y_mean)) +
   geom_ribbon(aes(ymin = y_lower, ymax = y_upper), alpha = 0.2, fill = "#2E7D32") +
@@ -824,10 +852,8 @@ p_tree_dbh <- ggplot(pd_tree_dbh, aes(x = x, y = y_mean)) +
   theme_bw(base_size = 9) +
   theme(panel.grid.minor = element_blank())
 
-# Combine tree PD into 2x2
-tree_pd_panel <- (p_tree_air | p_tree_moist) / (p_tree_stemp | p_tree_dbh) +
-  plot_annotation(title = "(e) Tree partial dependence",
-                  theme = theme(plot.title = element_text(face = "bold", size = 10)))
+# Combine tree PD into 2x2 — title on top-left plot survives nesting
+tree_pd_panel <- (p_tree_air | p_tree_moist) / (p_tree_stemp | p_tree_dbh)
 
 # =============================================================================
 # SOIL PARTIAL DEPENDENCE (4 features, no DBH)
@@ -842,9 +868,11 @@ pd_soil_SI <- compute_pd(SoilRF, as.data.frame(X_soil), "SI")
 p_soil_air <- ggplot(pd_soil_air, aes(x = x, y = y_mean)) +
   geom_ribbon(aes(ymin = y_lower, ymax = y_upper), alpha = 0.2, fill = "#8B4513") +
   geom_line(color = "#8B4513", size = 1) +
-  labs(x = "Air temperature (°C)", y = "") +
+  labs(x = "Air temperature (°C)", y = "",
+       title = "(f) Soil partial dependence") +
   theme_bw(base_size = 9) +
-  theme(panel.grid.minor = element_blank())
+  theme(panel.grid.minor = element_blank(),
+        plot.title = element_text(face = "bold", size = 10))
 
 p_soil_moist <- ggplot(pd_soil_moist, aes(x = x, y = y_mean)) +
   geom_ribbon(aes(ymin = y_lower, ymax = y_upper), alpha = 0.2, fill = "#8B4513") +
@@ -867,10 +895,8 @@ p_soil_SI <- ggplot(pd_soil_SI, aes(x = x, y = y_mean)) +
   theme_bw(base_size = 9) +
   theme(panel.grid.minor = element_blank())
 
-# Combine soil PD into 2x2
-soil_pd_panel <- (p_soil_air | p_soil_moist) / (p_soil_stemp | p_soil_SI) +
-  plot_annotation(title = "(f) Soil partial dependence",
-                  theme = theme(plot.title = element_text(face = "bold", size = 10)))
+# Combine soil PD into 2x2 — title on top-left plot survives nesting
+soil_pd_panel <- (p_soil_air | p_soil_moist) / (p_soil_stemp | p_soil_SI)
 
 # =============================================================================
 # FINAL FIGURE: PERFORMANCE | IMPORTANCE | PD (2x2)
@@ -979,7 +1005,7 @@ final_fig_3row_alt <- (pA | pC | tree_pd_panel) /
 
 # ggsave("outputs/figures/Figure_Final_3Rows_alt.pdf", final_fig_3row_alt, 
 #        width = 15, height = 11, dpi = 300)
-ggsave("outputs/figures/supplementary/figS5_rf_predictions.png", final_fig_3row_alt, 
+ggsave("outputs/figures/supplementary/figS7_rf_predictions.png", final_fig_3row_alt,
        width = 12, height = 8.8, dpi = 300)
 
 # Option 3: Single combined monthly plot (both on same panel)

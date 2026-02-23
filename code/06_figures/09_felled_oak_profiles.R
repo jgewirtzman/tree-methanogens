@@ -187,7 +187,7 @@ p1a <- ggplot(int_gas, aes(x = Tree.Height, y = CH4_concentration)) +
   geom_point(aes(fill = O2_concentration / 1e6 * 100), size = 3, shape = 21,
              color = "black", stroke = 0.6, alpha = 0.85) +
   shared_theme +
-  scale_fill_distiller(palette = "RdYlBu", direction = 1,
+  scale_fill_distiller(palette = "RdYlBu", direction = -1,
                        name = expression(O[2]~"(%)")) +
   coord_flip() +
   ylab(expression(CH[4]~"(ppm)")) +
@@ -214,7 +214,7 @@ p3 <- ggplot(flux_df, aes(y = flux, x = height, fill = ch4)) +
   geom_smooth(se = FALSE, color = "black") +
   geom_point(size = 3, shape = 21, color = "black", stroke = 0.6, alpha = 0.85) +
   shared_theme +
-  scale_fill_viridis_c(option = "E", direction = -1,
+  scale_fill_viridis_c(option = "E", direction = 1,
                        name = expression(CH[4]~"(ppm)")) +
   coord_flip() +
   xlab("") +
