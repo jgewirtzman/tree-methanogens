@@ -9,8 +9,8 @@
 #   - merged_tree_dataset_final.csv (from data/processed/integrated/)
 #
 # UPSTREAM DEPENDENCIES (must be run first, or objects must exist in env):
-#   - 05_radial_gene_plots.R  -> p_mcra_result, p_sum_result, p_overlay
-#   - 01_summary_stats.R      -> analysis_mcra, analysis_methanotroph,
+#   - 03_radial_gene_plots.R  -> p_mcra_result, p_sum_result, p_overlay
+#   - 02_scale_dependent_gene_patterns.R -> analysis_mcra, analysis_methanotroph,
 #                                 analysis_ratio, cor_area_mcra,
 #                                 cor_area_methanotroph, pearson_ratio,
 #                                 species_comparison_data, y_limit
@@ -39,12 +39,12 @@ break_species_name <- function(name) {
 # ============================================================
 # RE-CREATE RADIAL PLOTS WITH TWO-LINE SPECIES NAMES
 # Requires: p_mcra_result, p_sum_result, p_overlay from
-#   05_radial_gene_plots.R
+#   03_radial_gene_plots.R
 # ============================================================
 
 if (!exists("p_mcra_result") || !exists("p_sum_result") || !exists("p_overlay")) {
   cat("WARNING: Radial plot objects (p_mcra_result, p_sum_result, p_overlay) not found.\n")
-  cat("  Run 05_radial_gene_plots.R first, or source it to populate these objects.\n")
+  cat("  Run 03_radial_gene_plots.R first, or source it to populate these objects.\n")
   cat("  Skipping radial plot section.\n\n")
 } else {
 
@@ -193,7 +193,7 @@ combined_plot <- p_mcra / p_sum / p_overlay
 # SPECIES COMPARISON 2x2 PLOTS
 # Requires: analysis_mcra, analysis_methanotroph, analysis_ratio,
 #   cor_area_mcra, cor_area_methanotroph, pearson_ratio,
-#   species_comparison_data, y_limit from 01_summary_stats.R
+#   species_comparison_data, y_limit from 02_scale_dependent_gene_patterns.R
 # ============================================================
 
 required_analysis_objs <- c("analysis_mcra", "analysis_methanotroph",
@@ -205,7 +205,7 @@ missing_objs <- required_analysis_objs[!sapply(required_analysis_objs, exists)]
 if (length(missing_objs) > 0) {
   cat("WARNING: Missing upstream objects for species comparison plots:\n")
   cat("  ", paste(missing_objs, collapse = ", "), "\n")
-  cat("  Run 01_summary_stats.R first to populate these objects.\n")
+  cat("  Run 02_scale_dependent_gene_patterns.R first to populate these objects.\n")
   cat("  Skipping species comparison and final figure sections.\n\n")
 } else {
 
@@ -356,6 +356,6 @@ ggsave("outputs/figures/main/fig8_radial_species_comparison.png",
 
 } else {
   cat("WARNING: Cannot create final figure - missing combined_plot and/or species_2x2_layout.\n")
-  cat("  Ensure both 05_radial_gene_plots.R and 01_summary_stats.R have been run.\n")
+  cat("  Ensure both 03_radial_gene_plots.R and 02_scale_dependent_gene_patterns.R have been run.\n")
 }
 
