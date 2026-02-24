@@ -38,6 +38,8 @@ data/raw/**/*.json
 
 # Processed data (regenerable from code + raw data)
 data/processed/**/*.csv
+# Exception: curated definitions files (canonical inputs, not generated)
+!data/processed/molecular/methanotroph_definitions.csv
 data/processed/**/*.txt
 data/processed/**/*.tsv
 data/processed/**/*.xlsx

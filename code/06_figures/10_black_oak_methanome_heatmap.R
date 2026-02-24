@@ -34,28 +34,27 @@ methanogen_families <- c(
   "Methanosarcinaceae", "Methanomethyliaceae", "Methanocorpusculaceae"
 )
 
-# Define methanotroph taxa (consistent with Fig 5 / 08c — positive selection)
-mt_exclusive_families <- c("Methylococcaceae", "Methylacidiphilaceae",
-                            "Methylomonadaceae", "Methylomirabilaceae")
-beij_mt_genera <- c("Methylocapsa", "Methylocella", "Methylorosula", "Methylovirgula",
-                     "Methyloferula", "Methylobacterium-Methylorubrum", "1174-901-12", "Roseiarcus")
-mcyst_mt_genera <- c("Methylosinus", "Methylocystis")
-other_mt_families <- c("Methylophilaceae", "Methylopilaceae", "Methyloligellaceae")
+# Load methanotroph definitions (Knief 2015)
+source("code/00_harmonization/load_methanotroph_definitions.R")
+mt_defs <- load_methanotroph_defs()
 
 # ==============================================================================
 # STEP 2: Filter and classify taxa
 # ==============================================================================
 otu_table <- otu_table %>%
   filter(!is.na(Family)) %>%
-  mutate(Group = case_when(
-    Family %in% methanogen_families ~ "Methanogen",
-    Family %in% mt_exclusive_families ~ "Methanotroph",
-    Family == "Beijerinckiaceae" & Genus %in% beij_mt_genera ~ "Methanotroph",
-    Family == "Methylocystaceae" & Genus %in% mcyst_mt_genera ~ "Methanotroph",
-    Family %in% other_mt_families ~ "Methanotroph",
-    Genus == "Crenothrix" ~ "Methanotroph",
-    TRUE ~ NA_character_
-  )) %>%
+  mutate(
+    mt_status = classify_methanotrophs(
+      data.frame(Family = Family, Genus = Genus, stringsAsFactors = FALSE),
+      mt_defs, include_conditional = TRUE),
+    Group = case_when(
+      Family %in% methanogen_families ~ "Methanogen",
+      mt_status == "Known" ~ "Methanotroph (known)",
+      mt_status == "Putative" ~ "Methanotroph (putative)",
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  select(-mt_status) %>%
   filter(!is.na(Group))
 
 # Pivot to long format and assign tissue types
@@ -106,14 +105,16 @@ media_order <- c("Heartwood", "Sapwood", "Rot", "Bark", "Branch",
 heatmap_data <- heatmap_data %>%
   mutate(Media = factor(Media, levels = media_order))
 
-# Split into methanogen / methanotroph for separate panels with square cells
+# Split into methanogen / known methanotroph / putative methanotroph panels
 library(patchwork)
 
 n_cols <- length(media_order)  # 11
-heatmap_mg <- heatmap_data %>% filter(Group == "Methanogen")
-heatmap_mt <- heatmap_data %>% filter(Group == "Methanotroph")
-n_rows_mg <- n_distinct(heatmap_mg$Row_Label)  # 1
-n_rows_mt <- n_distinct(heatmap_mt$Row_Label)  # 9
+heatmap_mg    <- heatmap_data %>% filter(Group == "Methanogen")
+heatmap_mt_k  <- heatmap_data %>% filter(Group == "Methanotroph (known)")
+heatmap_mt_p  <- heatmap_data %>% filter(Group == "Methanotroph (putative)")
+n_rows_mg   <- max(n_distinct(heatmap_mg$Row_Label), 1)
+n_rows_mt_k <- max(n_distinct(heatmap_mt_k$Row_Label), 1)
+n_rows_mt_p <- max(n_distinct(heatmap_mt_p$Row_Label), 1)
 
 shared_heatmap_theme <- theme_minimal() +
   theme(
@@ -133,21 +134,42 @@ p_mg <- ggplot(heatmap_mg, aes(x = Media, y = Row_Label, fill = Abundance)) +
   labs(subtitle = "Methanogen") +
   scale_fill_viridis_c(option = "C", name = expression(log[10]~"(Abundance + 1)"))
 
-# Methanotroph panel (bottom)
-p_mt <- ggplot(heatmap_mt, aes(x = Media, y = Row_Label, fill = Abundance)) +
+# Known methanotroph panel (middle)
+p_mt_k <- ggplot(heatmap_mt_k, aes(x = Media, y = Row_Label, fill = Abundance)) +
+  geom_tile(color = "white") +
+  coord_fixed(ratio = 1) +
+  shared_heatmap_theme +
+  theme(axis.text.x = element_blank(),
+        plot.margin = margin(0, 5, 0, 5)) +
+  labs(y = "Taxa (Family | Genus)", subtitle = "Methanotroph (known)") +
+  scale_fill_viridis_c(option = "C", name = expression(log[10]~"(Abundance + 1)"))
+
+# Putative methanotroph panel (bottom)
+p_mt_p <- ggplot(heatmap_mt_p, aes(x = Media, y = Row_Label, fill = Abundance)) +
   geom_tile(color = "white") +
   coord_fixed(ratio = 1) +
   shared_heatmap_theme +
   theme(plot.margin = margin(0, 5, 5, 5)) +
-  labs(y = "Taxa (Family | Genus)", subtitle = "Methanotroph") +
+  labs(y = "Taxa (Family | Genus)", subtitle = "Methanotroph (putative)") +
   scale_fill_viridis_c(option = "C", name = expression(log[10]~"(Abundance + 1)"))
 
 # Stack with heights proportional to row counts
 tag_theme <- theme(plot.tag = element_text(size = 11, face = "bold"))
-p_mg <- p_mg + theme(legend.position = "none") + tag_theme
-p_mt <- p_mt + tag_theme
-p_abs <- p_mg / p_mt +
-  plot_layout(heights = c(n_rows_mg, n_rows_mt)) +
+p_mg   <- p_mg   + theme(legend.position = "none") + tag_theme
+p_mt_k <- p_mt_k + theme(legend.position = "none") + tag_theme
+
+# Only show x-axis labels and legend on bottom panel
+p_mt_p <- p_mt_p + tag_theme
+
+# Handle case where a panel has no data
+panels <- list()
+heights <- c()
+if (nrow(heatmap_mg) > 0)   { panels <- c(panels, list(p_mg));   heights <- c(heights, n_rows_mg) }
+if (nrow(heatmap_mt_k) > 0) { panels <- c(panels, list(p_mt_k)); heights <- c(heights, n_rows_mt_k) }
+if (nrow(heatmap_mt_p) > 0) { panels <- c(panels, list(p_mt_p)); heights <- c(heights, n_rows_mt_p) }
+
+p_abs <- Reduce(`/`, panels) +
+  plot_layout(heights = heights) +
   plot_annotation(tag_levels = "a",
                   tag_prefix = "(",
                   tag_suffix = ")")
@@ -181,9 +203,17 @@ heatmap_relative_data <- log_transformed_relative_data %>%
 heatmap_relative_data <- heatmap_relative_data %>%
   mutate(Media = factor(Media, levels = media_order))
 
-# Split relative heatmap similarly
-heatmap_rel_mg <- heatmap_relative_data %>% filter(Group == "Methanogen")
-heatmap_rel_mt <- heatmap_relative_data %>% filter(Group == "Methanotroph")
+# Split relative heatmap into 3 panels (matching absolute heatmap)
+heatmap_rel_mg   <- heatmap_relative_data %>% filter(Group == "Methanogen")
+heatmap_rel_mt_k <- heatmap_relative_data %>% filter(Group == "Methanotroph (known)")
+heatmap_rel_mt_p <- heatmap_relative_data %>% filter(Group == "Methanotroph (putative)")
+
+n_rows_rel_mg   <- max(n_distinct(heatmap_rel_mg$Row_Label), 1)
+n_rows_rel_mt_k <- max(n_distinct(heatmap_rel_mt_k$Row_Label), 1)
+n_rows_rel_mt_p <- max(n_distinct(heatmap_rel_mt_p$Row_Label), 1)
+
+rel_fill_scale <- scale_fill_viridis_c(option = "C",
+                                        name = expression(log[10]~"(Rel. Abundance + 1)"))
 
 p_rel_mg <- ggplot(heatmap_rel_mg, aes(x = Media, y = Row_Label, fill = Abundance)) +
   geom_tile(color = "white") +
@@ -192,20 +222,36 @@ p_rel_mg <- ggplot(heatmap_rel_mg, aes(x = Media, y = Row_Label, fill = Abundanc
   theme(axis.text.x = element_blank(),
         axis.title.y = element_blank(),
         plot.margin = margin(5, 5, 0, 5)) +
-  labs(subtitle = "Methanogen") +
-  scale_fill_viridis_c(option = "C", name = expression(log[10]~"(Rel. Abundance + 1)"))
+  labs(subtitle = "Methanogen") + rel_fill_scale
 
-p_rel_mt <- ggplot(heatmap_rel_mt, aes(x = Media, y = Row_Label, fill = Abundance)) +
+p_rel_mt_k <- ggplot(heatmap_rel_mt_k, aes(x = Media, y = Row_Label, fill = Abundance)) +
+  geom_tile(color = "white") +
+  coord_fixed(ratio = 1) +
+  shared_heatmap_theme +
+  theme(axis.text.x = element_blank(),
+        plot.margin = margin(0, 5, 0, 5)) +
+  labs(y = "Taxa (Family | Genus)", subtitle = "Methanotroph (known)") + rel_fill_scale
+
+p_rel_mt_p <- ggplot(heatmap_rel_mt_p, aes(x = Media, y = Row_Label, fill = Abundance)) +
   geom_tile(color = "white") +
   coord_fixed(ratio = 1) +
   shared_heatmap_theme +
   theme(plot.margin = margin(0, 5, 5, 5)) +
-  labs(y = "Taxa (Family | Genus)", subtitle = "Methanotroph") +
-  scale_fill_viridis_c(option = "C", name = expression(log[10]~"(Rel. Abundance + 1)"))
+  labs(y = "Taxa (Family | Genus)", subtitle = "Methanotroph (putative)") + rel_fill_scale
 
-p_rel_mg <- p_rel_mg + theme(legend.position = "none")
-p_rel <- p_rel_mg / p_rel_mt +
-  plot_layout(heights = c(n_rows_mg, n_rows_mt))
+# Stack with same logic as absolute heatmap
+p_rel_mg   <- p_rel_mg   + theme(legend.position = "none") + tag_theme
+p_rel_mt_k <- p_rel_mt_k + theme(legend.position = "none") + tag_theme
+p_rel_mt_p <- p_rel_mt_p + tag_theme
+
+rel_panels  <- list()
+rel_heights <- c()
+if (nrow(heatmap_rel_mg) > 0)   { rel_panels <- c(rel_panels, list(p_rel_mg));   rel_heights <- c(rel_heights, n_rows_rel_mg) }
+if (nrow(heatmap_rel_mt_k) > 0) { rel_panels <- c(rel_panels, list(p_rel_mt_k)); rel_heights <- c(rel_heights, n_rows_rel_mt_k) }
+if (nrow(heatmap_rel_mt_p) > 0) { rel_panels <- c(rel_panels, list(p_rel_mt_p)); rel_heights <- c(rel_heights, n_rows_rel_mt_p) }
+
+p_rel <- Reduce(`/`, rel_panels) +
+  plot_layout(heights = rel_heights)
 
 print(p_rel)
 

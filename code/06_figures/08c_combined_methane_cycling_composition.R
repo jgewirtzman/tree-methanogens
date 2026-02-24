@@ -136,32 +136,35 @@ for (fam in methanogen_families) {
 }
 
 # ==============================================================================
-# STEP 4: Methanotroph calculations
+# STEP 4: Methanotroph calculations (using canonical definitions)
 # ==============================================================================
 
-mt_exclusive_families <- c("Methylococcaceae", "Methylacidiphilaceae",
-                            "Methylomonadaceae", "Methylomirabilaceae")
-beij_mt_genera <- c("Methylocapsa", "Methylocella", "Methylorosula", "Methylovirgula",
-                     "Methyloferula", "Methylobacterium-Methylorubrum", "1174-901-12", "Roseiarcus")
-mcyst_mt_genera <- c("Methylosinus", "Methylocystis")
-other_mt_families <- c("Methylophilaceae", "Methylopilaceae", "Methyloligellaceae")
+source("code/00_harmonization/load_methanotroph_definitions.R")
+mt_defs <- load_methanotroph_defs()
 
-mt_asvs_excl <- rownames(tax_df)[tax_df$Family %in% mt_exclusive_families]
-mt_asvs_beij <- rownames(tax_df)[tax_df$Family == "Beijerinckiaceae" & tax_df$Genus %in% beij_mt_genera]
-mt_asvs_mcyst <- rownames(tax_df)[tax_df$Family == "Methylocystaceae" & tax_df$Genus %in% mcyst_mt_genera]
-mt_asvs_other <- rownames(tax_df)[tax_df$Family %in% other_mt_families]
-mt_asvs_creno <- rownames(tax_df)[tax_df$Genus == "Crenothrix"]
-all_mt_asvs <- unique(c(mt_asvs_excl, mt_asvs_beij, mt_asvs_mcyst, mt_asvs_other, mt_asvs_creno))
+# Classify each ASV as Known, Putative, or NA
+tax_df$mt_status <- classify_methanotrophs(tax_df, mt_defs, include_conditional = TRUE)
 
+known_asvs   <- rownames(tax_df)[tax_df$mt_status == "Known" & !is.na(tax_df$mt_status)]
+putative_asvs <- rownames(tax_df)[tax_df$mt_status == "Putative" & !is.na(tax_df$mt_status)]
+all_mt_asvs  <- c(known_asvs, putative_asvs)
+
+cat("Known methanotroph ASVs:", length(known_asvs), "\n")
+cat("Putative methanotroph ASVs:", length(putative_asvs), "\n")
+
+# Per-sample abundance: total, known, putative
 samp_meta$methanotroph_pct <- colSums(otu_df[all_mt_asvs, , drop = FALSE], na.rm = TRUE)[rownames(samp_meta)]
+samp_meta$mt_known_pct     <- colSums(otu_df[known_asvs, , drop = FALSE], na.rm = TRUE)[rownames(samp_meta)]
+samp_meta$mt_putative_pct  <- colSums(otu_df[putative_asvs, , drop = FALSE], na.rm = TRUE)[rownames(samp_meta)]
 
-# Classify ASVs into display families
+# Assign display family (using the ASV's Family) + status for grouping
 tax_df$mt_family <- NA_character_
-tax_df$mt_family[rownames(tax_df) %in% mt_asvs_excl] <- tax_df$Family[rownames(tax_df) %in% mt_asvs_excl]
-tax_df$mt_family[rownames(tax_df) %in% mt_asvs_beij] <- "Beijerinckiaceae"
-tax_df$mt_family[rownames(tax_df) %in% mt_asvs_mcyst] <- "Methylocystaceae"
-tax_df$mt_family[rownames(tax_df) %in% mt_asvs_other] <- tax_df$Family[rownames(tax_df) %in% mt_asvs_other]
-tax_df$mt_family[rownames(tax_df) %in% mt_asvs_creno] <- "Crenotrichaceae"
+tax_df$mt_family[!is.na(tax_df$mt_status)] <- tax_df$Family[!is.na(tax_df$mt_status)]
+
+# Build per-family per-status abundance columns
+mt_asvs_all <- rownames(tax_df)[!is.na(tax_df$mt_status)]
+mt_fam_status <- unique(tax_df[mt_asvs_all, c("mt_family", "mt_status")])
+mt_fam_status <- mt_fam_status[order(mt_fam_status$mt_status, mt_fam_status$mt_family), ]
 
 mt_display_families <- sort(unique(tax_df$mt_family[!is.na(tax_df$mt_family)]))
 
@@ -251,73 +254,171 @@ p_mg_b <- ggplot(summary_mg_b, aes(x = species_label, y = proportion, fill = Fam
   theme(axis.text.x = element_blank(),
         axis.text.y = element_text(size = 15),
         axis.title.y = element_text(size = 16),
-        legend.position = "right", legend.text = element_text(size = 13),
+        legend.position = "right",
+        legend.justification = c(0, 1),
+        legend.text = element_text(size = 13),
         legend.title = element_text(size = 14, face = "bold"),
         strip.text = element_blank(), strip.background = element_blank(),
         panel.border = element_rect(fill = NA, color = "black", linewidth = 0.5),
         plot.margin = margin(2, 10, 2, 10))
 
 # ==============================================================================
-# Panel (c) — Methanotroph relative abundance
+# Panel (c) — Methanotroph relative abundance (Known + Putative stacked)
 # ==============================================================================
 
-summary_mt_a <- plot_data %>%
+summary_mt_known <- plot_data %>%
   group_by(species_label, compartment) %>%
-  summarize(mean_pct = mean(methanotroph_pct, na.rm = TRUE),
-            se_pct = sd(methanotroph_pct, na.rm = TRUE) / sqrt(n()),
+  summarize(mean_pct = mean(mt_known_pct, na.rm = TRUE),
+            se_pct = sd(mt_known_pct, na.rm = TRUE) / sqrt(n()),
+            .groups = "drop") %>%
+  mutate(Status = "Known")
+
+summary_mt_putative <- plot_data %>%
+  group_by(species_label, compartment) %>%
+  summarize(mean_pct = mean(mt_putative_pct, na.rm = TRUE),
+            se_pct = sd(mt_putative_pct, na.rm = TRUE) / sqrt(n()),
+            .groups = "drop") %>%
+  mutate(Status = "Putative")
+
+summary_mt_a <- bind_rows(summary_mt_known, summary_mt_putative) %>%
+  mutate(Status = factor(Status, levels = c("Known", "Putative")))
+
+# Error bars on total (Known + Putative combined)
+summary_mt_total <- plot_data %>%
+  group_by(species_label, compartment) %>%
+  summarize(mean_total = mean(methanotroph_pct, na.rm = TRUE),
+            se_total = sd(methanotroph_pct, na.rm = TRUE) / sqrt(n()),
             .groups = "drop")
 
-p_mt_a <- ggplot(summary_mt_a, aes(x = species_label, y = mean_pct, fill = compartment)) +
+# Known bars match panel (a) compartment colors; Putative in grey
+# Create a composite fill variable: Known bars get compartment name, Putative bars get "Putative"
+summary_mt_a$fill_group <- ifelse(summary_mt_a$Status == "Known",
+                                   as.character(summary_mt_a$compartment),
+                                   "Putative")
+
+# Build fill palette: compartment colors for Known + grey for Putative
+panel_c_fills <- c(compartment_colors, "Putative" = "grey70")
+
+# Factor ordering: compartment levels first (so Known stacks on bottom), then Putative on top
+summary_mt_a$fill_group <- factor(summary_mt_a$fill_group,
+                                   levels = c(names(compartment_colors), "Putative"))
+
+p_mt_a <- ggplot(summary_mt_a, aes(x = species_label, y = mean_pct, fill = fill_group)) +
   geom_col(width = 0.7, color = "black", linewidth = 0.2) +
-  geom_errorbar(aes(ymin = pmax(mean_pct - se_pct, 0), ymax = mean_pct + se_pct),
-                width = 0.2, linewidth = 0.3) +
+  geom_errorbar(data = summary_mt_total,
+                aes(x = species_label, y = mean_total,
+                    ymin = pmax(mean_total - se_total, 0),
+                    ymax = mean_total + se_total),
+                inherit.aes = FALSE, width = 0.2, linewidth = 0.3) +
   facet_wrap(~ compartment, nrow = 1) +
-  scale_fill_manual(values = compartment_colors, name = "Compartment") +
+  scale_fill_manual(values = panel_c_fills,
+                    breaks = "Putative",
+                    labels = "Putative",
+                    name = "Classification") +
   labs(x = NULL, y = "Methanotroph rel.\nabundance (%)") +
   theme_classic(base_size = 15) +
   theme(axis.text.x = element_blank(),
         axis.text.y = element_text(size = 15),
         axis.title.y = element_text(size = 16),
-        legend.position = "none",
+        legend.position = "right",
+        legend.justification = c(0, 0.5),
+        legend.text = element_text(size = 13),
+        legend.title = element_text(size = 14, face = "bold"),
         strip.text = element_blank(), strip.background = element_blank(),
         panel.border = element_rect(fill = NA, color = "black", linewidth = 0.5),
         plot.margin = margin(2, 10, 2, 10))
 
 # ==============================================================================
-# Panel (d) — Methanotroph family composition
+# Panel (d) — Methanotroph family composition (Known families first, then Putative)
 # ==============================================================================
 
-mt_family_cols <- paste0("mt_", mt_display_families)
-mt_family_cols <- intersect(mt_family_cols, colnames(plot_data))
+# Build per-sample abundance by family + status
+mt_fam_status_unique <- unique(tax_df[!is.na(tax_df$mt_status),
+                                       c("mt_family", "mt_status")])
+
+for (i in seq_len(nrow(mt_fam_status_unique))) {
+  fam <- mt_fam_status_unique$mt_family[i]
+  stat <- mt_fam_status_unique$mt_status[i]
+  col_name <- paste0("mt_", stat, "_", fam)
+  fam_stat_asvs <- rownames(tax_df)[which(tax_df$mt_family == fam &
+                                            tax_df$mt_status == stat)]
+  if (length(fam_stat_asvs) > 0) {
+    samp_meta[[col_name]] <- colSums(otu_df[fam_stat_asvs, , drop = FALSE],
+                                     na.rm = TRUE)[rownames(samp_meta)]
+  } else {
+    samp_meta[[col_name]] <- 0
+  }
+}
+
+# Rebuild plot_data with new columns
+plot_data <- samp_meta
+plot_data$species_label <- species_mapping[plot_data$species.x]
+plot_data <- plot_data %>% filter(!is.na(species_label))
+plot_data$compartment <- factor(plot_data$compartment,
+                                 levels = c("Heartwood", "Sapwood", "Mineral Soil", "Organic Soil"))
+plot_data$species_label <- factor(plot_data$species_label, levels = sp_order)
+
+mt_fam_stat_cols <- grep("^mt_(Known|Putative)_", colnames(plot_data), value = TRUE)
 
 mt_comp <- plot_data %>%
-  select(species_label, compartment, all_of(mt_family_cols)) %>%
-  pivot_longer(cols = all_of(mt_family_cols), names_to = "Family", values_to = "Abundance") %>%
-  mutate(Family = sub("^mt_", "", Family))
+  select(species_label, compartment, all_of(mt_fam_stat_cols)) %>%
+  pivot_longer(cols = all_of(mt_fam_stat_cols),
+               names_to = "Family_Status", values_to = "Abundance") %>%
+  mutate(
+    Status = sub("^mt_(Known|Putative)_.*", "\\1", Family_Status),
+    Family = sub("^mt_(Known|Putative)_", "", Family_Status)
+  )
 
 summary_mt_b <- mt_comp %>%
-  group_by(species_label, compartment, Family) %>%
+  group_by(species_label, compartment, Family, Status) %>%
   summarize(mean_abund = mean(Abundance, na.rm = TRUE), .groups = "drop") %>%
   group_by(species_label, compartment) %>%
   mutate(total = sum(mean_abund),
          proportion = if_else(total > 0, mean_abund / total * 100, 0)) %>%
   ungroup()
 
-# Sort families alphabetically so color ramp matches legend order
-mt_families_sorted <- sort(mt_display_families)
-mt_colors <- setNames(viridis(length(mt_families_sorted), option = "D"), mt_families_sorted)
-summary_mt_b$Family <- factor(summary_mt_b$Family, levels = mt_families_sorted)
+# Order: Known families first (alphabetical), then Putative families (alphabetical)
+known_fams <- sort(unique(summary_mt_b$Family[summary_mt_b$Status == "Known"]))
+putative_fams <- sort(unique(summary_mt_b$Family[summary_mt_b$Status == "Putative"]))
+# Remove families that appear in both from putative list (they're already in known)
+putative_only_fams <- setdiff(putative_fams, known_fams)
 
-p_mt_b <- ggplot(summary_mt_b, aes(x = species_label, y = proportion, fill = Family)) +
+# Create composite label for legend: "Family (Known)" / "Family (Putative)"
+summary_mt_b$Family_label <- ifelse(
+  summary_mt_b$Status == "Putative" & summary_mt_b$Family %in% putative_only_fams,
+  paste0(summary_mt_b$Family, " *"),
+  summary_mt_b$Family
+)
+
+# For families that appear in both Known and Putative, combine them under the family name
+# (the Known portion is already there; Putative portion of the same family stacks on top)
+# Order levels: Known families first, then putative-only families with asterisk
+all_levels <- c(known_fams, paste0(putative_only_fams, " *"))
+summary_mt_b$Family_label <- factor(summary_mt_b$Family_label, levels = all_levels)
+
+# Color: viridis for known families, lighter/desaturated for putative-only
+n_known <- length(known_fams)
+n_putative_only <- length(putative_only_fams)
+known_colors <- setNames(viridis(n_known, option = "D"), known_fams)
+putative_colors <- setNames(viridis(n_putative_only, option = "D", alpha = 0.45),
+                             paste0(putative_only_fams, " *"))
+mt_colors <- c(known_colors, putative_colors)
+
+p_mt_b <- ggplot(summary_mt_b, aes(x = species_label, y = proportion, fill = Family_label)) +
   geom_col(position = "stack", width = 0.7, color = "black", linewidth = 0.1) +
   facet_wrap(~ compartment, nrow = 1) +
-  scale_fill_manual(values = mt_colors, name = "Methanotroph\nFamily") +
+  scale_fill_manual(values = mt_colors, name = "Methanotroph\nFamily",
+                    labels = function(x) ifelse(grepl("\\*$", x),
+                                                 paste0(sub(" \\*$", "", x), " (putative)"),
+                                                 x)) +
   labs(x = NULL, y = "Proportion of\nmethanotrophs (%)") +
   theme_classic(base_size = 15) +
   theme(axis.text.x = element_text(angle = 55, hjust = 1, face = "italic", size = 9),
         axis.text.y = element_text(size = 15),
         axis.title.y = element_text(size = 16),
-        legend.position = "right", legend.text = element_text(size = 13),
+        legend.position = "right",
+        legend.justification = c(0, 1),
+        legend.text = element_text(size = 13),
         legend.title = element_text(size = 14, face = "bold"),
         strip.text = element_blank(), strip.background = element_blank(),
         panel.border = element_rect(fill = NA, color = "black", linewidth = 0.5),
