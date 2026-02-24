@@ -157,8 +157,8 @@ See `code/04_scaling/RF_CH4_workflow_spec.md` for the detailed RF technical spec
 | S8 | `figS8_d13ch4_rainfall.png` | δ¹³CH₄ vs rainfall | `06_figures/11a_isotope_d13ch4_single.R` |
 | S9 | `figS9_rf_predictions.png` | RF model predictions (3-row layout) | `04_scaling/08_rf_publication_plots.R` |
 | S10 | `figS10_scale_dependent_genes.png` | Scale-dependent gene–flux patterns | `05_gene_flux_analysis/02_scale_dependent_gene_patterns.R` |
-| S11 | `figS11_tree_radial_sections.pdf` | Tree radial mcrA cross-sections | `06_figures/02_radial_cross_sections.R` |
-| S12 | `figS12_methanotroph_abundance_patterns.pdf` | pmoA vs mmoX + ratio analysis | `05_gene_flux_analysis/methanotrophs/03_pmoa_mmox_analysis.R` |
+| S11 | `figS11_tree_radial_sections.png` | Tree radial mcrA cross-sections | `06_figures/02_radial_cross_sections.R` |
+| S12 | `figS12_methanotroph_abundance_patterns.png` | pmoA vs mmoX + ratio analysis | `05_gene_flux_analysis/methanotrophs/03_pmoa_mmox_analysis.R` |
 | S13 | `figS13_mcra_vs_methanotroph.png` | mcrA vs methanotroph independence | `05_gene_flux_analysis/02_scale_dependent_gene_patterns.R` |
 | S14 | `figS14_black_oak_methanome.png` | Black oak methanome heatmap | `06_figures/10_black_oak_methanome_heatmap.R` |
 | S15 | `figS15_taxonomy_pmoa_heatmap.png` | Family-level 16S × pmoA associations | `06_figures/12c_taxonomy_pmoa_heatmap.R` |
