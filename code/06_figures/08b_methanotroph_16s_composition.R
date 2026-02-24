@@ -122,45 +122,11 @@ sample_data(ps.ra) <- sample_data(samp_df)
 ps.filt <- prune_samples(!is.na(sample_data(ps.ra)$compartment), ps.ra)
 
 # ==============================================================================
-# STEP 3: Define methanotroph taxa
+# STEP 3: Load methanotroph definitions (Knief 2015)
 # ==============================================================================
 
-# Exclusively methanotrophic families (all members are methanotrophs)
-methanotroph_exclusive_families <- c(
-  "Methylococcaceae",
-  "Methylacidiphilaceae",
-  "Methylomonadaceae",
-  "Methylomirabilaceae"
-)
-
-# Mixed families — only certain genera are methanotrophs
-# Beijerinckiaceae: methanotrophic genera only
-beijerinckiaceae_mt_genera <- c(
-  "Methylocapsa",
-  "Methylocella",
-  "Methylorosula",
-  "Methylovirgula",
-  "Methyloferula",
-  "Methylobacterium-Methylorubrum",
-  "1174-901-12",
-  "Roseiarcus"
-)
-
-# Methylocystaceae methanotrophic genera
-methylocystaceae_mt_genera <- c(
-  "Methylosinus",
-  "Methylocystis"
-)
-
-# Methylophilaceae and Methylopilaceae: obligate methylotrophs, some methanotrophic
-other_mt_families <- c(
-  "Methylophilaceae",
-  "Methylopilaceae",
-  "Methyloligellaceae"
-)
-
-# Crenotrichaceae genus Crenothrix
-crenothrix_genus <- "Crenothrix"
+source("code/00_harmonization/load_methanotroph_definitions.R")
+mt_defs <- load_methanotroph_defs()
 
 # ==============================================================================
 # STEP 4: Calculate per-sample methanotroph abundance
@@ -170,35 +136,25 @@ otu_df <- as.data.frame(otu_table(ps.filt))
 tax_df <- as.data.frame(tax_table(ps.filt))
 samp_meta <- data.frame(sample_data(ps.filt))
 
-# Identify all methanotroph ASVs using combined family + genus criteria
-mt_asvs_exclusive <- rownames(tax_df)[tax_df$Family %in% methanotroph_exclusive_families]
-mt_asvs_beij <- rownames(tax_df)[tax_df$Family == "Beijerinckiaceae" &
-                                    tax_df$Genus %in% beijerinckiaceae_mt_genera]
-mt_asvs_mcyst <- rownames(tax_df)[tax_df$Family == "Methylocystaceae" &
-                                     tax_df$Genus %in% methylocystaceae_mt_genera]
-mt_asvs_other <- rownames(tax_df)[tax_df$Family %in% other_mt_families]
-mt_asvs_creno <- rownames(tax_df)[tax_df$Genus == crenothrix_genus]
+# Classify each ASV as Known, Putative, or NA
+tax_df$mt_status <- classify_methanotrophs(tax_df, mt_defs, include_conditional = TRUE)
 
-all_mt_asvs <- unique(c(mt_asvs_exclusive, mt_asvs_beij, mt_asvs_mcyst,
-                         mt_asvs_other, mt_asvs_creno))
+known_asvs   <- rownames(tax_df)[tax_df$mt_status == "Known" & !is.na(tax_df$mt_status)]
+putative_asvs <- rownames(tax_df)[tax_df$mt_status == "Putative" & !is.na(tax_df$mt_status)]
+all_mt_asvs  <- c(known_asvs, putative_asvs)
+
+cat("Known methanotroph ASVs:", length(known_asvs), "\n")
+cat("Putative methanotroph ASVs:", length(putative_asvs), "\n")
 
 # Per-sample total methanotroph relative abundance
-mt_abund <- colSums(otu_df[all_mt_asvs, , drop = FALSE], na.rm = TRUE)
-samp_meta$methanotroph_pct <- mt_abund[rownames(samp_meta)]
+samp_meta$methanotroph_pct <- colSums(otu_df[all_mt_asvs, , drop = FALSE], na.rm = TRUE)[rownames(samp_meta)]
+samp_meta$mt_known_pct     <- colSums(otu_df[known_asvs, , drop = FALSE], na.rm = TRUE)[rownames(samp_meta)]
+samp_meta$mt_putative_pct  <- colSums(otu_df[putative_asvs, , drop = FALSE], na.rm = TRUE)[rownames(samp_meta)]
 
-# For panel (b), classify each ASV into a display family for the stacked bar
-# We use the actual family for exclusively methanotrophic families,
-# and "Beijerinckiaceae (methanotrophs)" for the Beijerinckiaceae subset
+# Assign display family + status for composition
 tax_df$mt_family <- NA_character_
-tax_df$mt_family[rownames(tax_df) %in% mt_asvs_exclusive] <-
-  tax_df$Family[rownames(tax_df) %in% mt_asvs_exclusive]
-tax_df$mt_family[rownames(tax_df) %in% mt_asvs_beij] <- "Beijerinckiaceae"
-tax_df$mt_family[rownames(tax_df) %in% mt_asvs_mcyst] <- "Methylocystaceae"
-tax_df$mt_family[rownames(tax_df) %in% mt_asvs_other] <-
-  tax_df$Family[rownames(tax_df) %in% mt_asvs_other]
-tax_df$mt_family[rownames(tax_df) %in% mt_asvs_creno] <- "Crenotrichaceae"
+tax_df$mt_family[!is.na(tax_df$mt_status)] <- tax_df$Family[!is.na(tax_df$mt_status)]
 
-# Get the unique display families present
 display_families <- sort(unique(tax_df$mt_family[!is.na(tax_df$mt_family)]))
 
 # Per-sample abundance by display family

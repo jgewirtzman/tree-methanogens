@@ -215,10 +215,11 @@ p1 = ggplot(wood, aes(x = log10(1 + pmoa_loose),
   geom_point(alpha = 0.6, size = 2) +
   scale_color_manual(values = c("Heartwood" = "#8B4513", "Sapwood" = "#DEB887")) +
   coord_fixed(xlim = c(axis_min, axis_max), ylim = c(axis_min, axis_max)) +
-  annotate("text", x = axis_min + 0.2, y = axis_max - 0.5, 
-           label = sprintf("slope = %.2f\n%s", slope_1, p1_text),
-           hjust = 0, size = 3.5) +
-  labs(x = "log10(pmoA + 1)", 
+  annotate("text", x = axis_min + 0.2, y = axis_max - 0.5,
+           label = sprintf("atop(atop(slope == %.2f, italic(R)^2 == %.3f), '%s')",
+                           slope_1, r2_1, p1_text),
+           parse = TRUE, hjust = 0, size = 3.5) +
+  labs(x = "log10(pmoA + 1)",
        y = "log10(mmoX + 1)",
        color = "Core Type") +
   theme_bw() +
@@ -236,11 +237,12 @@ p2 = ggplot(wood_both, aes(x = total_methanotroph,
   geom_smooth(method = "lm", se = TRUE, color = "black", linewidth = 0.8) +
   geom_point(alpha = 0.6, size = 2) +
   scale_color_manual(values = c("Heartwood" = "#8B4513", "Sapwood" = "#DEB887")) +
-  annotate("text", x = x_range[1] + 0.1, 
-           y = y_range[2] - 0.3, 
-           label = sprintf("slope = %.2f\n%s", slope_2, p2_text),
-           hjust = 0, size = 3.5) +
-  labs(x = "log10(total pmoA + mmoX)", 
+  annotate("text", x = x_range[1] + 0.1,
+           y = y_range[2] - 0.3,
+           label = sprintf("atop(atop(slope == %.2f, italic(R)^2 == %.3f), '%s')",
+                           slope_2, r2_2, p2_text),
+           parse = TRUE, hjust = 0, size = 3.5) +
+  labs(x = "log10(total pmoA + mmoX)",
        y = "log10(pmoA / mmoX)",
        color = "Core Type") +
   theme_bw() +
@@ -333,9 +335,10 @@ p1 = ggplot(wood, aes(x = log10(1 + pmoa_loose),
   geom_point(alpha = 0.6, size = 2) +
   scale_color_manual(values = c("Heartwood" = "#8B4513", "Sapwood" = "#DEB887")) +
   coord_fixed(xlim = c(axis_min, axis_max), ylim = c(axis_min, axis_max)) +
-  annotate("text", x = axis_min + 0.2, y = axis_max - 0.5, 
-           label = sprintf("slope = %.2f\n%s", slope_1, p1_text),
-           hjust = 0, size = 3.5) +
+  annotate("text", x = axis_min + 0.2, y = axis_max - 0.5,
+           label = sprintf("atop(atop(slope == %.2f, italic(R)^2 == %.3f), '%s')",
+                           slope_1, r2_1, p1_text),
+           parse = TRUE, hjust = 0, size = 3.5) +
   labs(x = "log10(pmoA + 1)", y = "log10(mmoX + 1)", color = "Core Type") +
   theme_bw() +
   theme(legend.position = "bottom", plot.title = element_text(face = "bold"))
@@ -348,9 +351,10 @@ p2 = ggplot(wood_both, aes(x = total_methanotroph, y = ratio, color = core_type_
   geom_smooth(method = "lm", se = TRUE, color = "black", linewidth = 0.8) +
   geom_point(alpha = 0.6, size = 2) +
   scale_color_manual(values = c("Heartwood" = "#8B4513", "Sapwood" = "#DEB887")) +
-  annotate("text", x = x_range[1] + 0.1, y = y_range[2] - 0.3, 
-           label = sprintf("slope = %.2f\n%s", slope_2, p2_text),
-           hjust = 0, size = 3.5) +
+  annotate("text", x = x_range[1] + 0.1, y = y_range[2] - 0.3,
+           label = sprintf("atop(atop(slope == %.2f, italic(R)^2 == %.3f), '%s')",
+                           slope_2, r2_2, p2_text),
+           parse = TRUE, hjust = 0, size = 3.5) +
   labs(x = "log10(total pmoA + mmoX)", y = "log10(pmoA / mmoX)", color = "Core Type") +
   theme_bw() +
   theme(legend.position = "bottom", plot.title = element_text(face = "bold"))
