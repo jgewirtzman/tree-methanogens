@@ -36,7 +36,7 @@ tree-methanogens/
 │   │       └── black_oak/      # Felled oak flux, GC, and standards data
 │   └── processed/              # Cleaned/derived datasets
 │       ├── flux/               # Calculated CH4/CO2 flux results
-│       ├── molecular/          # Processed ddPCR data
+│       ├── molecular/          # Processed ddPCR data + methanotroph definitions
 │       ├── tree_data/          # DBH consensus, tree ID mapping
 │       ├── tree_cores/         # Processed wood property data
 │       ├── internal_gas/       # Processed GC/isotope data
@@ -99,6 +99,7 @@ Run **after** all Stage 1 tracks complete.
 |---|--------|----------|
 | 01 | `01_fix_soil_flux.R` | Corrected soil flux dataset |
 | 02 | `02_harmonize_all_data.R` | **`merged_tree_dataset_final.csv`** (master dataset) |
+| — | `load_methanotroph_definitions.R` | Shared utility (see [Methanotroph Definitions](#methanotroph-definitions) below) |
 
 ### Stage 3: Analysis & Upscaling
 
@@ -163,25 +164,45 @@ See `code/04_scaling/RF_CH4_workflow_spec.md` for the detailed RF technical spec
 | `merged_tree_dataset_final.csv` | `data/processed/integrated/` | Master dataset merging all tree-level measurements |
 | `rf_workflow_input_data_with_2023.RData` | `data/processed/integrated/` | Integrated data ready for RF modeling |
 | `processed_ddpcr_data.csv` | `data/processed/molecular/` | ddPCR gene quantification results |
+| `methanotroph_definitions.csv` | `data/processed/molecular/` | Curated methanotroph taxonomy definitions (Knief 2015) |
 | `methanogen_tree_flux_complete_dataset.csv` | `data/processed/flux/` | Tree flux + methanogen data combined |
 | `tree_id_comprehensive_mapping.csv` | `data/processed/tree_data/` | Authoritative tree ID cross-reference |
 | `RF_MODELS.RData` | `outputs/models/` | Trained tree and soil RF models |
 | `MONTHLY_FLUXES.csv` | `outputs/flux_predictions/` | RF-predicted monthly plot-level fluxes |
 | `ANNUAL_SUMMARY.csv` | `outputs/flux_predictions/` | Annual flux totals with uncertainty |
 
+## Methanotroph Definitions
+
+Taxonomy-based methanotroph classification uses a centralized definitions system to ensure consistency across all 16S-based figures (Fig 5, Fig S14, and the standalone methanotroph composition figure):
+
+- **Definitions CSV:** `data/processed/molecular/methanotroph_definitions.csv` — a curated 38-row lookup table mapping families and genera to Known, Putative, or Conditional methanotroph status, based on Knief (2015) with SILVA 138 taxonomy cross-referencing. This file is tracked in git (unlike other processed data) because it is a manually curated canonical input, not a generated output.
+- **Shared utility:** `code/00_harmonization/load_methanotroph_definitions.R` — provides `classify_methanotrophs()`, `identify_methanotrophs()`, and `assign_display_family()` functions used by figure scripts `08b`, `08c`, and `10`.
+
+**Classification hierarchy** (first match wins):
+1. **Known** — genus on the cultivated methanotroph whitelist (18 genera from Knief Tables 1–3), or ASV in an exclusive methanotroph family (Methylococcaceae, Methylothermaceae, Methylacidiphilaceae, Methylomonadaceae)
+2. **Putative** — ASV in a mixed family (Beijerinckiaceae, Methylocystaceae, Crenotrichaceae) whose genus is *unresolved* (NA, empty, or "none"). A resolved genus not on the Known whitelist is classified as a non-methanotroph, not Putative.
+3. **Conditional** — anaerobic methanotrophs (Methylomirabilaceae, *Candidatus* Methylomirabilis); included as Putative only when explicitly requested via `include_conditional = TRUE`
+
+This replaces earlier hardcoded taxa lists that conflated methylotrophs (e.g., Methylophilaceae, Methylobacterium-Methylorubrum) with true methanotrophs.
+
 ## Dependencies
 
-Key R packages:
-- `goFlux` - Flux calculation from continuous gas analyzer data
-- `randomForest` - CH4 flux prediction models
-- `vegan` - Variance partitioning (varpart)
-- `tidyverse` - Data manipulation and visualization
-- `sf`, `terra`, `akima` - Spatial analysis and interpolation
-- `ape`, `phytools` - Phylogenetic analysis
-- `lme4`, `lmerTest` - Mixed-effects models
-- `pheatmap` - Heatmap visualization
-- `data.table` - Fast I/O for large PICRUSt2 contribution tables
-- `ggridges`, `patchwork`, `cowplot` - Figure layout
+Key R packages (75 packages total; highlights below):
+- `goFlux` — Flux calculation from continuous gas analyzer data
+- `randomForest`, `ranger` — CH₄ flux prediction models
+- `phyloseq` — 16S amplicon data handling (OTU tables, taxonomy, sample metadata)
+- `vegan` — Variance partitioning (varpart), diversity metrics
+- `tidyverse` — Data manipulation and visualization
+- `sf`, `terra`, `akima` — Spatial analysis and interpolation
+- `ape`, `phytools` — Phylogenetic analysis
+- `lme4`, `lmerTest` — Mixed-effects models
+- `lavaan` — Structural equation modeling
+- `car`, `mgcv` — ANOVA, generalized additive models
+- `pheatmap`, `viridis`, `RColorBrewer` — Heatmap visualization and color palettes
+- `data.table` — Fast I/O for large PICRUSt2 contribution tables
+- `patchwork`, `cowplot`, `gridExtra` — Figure layout and multi-panel composition
+- `ggridges`, `gghalves`, `ggbeeswarm` — Specialized geoms (ridgelines, half-violins, beeswarms)
+- `ggrepel`, `ggforce`, `ggnewscale`, `ggtext` — ggplot2 extensions
 
 ## Data Availability
 
@@ -193,6 +214,6 @@ To reproduce analyses, download the data archive and extract its contents into `
 
 - Scripts use relative paths from the project root (requires opening `tree-methanogens.Rproj` in RStudio)
 - All input data is stored within `data/` — no external path dependencies
-- Data file *contents* are excluded from git tracking (archived on Zenodo); only `.gitkeep` files are tracked to preserve directory structure
+- Data file *contents* are excluded from git tracking (archived on Zenodo); only `.gitkeep` files are tracked to preserve directory structure. **Exception:** `data/processed/molecular/methanotroph_definitions.csv` is tracked in git because it is a curated canonical input, not a generated output
 - The `deprecated/` folder contains superseded script versions and old data caches (not tracked)
 - Scripts prefixed `util_` are optional diagnostics/utilities, not part of the core pipeline
