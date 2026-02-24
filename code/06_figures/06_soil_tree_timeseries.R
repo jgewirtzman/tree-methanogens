@@ -182,24 +182,27 @@ soil_temp_moisture_data <- moisture_data %>%
 # ===== CREATE VWC DENSITY PLOT (TOP) =====
 vwc_plot <- ggplot(vwc_data, aes(x = Soil_Moisture, fill = Plot_Type)) +
   geom_density(alpha = 0.7) +
-  facet_wrap(~ Plot_Type, strip.position = "bottom") +
+  facet_wrap(~ Plot_Type, strip.position = "top") +
   scale_fill_brewer(type = "seq", palette = "Blues") +
-  scale_x_continuous(position = "top") +
+  scale_x_continuous(position = "bottom") +
   labs(
     x = "Volumetric Water Content (%)",
-    y = "Density"
+    y = NULL
   ) +
   theme_minimal() +
   theme(
     legend.position = "none",
     legend.title = element_blank(),
     strip.text = element_text(size = 12, face = "bold"),
-    panel.border = element_rect(color = "grey80", fill = NA, linewidth = 0.5),
+    panel.border = element_blank(),
+    axis.title.x = element_text(size = 8.8),
+    axis.line.x.bottom = element_line(color = "black", linewidth = 0.5),
+    axis.ticks.x.bottom = element_line(color = "black", linewidth = 0.3),
     panel.grid = element_blank(),
     panel.grid.minor = element_blank(),
-    axis.text.x.bottom = element_blank(),
-    axis.ticks.x.bottom = element_blank(),
-    plot.margin = margin(t = 5, r = 5, b = 0, l = 5, unit = "pt"),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    plot.margin = margin(t = 5, r = 5, b = 10, l = 5, unit = "pt"),
     strip.placement = "outside",
     panel.spacing = unit(0.1, "lines")
   ) +
@@ -274,7 +277,7 @@ temp_moisture_plot <- ggplot(soil_temp_moisture_data, aes(x = Date)) +
     axis.text.x = element_text(angle = 45, hjust = 1),
     panel.grid.minor = element_blank(),
     plot.margin = margin(t = 0, r = 5, b = 5, l = 5, unit = "pt"),
-    panel.spacing = unit(0.1, "lines"),
+    panel.spacing = unit(1, "lines"),
     legend.margin = margin(t = 2, r = 0, b = 0, l = 0, unit = "pt"),
     legend.box.margin = margin(t = 2, r = 0, b = 0, l = 0, unit = "pt")
   ) +
