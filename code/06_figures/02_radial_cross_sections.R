@@ -393,7 +393,7 @@ print(p_main)
 
 # Optional: If you want even more compression, save with adjusted dimensions
 # This creates a wider, shorter plot that emphasizes the grid layout
-ggsave("outputs/figures/supplementary/figS11_tree_radial_sections.pdf",
+ggsave("outputs/figures/supplementary/figS11_tree_radial_sections.png",
        p_main,
        width = 12,
        height = 5.1,
