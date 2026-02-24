@@ -216,6 +216,7 @@ create_species_plot_half <- function(species_name, species_data, breaks_data) {
     coord_flip() +
     scale_y_continuous(
       breaks = current_breaks,
+      expand = expansion(mult = c(0.05, 0.12)),
       labels = function(x) {
         ifelse(abs(x) < 0.001, "0",
                ifelse(abs(x) < 0.01, sprintf("%.3f", x),
@@ -227,7 +228,7 @@ create_species_plot_half <- function(species_name, species_data, breaks_data) {
     ggtitle(current_label) +
     theme_minimal(base_size = 9) +
     theme(
-      plot.title = element_text(size = 7.5, face = "italic", margin = margin(b = 1),
+      plot.title = element_text(size = 7, face = "italic", margin = margin(b = 1),
                                 hjust = 0.5),
       axis.text = element_text(size = 7),
       axis.text.x = element_text(margin = margin(t = 1)),
@@ -235,7 +236,7 @@ create_species_plot_half <- function(species_name, species_data, breaks_data) {
       panel.grid.major = element_line(linewidth = 0.2, color = "gray90"),
       panel.grid.minor = element_blank(),
       panel.border = element_rect(color = "gray40", fill = NA, linewidth = 0.4),
-      plot.margin = margin(t = 1, r = 2, b = 1, l = 2)
+      plot.margin = margin(t = 0, r = 1, b = 0, l = 1)
     )
 }
 
@@ -249,15 +250,22 @@ for(sp in species_list) {
 }
 
 # Arrange into grid with shared axis labels
+# Convert plots to grobs with clipping off so axis text isn't cut
+plot_grobs_half <- lapply(plot_list_half, function(p) {
+  g <- ggplotGrob(p)
+  g$layout$clip <- "off"
+  g
+})
+
 p_top_final <- arrangeGrob(
-  grobs = plot_list_half,
+  grobs = plot_grobs_half,
   ncol = 5,
   left = textGrob("Height (m)", rot = 90, vjust = 1, gp = gpar(fontsize = 10)),
   bottom = textGrob(
     expression("CH"[4]*" flux (nmol m"^-2*" s"^-1*")"),
     vjust = -0.3, gp = gpar(fontsize = 10)
   ),
-  padding = unit(1, "lines")
+  padding = unit(0.2, "lines")
 )
 
 p_top_gg <- wrap_elements(full = p_top_final)
@@ -309,8 +317,8 @@ p_middle <- ggplot(plot_data_middle,
     legend.key.size = unit(0.35, "cm"),
     legend.margin = margin(l = -5),
     panel.grid.minor = element_blank(),
-    panel.grid.major.x = element_blank(),
-    plot.margin = margin(t = 2, r = 5, b = 2, l = 2)
+    panel.grid.major.x = element_line(linewidth = 0.3, color = "gray85"),
+    plot.margin = margin(t = 2, r = 5, b = 0, l = 2)
   )
 
 # ==============================================================================
@@ -413,13 +421,13 @@ heatmap_data <- soil_mcra_data %>%
   mutate(
     variable = case_when(
       variable == "mean_VWC" ~ "VWC",
-      variable == "log_mcra_organic" ~ "log mcrA\n(Organic)",
-      variable == "log_mcra_mineral" ~ "log mcrA\n(Mineral)",
-      variable == "log_mcra_weighted" ~ "log mcrA\n(Weighted)",
+      variable == "log_mcra_organic" ~ "log mcrA (Organic)",
+      variable == "log_mcra_mineral" ~ "log mcrA (Mineral)",
+      variable == "log_mcra_weighted" ~ "log mcrA (Weighted)",
       TRUE ~ variable
     ),
-    variable = factor(variable, levels = c("VWC", "log mcrA\n(Organic)",
-                                           "log mcrA\n(Mineral)", "log mcrA\n(Weighted)"))
+    variable = factor(variable, levels = c("VWC", "log mcrA (Organic)",
+                                           "log mcrA (Mineral)", "log mcrA (Weighted)"))
   ) %>%
   filter(species_label_no_n %in% species_order_no_n) %>%
   mutate(
@@ -448,7 +456,7 @@ p_bottom <- ggplot(heatmap_data, aes(x = species_label_no_n, y = variable, fill 
     legend.key.size = unit(0.35, "cm"),
     legend.margin = margin(l = -5),
     panel.grid = element_blank(),
-    plot.margin = margin(t = 2, r = 5, b = 5, l = 5)
+    plot.margin = margin(t = 0, r = 5, b = 3, l = 5)
   )
 
 # ==============================================================================
