@@ -23,7 +23,8 @@ library(scales)
 # Read the datasets
 soil_dataset <- read.csv('data/processed/flux/semirigid_tree_final_complete_dataset_soil.csv')
 tree_dataset <- read.csv('data/processed/flux/semirigid_tree_final_complete_dataset.csv')
-moisture_data <- read.csv('data/raw/field_data/ipad_data/Cleaned data/soilmoisture_total.csv', fileEncoding = "UTF-8-BOM")
+moisture_data <- read.csv('data/raw/field_data/ipad_data/Cleaned data/soilmoisture_total.csv')
+names(moisture_data)[grep("Date", names(moisture_data))[1]] <- "Date"  # fix BOM-mangled column name
 
 # Convert Date columns to proper date format
 soil_dataset$Date <- as.Date(soil_dataset$Date)
@@ -180,7 +181,7 @@ soil_temp_moisture_data <- moisture_data %>%
 
 # ===== CREATE VWC DENSITY PLOT (TOP) =====
 vwc_plot <- ggplot(vwc_data, aes(x = Soil_Moisture, fill = Plot_Type)) +
-  geom_density(alpha = 0.2) +
+  geom_density(alpha = 0.7) +
   facet_wrap(~ Plot_Type, strip.position = "bottom") +
   scale_fill_brewer(type = "seq", palette = "Blues") +
   scale_x_continuous(position = "top") +
@@ -192,7 +193,7 @@ vwc_plot <- ggplot(vwc_data, aes(x = Soil_Moisture, fill = Plot_Type)) +
   theme(
     legend.position = "none",
     legend.title = element_blank(),
-    strip.text = element_text(size = 10, face = "bold"),
+    strip.text = element_text(size = 12, face = "bold"),
     panel.border = element_rect(color = "grey80", fill = NA, linewidth = 0.5),
     panel.grid = element_blank(),
     panel.grid.minor = element_blank(),
@@ -245,12 +246,15 @@ ch4_flux_plot <- ggplot() +
   geom_hline(yintercept = 0, linetype = "dashed", color = "grey20", alpha = 0.9)
 
 # ===== CREATE SOIL TEMP/MOISTURE PLOT (BOTTOM) =====
-# Original style: loess smooths with no SE bands, colored legend
+# Uses geom_smooth(se = TRUE) for identical curves to original + SE bands
+
 temp_moisture_plot <- ggplot(soil_temp_moisture_data, aes(x = Date)) +
-  geom_smooth(aes(y = Soil_Temperature, color = "Temperature"),
-              method = "loess", se = FALSE, alpha = 0.7, linewidth = 0.75) +
-  geom_smooth(aes(y = Soil_Moisture / 2.5, color = "Moisture"),
-              method = "loess", se = FALSE, alpha = 0.7, linewidth = 0.75) +
+  # Temperature with SE band
+  geom_smooth(aes(y = Soil_Temperature, fill = "Temperature", color = "Temperature"),
+              method = "loess", se = TRUE, alpha = 0.2, linewidth = 0.75) +
+  # Moisture with SE band (scaled to temperature axis)
+  geom_smooth(aes(y = Soil_Moisture / 2.5, fill = "Moisture", color = "Moisture"),
+              method = "loess", se = TRUE, alpha = 0.2, linewidth = 0.75) +
   facet_wrap(~ Plot_Type) +
   scale_y_continuous(
     name = expression("Soil T (" * degree * "C)"),
@@ -258,6 +262,7 @@ temp_moisture_plot <- ggplot(soil_temp_moisture_data, aes(x = Date)) +
   ) +
   scale_color_manual(values = c("Temperature" = alpha("#D73027", 0.5),
                                 "Moisture" = alpha("#4575B4", 0.5))) +
+  scale_fill_manual(values = c("Temperature" = "#D73027", "Moisture" = "#4575B4")) +
   labs(x = "Date") +
   theme_minimal() +
   theme(
@@ -274,7 +279,7 @@ temp_moisture_plot <- ggplot(soil_temp_moisture_data, aes(x = Date)) +
     legend.box.margin = margin(t = 2, r = 0, b = 0, l = 0, unit = "pt")
   ) +
   xlab(NULL) +
-  guides(color = guide_legend(title = NULL)) +
+  guides(color = guide_legend(title = NULL), fill = "none") +
   scale_x_date(date_labels = "%b %Y", date_breaks = "3 months")
 
 # ===== COMBINE ALL PLOTS =====
