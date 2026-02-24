@@ -114,6 +114,12 @@ Run **after** all Stage 1 tracks complete.
 #### Gene-flux analysis (`code/05_gene_flux_analysis/`)
 These scripts can be run in any order after Stage 2. Cross-group scripts analyzing all three genes (mcrA, pmoA, mmoX) live in the parent directory: `01_gene_flux_linear_models.R` (main gene-flux models), `02_scale_dependent_gene_patterns.R` (individual vs. species-level patterns), `03_radial_gene_plots.R` (radial cross-sections), `04_species_gene_flux.R` (species comparison figure), and `07_picrust_pathway_associations.R` (PICRUSt2 pathway–gene associations). The `methanotrophs/` and `methanogens/` subfolders contain organism-specific analyses.
 
+### Manuscript Verification
+
+| Script | Purpose |
+|--------|---------|
+| `code/manuscript_statistics.R` | Recomputes **all** quantitative results from the manuscript (means, ranges, p-values, R², detection rates, correlations, model metrics) from underlying data. Organized by manuscript section for cross-referencing. Also verifies taxa and pathway names from 16S/FAPROTAX/PICRUSt analyses. Run after all pipeline stages. |
+
 ### Stage 4: Figures & Maps
 
 These scripts generate publication figures. Run after Stages 2-3.
