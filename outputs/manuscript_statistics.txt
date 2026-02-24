@@ -1,0 +1,590 @@
+
+************************************************************************ 
+  MANUSCRIPT STATISTICS — Tree Microbiomes & Methane
+  Generated: 2026-02-23 21:51:00 
+************************************************************************ 
+
+Loading data...
+  All data loaded.
+
+ ======================================================================== 
+  SECTION 1: TEMPORAL FLUX PATTERNS (Figure 1) 
+======================================================================== 
+
+  Total tree flux measurements                            342.0000 
+  Unique trees in temporal survey                         41.0000 
+  Total soil measurements                                 276.0000 
+  Unique soil plots                                       12.0000 
+--- Tree fluxes (nmol m-2 s-1) ---
+
+  Upland (n=175):
+      Mean                                                0.0574 nmol m-2 s-1
+      Mean (ug CH4 m-2 hr-1)                              3.3142 
+      Range                                               -10.1 to 267 ug CH4 m-2 hr-1
+      % positive                                          68.6000 %
+
+  Intermediate (n=78):
+      Mean                                                0.0107 nmol m-2 s-1
+      Mean (ug CH4 m-2 hr-1)                              0.6161 
+      Range                                               -1.2 to 14.7 ug CH4 m-2 hr-1
+      % positive                                          61.5000 %
+
+  Transitional wetland (n=89):
+      Mean                                                0.1294 nmol m-2 s-1
+      Mean (ug CH4 m-2 hr-1)                              7.4727 
+      Range                                               -0.8 to 183.8 ug CH4 m-2 hr-1
+      % positive                                          77.5000 %
+--- Soil fluxes (nmol m-2 s-1) ---
+
+  Upland (n=116):
+      Mean                                                -1.5737 nmol m-2 s-1
+      Mean (ug CH4 m-2 hr-1)                              -90.8723 
+      Range                                               -247.8 to -25.4 ug CH4 m-2 hr-1
+
+  Intermediate (n=54):
+      Mean                                                -1.3451 nmol m-2 s-1
+      Mean (ug CH4 m-2 hr-1)                              -77.6688 
+      Range                                               -263.4 to -13.4 ug CH4 m-2 hr-1
+
+  Transitional wetland (n=106):
+      Mean                                                1.8338 nmol m-2 s-1
+      Mean (ug CH4 m-2 hr-1)                              105.8889 
+      Range                                               -127.2 to 3642.6 ug CH4 m-2 hr-1
+      Median                                              -0.1035 nmol m-2 s-1
+      Median (ug CH4 m-2 hr-1)                            -5.9786 
+      % negative                                          60.4000 %
+--- One-sample t-test: Upland tree flux > 0 ---
+  t-statistic                                             2.1410 
+  p-value                                                 0.0168 
+--- Volumetric Water Content by position ---
+  Upland: 17.6 +/- 8.9% (n=42)
+  Intermediate: 23.1 +/- 8.0% (n=24)
+  Transitional wetland: 44.7 +/- 18.2% (n=36)
+
+ ======================================================================== 
+  SECTION 2: HEIGHT EFFECTS (Figure 2) 
+======================================================================== 
+
+  Total measurements in height analysis                   434.0000 
+  Total individual trees                                  146.0000 
+  Total species analyzed                                  15.0000 
+  Species with significant height effects                 3 of 11 
+--- Significant species (nmol m-2 s-1 per METER) ---
+  Acer saccharum: coef = 0.200, p = 0.0495
+  Betula alleghaniensis: coef = -0.824, p = 0.0021
+  Tsuga canadensis: coef = -0.019, p = 0.0252
+--- Jackknife robustness (leave-one-tree-out) ---
+  Betula alleghaniensis: 100% iterations significant
+  Betula alleghaniensis: 11/14 trees with negative slopes (79%)
+  Tsuga canadensis: 82% iterations significant
+  Tsuga canadensis: 12/17 trees with negative slopes (71%)
+  Acer saccharum: 44% iterations significant
+  Acer saccharum: 2/8 trees with negative slopes (25%)
+  BEAL flux at 50 cm: 1.52 +/- 0.52 nmol m-2 s-1 (n=14)
+  BEAL flux at 200 cm: 0.29 +/- 0.08 nmol m-2 s-1 (n=14)
+  ACSA outlier flux at 2m                                 1.9355 nmol m-2 s-1
+  ACSA after outlier removal: coef = 0.056 per m, p = 0.022
+--- Soil condition correlations ---
+  Height coef vs VWC: r = -0.41, p = 0.2099
+  Height coef vs log(mcrA+1): r = -0.76, p = 0.0068
+  VWC vs log(mcrA+1) across trees: r = 0.50, p = 0.0000 (n=123)
+  BEAL soil VWC                                           35.8563 %
+  BEAL soil mcrA (log10)                                  4.7721 
+
+ ======================================================================== 
+  SECTION 3: VARIANCE PARTITIONING (Figure 3) 
+======================================================================== 
+
+  Total observations                                      476.0000 
+  2021 observations                                       141.0000 
+  2023 observations                                       335.0000 
+  Number of species                                       13.0000 
+--- Variance partitioning (Method 2) ---
+  Environment unique                                      8e-04 %
+  Species unique                                          5.2663 %
+  Env x Species interaction                               8.6754 %
+  Unexplained                                             82.8645 %
+--- Species mean fluxes (nmol m-2 s-1) ---
+  Betula alleghaniensis: 0.279 +/- 0.091 (n=29)
+  Acer saccharum: 0.188 +/- 0.061 (n=13)
+  Acer rubrum: 0.170 +/- 0.060 (n=71)
+  Fraxinus americana: 0.161 +/- 0.074 (n=31)
+  Fagus grandifolia: 0.084 +/- 0.016 (n=14)
+
+ ======================================================================== 
+  SECTION 4: GENE ABUNDANCE ACROSS COMPARTMENTS (Figure 4) 
+======================================================================== 
+
+--- mcrA (probe, loose) by compartment ---
+
+  Heartwood (n=147):
+      Detection rate                                      97.3000 %
+      Mean (log10, among positive)                        3.2000 
+      Median (log10, among positive)                      2.7300 
+      Max (log10)                                         6.8500 
+      % exceeding 500 copies/g                            53.7000 %
+
+  Sapwood (n=154):
+      Detection rate                                      68.8000 %
+      Mean (log10, among positive)                        2.2700 
+      Median (log10, among positive)                      2.1300 
+      Max (log10)                                         4.2100 
+      % exceeding 500 copies/g                            15.6000 %
+
+  Mineral soil (n=128):
+      Detection rate                                      58.6000 %
+      Mean (log10, among positive)                        1.9100 
+      Median (log10, among positive)                      1.5800 
+      Max (log10)                                         5.5300 
+      % exceeding 500 copies/g                            6.2000 %
+
+  Organic soil (n=135):
+      Detection rate                                      52.6000 %
+      Mean (log10, among positive)                        1.9700 
+      Median (log10, among positive)                      1.5600 
+      Max (log10)                                         5.6300 
+      % exceeding 500 copies/g                            8.1000 %
+--- Wilcoxon: heartwood vs sapwood mcrA ---
+  W statistic                                             17991.0000 
+  p-value                                                 0.0000 
+--- Sample sizes per compartment ---
+  Heartwood (Inner)                                       147.0000 
+  Sapwood (Outer)                                         154.0000 
+  Mineral soil                                            128.0000 
+  Organic soil                                            135.0000 
+--- Methanotroph abundance (pmoA + mmoX) by compartment ---
+  Heartwood: mean log10 = 3.33 (n=146 positive of 147 total)
+  Sapwood: mean log10 = 3.51 (n=154 positive of 154 total)
+  Mineral soil: mean log10 = 4.88 (n=129 positive of 129 total)
+  Organic soil: mean log10 = 4.93 (n=136 positive of 136 total)
+--- pmoA and mmoX detection rates (separately) ---
+  PMOA HW: 95.2% detected (n=147)
+  PMOA SW: 99.4% detected (n=154)
+  PMOA Min: 100.0% detected (n=129)
+  PMOA Org: 100.0% detected (n=136)
+  MMOX HW: 93.2% detected (n=146)
+  MMOX SW: 97.4% detected (n=154)
+  MMOX Min: 100.0% detected (n=129)
+  MMOX Org: 100.0% detected (n=135)
+
+ ======================================================================== 
+  SECTION 5: 16S COMMUNITY COMPOSITION (Figure 5) 
+======================================================================== 
+
+Building phyloseq object...
+  Found 259 methanogen ASVs in rarefied OTU table
+--- Methanogen relative abundance (% of community) ---
+  Heartwood: 3.21 +/- 9.25% (range: 0.00 to 56.40%, n=131)
+  Sapwood: 0.10 +/- 0.61% (range: 0.00 to 6.37%, n=117)
+  Mineral Soil: 0.11 +/- 0.57% (range: 0.00 to 4.03%, n=126)
+  Organic Soil: 0.07 +/- 0.40% (range: 0.00 to 2.97%, n=130)
+--- ANOVA for species effect on methanogen abundance ---
+  16S ANOVA p-value: 0.0022
+  A. saccharum heartwood methanogen: 15.7 +/- 13.0% (n=11)
+--- Top methanogen families by mean relative abundance (heartwood) ---
+  Methanobacteriaceae: 2.55 +/- 8.07% (max 56.37%)
+  Methanomassiliicoccaceae: 0.64 +/- 2.44% (max 17.09%)
+  Methanosarcinaceae: 0.01 +/- 0.11% (max 1.29%)
+  Methanocellaceae: 0.00 +/- 0.03% (max 0.34%)
+  Methanomicrobiaceae: 0.00 +/- 0.00% (max 0.00%)
+  Methanosaetaceae: 0.00 +/- 0.00% (max 0.00%)
+--- Key methanogen families in sapwood ---
+  Methanobacteriaceae: range 0.00 to 6.37%
+  Methanomassiliicoccaceae: range 0.00 to 0.63%
+--- Top soil archaeal taxa (Mineral + Organic) ---
+  Nitrososphaeria: 1.68%
+  Thermoplasmata: 0.40%
+  Bathyarchaeia: 0.24%
+  Methanomicrobia: 0.05%
+  Methanocellia: 0.03%
+--- Top families correlated with mcrA (heartwood) ---
+  Top 10 positively correlated families:
+    Dysgonomonadaceae: r = 0.583, p = 0.0000
+    Christensenellaceae: r = 0.553, p = 0.0000
+    Methanobacteriaceae: r = 0.440, p = 0.0000
+    Eggerthellaceae: r = 0.414, p = 0.0000
+    Syntrophobotulaceae: r = 0.395, p = 0.0000
+    Cellulomonadaceae: r = 0.393, p = 0.0000
+    Methanomassiliicoccaceae: r = 0.356, p = 0.0000
+    Coriobacteriales Incertae Sedis: r = 0.356, p = 0.0000
+    Actinomycetaceae: r = 0.348, p = 0.0000
+    Alkalibacteraceae: r = 0.318, p = 0.0002
+--- Methanotroph families detected (known/putative) ---
+  Known methanotroph ASVs: 434
+  Putative methanotroph ASVs: 627
+  Detected methanotroph families:
+    Beijerinckiaceae: mean 0.410% in heartwood (n_ASVs=316)
+    Methylacidiphilaceae: mean 0.094% in heartwood (n_ASVs=360)
+    Methylococcaceae: mean 0.000% in heartwood (n_ASVs=1)
+    Methylomonadaceae: mean 0.000% in heartwood (n_ASVs=15)
+
+ ======================================================================== 
+  SECTION 6: FAPROTAX / PICRUSt (Figures S2-S5) 
+======================================================================== 
+
+--- FAPROTAX functional predictions ---
+  [SKIPPED] FAPROTAX output file not found.
+--- PICRUSt pathway associations (VERIFY pathway names) ---
+  Significant mcrA-associated pathways (FDR < 0.01): 132
+  Top 15 pathways:
+    + PWY-7286 (FDR=0.0000, t=23.61)
+    + PWY-6350 (FDR=0.0000, t=23.50)
+    + PWY-6349 (FDR=0.0000, t=23.48)
+    + PWY-6174 (FDR=0.0000, t=23.31)
+    + PWY-6141 (FDR=0.0000, t=22.13)
+    + PWY-6654 (FDR=0.0000, t=20.45)
+    + PWY-6167 (FDR=0.0000, t=20.09)
+    + PWY-6148 (FDR=0.0000, t=18.34)
+    + P241-PWY (FDR=0.0000, t=18.24)
+    + METHANOGENESIS-PWY (FDR=0.0000, t=17.80)
+    + P261-PWY (FDR=0.0000, t=17.40)
+    + METH-ACETATE-PWY (FDR=0.0000, t=15.27)
+    + PWY-1861 (FDR=0.0000, t=11.22)
+    + NAD-BIOSYNTHESIS-II (FDR=0.0000, t=10.96)
+    + PWY-5198 (FDR=0.0000, t=8.93)
+
+  Significant pmoA-associated pathways (FDR < 0.01): 13
+  Top 10 pathways:
+    + PWY-3941 (FDR=0.0000, t=6.67)
+    + PWY-7374 (FDR=0.0000, t=6.24)
+    + PWY-7371 (FDR=0.0001, t=5.19)
+    - 1CMET2-PWY (FDR=0.0002, t=-4.88)
+    - DAPLYSINESYN-PWY (FDR=0.0002, t=-4.81)
+    + GLUCOSE1PMETAB-PWY (FDR=0.0005, t=4.56)
+    + PWY-7663 (FDR=0.0008, t=4.42)
+    + FASYN-ELONG-PWY (FDR=0.0008, t=4.40)
+    + PWY-5973 (FDR=0.0014, t=4.22)
+    + PWY-6700 (FDR=0.0025, t=4.06)
+
+ ======================================================================== 
+  SECTION 6b: PICRUSt PATHWAY-GENE HEATMAP (Figure 6) 
+======================================================================== 
+
+  Total pathways tested (no-mcrA-OTU pipeline)            407.0000 
+  Significant at FDR < 1e-4                               40.0000 
+  Significant at FDR < 0.01                               109.0000 
+  After mcrA-OTU contribution < 50% filter                35.0000 
+--- Top positively associated pathways (Fig 6) ---
+    7-(3-amino-3-carboxypropyl)-wyosine biosynthesis (FDR=2.50e-48, t=20.57)
+    phosphopantothenate biosynthesis III (FDR=2.49e-40, t=17.68)
+    tetrahydromethanopterin biosynthesis (FDR=5.34e-40, t=17.51)
+    mevalonate pathway II (archaea) (FDR=7.21e-36, t=16.08)
+    flavin biosynthesis II (archaea) (FDR=1.17e-34, t=15.64)
+    methanogenesis from acetate (FDR=2.27e-30, t=14.19)
+    formaldehyde assimilation II (RuMP Cycle) (FDR=2.40e-22, t=11.53)
+    reductive acetyl coenzyme A pathway (FDR=2.56e-11, t=7.60)
+    NAD salvage pathway II (FDR=8.55e-10, t=6.99)
+    pyrimidine deoxyribonucleotides biosynthesis from CTP (FDR=1.89e-09, t=6.85)
+--- Top negatively associated pathways (Fig 6) ---
+    TCA cycle IV (2-oxoglutarate decarboxylase) (FDR=3.69e-08, t=-6.29)
+    superpathay of heme biosynthesis from glutamate (FDR=4.26e-06, t=-5.31)
+    superpathway of L-methionine biosynthesis (by sulfhydrylation) (FDR=1.89e-05, t=-4.95)
+    adenosine nucleotides degradation II (FDR=2.56e-05, t=-4.87)
+    tRNA processing (FDR=3.70e-05, t=-4.78)
+    heme biosynthesis I (aerobic) (FDR=6.64e-05, t=-4.62)
+--- VERIFY: Manuscript-cited pathway names in Fig 6 data ---
+  NOT FOUND: 'reductive acetyl-CoA'
+  FOUND: 'methanogenesis' -> METH-ACETATE-PWY (FDR=0.0000, t=14.19)
+  FOUND: 'homolactic fermentation' -> ANAEROFRUCAT-PWY (FDR=0.0002, t=4.31)
+  FOUND: 'mannan degradation' -> PWY-7456 (FDR=0.0001, t=4.40)
+  FOUND: 'L-arginine biosynthesis' -> ARGSYNBSUB-PWY (FDR=0.0008, t=3.89)
+  NOT FOUND: 'purine nucleotide degradation'
+  FOUND: 'heme biosynthesis' -> PWY-5918 (FDR=0.0000, t=-5.31)
+  FOUND: 'peptidoglycan' -> PWY0-1586 (FDR=0.0001, t=4.66)
+  FOUND: 'teichoic acid' -> TEICHOICACID-PWY (FDR=0.0001, t=4.44)
+
+ ======================================================================== 
+  SECTION 7: FELLED BLACK OAK PROFILES (Figure 7) 
+======================================================================== 
+
+--- Internal CH4 concentrations ---
+  Number of internal gas measurements                     7.0000 
+  Height range                                            0.5 to 10 m
+  Max internal CH4                                        1745.0000 ppm
+  Mean internal CH4                                       634.0000 ppm
+  Median internal CH4                                     356.0000 ppm
+  CH4 at 4-6 m (mean)                                     998.0000 ppm
+  CH4 at 4-6 m (max)                                      1217.0000 ppm
+  O2 range                                                17 to 19.1 %
+  O2 mean                                                 18.3000 %
+--- Black oak mcrA abundance ---
+  Total mcrA measurements (wood)                          21.0000 
+  Heartwood samples                                       14.0000 
+  Sapwood samples                                         7.0000 
+  Heartwood: detection = 36%, among positive: mean = 0.2, max = 0.4 copies/uL
+    Range (log10): -1.2 to -0.4 (1 orders of magnitude)
+  Sapwood: detection = 43%, among positive: mean = 0.1, max = 0.2 copies/uL
+    Range (log10): -1.2 to -0.7 (0 orders of magnitude)
+  mcrA range across all wood (orders of magnitude)        0.9000 
+  mcrA detection at 4-6 m height                          67.0000 %
+--- Black oak CH4 flux ---
+  Total flux measurements                                 7.0000 
+  Mean flux                                               0.0822 nmol m-2 s-1
+  Flux range                                              -0.0048 to 0.3537 nmol m-2 s-1
+  Flux at 4-6 m (mean)                                    0.1937 nmol m-2 s-1
+  Flux at 4-6 m (max)                                     0.3537 nmol m-2 s-1
+  Flux at 0-2 m (mean)                                    0.0206 nmol m-2 s-1
+  Flux at >6 m (mean)                                     0.0540 nmol m-2 s-1
+--- Flux vs internal CH4 correlation (black oak) ---
+  Pearson r                                               0.3940 
+  p-value                                                 0.3820 
+  n measurements                                          7.0000 
+
+ ======================================================================== 
+  SECTION 8: INDIVIDUAL GENE-FLUX RELATIONSHIPS (Figs S7, S10) 
+======================================================================== 
+
+  Trees with complete genes AND flux                      121.0000 
+--- Individual tree-level R2 (species-controlled lm) ---
+  mcrA: R2 = 0.3088, p(gene) = 0.6924
+  pmoA: R2 = 0.3086, p(gene) = 0.7242
+  mmoX: R2 = 0.3559, p(gene) = 0.0061
+  methanotroph: R2 = 0.3119, p(gene) = 0.4258
+  ratio: R2 = 0.3078, p(gene) = 0.9383
+--- Concentration-based LMs (tissue-specific, Figure S7) ---
+  Trees with complete concentration data                  125.0000 
+  Full concentration model R2                             0.3580 
+  Full concentration model adj-R2                         0.2350 
+  Full concentration model AIC                            15.4000 
+  Sapwood mmoX: beta = -0.293, SE = 0.102, p = 0.0051
+  Type II ANOVA p-values:
+    species: F = 3.830, p = 0.0000
+    log_hw_mcra: F = 1.048, p = 0.3083
+    log_sw_mcra: F = 1.225, p = 0.2710
+    log_hw_pmoa: F = 0.409, p = 0.5239
+    log_sw_pmoa: F = 1.848, p = 0.1770
+    log_hw_mmox: F = 1.792, p = 0.1836
+    log_sw_mmox: F = 8.189, p = 0.0051
+--- Best area-weighted model: species + mmoX ---
+  R2                                                      0.3560 
+  Adj R2                                                  0.2640 
+  AIC                                                     10.3000 
+  mmoX: beta = -0.356, SE = 0.127, p = 0.0061
+--- Concentration-based species-level models (Figure S8) ---
+  Heartwood mcrA: R2 = 0.430, r = 0.656, p = 0.0394 (n=10 species)
+
+ ======================================================================== 
+  SECTION 9: SPECIES-LEVEL GENE-FLUX (Fig 8, S8, S9, S10, S13) 
+======================================================================== 
+
+--- Individual-level mcrA vs flux (no species control) ---
+  R2                                                      9e-04 
+  n trees                                                 121.0000 
+--- Species-level correlations (Pearson) ---
+  mcrA: R2 = 0.394, r = 0.628, p = 0.0521 (n=10 species)
+  methanotroph: R2 = 0.230, r = -0.480, p = 0.1607 (n=10 species)
+  ratio: R2 = 0.513, r = 0.717, p = 0.0197 (n=10 species)
+--- AIC comparison ---
+  mcrA model AIC                                          -42.1109 
+  Ratio model AIC                                         -44.3091 
+--- mcrA vs methanotroph (Figure S13) ---
+  Tree-level: r = 0.095, p = 0.2988 (n=121)
+  Species-level: r = -0.166, p = 0.6072 (n=12)
+
+ ======================================================================== 
+  SECTION 10: RANDOM FOREST & UPSCALING (Fig 9, S9) 
+======================================================================== 
+
+--- Random Forest OOB performance ---
+  Tree stem RF OOB R2                                     0.1511 
+  Soil RF OOB R2                                          0.2771 
+--- Monthly predicted fluxes ---
+  Tree stem annual mean                                   0.0025 nmol m-2 s-1
+  Tree stem monthly range                                 0.0014 to 0.0041 nmol m-2 s-1
+  Soil annual mean                                        -1.7932 nmol m-2 s-1
+  Soil monthly range                                      -2.0592 to -1.6301 nmol m-2 s-1
+  Per-unit-area offset                                    0.1% 
+--- Annual totals ---
+  Tree emissions                                          1.2526 mg CH4 m-2 yr-1
+  Soil uptake                                             -904.3031 mg CH4 m-2 yr-1
+--- Stem surface area and offset ---
+  Plot-level offset                                       0.1400 %
+  WAI extrapolation (annual)                              3.9000 mg CH4 m-2 yr-1
+  WAI offset of soil uptake                               0.4000 %
+
+ ======================================================================== 
+  SECTION 11: ADDITIONAL METHANOTROPH RESULTS (S10, S12) 
+======================================================================== 
+
+  (Statistics from existing analyses not yet in manuscript)
+
+--- pmoA vs mmoX correlation (wood samples) ---
+  Pearson r = 0.064, R2 = 0.004, p = 0.4853 (n=121 trees)
+  Slope = 0.026
+--- pmoA:mmoX ratio by compartment ---
+  Heartwood: mean log10(pmoA/mmoX) = 0.12, median = -0.04, SD = 0.72 (n=130)
+  Sapwood: mean log10(pmoA/mmoX) = 0.48, median = 0.46, SD = 0.71 (n=149)
+--- Model comparison: which gene best predicts flux? ---
+  Species + log_mcra: delta-R2 = 0.0010, p = 0.6924 
+  Species + log_pmoa: delta-R2 = 0.0008, p = 0.7242 
+  Species + log_mmox: delta-R2 = 0.0481, p = 0.0061 *
+  Species + log_methanotroph: delta-R2 = 0.0042, p = 0.4258 
+  Species + log_ratio: delta-R2 = 0.0000, p = 0.9383 
+--- Soil genes beyond tree mmoX ---
+  + soil mcra_probe: delta-R2 = 0.0029, p = 0.4946
+  + soil pmoa: delta-R2 = 0.0026, p = 0.5179
+  + soil mmox: delta-R2 = 0.0067, p = 0.2992
+
+ ======================================================================== 
+  SECTION 12: SUPPLEMENTARY FIGURE STATISTICS 
+======================================================================== 
+
+--- Figure S1: Methanotroph relative abundances by compartment ---
+  Heartwood: methanotroph mean = 0.504%, range = 0.000-5.314% (n=131)
+  Sapwood: methanotroph mean = 1.095%, range = 0.000-6.971% (n=117)
+  Mineral Soil: methanotroph mean = 1.350%, range = 0.000-3.743% (n=126)
+  Organic Soil: methanotroph mean = 1.202%, range = 0.000-4.686% (n=130)
+---   Per-species methanotroph abundance (heartwood) ---
+    Fraxinus americana: 1.169% (n=10)
+    Betula lenta: 1.167% (n=18)
+    Pinus strobus: 0.794% (n=15)
+    Kalmia latifolia: 0.671% (n=2)
+    Prunus serotina: 0.600% (n=2)
+--- Figure S2: FAPROTAX (see Section 6 above) ---
+--- Figure S3a: PICRUSt inner vs outer core pathways ---
+  Total pathways tested (all OTUs)                        407.0000 
+  Significant at FDR < 0.01 (all OTUs)                    132.0000 
+  Positively associated: 77, Negatively associated: 55
+--- Figure S3b: pmoA pathway associations ---
+  Significant pmoA pathways (no-pmoA OTUs, FDR < 0.01)    13.0000 
+  Positive: 9, Negative: 4
+--- Figure S4: PICRUSt mcrA (all OTUs) heatmap ---
+  See S3a counts above. Full FDR<0.01 set: 132 pathways
+--- Figure S5: PICRUSt pmoA heatmap ---
+  See S3b counts above.
+--- Figure S6: Internal gas concentrations by species ---
+  Total trees with internal gas                           157.0000 
+  Number of species                                       16.0000 
+  Overall CH4 mean                                        2494.0000 ppm
+  Overall CH4 median                                      0.0000 ppm
+  Overall CH4 range                                       0 to 73844 ppm
+  Top 3 species by mean CH4:
+    Carya ovata: 36122 ppm (n=1)
+    Quercus velutina: 11525 ppm (n=1)
+    Quercus rubra: 8658 ppm (n=15)
+  O2 range                                                1 to 21.6 %
+--- Figure S7: Internal gas correlation panels ---
+  (a) CH4 vs CO2: R2 = 0.184, p = < 0.001 (n=157)
+  (b) CH4 vs O2: R2 = 0.074, p = < 0.001 (n=157)
+  (c) CH4 conc vs mcrA: R2 = 0.038, p = 0.019 (n=146)
+---   Panel D: Flux vs internal CH4 by height ---
+    50 cm: R2 = 0.014, p = 0.163 (n=138)
+    125 cm: R2 = 0.040, p = 0.020 (n=135)
+    200 cm: R2 = 0.071, p = 0.002 (n=137)
+--- Figure S8: d13CH4 isotope analysis ---
+  Total isotope samples                                   126.0000 
+  Internal tree samples                                   125.0000 
+  Atmosphere samples                                      1.0000 
+  Number of species                                       14.0000 
+  Internal d13CH4 mean                                    -58.3000 permil VPDB
+  Internal d13CH4 range                                   -248.8 to 220.8 permil VPDB
+  Internal d13CH4 SD                                      57.1000 permil
+  Atmosphere d13CH4 mean                                  -44.0000 permil VPDB
+  In hydrogenotrophic range (-110 to -60): 62 (50%)
+  In acetoclastic range (-65 to -50): 28 (22%)
+  Keeling intercept                                       -77.8000 permil
+  Keeling R2                                              0.0020 
+--- Figure S9: RF model diagnostics (expanded) ---
+  Tree: CCC = 0.327, R2 = 0.161, RMSE = 0.1 nmol m-2 s-1, n = 353
+  Soil: CCC = 0.500, R2 = 0.292, RMSE = 1.0 nmol m-2 s-1, n = 282
+---   Tree RF top features ---
+    1. dbh_within_z (8.08e-07)
+    2. soil_moisture_at_tree (7.00e-07)
+    3. species_factorBetula.alleghaniensis.soil_moisture_at_tree (6.43e-07)
+    4. species_factorFraxinus.americana.soil_moisture_at_tree (5.06e-07)
+    5. taxon_prior_asinh (3.38e-07)
+    6. species_factorBetula.alleghaniensis (3.22e-07)
+    7. species_factorFraxinus.americana (2.33e-07)
+    8. species_factorAcer.saccharum.soil_moisture_at_tree (1.39e-07)
+---   Soil RF top features ---
+    1. moisture_x_soilT (3.15e-04)
+    2. soil_moisture_at_site (9.41e-05)
+    3. soil_temp_C_mean (7.49e-05)
+    4. moisture_x_airT (5.79e-05)
+    5. month_sin (1.07e-05)
+    6. air_temp_C_mean (1.00e-05)
+    7. SI (6.68e-06)
+    8. month_cos (6.15e-06)
+--- Figure S10: Scale-dependent genes (see Sections 8-9) ---
+  Individual gene-flux R2: see Section 8
+  Species-level correlations: see Section 9
+--- Figure S11: Tree radial mcrA cross-sections ---
+  Species with >= 3 trees                                 12.0000 
+  Species with highest inner/outer mcrA ratio:
+    Fagus grandifolia: inner=406310, outer=69, ratio=5875.7
+    Acer saccharum: inner=1199143, outer=325, ratio=3689.3
+    Prunus serotina: inner=106455, outer=74, ratio=1434.3
+    Betula alleghaniensis: inner=703942, outer=519, ratio=1357.4
+    Betula papyrifera: inner=131418, outer=133, ratio=990.0
+--- Figure S12: pmoA/mmoX patterns (see Section 11) ---
+  pmoA detected in wood samples                           293.0000 
+  mmoX detected in wood samples                           286.0000 
+  Heartwood co-occurrence: 130/145 (90%) of samples with either gene
+    pmoA:mmoX median ratio = 0.9-fold (log10 = -0.04 +/- 0.72)
+  Sapwood co-occurrence: 149/154 (97%) of samples with either gene
+    pmoA:mmoX median ratio = 2.9-fold (log10 = 0.46 +/- 0.71)
+  HW vs SW ratio test: p = 0.000
+  Ratio vs mcrA: r = 0.18, p = 0.043
+--- Figure S13: mcrA vs methanotroph (see Section 9) ---
+  Tree-level and species-level correlations reported above.
+--- Figure S14: Black oak tissue methanome heatmap ---
+  Key qualitative results (from manuscript text):
+  - Only Methanobacterium (Methanobacteriaceae) detected as methanogen
+  - Found exclusively in heartwood and sapwood
+  - No methanogens in bark, branches, foliage, or soil
+  - Methanotrophs (Methylocella) in heartwood, sapwood, bark, foliage
+  - Methyloferula in sapwood, bark, leaf litter
+  - Methylorosula in heartwood, sapwood, leaf litter
+--- Figure S15: Family-level 16S x pmoA associations ---
+  Total pathways tested (pmoA)                            408.0000 
+  Significant at FDR < 0.01 (pmoA)                        13.0000 
+--- Figure S3: Family-level 16S x mcrA associations ---
+  Families significantly correlated with mcrA (p<0.05)    28.0000 
+  Positively correlated                                   25.0000 
+  Negatively correlated                                   3.0000 
+
+ ======================================================================== 
+  CHANGE DETECTION SUMMARY 
+======================================================================== 
+
+  (Machine-readable key-value pairs for diffing between runs)
+
+  annual_soil_mg_m2_yr                          -904.303129
+  annual_tree_mg_m2_yr                          1.252633
+  aw_sp_mmox_r2                                 0.355881
+  black_oak_max_ch4_ppm                         1744.802467
+  black_oak_mcra_detection_mid_pct              67.000000
+  black_oak_mcra_orders_magnitude               0.900000
+  black_oak_o2_range_pct                        17 19.1
+  conc_full_r2                                  0.357991
+  fig6_n_pathways_heatmap                       35.000000
+  height_nsig_of_ntested                        3/11
+  intermediate_soil_mean_nmol                   -1.345054
+  intermediate_tree_mean_nmol                   0.010670
+  internal_ch4_co2_r2                           0.184023
+  internal_ch4_mcra_r2                          0.037693
+  internal_ch4_o2_r2                            0.073850
+  mcra_heartwood_detection_pct                  97.300000
+  plot_offset_pct                               0.138519
+  rf_soil_ccc                                   0.499990
+  rf_soil_oob_r2                                0.277102
+  rf_tree_ccc                                   0.327021
+  rf_tree_oob_r2                                0.151084
+  species_hw_mcra_flux_r2                       0.430477
+  species_mcra_flux_p                           0.052084
+  species_mcra_flux_r2                          0.393834
+  species_ratio_flux_r2                         0.513453
+  transitional wetland_soil_mean_nmol           1.833764
+  transitional wetland_tree_mean_nmol           0.129412
+  upland_soil_mean_nmol                         -1.573710
+  upland_tree_mean_nmol                         0.057395
+  upland_tree_ttest_p                           0.016833
+  variance_interaction_pct                      8.675387
+  variance_species_pct                          5.266281
+  variance_unexplained_pct                      82.864521
+  wai_offset_pct                                0.425778
+  wai_tree_mg_m2_yr                             3.850327
+
+ ************************************************************************ 
+  DONE —  2026-02-23 21:51:19 
+************************************************************************ 
