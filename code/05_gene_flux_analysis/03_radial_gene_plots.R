@@ -1,8 +1,8 @@
 # ==============================================================================
-# Radial Gene Distribution Plots (Figure 8 partial)
+# Radial Gene Distribution Plots (Figure 8 panels a–c)
 # ==============================================================================
-# Purpose: Radial cross-section plots showing spatial distribution of gene
-#   abundance on tree stems.
+# Purpose: Radial cross-section plots showing spatial distribution of mcrA,
+#   pmoA, and mmoX gene abundance on tree stems.
 #
 # Pipeline stage: 4 — Visualization
 #

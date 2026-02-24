@@ -1,8 +1,8 @@
 # ==============================================================================
-# Methanotroph Summary Statistics
+# Scale-Dependent Gene Patterns (Figures S10, S13)
 # ==============================================================================
-# Purpose: Summary statistics for methanotroph gene abundances across species
-#   and compartments.
+# Purpose: Summary statistics for mcrA, pmoA, and mmoX gene abundances across
+#   species and compartments at individual-tree and species-mean scales.
 #
 # Pipeline stage: 3 — Analysis
 #
