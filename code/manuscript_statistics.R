@@ -8,8 +8,9 @@
 # Usage: Open tree-methanogens.Rproj in RStudio, then:
 #   source("code/manuscript_statistics.R")
 #
-# Output: Prints all statistics to console. Ends with a machine-readable
-#   summary for easy diff between revisions.
+# Output: Saves all statistics to outputs/manuscript_statistics.txt
+#   and prints to console. Ends with a machine-readable summary for
+#   easy diff between revisions.
 #
 # Run time: ~2-3 minutes (phyloseq rarefaction is the bottleneck)
 # ==============================================================================
@@ -26,6 +27,11 @@ library(lme4)
 library(car)
 library(ranger)
 library(phyloseq)
+
+# --- Set up output file ---
+output_file <- "outputs/manuscript_statistics.txt"
+if (!dir.exists(dirname(output_file))) dir.create(dirname(output_file), recursive = TRUE)
+sink(output_file, split = TRUE)  # write to file AND console
 
 cat("\n")
 cat(strrep("*", 72), "\n")
@@ -193,12 +199,12 @@ record("upland_tree_ttest_p", tt$p.value)
 
 # VWC by position
 sub_header("Volumetric Water Content by position")
-moisture_data$Date <- as.Date(moisture_data$Date)
+moisture_data$Date <- as.Date(moisture_data$Date, format = "%m/%d/%y")
 moisture_data <- moisture_data %>%
   mutate(Plot_Type = case_when(
-    grepl("^U", Plot) | Plot == "U" ~ "U",
-    grepl("^I", Plot) | Plot == "I" ~ "I",
-    grepl("^W", Plot) | Plot %in% c("WD", "WS", "W") ~ "W",
+    Plot.letter == "U" ~ "U",
+    Plot.letter == "I" ~ "I",
+    Plot.letter %in% c("WD", "WS", "W") ~ "W",
     TRUE ~ NA_character_
   )) %>%
   filter(!is.na(Plot_Type), !is.na(VWC))
@@ -612,6 +618,8 @@ methanogen_families <- c(
 )
 
 methanogen_asvs <- rownames(tax_df)[tax_df$Family %in% methanogen_families]
+methanogen_asvs <- intersect(methanogen_asvs, rownames(otu_df))
+cat(sprintf("  Found %d methanogen ASVs in rarefied OTU table\n", length(methanogen_asvs)))
 methanogen_pct <- colSums(otu_df[methanogen_asvs, , drop = FALSE])
 
 samp_meta$methanogen_pct <- methanogen_pct[rownames(samp_meta)]
@@ -643,6 +651,7 @@ sub_header("Top methanogen families by mean relative abundance (heartwood)")
 hw_family_means <- data.frame()
 for (fam in methanogen_families) {
   asvs <- rownames(tax_df)[tax_df$Family == fam]
+  asvs <- intersect(asvs, rownames(otu_df))
   if (length(asvs) > 0) {
     pcts <- colSums(otu_df[asvs, rownames(hw_samples), drop = FALSE])
     hw_family_means <- rbind(hw_family_means,
@@ -662,6 +671,7 @@ sub_header("Key methanogen families in sapwood")
 sw_samples <- samp_meta %>% filter(compartment == "Sapwood")
 for (fam in c("Methanobacteriaceae", "Methanomassiliicoccaceae")) {
   asvs <- rownames(tax_df)[tax_df$Family == fam]
+  asvs <- intersect(asvs, rownames(otu_df))
   if (length(asvs) > 0) {
     pcts <- colSums(otu_df[asvs, rownames(sw_samples), drop = FALSE])
     cat(sprintf("  %s: range %.2f to %.2f%%\n", fam, min(pcts), max(pcts)))
@@ -673,11 +683,14 @@ sub_header("Top soil archaeal taxa (Mineral + Organic)")
 soil_samples <- samp_meta %>% filter(compartment %in% c("Mineral Soil", "Organic Soil"))
 all_classes <- tax_df$Class
 archaea_asvs <- rownames(tax_df)[tax_df$Kingdom == "Archaea"]
+archaea_asvs <- intersect(archaea_asvs, rownames(otu_df))
 if (length(archaea_asvs) > 0) {
   archaea_class_pcts <- data.frame()
   for (cls in unique(tax_df[archaea_asvs, "Class"])) {
     if (is.na(cls)) next
     asvs <- archaea_asvs[tax_df[archaea_asvs, "Class"] == cls]
+    asvs <- intersect(asvs, rownames(otu_df))
+    if (length(asvs) == 0) next
     pcts <- colSums(otu_df[asvs, rownames(soil_samples), drop = FALSE])
     archaea_class_pcts <- rbind(archaea_class_pcts,
                                  data.frame(Class = cls, mean_pct = mean(pcts)))
@@ -697,9 +710,11 @@ if (nrow(hw_with_mcra) > 5) {
   fam_cors <- data.frame()
   for (fam in all_families) {
     asvs <- rownames(tax_df)[tax_df$Family == fam]
+    asvs <- intersect(asvs, rownames(otu_df))
     if (length(asvs) > 0) {
       pcts <- colSums(otu_df[asvs, rownames(hw_with_mcra), drop = FALSE])
-      if (sd(pcts) > 0) {
+      sd_val <- sd(pcts, na.rm = TRUE)
+      if (!is.na(sd_val) && sd_val > 0) {
         ct <- cor.test(pcts, log10(hw_with_mcra$mcra_probe_strict + 1))
         fam_cors <- rbind(fam_cors, data.frame(Family = fam, r = ct$estimate, p = ct$p.value))
       }
@@ -725,7 +740,7 @@ known_asvs <- c(
   rownames(tax_df)[tax_df$Family %in% known_families],
   rownames(tax_df)[tax_df$Genus %in% known_genera]
 )
-known_asvs <- unique(known_asvs)
+known_asvs <- unique(intersect(known_asvs, rownames(otu_df)))
 
 # Putative (family-level only for unresolved genera)
 putative_only <- rownames(tax_df)[
@@ -733,15 +748,20 @@ putative_only <- rownames(tax_df)[
   !(tax_df$Genus %in% known_genera) &
   (is.na(tax_df$Genus) | tax_df$Genus == "")
 ]
+putative_only <- intersect(putative_only, rownames(otu_df))
 
 cat(sprintf("  Known methanotroph ASVs: %d\n", length(known_asvs)))
 cat(sprintf("  Putative methanotroph ASVs: %d\n", length(putative_only)))
 
 # List families detected
-mt_families_detected <- sort(unique(tax_df[c(known_asvs, putative_only), "Family"]))
+all_mt_asvs <- unique(c(known_asvs, putative_only))
+mt_families_detected <- sort(unique(tax_df[all_mt_asvs, "Family"]))
+mt_families_detected <- mt_families_detected[!is.na(mt_families_detected)]
 cat("  Detected methanotroph families:\n")
 for (fam in mt_families_detected) {
-  asvs <- intersect(c(known_asvs, putative_only), rownames(tax_df)[tax_df$Family == fam])
+  asvs <- intersect(all_mt_asvs, rownames(tax_df)[tax_df$Family == fam])
+  asvs <- intersect(asvs, rownames(otu_df))
+  if (length(asvs) == 0) next
   pcts <- colSums(otu_df[asvs, rownames(hw_samples), drop = FALSE])
   cat(sprintf("    %s: mean %.3f%% in heartwood (n_ASVs=%d)\n", fam, mean(pcts), length(asvs)))
 }
@@ -818,26 +838,26 @@ sub_header("PICRUSt pathway associations (VERIFY pathway names)")
 picrust_mcra <- "data/processed/molecular/picrust/pathway_associations_mcra_all.csv"
 if (file.exists(picrust_mcra)) {
   pvals_mcra <- read.csv(picrust_mcra)
-  sig_mcra <- pvals_mcra %>% filter(fdr < 0.01) %>% arrange(fdr)
+  sig_mcra <- pvals_mcra %>% filter(FDR < 0.01) %>% arrange(FDR)
   cat(sprintf("  Significant mcrA-associated pathways (FDR < 0.01): %d\n", nrow(sig_mcra)))
   cat("  Top 15 pathways:\n")
   for (i in 1:min(15, nrow(sig_mcra))) {
-    direction <- ifelse(sig_mcra$t_value[i] > 0, "+", "-")
+    direction <- ifelse(sig_mcra$t[i] > 0, "+", "-")
     cat(sprintf("    %s %s (FDR=%.4f, t=%.2f)\n",
-                direction, sig_mcra$pathway[i], sig_mcra$fdr[i], sig_mcra$t_value[i]))
+                direction, sig_mcra$pathway[i], sig_mcra$FDR[i], sig_mcra$t[i]))
   }
 }
 
 picrust_pmoa <- "data/processed/molecular/picrust/pathway_associations_pmoa.csv"
 if (file.exists(picrust_pmoa)) {
   pvals_pmoa <- read.csv(picrust_pmoa)
-  sig_pmoa <- pvals_pmoa %>% filter(fdr < 0.01) %>% arrange(fdr)
+  sig_pmoa <- pvals_pmoa %>% filter(FDR < 0.01) %>% arrange(FDR)
   cat(sprintf("\n  Significant pmoA-associated pathways (FDR < 0.01): %d\n", nrow(sig_pmoa)))
   cat("  Top 10 pathways:\n")
   for (i in 1:min(10, nrow(sig_pmoa))) {
-    direction <- ifelse(sig_pmoa$t_value[i] > 0, "+", "-")
+    direction <- ifelse(sig_pmoa$t[i] > 0, "+", "-")
     cat(sprintf("    %s %s (FDR=%.4f, t=%.2f)\n",
-                direction, sig_pmoa$pathway[i], sig_pmoa$fdr[i], sig_pmoa$t_value[i]))
+                direction, sig_pmoa$pathway[i], sig_pmoa$FDR[i], sig_pmoa$t[i]))
   }
 }
 
@@ -878,19 +898,19 @@ if (file.exists(picrust_no_mcra_file)) {
 
     # List top pathways (positive and negative associations)
     sub_header("Top positively associated pathways (Fig 6)")
-    pos_paths <- sig_filtered %>% filter(t_value > 0) %>% arrange(FDR)
+    pos_paths <- sig_filtered %>% filter(t > 0) %>% arrange(FDR)
     for (i in 1:min(10, nrow(pos_paths))) {
       desc <- ifelse(!is.na(pos_paths$description[i]) & pos_paths$description[i] != "",
                      pos_paths$description[i], pos_paths$pathway[i])
-      cat(sprintf("    %s (FDR=%.2e, t=%.2f)\n", desc, pos_paths$FDR[i], pos_paths$t_value[i]))
+      cat(sprintf("    %s (FDR=%.2e, t=%.2f)\n", desc, pos_paths$FDR[i], pos_paths$t[i]))
     }
 
     sub_header("Top negatively associated pathways (Fig 6)")
-    neg_paths <- sig_filtered %>% filter(t_value < 0) %>% arrange(FDR)
+    neg_paths <- sig_filtered %>% filter(t < 0) %>% arrange(FDR)
     for (i in 1:min(10, nrow(neg_paths))) {
       desc <- ifelse(!is.na(neg_paths$description[i]) & neg_paths$description[i] != "",
                      neg_paths$description[i], neg_paths$pathway[i])
-      cat(sprintf("    %s (FDR=%.2e, t=%.2f)\n", desc, neg_paths$FDR[i], neg_paths$t_value[i]))
+      cat(sprintf("    %s (FDR=%.2e, t=%.2f)\n", desc, neg_paths$FDR[i], neg_paths$t[i]))
     }
   }
 
@@ -907,7 +927,7 @@ if (file.exists(picrust_no_mcra_file)) {
     if (nrow(matches) > 0) {
       best <- matches %>% arrange(FDR) %>% slice(1)
       cat(sprintf("  FOUND: '%s' -> %s (FDR=%.4f, t=%.2f)\n",
-                  mp, best$pathway, best$FDR, best$t_value))
+                  mp, best$pathway, best$FDR, best$t))
     } else {
       cat(sprintf("  NOT FOUND: '%s'\n", mp))
     }
@@ -1249,7 +1269,7 @@ if (conc_available) {
   }
 
   # Best area-weighted model: species + mmoX
-  m_sp_mmox <- lm(CH4_best.flux_125cm ~ species + log_mmox,
+  m_sp_mmox <- lm(CH4_flux ~ species + log_mmox,
                    data = tree_level %>% filter(!is.na(CH4_flux)))
   s_sp_mmox <- summary(m_sp_mmox)
   sub_header("Best area-weighted model: species + mmoX")
@@ -1268,6 +1288,19 @@ if (conc_available) {
 # --- Concentration-based species-level models (S8) ---
 sub_header("Concentration-based species-level models (Figure S8)")
 if (conc_available) {
+  # Pre-compute flux_by_sp (also used in Section 9)
+  if (!exists("flux_by_sp")) {
+    flux_all_early <- bind_rows(
+      ymf2023 %>% dplyr::select(species_id = Species.Code, CH4_flux = CH4_best.flux) %>%
+        mutate(species = species_mapping[species_id]),
+      ymf2021 %>% dplyr::select(species_id, CH4_flux = CH4_best.flux_125cm) %>%
+        mutate(species = species_mapping[species_id])
+    ) %>% filter(!is.na(CH4_flux), !is.nan(CH4_flux), !is.na(species))
+    flux_by_sp <- flux_all_early %>%
+      group_by(species, species_id) %>%
+      summarise(n_flux = n(), median_flux = median(CH4_flux), .groups = "drop")
+  }
+
   # Species medians for heartwood mcrA
   sp_hw_mcra <- ymf2021 %>%
     filter(!is.na(species_id), !is.na(ddpcr_mcra_probe_Inner_loose)) %>%
@@ -1553,11 +1586,12 @@ if (exists("ps.filt") && exists("mt_defs")) {
   # Per-species methanotroph abundance (heartwood only)
   sub_header("  Per-species methanotroph abundance (heartwood)")
   hw_samps <- samp_meta %>% filter(compartment == "Heartwood", !is.na(species.x))
+  mt_pct_vec <- colSums(otu_df[intersect(all_mt_asvs, rownames(otu_df)),
+                                rownames(hw_samps), drop = FALSE])
+  hw_samps$mt_pct <- mt_pct_vec[rownames(hw_samps)]
   sp_mt_means <- hw_samps %>%
-    mutate(mt_pct = colSums(otu_df[intersect(all_mt_asvs, rownames(otu_df)),
-                                    rownames(hw_samps), drop = FALSE])) %>%
     group_by(species.x) %>%
-    summarise(mean_mt = mean(mt_pct), n = n(), .groups = "drop") %>%
+    summarise(mean_mt = mean(mt_pct, na.rm = TRUE), n = n(), .groups = "drop") %>%
     arrange(desc(mean_mt))
   for (i in 1:min(5, nrow(sp_mt_means))) {
     cat(sprintf("    %s: %.3f%% (n=%d)\n",
@@ -1581,8 +1615,8 @@ if (file.exists(picrust_mcra_all)) {
   stat("Significant at FDR < 0.01 (all OTUs)", nrow(sig_all))
 
   # Top positive (heartwood-enriched) and negative (sapwood-enriched)
-  pos_all <- sig_all %>% filter(t_value > 0) %>% arrange(FDR)
-  neg_all <- sig_all %>% filter(t_value < 0) %>% arrange(FDR)
+  pos_all <- sig_all %>% filter(t > 0) %>% arrange(FDR)
+  neg_all <- sig_all %>% filter(t < 0) %>% arrange(FDR)
   cat(sprintf("  Positively associated: %d, Negatively associated: %d\n",
               nrow(pos_all), nrow(neg_all)))
 }
@@ -1593,8 +1627,8 @@ if (file.exists(picrust_pmoa_no)) {
   pa_pmoa <- read.csv(picrust_pmoa_no, stringsAsFactors = FALSE)
   sig_pmoa_no <- pa_pmoa %>% filter(!is.na(FDR), FDR < 0.01)
   stat("Significant pmoA pathways (no-pmoA OTUs, FDR < 0.01)", nrow(sig_pmoa_no))
-  pos_pmoa <- sig_pmoa_no %>% filter(t_value > 0)
-  neg_pmoa <- sig_pmoa_no %>% filter(t_value < 0)
+  pos_pmoa <- sig_pmoa_no %>% filter(t > 0)
+  neg_pmoa <- sig_pmoa_no %>% filter(t < 0)
   cat(sprintf("  Positive: %d, Negative: %d\n", nrow(pos_pmoa), nrow(neg_pmoa)))
 } else {
   pmoa_alt <- "data/processed/molecular/picrust/pathway_associations_pmoa.csv"
@@ -1802,7 +1836,7 @@ if (exists("TreeRF") && exists("SoilRF")) {
                              imp = as.numeric(importance(TreeRF))) %>%
     arrange(desc(imp))
   for (i in 1:min(8, nrow(tree_imp_df))) {
-    cat(sprintf("    %d. %s (%.1f)\n", i, tree_imp_df$feature[i], tree_imp_df$imp[i]))
+    cat(sprintf("    %d. %s (%.2e)\n", i, tree_imp_df$feature[i], tree_imp_df$imp[i]))
   }
 
   sub_header("  Soil RF top features")
@@ -1810,7 +1844,7 @@ if (exists("TreeRF") && exists("SoilRF")) {
                               imp = as.numeric(importance(SoilRF))) %>%
     arrange(desc(imp))
   for (i in 1:min(8, nrow(soil_imp_df))) {
-    cat(sprintf("    %d. %s (%.1f)\n", i, soil_imp_df$feature[i], soil_imp_df$imp[i]))
+    cat(sprintf("    %d. %s (%.2e)\n", i, soil_imp_df$feature[i], soil_imp_df$imp[i]))
   }
 }
 
@@ -1965,3 +1999,7 @@ for (nm in sort(names(summary_stats))) {
 cat("\n", strrep("*", 72), "\n")
 cat("  DONE — ", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "\n")
 cat(strrep("*", 72), "\n")
+
+# --- Close output file ---
+sink()
+cat(sprintf("\nResults saved to: %s\n", normalizePath(output_file)))
