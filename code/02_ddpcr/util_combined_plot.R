@@ -16,6 +16,7 @@
 
 library(tidyverse)
 library(cowplot)
+library(patchwork)
 
 # Load data if not already in environment
 if (!exists("merged_final")) {
@@ -56,13 +57,15 @@ barplot_improved <- result$plot +
 combined_plot <- plot_grid(barplot_improved, scatterplot, ncol = 2,
                            labels = c("(a)", "(b)"),
                            label_size = 11,
-                           label_fontface = "bold")
+                           label_fontface = "bold",
+                           rel_widths = c(1.3, 1)) +
+  theme(plot.background = element_rect(fill = "white", color = NA))
 
 print(combined_plot)
 
 # Save combined figure
 ggsave("outputs/figures/main/fig4_methanogen_methanotroph_abundance.png",
-       combined_plot, width = 12, height = 5.3, dpi = 300)
+       combined_plot, width = 12, height = 7, dpi = 300)
 
 
 

@@ -152,6 +152,7 @@ create_gene_scatter_ggside_transformed_probe_mcra <- function(
     ggside::ggside(x.pos = "top", y.pos = "right") +
     theme_minimal(base_size = 12) +
     theme(
+      aspect.ratio = 1,
       ggside.panel.scale.x = 0.3,
       ggside.panel.scale.y = 0.3,
       legend.position = "bottom",
@@ -169,7 +170,8 @@ create_gene_scatter_ggside_transformed_probe_mcra <- function(
       legend.margin = margin(t = 5, r = 0, b = 1, l = -50),  # Remove legend margins
       legend.box.margin = margin(t = 5, r = 0, b = 0, l = -50),  # Remove legend box margins
       legend.spacing = unit(0.5, "lines"),  # Reduce spacing between legend elements
-      legend.box.spacing = unit(0, "lines")  # Reduce spacing around legend box
+      legend.box.spacing = unit(0, "lines"),  # Reduce spacing around legend box
+      plot.background = element_rect(fill = "white", color = NA)
     )
 }
 

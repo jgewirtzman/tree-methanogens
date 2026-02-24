@@ -212,13 +212,14 @@ p_mg_a <- ggplot(summary_mg_a, aes(x = species_label, y = mean_pct, fill = compa
   labs(x = NULL, y = "Methanogen rel.\nabundance (%)") +
   theme_classic(base_size = 15) +
   theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
         axis.text.y = element_text(size = 15),
         axis.title.y = element_text(size = 16),
         legend.position = "none",
         strip.text = element_text(size = 14, face = "bold"),
         strip.background = element_rect(fill = NA, color = "black", linewidth = 0.5),
         panel.border = element_rect(fill = NA, color = "black", linewidth = 0.5),
-        plot.margin = margin(5, 10, 2, 10))
+        plot.margin = margin(5, 10, 0, 10))
 
 # ==============================================================================
 # Panel (b) — Methanogen family composition
@@ -242,7 +243,7 @@ summary_mg_b <- mg_comp %>%
 
 # Sort families alphabetically so color ramp matches legend order
 mg_families_sorted <- sort(methanogen_families)
-mg_colors <- setNames(viridis(length(mg_families_sorted), option = "D"), mg_families_sorted)
+mg_colors <- setNames(viridis(length(mg_families_sorted), option = "D", direction = -1, alpha = 0.7), mg_families_sorted)
 summary_mg_b$Family <- factor(summary_mg_b$Family, levels = mg_families_sorted)
 
 p_mg_b <- ggplot(summary_mg_b, aes(x = species_label, y = proportion, fill = Family)) +
@@ -252,6 +253,7 @@ p_mg_b <- ggplot(summary_mg_b, aes(x = species_label, y = proportion, fill = Fam
   labs(x = NULL, y = "Proportion of\nmethanogens (%)") +
   theme_classic(base_size = 15) +
   theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
         axis.text.y = element_text(size = 15),
         axis.title.y = element_text(size = 16),
         legend.position = "right",
@@ -260,7 +262,7 @@ p_mg_b <- ggplot(summary_mg_b, aes(x = species_label, y = proportion, fill = Fam
         legend.title = element_text(size = 14, face = "bold"),
         strip.text = element_blank(), strip.background = element_blank(),
         panel.border = element_rect(fill = NA, color = "black", linewidth = 0.5),
-        plot.margin = margin(2, 10, 2, 10))
+        plot.margin = margin(0, 10, 0, 10))
 
 # ==============================================================================
 # Panel (c) — Methanotroph relative abundance (Known + Putative stacked)
@@ -318,6 +320,7 @@ p_mt_a <- ggplot(summary_mt_a, aes(x = species_label, y = mean_pct, fill = fill_
   labs(x = NULL, y = "Methanotroph rel.\nabundance (%)") +
   theme_classic(base_size = 15) +
   theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
         axis.text.y = element_text(size = 15),
         axis.title.y = element_text(size = 16),
         legend.position = "right",
@@ -326,7 +329,7 @@ p_mt_a <- ggplot(summary_mt_a, aes(x = species_label, y = mean_pct, fill = fill_
         legend.title = element_text(size = 14, face = "bold"),
         strip.text = element_blank(), strip.background = element_blank(),
         panel.border = element_rect(fill = NA, color = "black", linewidth = 0.5),
-        plot.margin = margin(2, 10, 2, 10))
+        plot.margin = margin(0, 10, 0, 10))
 
 # ==============================================================================
 # Panel (d) — Methanotroph family composition (Known families first, then Putative)
@@ -377,43 +380,36 @@ summary_mt_b <- mt_comp %>%
          proportion = if_else(total > 0, mean_abund / total * 100, 0)) %>%
   ungroup()
 
-# Order: Known families first (alphabetical), then Putative families (alphabetical)
-known_fams <- sort(unique(summary_mt_b$Family[summary_mt_b$Status == "Known"]))
-putative_fams <- sort(unique(summary_mt_b$Family[summary_mt_b$Status == "Putative"]))
-# Remove families that appear in both from putative list (they're already in known)
-putative_only_fams <- setdiff(putative_fams, known_fams)
+# Drop families with zero total abundance (not present in plotted samples)
+fam_totals <- summary_mt_b %>% group_by(Family, Status) %>%
+  summarize(total_abund = sum(mean_abund), .groups = "drop") %>%
+  filter(total_abund > 0)
+summary_mt_b <- summary_mt_b %>%
+  semi_join(fam_totals, by = c("Family", "Status"))
 
-# Create composite label for legend: "Family (Known)" / "Family (Putative)"
-summary_mt_b$Family_label <- ifelse(
-  summary_mt_b$Status == "Putative" & summary_mt_b$Family %in% putative_only_fams,
-  paste0(summary_mt_b$Family, " *"),
-  summary_mt_b$Family
-)
+# Distinct color for each Family x Status combination
+all_mt_fams <- sort(unique(summary_mt_b$Family))
+summary_mt_b$Family_status <- paste0(summary_mt_b$Family, " (", summary_mt_b$Status, ")")
 
-# For families that appear in both Known and Putative, combine them under the family name
-# (the Known portion is already there; Putative portion of the same family stacks on top)
-# Order levels: Known families first, then putative-only families with asterisk
-all_levels <- c(known_fams, paste0(putative_only_fams, " *"))
-summary_mt_b$Family_label <- factor(summary_mt_b$Family_label, levels = all_levels)
+# Order levels: for each family, Known first then Putative
+status_levels <- c()
+for (fam in all_mt_fams) {
+  if (any(summary_mt_b$Family_status == paste0(fam, " (Known)")))
+    status_levels <- c(status_levels, paste0(fam, " (Known)"))
+  if (any(summary_mt_b$Family_status == paste0(fam, " (Putative)")))
+    status_levels <- c(status_levels, paste0(fam, " (Putative)"))
+}
+summary_mt_b$Family_status <- factor(summary_mt_b$Family_status, levels = status_levels)
 
-# Color: viridis for known families, lighter/desaturated for putative-only
-n_known <- length(known_fams)
-n_putative_only <- length(putative_only_fams)
-known_colors <- setNames(viridis(n_known, option = "D"), known_fams)
-putative_colors <- setNames(viridis(n_putative_only, option = "D", alpha = 0.45),
-                             paste0(putative_only_fams, " *"))
-mt_colors <- c(known_colors, putative_colors)
+mt_colors <- setNames(viridis(length(status_levels), option = "D", direction = -1, alpha = 0.7), status_levels)
 
-p_mt_b <- ggplot(summary_mt_b, aes(x = species_label, y = proportion, fill = Family_label)) +
+p_mt_b <- ggplot(summary_mt_b, aes(x = species_label, y = proportion, fill = Family_status)) +
   geom_col(position = "stack", width = 0.7, color = "black", linewidth = 0.1) +
   facet_wrap(~ compartment, nrow = 1) +
-  scale_fill_manual(values = mt_colors, name = "Methanotroph\nFamily",
-                    labels = function(x) ifelse(grepl("\\*$", x),
-                                                 paste0(sub(" \\*$", "", x), " (putative)"),
-                                                 x)) +
+  scale_fill_manual(values = mt_colors, name = "Methanotroph\nFamily") +
   labs(x = NULL, y = "Proportion of\nmethanotrophs (%)") +
   theme_classic(base_size = 15) +
-  theme(axis.text.x = element_text(angle = 55, hjust = 1, face = "italic", size = 9),
+  theme(axis.text.x = element_text(angle = 55, hjust = 1, size = 9),
         axis.text.y = element_text(size = 15),
         axis.title.y = element_text(size = 16),
         legend.position = "right",
@@ -422,7 +418,7 @@ p_mt_b <- ggplot(summary_mt_b, aes(x = species_label, y = proportion, fill = Fam
         legend.title = element_text(size = 14, face = "bold"),
         strip.text = element_blank(), strip.background = element_blank(),
         panel.border = element_rect(fill = NA, color = "black", linewidth = 0.5),
-        plot.margin = margin(2, 10, 5, 10))
+        plot.margin = margin(0, 10, 5, 10))
 
 # ==============================================================================
 # STEP 10: Combine all panels vertically with shared x-axis
