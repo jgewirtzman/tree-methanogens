@@ -9,7 +9,7 @@
 #   - merged_tree_dataset_final.csv (from data/processed/integrated/)
 # ==============================================================================
 
-ymf2021 <- read.csv('../../data/processed/integrated/merged_tree_dataset_final.csv')
+ymf2021 <- read.csv('data/processed/integrated/merged_tree_dataset_final.csv')
 
 
 library(tidyverse)

@@ -1,0 +1,38 @@
+Taxon_rank,Taxon,Include_known,Include_putative,Category,Notes,Primary_source
+Family,Methylococcaceae,YES,YES,Exclusive methanotroph family,"Knief (2015) states Methylococcaceae do not contain non-methanotrophic bacteria (with Crenothrix discussed as an exception/edge case). For 16S ASVs lacking genus resolution, family-level inclusion is defensible.",Knief 2015
+Family,Methylothermaceae,YES,YES,Exclusive methanotroph family,Knief (2015) states Methylothermaceae do not contain non-methanotrophic bacteria. Family-level inclusion is defensible when genus is unresolved.,Knief 2015
+Family,Methylacidiphilaceae,YES,YES,Exclusive methanotroph family,"Verrucomicrobial methanotroph family in Knief (2015) Table 3; genus is often unresolved in short 16S regions, so family-level inclusion is typically the right move.",Knief 2015
+Family,Methylocystaceae,NO,YES,Contains methanotrophs and non-methanotrophs,Knief (2015) notes Methylocystaceae includes additional non-methanotrophic genera. Therefore: do NOT count all family-level ASVs as 'known' methanotrophs; treat unclassified-family ASVs as putative only.,Knief 2015
+Family,Beijerinckiaceae,NO,YES,Contains methanotrophs and non-methanotrophs,Knief (2015) notes Beijerinckiaceae includes additional non-methanotrophic genera. Therefore: family-level hits are putative only; genus-level whitelist gives 'known'.,Knief 2015
+Family,Crenotrichaceae,NO,YES,Edge case (enrichment / debated placement),Crenothrix is discussed as methanotrophic and placed in Crenotrichaceae; Knief notes this classification is questioned and may fall within Methylococcaceae based on 16S. Recommend treating Crenothrix/Crenotrichaceae as putative in 16S unless you explicitly want to include it.,Knief 2015
+Phylum,Methylomirabilota,NO,NO,Phylum too broad for methanotroph classification,"SILVA 138 Methylomirabilota (= NC10) contains both Methylomirabilales (methanotrophic) and Rokubacteriales (not methanotrophic). Use Family,Methylomirabilaceae for targeted matching instead of phylum-level.",Knief 2015 + SILVA 138 audit
+Genus,Methylocystis,YES,YES,Cultivated methanotroph genus,Cultivated methanotroph genus in Knief Table 1; some species/strains can be facultative on multicarbon substrates but remain methanotrophic.,Knief 2015
+Genus,Methylosinus,YES,YES,Cultivated methanotroph genus,Cultivated methanotroph genus in Knief Table 1; facultative growth reported in some strains but still methanotrophic.,Knief 2015
+Genus,Methylocapsa,YES,YES,Cultivated methanotroph genus,Cultivated Beijerinckiaceae methanotroph genus in Knief Table 1 (some species facultative).,Knief 2015
+Genus,Methylocella,YES,YES,Cultivated methanotroph genus,"Cultivated Beijerinckiaceae methanotroph genus in Knief Table 1; notable for facultative lifestyle and often lacks pMMO (pmoA), which is why pmoA surveys can miss it.",Knief 2015
+Genus,Methyloferula,YES,YES,Cultivated methanotroph genus,Cultivated Beijerinckiaceae methanotroph genus in Knief Table 1; also lacks pMMO (pmoA) per Knief discussion.,Knief 2015
+Genus,Methylobacter,YES,YES,Cultivated methanotroph genus,Cultivated Methylococcaceae methanotroph genus in Knief Table 2.,Knief 2015
+Genus,Methyloglobulus,YES,YES,Cultivated methanotroph genus,Cultivated Methylococcaceae methanotroph genus in Knief Table 2.,Knief 2015
+Genus,Methylomarinum,YES,YES,Cultivated methanotroph genus,Cultivated Methylococcaceae methanotroph genus in Knief Table 2.,Knief 2015
+Genus,Methylomicrobium,YES,YES,Cultivated methanotroph genus,Cultivated Methylococcaceae methanotroph genus in Knief Table 2.,Knief 2015
+Genus,Methylomonas,YES,YES,Cultivated methanotroph genus,Cultivated Methylococcaceae methanotroph genus in Knief Table 2.,Knief 2015
+Genus,Methyloparacoccus,YES,YES,Cultivated methanotroph genus,Cultivated Methylococcaceae methanotroph genus in Knief Table 2.,Knief 2015
+Genus,Methyloprofundus,YES,YES,Cultivated methanotroph genus,Cultivated Methylococcaceae methanotroph genus in Knief Table 2.,Knief 2015
+Genus,Methylosarcina,YES,YES,Cultivated methanotroph genus,Cultivated Methylococcaceae methanotroph genus in Knief Table 2.,Knief 2015
+Genus,Methylosoma,YES,YES,Cultivated methanotroph genus,Cultivated Methylococcaceae methanotroph genus in Knief Table 2.,Knief 2015
+Genus,Methylovulum,YES,YES,Cultivated methanotroph genus,Cultivated Methylococcaceae methanotroph genus in Knief Table 2.,Knief 2015
+Genus,Methylocaldum,YES,YES,Cultivated methanotroph genus,Cultivated Methylococcaceae methanotroph genus in Knief Table 2.,Knief 2015
+Genus,Methylococcus,YES,YES,Cultivated methanotroph genus,Cultivated Methylococcaceae methanotroph genus in Knief Table 2.,Knief 2015
+Genus,Methylogaea,YES,YES,Cultivated methanotroph genus,Cultivated Methylococcaceae methanotroph genus in Knief Table 2.,Knief 2015
+Genus,Methylomagnum,YES,YES,Cultivated methanotroph genus,Cultivated Methylococcaceae methanotroph genus in Knief Table 2.,Knief 2015
+Genus,Methylohalobius,YES,YES,Cultivated methanotroph genus,Cultivated Methylothermaceae methanotroph genus in Knief Table 2.,Knief 2015
+Genus,Methylomarinovum,YES,YES,Cultivated methanotroph genus,Cultivated Methylothermaceae methanotroph genus in Knief Table 2.,Knief 2015
+Genus,Methylothermus,YES,YES,Cultivated methanotroph genus,Cultivated Methylothermaceae methanotroph genus in Knief Table 2.,Knief 2015
+Genus,Methylacidiphilum,YES,YES,Cultivated methanotroph genus,Cultivated verrucomicrobial methanotroph genus in Knief Table 3.,Knief 2015
+Genus,Methylacidimicrobium,YES,YES,Cultivated methanotroph genus,Cultivated verrucomicrobial methanotroph genus in Knief Table 3.,Knief 2015
+Genus,Candidatus Methylomirabilis,NO,CONDITIONAL,Anaerobic methanotroph genus,Included by Knief as anaerobic nitrite-dependent methanotroph (Table 3). Mark as 'known' only if your scope includes anaerobic methanotrophy; otherwise treat as putative/habitat-dependent.,Knief 2015
+Genus,Candidatus Crenothrix,NO,YES,Edge case (enrichment / debated placement),"Discussed by Knief; not a cultivated genus in the 18-count, and its family placement is debated. Treat as putative if you include it at all in 16S.",Knief 2015
+Genus,Crenothrix,NO,YES,Edge case (SILVA 138 genus name),SILVA 138 reports genus as 'Crenothrix' (without Candidatus prefix) under Methylomonadaceae. Methanotrophic but lacks cultivated type strain; treat as putative.,Knief 2015 + SILVA 138 audit
+Genus,Candidatus Clonothrix,NO,YES,Edge case (enrichment / not validated),Discussed by Knief as lacking cultivated representatives and not validated; treat as putative if you include it at all.,Knief 2015
+Family,Methylomonadaceae,YES,YES,Exclusive methanotroph family (SILVA 138 equivalent of Methylococcaceae),"In SILVA 138 this family sits under Methylococcales and contains classical gammaproteobacterial methanotroph genera (Methylobacter, Methyloglobulus, Crenothrix, pLW-20). No known non-methanotrophic genera in this cluster. Functionally equivalent to Methylococcaceae in Knief (2015).",Knief 2015 + SILVA 138 audit
+Family,Methylomirabilaceae,NO,CONDITIONAL,Habitat-dependent anaerobic methanotrophy,"If your classifier reports the family Methylomirabilaceae (NC10), treat analogously to NC10: include if anoxic niches are relevant; otherwise exclude or report separately.",Knief 2015

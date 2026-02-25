@@ -21,8 +21,8 @@ library(gridExtra)
 library(cowplot)
 
 # Load data
-ymf2023 <- read.csv("../../data/processed/flux/methanogen_tree_flux_complete_dataset.csv")
-ymf2021 <- read.csv('../../data/processed/integrated/merged_tree_dataset_final.csv')
+ymf2023 <- read.csv("data/processed/flux/methanogen_tree_flux_complete_dataset.csv")
+ymf2021 <- read.csv('data/processed/integrated/merged_tree_dataset_final.csv')
 merged_final <- ymf2021  # Assuming ddPCR data is here
 
 # Species name mapping
@@ -432,8 +432,8 @@ library(ggplot2)
 library(ggrepel)
 
 # Load data
-ymf2023 <- read.csv("../../data/processed/flux/methanogen_tree_flux_complete_dataset.csv")
-ymf2021 <- read.csv('../../data/processed/integrated/merged_tree_dataset_final.csv')
+ymf2023 <- read.csv("data/processed/flux/methanogen_tree_flux_complete_dataset.csv")
+ymf2021 <- read.csv('data/processed/integrated/merged_tree_dataset_final.csv')
 
 # Species name mapping
 species_mapping <- c(
@@ -677,8 +677,8 @@ p <- ggplot(analysis_data, aes(x = median_mcra_log10, y = median_flux)) +
 
 print(p)
 
-source('../../code/06_figures/02_radial_cross_sections.R')
-source('../../code/06_figures/03_threshold_analysis.R')
+source('code/06_figures/02_radial_cross_sections.R')
+source('code/06_figures/03_threshold_analysis.R')
 
 combined_plot<-grid.arrange(p_main, p, nrow=2)
 

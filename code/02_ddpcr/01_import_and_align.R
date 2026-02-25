@@ -23,7 +23,7 @@ library(wesanderson)
 theme_set(theme_bw(base_size = 12))
 
 # Define file paths
-base_path <- 'data/raw/ddpcr/'
+base_path <- 'data/raw/ddpcr/Data Files/'
 raw_data_path <- file.path(base_path, 'Raw Data')
 
 # ============================================================================

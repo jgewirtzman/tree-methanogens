@@ -185,8 +185,13 @@ vwc_plot <- ggplot(vwc_data, aes(x = Soil_Moisture, fill = Plot_Type)) +
   facet_wrap(~ Plot_Type, strip.position = "top") +
   scale_fill_brewer(type = "seq", palette = "Blues") +
   scale_x_continuous(position = "bottom") +
+  geom_text(data = data.frame(Plot_Type = factor("Upland",
+              levels = c("Upland", "Intermediate", "Wetland")),
+              x = 10, y = -Inf),
+            aes(x = x, y = y), label = "VWC (%)", size = 3,
+            hjust = 0.5, vjust = -0.5) +
   labs(
-    x = "Volumetric Water Content (%)",
+    x = NULL,
     y = NULL
   ) +
   theme_minimal() +
@@ -195,7 +200,6 @@ vwc_plot <- ggplot(vwc_data, aes(x = Soil_Moisture, fill = Plot_Type)) +
     legend.title = element_blank(),
     strip.text = element_text(size = 12, face = "bold"),
     panel.border = element_blank(),
-    axis.title.x = element_text(size = 8.8),
     axis.line.x.bottom = element_line(color = "black", linewidth = 0.5),
     axis.ticks.x.bottom = element_line(color = "black", linewidth = 0.3),
     panel.grid = element_blank(),
@@ -227,7 +231,7 @@ ch4_flux_plot <- ggplot() +
   scale_color_manual(values = c("Soil" = "#8B4513", "Tree" = "#228B22")) +
   scale_fill_manual(values = c("Soil" = "#8B4513", "Tree" = "#228B22")) +
   labs(
-    y = bquote("CH"[4] ~ "Flux (nmol m"^-2 ~ "s"^-1 ~ ")")
+    y = bquote(bold("CH"[4] ~ "Flux (nmol m"^-2 ~ "s"^-1 ~ ")"))
   ) +
   theme_minimal() +
   theme(
@@ -235,6 +239,7 @@ ch4_flux_plot <- ggplot() +
     legend.title = element_blank(),
     axis.title.x = element_blank(),
     strip.text = element_blank(),
+    axis.title.y = element_text(face = "bold", size = 12),
     panel.border = element_rect(color = "grey30", fill = NA, linewidth = 1),
     axis.text.x = element_blank(),
     panel.grid.minor = element_blank(),
