@@ -150,9 +150,9 @@ transformation_comparison <- ggplot() +
 print(transformation_comparison)
 
 # Save all plots
-ggsave("../../outputs/figures/stem_map_moisture_overlay.png", stem_moisture_overlay, width = 16, height = 10, dpi = 300)
-ggsave("../../outputs/figures/tree_distribution_moisture.png", tree_distribution_plot, width = 14, height = 10, dpi = 300)
-ggsave("../../outputs/figures/transformation_methods_moisture.png", transformation_comparison, width = 12, height = 8, dpi = 300)
+ggsave("outputs/figures/stem_map_moisture_overlay.png", stem_moisture_overlay, width = 16, height = 10, dpi = 300)
+ggsave("outputs/figures/tree_distribution_moisture.png", tree_distribution_plot, width = 14, height = 10, dpi = 300)
+ggsave("outputs/figures/transformation_methods_moisture.png", transformation_comparison, width = 12, height = 8, dpi = 300)
 
 # Print summary of overlay
 cat("=== STEM MAP - MOISTURE OVERLAY SUMMARY ===\n")
@@ -394,8 +394,8 @@ extent_comparison <- ggplot() +
 print(extent_comparison)
 
 # Save plots
-ggsave("../../outputs/figures/extended_moisture_stem_overlay.png", extended_overlay_plot, width = 16, height = 10, dpi = 300)
-ggsave("../../outputs/figures/interpolation_extent_comparison.png", extent_comparison, width = 12, height = 8, dpi = 300)
+ggsave("outputs/figures/extended_moisture_stem_overlay.png", extended_overlay_plot, width = 16, height = 10, dpi = 300)
+ggsave("outputs/figures/interpolation_extent_comparison.png", extent_comparison, width = 12, height = 8, dpi = 300)
 
 # Check coverage of trees
 trees_in_moisture <- fg_final$Longitude_final >= min(extended_moisture_df$Longitude) & 
@@ -653,10 +653,10 @@ final_extended_plot <- ggplot() +
 print(final_extended_plot)
 
 # Save all plots
-ggsave("../../outputs/figures/extended_akima_interpolation.png", p1, width = 12, height = 8, dpi = 300)
-ggsave("../../outputs/figures/tps_interpolation.png", p2, width = 12, height = 8, dpi = 300)
-ggsave("../../outputs/figures/gam_interpolation.png", p3, width = 12, height = 8, dpi = 300)
-ggsave("../../outputs/figures/final_extended_moisture_overlay.png", final_extended_plot, width = 16, height = 10, dpi = 300)
+ggsave("outputs/figures/extended_akima_interpolation.png", p1, width = 12, height = 8, dpi = 300)
+ggsave("outputs/figures/tps_interpolation.png", p2, width = 12, height = 8, dpi = 300)
+ggsave("outputs/figures/gam_interpolation.png", p3, width = 12, height = 8, dpi = 300)
+ggsave("outputs/figures/final_extended_moisture_overlay.png", final_extended_plot, width = 16, height = 10, dpi = 300)
 
 # Store the best interpolation for future use
 best_moisture_df <- best_df
@@ -1019,10 +1019,10 @@ final_extended_plot <- ggplot() +
 print(final_extended_plot)
 
 # Save all plots
-ggsave("../../outputs/figures/extended_akima_interpolation.png", p1, width = 12, height = 8, dpi = 300)
-ggsave("../../outputs/figures/tps_interpolation.png", p2, width = 12, height = 8, dpi = 300)
-ggsave("../../outputs/figures/gam_interpolation.png", p3, width = 12, height = 8, dpi = 300)
-ggsave("../../outputs/figures/final_extended_moisture_overlay.png", final_extended_plot, width = 16, height = 10, dpi = 300)
+ggsave("outputs/figures/extended_akima_interpolation.png", p1, width = 12, height = 8, dpi = 300)
+ggsave("outputs/figures/tps_interpolation.png", p2, width = 12, height = 8, dpi = 300)
+ggsave("outputs/figures/gam_interpolation.png", p3, width = 12, height = 8, dpi = 300)
+ggsave("outputs/figures/final_extended_moisture_overlay.png", final_extended_plot, width = 16, height = 10, dpi = 300)
 
 # Store the best interpolation for future use
 best_moisture_df <- best_df

@@ -24,6 +24,10 @@ library(ggnewscale)
 library(ggrepel)
 library(patchwork)
 
+# Source upstream dependencies (must run from project root)
+source("code/05_gene_flux_analysis/02_scale_dependent_gene_patterns.R")
+source("code/05_gene_flux_analysis/03_radial_gene_plots.R")
+
 # ============================================================
 # FUNCTION TO SPLIT SPECIES NAMES INTO TWO LINES
 # ============================================================

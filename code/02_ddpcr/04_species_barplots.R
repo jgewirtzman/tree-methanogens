@@ -21,6 +21,12 @@ library(ape)
 library(phytools)
 library(viridis)
 
+# Load data if not already in environment
+if (!exists("merged_final")) {
+  merged_final <- read_csv("data/processed/integrated/merged_tree_dataset_final.csv",
+                           show_col_types = FALSE)
+}
+
 # Species name mapping
 species_mapping <- c(
   "ACRU" = "Acer rubrum",

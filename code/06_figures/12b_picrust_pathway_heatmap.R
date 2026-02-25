@@ -169,31 +169,36 @@ make_pathway_heatmap <- function(pvals_file, meta_df, gene_col, gene_label,
   ## Annotation bar + legend + margins need ~1.0 in
   fig_height <- max(4, nrow(sig) * cellheight / 72 + 1.0)
 
-  ## Generate heatmap
-  png(output_file, width = fig_width, height = fig_height,
-      units = "in", res = 300)
+  ## Generate heatmap (with device protection to prevent corruption)
+  tryCatch({
+    png(output_file, width = fig_width, height = fig_height,
+        units = "in", res = 300)
 
-  pheatmap(t(sig_percent),
-           color = heatmap_colors,
-           scale = "row",
-           annotation_col = ann_col,
-           annotation_colors = ann_colors,
-           show_colnames = FALSE,
-           cluster_cols = FALSE,
-           cluster_rows = FALSE,
-           treeheight_row = 0,
-           labels_row = row_labels,
-           annotation_names_row = TRUE,
-           fontsize_row = fontsize_row,
-           fontsize = 10,
-           fontsize_col = 8,
-           cellheight = cellheight,
-           border_color = NA,
-           main = "")
+    pheatmap(t(sig_percent),
+             color = heatmap_colors,
+             scale = "row",
+             annotation_col = ann_col,
+             annotation_colors = ann_colors,
+             show_colnames = FALSE,
+             cluster_cols = FALSE,
+             cluster_rows = FALSE,
+             treeheight_row = 0,
+             labels_row = row_labels,
+             annotation_names_row = TRUE,
+             fontsize_row = fontsize_row,
+             fontsize = 10,
+             fontsize_col = 8,
+             cellheight = cellheight,
+             border_color = NA,
+             main = "")
 
-  dev.off()
+    dev.off()
+    cat("Saved:", output_file, "\n")
+  }, error = function(e) {
+    try(dev.off(), silent = TRUE)
+    cat("ERROR generating", output_file, ":", conditionMessage(e), "\n")
+  })
 
-  cat("Saved:", output_file, "\n")
   return(invisible(sig))
 }
 

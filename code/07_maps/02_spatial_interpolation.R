@@ -28,13 +28,13 @@ library(sf)
 library(geosphere)
 
 # Read the soil moisture data
-data <- read.csv('../../data/raw/inventory/spatial_data/soil_moisture_20201216.csv')
+data <- read.csv('data/raw/inventory/spatial_data/soil_moisture_20201216.csv')
 
 # Read the river data
-river_data <- read_excel('../../data/raw/inventory/spatial_data/River.xlsx')
+river_data <- read_excel('data/raw/inventory/spatial_data/River.xlsx')
 
 # Read the research plots data
-plots_data <- read.csv('../../data/raw/inventory/spatial_data/plots.csv')
+plots_data <- read.csv('data/raw/inventory/spatial_data/plots.csv')
 
 # Remove rows with missing VWC values
 data_clean <- data[!is.na(data$VWC), ]
@@ -255,9 +255,7 @@ p2 <- ggplot() +
 
 print(p2)
 
-# Save plots
-ggsave("../../outputs/figures/soil_moisture_plots_with_ellipses.png", p1, width = 12, height = 8, dpi = 300)
-ggsave("../../outputs/figures/soil_moisture_contour_with_ellipses.png", p2, width = 12, height = 8, dpi = 300)
+# Intermediate plots — not saved (only publication figures are saved downstream)
 
 # Print results
 cat("Plot-Level VWC Analysis Results:\n")
@@ -268,7 +266,7 @@ cat("Method 3: Mean of interpolated values within 5m buffer of each subplot\n\n"
 print(plot_vwc_results)
 
 # Save results to CSV
-write.csv(plot_vwc_results, "../../outputs/tables/plot_level_vwc_analysis.csv", row.names = FALSE)
+write.csv(plot_vwc_results, "outputs/tables/plot_level_vwc_analysis.csv", row.names = FALSE)
 
 # Summary statistics by method
 cat("\nSummary Statistics by Method:\n")
@@ -300,7 +298,7 @@ library(akima)
 library(readxl)
 
 # Set file path base
-base_path <- '../../data/raw/inventory/spatial_data'
+base_path <- 'data/raw/inventory/spatial_data'
 
 # Read all data files
 soil_moisture <- read.csv(file.path(base_path, 'soil_moisture_20201216.csv'))
@@ -507,10 +505,7 @@ p3 <- ggplot() +
 
 print(p3)
 
-# Save plots
-ggsave("../../outputs/figures/elevation_hillshade_with_points.png", p1, width = 12, height = 8, dpi = 300)
-ggsave("../../outputs/figures/elevation_map_with_contours.png", p2, width = 12, height = 8, dpi = 300)
-ggsave("../../outputs/figures/elevation_hillshade_clean.png", p3, width = 12, height = 8, dpi = 300)
+# Intermediate elevation plots — not saved
 
 # Print detailed statistics
 cat("\nDetailed Elevation Statistics by Source:\n")
@@ -537,7 +532,7 @@ cat("  Longitude:", round(lon_range, 5), "\n")
 cat("  Latitude:", round(lat_range, 5), "\n")
 
 # Save elevation data
-write.csv(all_elevation, "../../outputs/tables/combined_elevation_data.csv", row.names = FALSE)
+write.csv(all_elevation, "outputs/tables/combined_elevation_data.csv", row.names = FALSE)
 
 # Load the moisture interpolation we created earlier
 # This assumes you've already run the soil moisture interpolation script
@@ -626,9 +621,7 @@ p5 <- ggplot() +
 
 print(p5)
 
-# Save the combined maps
-ggsave("../../outputs/figures/moisture_hillshade_overlay.png", p4, width = 12, height = 8, dpi = 300)
-ggsave("../../outputs/figures/moisture_hillshade_plots.png", p5, width = 12, height = 8, dpi = 300)
+# Intermediate moisture+hillshade plots — not saved
 
 # Assign each tree to nearest research plot
 assign_trees_to_plots <- function(trees_data, plots_data) {
@@ -845,9 +838,7 @@ p7 <- ggplot() +
 
 print(p7)
 
-# Save the tree assignment maps
-ggsave("../../outputs/figures/moisture_hillshade_plots_trees.png", p6, width = 14, height = 8, dpi = 300)
-ggsave("../../outputs/figures/moisture_hillshade_ellipses_with_trees.png", p7, width = 14, height = 8, dpi = 300)
+# Intermediate tree assignment plots — not saved
 
 # Calculate plot-level VWC using three methods with new ellipses including trees
 calculate_plot_vwc_with_trees <- function(plots_data, trees_with_plots, moisture_df, moisture_interp, plot_tree_ellipses) {
@@ -934,7 +925,7 @@ cat("Method 3: Mean of interpolated values within 5m buffer of each subplot\n\n"
 print(plot_vwc_final)
 
 # Save results to CSV
-write.csv(plot_vwc_final, "../../outputs/tables/final_plot_level_vwc_analysis.csv", row.names = FALSE)
+write.csv(plot_vwc_final, "outputs/tables/final_plot_level_vwc_analysis.csv", row.names = FALSE)
 
 # Summary statistics by method
 cat("\nSummary Statistics by Method:\n")
@@ -975,7 +966,7 @@ site_summary <- plot_vwc_final %>%
 print(site_summary)
 
 # Save tree assignment data
-write.csv(trees_with_plots, "../../outputs/tables/trees_assigned_to_plots.csv", row.names = FALSE)
+write.csv(trees_with_plots, "outputs/tables/trees_assigned_to_plots.csv", row.names = FALSE)
 
 
 
@@ -1095,6 +1086,5 @@ p7 <- ggplot() +
 
 print(p7)
 
-# Save the annotated plot
-ggsave("../../outputs/figures/annotated_moisture_hillshade_ellipses.png", p7, width = 14, height = 8, dpi = 300)
+# Intermediate annotated plot — not saved
 

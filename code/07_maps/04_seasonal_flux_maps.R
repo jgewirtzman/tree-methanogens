@@ -374,7 +374,7 @@ cat("\nSaving combined figure...\n")
 
 # Save as high-quality PNG
 # Wide format for horizontal layout
-ggsave("../../outputs/figures/combined_tree_soil_flux_seasonal.png",
+ggsave("outputs/figures/combined_tree_soil_flux_seasonal.png",
        combined_figure,
        width = 16,
        height = 8,
@@ -384,7 +384,7 @@ ggsave("../../outputs/figures/combined_tree_soil_flux_seasonal.png",
 cat("  Saved: combined_tree_soil_flux_seasonal.png\n")
 
 # Also save as PDF for publication
-ggsave("../../outputs/figures/combined_tree_soil_flux_seasonal.pdf",
+ggsave("outputs/figures/combined_tree_soil_flux_seasonal.pdf",
        combined_figure,
        width = 16,
        height = 8,
@@ -511,7 +511,7 @@ p_species_dist <- ggplot(species_dist_data,
     axis.text.y = element_text(size = 6)
   )
 
-ggsave("../../outputs/figures/tree_flux_distribution_by_species.png", p_species_dist,
+ggsave("outputs/figures/tree_flux_distribution_by_species.png", p_species_dist,
        width = 14, height = 10, dpi = 150)
 cat("  Saved: tree_flux_distribution_by_species.png\n")
 
@@ -549,7 +549,7 @@ p_species_box <- ggplot(species_dist_data,
     axis.text.y = element_text(size = 9, face = "italic")  # Italic for scientific names
   )
 
-ggsave("../../outputs/figures/tree_flux_boxplot_by_species.png", p_species_box,
+ggsave("outputs/figures/tree_flux_boxplot_by_species.png", p_species_box,
        width = 10, height = 8, dpi = 150)
 cat("  Saved: tree_flux_boxplot_by_species.png\n")
 
@@ -584,7 +584,7 @@ p_species_spatial <- ggplot(species_dist_data,
     panel.grid.minor = element_blank()
   )
 
-ggsave("../../outputs/figures/tree_flux_spatial_faceted_species.png", p_species_spatial,
+ggsave("outputs/figures/tree_flux_spatial_faceted_species.png", p_species_spatial,
        width = 14, height = 10, dpi = 150)
 cat("  Saved: tree_flux_spatial_faceted_species.png\n")
 
@@ -608,7 +608,7 @@ faceted_species_stats <- species_dist_data %>%
 
 cat("\nStatistics for species with n>50 (excluding Kalmia latifolia):\n")
 print(faceted_species_stats %>% dplyr::select(species_full, n_trees, mean_flux, median_flux, cv_flux))
-write.csv(faceted_species_stats, "../../outputs/tables/tree_flux_faceted_species_stats.csv", row.names = FALSE)
+write.csv(faceted_species_stats, "outputs/tables/tree_flux_faceted_species_stats.csv", row.names = FALSE)
 
 # Also create a simple bar chart showing mean flux by species
 faceted_species_stats$species_full_ordered <- factor(faceted_species_stats$species_full,
@@ -633,7 +633,7 @@ p_species_bar <- ggplot(faceted_species_stats,
     axis.text.y = element_text(size = 9, face = "italic")  # Italic for scientific names
   )
 
-ggsave("../../outputs/figures/tree_flux_barplot_by_species.png", p_species_bar,
+ggsave("outputs/figures/tree_flux_barplot_by_species.png", p_species_bar,
        width = 10, height = 8, dpi = 150)
 cat("  Saved: tree_flux_barplot_by_species.png\n")
 
@@ -658,7 +658,7 @@ p_species_violin <- ggplot(species_dist_data,
     axis.text.y = element_text(size = 9, face = "italic")  # Italic for scientific names
   )
 
-ggsave("../../outputs/figures/tree_flux_violin_by_species.png", p_species_violin,
+ggsave("outputs/figures/tree_flux_violin_by_species.png", p_species_violin,
        width = 10, height = 8, dpi = 150)
 cat("  Saved: tree_flux_violin_by_species.png\n")
 
@@ -673,7 +673,7 @@ cat("  Number of species analyzed:", length(species_for_dist), "\n")
 mega_combined_plot <- (tree_row / soil_row / p_species_spatial) +
   plot_layout(heights = c(1, 1, 1.2))
 
-ggsave("../../outputs/figures/mega_combined_flux_figure.png",
+ggsave("outputs/figures/mega_combined_flux_figure.png",
        mega_combined_plot,
        width = 16, height = 16, dpi = 300, bg = "white")
 
