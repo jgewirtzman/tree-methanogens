@@ -148,20 +148,20 @@ See `code/04_scaling/RF_CH4_workflow_spec.md` for the detailed RF technical spec
 | Fig 8 | `fig8_radial_species_comparison.png` | Radial cross-sections + species comparison | `05_gene_flux_analysis/04_species_gene_flux.R` |
 | Fig 9 | `fig9_upscaled_flux_seasonal.png` | Upscaled seasonal flux overview | `04_scaling/09_upscale_publication_plots.R` |
 | S1 | `figS1_moisture_overlay.png` | Moisture interpolation overlay | — |
-| S2 | `figS2_faprotax_heatmaps.png` | FAPROTAX functional heatmaps | `06_figures/08d_faprotax_heatmaps.R` |
-| S3 | `figS3_taxonomy_mcra_heatmap.png` | Family-level 16S × mcrA associations | `06_figures/12a_taxonomy_mcra_heatmap.R` |
+| S2 | `figS2_taxonomy_pmoa_heatmap.png` | Family-level 16S × pmoA associations | `06_figures/12c_taxonomy_pmoa_heatmap.R` |
+| S3 | `figS3_faprotax_heatmaps.png` | FAPROTAX functional heatmaps | `06_figures/08d_faprotax_heatmaps.R` |
 | S4 | `figS4_picrust_mcra_all_heatmap.png` | MetaCyc pathway × mcrA (full FDR < 0.01 set) | `06_figures/12b_picrust_pathway_heatmap.R` |
 | S5 | `figS5_picrust_pmoa_heatmap.png` | MetaCyc pathway × pmoA associations (no-pmoA OTU) | `06_figures/12b_picrust_pathway_heatmap.R` |
-| S6 | `figS6_internal_gas_beeswarm.png` | Internal gas beeswarm by species | `06_figures/05_internal_gas_plots.R` |
-| S7 | `figS7_internal_gas_profiles.png` | Internal gas multi-panel profiles | `06_figures/05_internal_gas_plots.R` |
-| S8 | `figS8_d13ch4_rainfall.png` | δ¹³CH₄ vs rainfall | `06_figures/11a_isotope_d13ch4_single.R` |
-| S9 | `figS9_rf_predictions.png` | RF model predictions (3-row layout) | `04_scaling/08_rf_publication_plots.R` |
-| S10 | `figS10_scale_dependent_genes.png` | Scale-dependent gene–flux patterns | `05_gene_flux_analysis/02_scale_dependent_gene_patterns.R` |
-| S11 | `figS11_tree_radial_sections.png` | Tree radial mcrA cross-sections | `06_figures/02_radial_cross_sections.R` |
-| S12 | `figS12_methanotroph_abundance_patterns.png` | pmoA vs mmoX + ratio analysis | `05_gene_flux_analysis/methanotrophs/03_pmoa_mmox_analysis.R` |
-| S13 | `figS13_mcra_vs_methanotroph.png` | mcrA vs methanotroph independence | `05_gene_flux_analysis/02_scale_dependent_gene_patterns.R` |
-| S14 | `figS14_black_oak_methanome.png` | Black oak methanome heatmap | `06_figures/10_black_oak_methanome_heatmap.R` |
-| S15 | `figS15_taxonomy_pmoa_heatmap.png` | Family-level 16S × pmoA associations | `06_figures/12c_taxonomy_pmoa_heatmap.R` |
+| S6 | `figS6_taxonomy_mcra_heatmap.png` | Family-level 16S × mcrA associations | `06_figures/12a_taxonomy_mcra_heatmap.R` |
+| S7 | `figS7_internal_gas_beeswarm.png` | Internal gas beeswarm by species | `06_figures/05_internal_gas_plots.R` |
+| S8 | `figS8_internal_gas_profiles.png` | Internal gas multi-panel profiles | `06_figures/05_internal_gas_plots.R` |
+| S9 | `figS9_d13ch4_rainfall.png` | δ¹³CH₄ vs rainfall | `06_figures/11a_isotope_d13ch4_single.R` |
+| S10 | `figS10_methanotroph_abundance_patterns.png` | pmoA vs mmoX + ratio analysis | `05_gene_flux_analysis/methanotrophs/03_pmoa_mmox_analysis.R` |
+| S11 | `figS11_scale_dependent_genes.png` | Scale-dependent gene–flux patterns | `05_gene_flux_analysis/02_scale_dependent_gene_patterns.R` |
+| S12 | `figS12_black_oak_methanome.png` | Black oak methanome heatmap | `06_figures/10_black_oak_methanome_heatmap.R` |
+| S13 | `figS13_tree_radial_sections.png` | Tree radial mcrA cross-sections | `06_figures/02_radial_cross_sections.R` |
+| S14 | `figS14_mcra_vs_methanotroph.png` | mcrA vs methanotroph independence | `05_gene_flux_analysis/02_scale_dependent_gene_patterns.R` |
+| S15 | `figS15_rf_predictions.png` | RF model predictions (3-row layout) | `04_scaling/08_rf_publication_plots.R` |
 
 ## Key Datasets
 

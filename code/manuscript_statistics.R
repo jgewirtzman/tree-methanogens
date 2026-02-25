@@ -769,10 +769,10 @@ for (fam in mt_families_detected) {
 
 
 # ==============================================================================
-# SECTION 6: FAPROTAX / PICRUSt (Figures S2-S5)
+# SECTION 6: FAPROTAX / PICRUSt (Figures S3-S5)
 # ==============================================================================
 
-section_header("SECTION 6: FAPROTAX / PICRUSt (Figures S2-S5)")
+section_header("SECTION 6: FAPROTAX / PICRUSt (Figures S3-S5)")
 
 # FAPROTAX — computed via microeco (same pipeline as 08d_faprotax_heatmaps.R)
 sub_header("FAPROTAX functional predictions (via microeco)")
@@ -1595,8 +1595,8 @@ if ("log_mmox" %in% names(tree_level)) {
 
 section_header("SECTION 12: SUPPLEMENTARY FIGURE STATISTICS")
 
-# --- Figure S1: Methanotroph relative abundance (from 08c) ---
-sub_header("Figure S1: Methanotroph relative abundances by compartment")
+# --- Methanotroph relative abundance (supporting Figure 5) ---
+sub_header("Methanotroph relative abundances by compartment (Figure 5 support)")
 # Already have ps.filt, otu_df, tax_df, samp_meta from Section 5
 if (exists("ps.filt") && exists("mt_defs")) {
 
@@ -1631,11 +1631,11 @@ if (exists("ps.filt") && exists("mt_defs")) {
   cat("  [Requires phyloseq objects from Section 5]\n")
 }
 
-# --- Figure S2: FAPROTAX (already in Section 6, just cross-reference) ---
-sub_header("Figure S2: FAPROTAX (see Section 6 above)")
+# --- Figure S3: FAPROTAX (already in Section 6, just cross-reference) ---
+sub_header("Figure S3: FAPROTAX (see Section 6 above)")
 
-# --- Figure S3: PICRUSt inner vs outer + methanotroph associations ---
-sub_header("Figure S3a: PICRUSt inner vs outer core pathways")
+# --- PICRUSt pathway statistics (supporting Figures S4-S5) ---
+sub_header("PICRUSt pathway statistics (Figures S4-S5)")
 picrust_mcra_all <- "data/processed/molecular/picrust/pathway_associations_mcra_all.csv"
 if (file.exists(picrust_mcra_all)) {
   pa_all <- read.csv(picrust_mcra_all, stringsAsFactors = FALSE)
@@ -1650,7 +1650,7 @@ if (file.exists(picrust_mcra_all)) {
               nrow(pos_all), nrow(neg_all)))
 }
 
-sub_header("Figure S3b: pmoA pathway associations")
+sub_header("Figure S5: pmoA pathway associations")
 picrust_pmoa_no <- "data/processed/molecular/picrust/pathway_associations_pmoa_no_pmoa_otus.csv"
 if (file.exists(picrust_pmoa_no)) {
   pa_pmoa <- read.csv(picrust_pmoa_no, stringsAsFactors = FALSE)
@@ -1671,15 +1671,15 @@ if (file.exists(picrust_pmoa_no)) {
 # --- Figure S4: PICRUSt mcrA all-OTU heatmap (expanded version of Fig 6) ---
 sub_header("Figure S4: PICRUSt mcrA (all OTUs) heatmap")
 if (file.exists(picrust_mcra_all)) {
-  cat(sprintf("  See S3a counts above. Full FDR<0.01 set: %d pathways\n", nrow(sig_all)))
+  cat(sprintf("  See pathway counts above. Full FDR<0.01 set: %d pathways\n", nrow(sig_all)))
 }
 
 # --- Figure S5: PICRUSt pmoA heatmap ---
 sub_header("Figure S5: PICRUSt pmoA heatmap")
-cat("  See S3b counts above.\n")
+cat("  See pmoA pathway counts above.\n")
 
-# --- Figure S6: Internal gas beeswarm by species ---
-sub_header("Figure S6: Internal gas concentrations by species")
+# --- Figure S7: Internal gas beeswarm by species ---
+sub_header("Figure S7: Internal gas concentrations by species")
 gas_data <- ymf2021 %>%
   filter(!is.na(CH4_concentration), !is.na(species_id)) %>%
   mutate(species_latin = species_mapping[species_id]) %>%
@@ -1711,8 +1711,8 @@ if ("O2_concentration" %in% names(ymf2021)) {
                           round(max(o2_data_s6$O2_concentration / 10000, na.rm = TRUE), 1)), "%")
 }
 
-# --- Figure S7: Internal gas profiles (4 panels) ---
-sub_header("Figure S7: Internal gas correlation panels")
+# --- Figure S8: Internal gas profiles (4 panels) ---
+sub_header("Figure S8: Internal gas correlation panels")
 
 # Panel A: CH4 vs CO2
 ch4_co2 <- ymf2021 %>% filter(!is.na(CH4_concentration), !is.na(CO2_concentration))
@@ -1773,8 +1773,8 @@ for (h_col in c("CH4_best.flux_50cm", "CH4_best.flux_125cm", "CH4_best.flux_200c
   }
 }
 
-# --- Figure S8: δ13CH4 isotope analysis ---
-sub_header("Figure S8: d13CH4 isotope analysis")
+# --- Figure S9: δ13CH4 isotope analysis ---
+sub_header("Figure S9: d13CH4 isotope analysis")
 pic_files <- c("data/raw/internal_gas/picarro/20251128_211030_results.csv",
                "data/raw/internal_gas/picarro/20251128_213226_results.csv",
                "data/raw/internal_gas/picarro/20251128_215521_results.csv")
@@ -1834,8 +1834,8 @@ if (all(file.exists(pic_files))) {
   cat("  [SKIPPED] Picarro isotope files not found.\n")
 }
 
-# --- Figure S9: RF model diagnostics (expanded) ---
-sub_header("Figure S9: RF model diagnostics (expanded)")
+# --- Figure S15: RF model diagnostics (expanded) ---
+sub_header("Figure S15: RF model diagnostics (expanded)")
 if (exists("TreeRF") && exists("SoilRF")) {
   # CCC requires DescTools; compute manually if not available
   tree_obs <- tree_train_complete$stem_flux_corrected * 1000
@@ -1881,13 +1881,13 @@ if (exists("TreeRF") && exists("SoilRF")) {
   }
 }
 
-# --- Figure S10: already covered in Sections 8 + 11 ---
-sub_header("Figure S10: Scale-dependent genes (see Sections 8-9)")
+# --- Figure S11: already covered in Sections 8 + 11 ---
+sub_header("Figure S11: Scale-dependent genes (see Sections 8-9)")
 cat("  Individual gene-flux R2: see Section 8\n")
 cat("  Species-level correlations: see Section 9\n")
 
-# --- Figure S11: Tree radial mcrA cross-sections ---
-sub_header("Figure S11: Tree radial mcrA cross-sections")
+# --- Figure S13: Tree radial mcrA cross-sections ---
+sub_header("Figure S13: Tree radial mcrA cross-sections")
 # mcrA by species (inner vs outer)
 sp_mcra_comps <- ymf2021 %>%
   filter(!is.na(species_id)) %>%
@@ -1912,8 +1912,8 @@ for (i in 1:min(5, nrow(sp_mcra_comps))) {
               sp_mcra_comps$inner_outer_ratio[i]))
 }
 
-# --- Figure S12: pmoA vs mmoX patterns (already in Section 11) ---
-sub_header("Figure S12: pmoA/mmoX patterns (see Section 11)")
+# --- Figure S10: pmoA vs mmoX patterns (already in Section 11) ---
+sub_header("Figure S10: pmoA/mmoX patterns (see Section 11)")
 # Add S12-specific stats from manuscript text
 # pmoA detection, mmoX detection, co-occurrence
 pmoa_inner <- ymf2021$ddpcr_pmoa_Inner_loose
@@ -1976,12 +1976,12 @@ if (nrow(hw_ratios) > 3) {
   }
 }
 
-# --- Figure S13: mcrA vs methanotroph independence (already in Section 9) ---
-sub_header("Figure S13: mcrA vs methanotroph (see Section 9)")
+# --- Figure S14: mcrA vs methanotroph independence (already in Section 9) ---
+sub_header("Figure S14: mcrA vs methanotroph (see Section 9)")
 cat("  Tree-level and species-level correlations reported above.\n")
 
-# --- Figure S14: Black oak methanome heatmap ---
-sub_header("Figure S14: Black oak tissue methanome heatmap")
+# --- Figure S12: Black oak methanome heatmap ---
+sub_header("Figure S12: Black oak tissue methanome heatmap")
 # This is from 10_black_oak_methanome_heatmap.R — qualitative, but key result:
 # Methanobacteriaceae only in heartwood, no methanogens in soil
 cat("  Key qualitative results (from manuscript text):\n")
@@ -1992,8 +1992,8 @@ cat("  - Methanotrophs (Methylocella) in heartwood, sapwood, bark, foliage\n")
 cat("  - Methyloferula in sapwood, bark, leaf litter\n")
 cat("  - Methylorosula in heartwood, sapwood, leaf litter\n")
 
-# --- Figure S15: Taxonomy x pmoA heatmap ---
-sub_header("Figure S15: Family-level 16S x pmoA associations")
+# --- Figure S2: Taxonomy x pmoA heatmap ---
+sub_header("Figure S2: Family-level 16S x pmoA associations")
 picrust_pmoa_full <- "data/processed/molecular/picrust/pathway_associations_pmoa.csv"
 if (file.exists(picrust_pmoa_full)) {
   pa_pmoa_f <- read.csv(picrust_pmoa_full, stringsAsFactors = FALSE)
@@ -2002,9 +2002,9 @@ if (file.exists(picrust_pmoa_full)) {
   stat("Significant at FDR < 0.01 (pmoA)", nrow(sig_pmoa_f))
 }
 
-# Also check taxonomy heatmap for S3
+# Also check taxonomy heatmap for S6
 taxonomy_mcra_file <- "data/processed/molecular/picrust/pathway_associations_mcra_no_mcra_otus.csv"
-sub_header("Figure S3: Family-level 16S x mcrA associations")
+sub_header("Figure S6: Family-level 16S x mcrA associations")
 if (exists("fam_cors") && nrow(fam_cors) > 0) {
   stat("Families significantly correlated with mcrA (p<0.05)", nrow(fam_cors))
   stat("Positively correlated", sum(fam_cors$r > 0))

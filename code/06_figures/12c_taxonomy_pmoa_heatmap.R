@@ -1,5 +1,5 @@
 # ==============================================================================
-# Taxonomy–pmoA Association Heatmaps (Family-level 16S) — Figure S15
+# Taxonomy–pmoA Association Heatmaps (Family-level 16S) — Figure S2
 # ==============================================================================
 # Purpose: Visualizes the top bacterial/archaeal families (16S) across wood
 #   samples, highlighting those significantly associated with pmoA (methanotroph)
@@ -28,7 +28,7 @@
 #   - PICRUSt meta:  data/raw/picrust/16S_tree_sample_table_with_meta.csv
 #
 # Outputs:
-#   - figS15_taxonomy_pmoa_heatmap.png
+#   - figS2_taxonomy_pmoa_heatmap.png
 #   - family_pmoa_associations.csv
 #
 # Required packages: phyloseq, tidyverse, lme4, pheatmap, RColorBrewer
@@ -302,7 +302,7 @@ ordered_families <- pvals_ordered$family
 heatmap_data <- heatmap_data[, ordered_families]
 ann_row <- ann_row[ordered_families, , drop = FALSE]
 
-png("outputs/figures/supplementary/figS15_taxonomy_pmoa_heatmap.png",
+png("outputs/figures/supplementary/figS2_taxonomy_pmoa_heatmap.png",
     width = fig_width, height = fig_height, units = "in", res = 300)
 
 pheatmap(t(heatmap_data),
@@ -325,5 +325,5 @@ pheatmap(t(heatmap_data),
 
 dev.off()
 
-cat("\nHeatmap saved: figS15_taxonomy_pmoa_heatmap.png\n")
+cat("\nHeatmap saved: figS2_taxonomy_pmoa_heatmap.png\n")
 cat("Done.\n")

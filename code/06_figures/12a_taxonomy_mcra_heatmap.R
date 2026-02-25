@@ -1,5 +1,5 @@
 # ==============================================================================
-# Taxonomy–mcrA Association Heatmaps (Family-level 16S) — Figure S3
+# Taxonomy–mcrA Association Heatmaps (Family-level 16S) — Figure S6
 # ==============================================================================
 # Purpose: Visualizes the top bacterial/archaeal families (16S) across wood
 #   samples, highlighting those significantly associated with mcrA (methanogen)
@@ -28,7 +28,7 @@
 #   - PICRUSt meta:  data/raw/picrust/16S_tree_sample_table_with_meta.csv
 #
 # Outputs:
-#   - figS3_taxonomy_mcra_heatmap.png
+#   - figS6_taxonomy_mcra_heatmap.png
 #   - family_mcra_associations_strict.csv
 #   - family_mcra_associations_loose.csv
 #
@@ -303,7 +303,7 @@ ordered_families <- pvals_ordered$family
 heatmap_data <- heatmap_data[, ordered_families]
 ann_row <- ann_row[ordered_families, , drop = FALSE]
 
-png("outputs/figures/supplementary/figS3_taxonomy_mcra_heatmap.png",
+png("outputs/figures/supplementary/figS6_taxonomy_mcra_heatmap.png",
     width = fig_width, height = fig_height, units = "in", res = 300)
 
 pheatmap(t(heatmap_data),
@@ -326,5 +326,5 @@ pheatmap(t(heatmap_data),
 
 dev.off()
 
-cat("\nHeatmap saved: figS3_taxonomy_mcra_heatmap.png\n")
+cat("\nHeatmap saved: figS6_taxonomy_mcra_heatmap.png\n")
 cat("Done.\n")
