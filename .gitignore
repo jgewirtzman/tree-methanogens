@@ -17,6 +17,12 @@
 .DS_Store
 
 # --- Data files (archived on Zenodo, not in git) ---
+# Compiled analysis-ready datasets (Zenodo only, regenerable via compile_zenodo_datasets.R)
+data/compiled/
+
+# Deprecated data (removed duplicates, scratch files)
+data/deprecated/
+
 # Raw data
 data/raw/**/*.csv
 data/raw/**/*.txt
