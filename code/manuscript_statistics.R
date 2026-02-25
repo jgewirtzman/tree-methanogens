@@ -27,6 +27,7 @@ library(lme4)
 library(car)
 library(ranger)
 library(phyloseq)
+library(microeco)
 
 # --- Set up output file ---
 output_file <- "outputs/manuscript_statistics.txt"
@@ -773,64 +774,92 @@ for (fam in mt_families_detected) {
 
 section_header("SECTION 6: FAPROTAX / PICRUSt (Figures S2-S5)")
 
-# FAPROTAX
-sub_header("FAPROTAX functional predictions")
-faprotax_file <- "data/raw/16s/faprotax_output/functional_table.tsv"
-if (file.exists(faprotax_file)) {
-  fap <- read.delim(faprotax_file, row.names = 1)
-  # Match to rarefied samples
-  common_samps <- intersect(colnames(fap), rownames(samp_meta))
-  fap_sub <- fap[, common_samps]
-  fap_ra <- sweep(fap_sub, 2, colSums(otu_df[, common_samps]), FUN = "/") * 100
+# FAPROTAX — computed via microeco (same pipeline as 08d_faprotax_heatmaps.R)
+sub_header("FAPROTAX functional predictions (via microeco)")
 
+# Prepare phyloseq for microeco: need QIIME-style taxonomy prefixes
+ps.wood <- subset_samples(ps.filt, material == "Wood")
+ps.wood.fap <- ps.wood
+tax_table(ps.wood.fap)[, 1] <- paste0("k__", tax_table(ps.wood.fap)[, 1])
+tax_table(ps.wood.fap)[, 2] <- paste0("p__", tax_table(ps.wood.fap)[, 2])
+tax_table(ps.wood.fap)[, 3] <- paste0("c__", tax_table(ps.wood.fap)[, 3])
+tax_table(ps.wood.fap)[, 4] <- paste0("o__", tax_table(ps.wood.fap)[, 4])
+tax_table(ps.wood.fap)[, 5] <- paste0("f__", tax_table(ps.wood.fap)[, 5])
+tax_table(ps.wood.fap)[, 6] <- paste0("g__", tax_table(ps.wood.fap)[, 6])
+tax_table(ps.wood.fap)[, 7] <- paste0("s__", tax_table(ps.wood.fap)[, 7])
+
+# Panel (a): Merge by core_type (Inner = Heartwood, Outer = Sapwood)
+meco_all <- microtable$new(
+  otu_table = as.data.frame(otu_table(ps.wood.fap)),
+  tax_table = noquote(as.data.frame(tax_table(ps.wood.fap))),
+  sample_table = as.data.frame(as.matrix(sample_data(ps.wood.fap))),
+  phylo_tree = phy_tree(ps.wood.fap)
+)
+meco_core <- clone(meco_all)$merge_samples("core_type")
+cat("Running FAPROTAX for core type grouping...\n")
+t_func_core <- trans_func$new(meco_core)
+t_func_core$cal_spe_func(prok_database = "FAPROTAX")
+t_func_core$cal_spe_func_perc(abundance_weighted = TRUE, dec = 2)
+perc_core <- t_func_core$res_spe_func_perc
+
+# Report compartment-level percentages for key functions
+key_funcs <- c("fermentation", "dark_hydrogen_oxidation", "methylotrophy",
+               "methanogenesis", "methanogenesis_by_CO2_reduction_with_H2",
+               "methanogenesis_by_reduction_of_methyl_compounds_with_H2",
+               "methanol_oxidation", "methanotrophy", "aerobic_chemoheterotrophy")
+for (func in key_funcs) {
+  if (func %in% colnames(perc_core)) {
+    hw_val <- perc_core["Inner", func]
+    sw_val <- perc_core["Outer", func]
+    cat(sprintf("  %s: HW=%.2f%%, SW=%.2f%%\n", func, hw_val, sw_val))
+  }
+}
+
+# Panel (b): Heartwood only, per species
+ps.hw.fap <- subset_samples(ps.wood.fap, core_type == "Inner")
+meco_hw <- microtable$new(
+  otu_table = as.data.frame(otu_table(ps.hw.fap)),
+  tax_table = noquote(as.data.frame(tax_table(ps.hw.fap))),
+  sample_table = as.data.frame(as.matrix(sample_data(ps.hw.fap))),
+  phylo_tree = phy_tree(ps.hw.fap)
+)
+meco_species <- clone(meco_hw)$merge_samples("species.x")
+cat("Running FAPROTAX for species grouping (heartwood)...\n")
+t_func_sp <- trans_func$new(meco_species)
+t_func_sp$cal_spe_func(prok_database = "FAPROTAX")
+t_func_sp$cal_spe_func_perc(abundance_weighted = TRUE, dec = 2)
+perc_species <- t_func_sp$res_spe_func_perc
+
+# Species-level heartwood means for key metabolisms
+sub_header("Species-level heartwood FAPROTAX means")
+panel_b_funcs <- c("fermentation", "dark_hydrogen_oxidation", "methanogenesis",
+                    "methylotrophy", "methanotrophy", "methanol_oxidation",
+                    "aerobic_chemoheterotrophy")
+for (func in panel_b_funcs) {
+  if (func %in% colnames(perc_species)) {
+    vals <- perc_species[, func]
+    cat(sprintf("  %s: mean=%.2f%%, range=%.2f-%.2f%%\n",
+                func, mean(vals), min(vals), max(vals)))
+  }
+}
+
+# A. saccharum heartwood peaks
+if ("ACSA" %in% rownames(perc_species)) {
+  sub_header("A. saccharum heartwood FAPROTAX peaks")
   for (func in c("fermentation", "dark_hydrogen_oxidation", "methylotrophy",
-                  "methanogenesis", "methane_oxidation", "methanotrophy")) {
-    if (func %in% rownames(fap_ra)) {
-      for (comp in c("Heartwood", "Sapwood")) {
-        samps <- samp_meta %>% filter(compartment == comp) %>% rownames()
-        samps <- intersect(samps, colnames(fap_ra))
-        if (length(samps) > 0) {
-          vals <- as.numeric(fap_ra[func, samps])
-          cat(sprintf("  %s in %s: %.2f +/- %.2f%%\n",
-                      func, comp, mean(vals, na.rm = TRUE), sd(vals, na.rm = TRUE)))
-        }
-      }
-      # Wilcoxon test hw vs sw
-      hw_s <- samp_meta %>% filter(compartment == "Heartwood") %>% rownames()
-      sw_s <- samp_meta %>% filter(compartment == "Sapwood") %>% rownames()
-      hw_s <- intersect(hw_s, colnames(fap_ra))
-      sw_s <- intersect(sw_s, colnames(fap_ra))
-      if (length(hw_s) > 3 && length(sw_s) > 3) {
-        wt <- wilcox.test(as.numeric(fap_ra[func, hw_s]), as.numeric(fap_ra[func, sw_s]))
-        cat(sprintf("    HW vs SW p-value: %.4f\n", wt$p.value))
-      }
+                  "methanogenesis", "aerobic_chemoheterotrophy")) {
+    if (func %in% colnames(perc_species)) {
+      cat(sprintf("  %s: %.2f%%\n", func, perc_species["ACSA", func]))
     }
   }
+}
 
-  # A. saccharum peaks
-  acsa_hw_s <- samp_meta %>% filter(compartment == "Heartwood", species.x == "ACSA") %>% rownames()
-  acsa_hw_s <- intersect(acsa_hw_s, colnames(fap_ra))
-  if (length(acsa_hw_s) > 0) {
-    sub_header("A. saccharum heartwood FAPROTAX peaks")
-    for (func in c("dark_hydrogen_oxidation", "methylotrophy")) {
-      if (func %in% rownames(fap_ra)) {
-        vals <- as.numeric(fap_ra[func, acsa_hw_s])
-        cat(sprintf("  %s: %.2f%%\n", func, mean(vals, na.rm = TRUE)))
-      }
-    }
-  }
-
-  # VERIFY function names: list all >1% in heartwood
-  sub_header("All FAPROTAX functions >1% mean in heartwood")
-  hw_all <- samp_meta %>% filter(compartment == "Heartwood") %>% rownames()
-  hw_all <- intersect(hw_all, colnames(fap_ra))
-  func_means <- rowMeans(fap_ra[, hw_all, drop = FALSE], na.rm = TRUE)
-  func_means <- sort(func_means[func_means > 1], decreasing = TRUE)
-  for (fn in names(func_means)) {
-    cat(sprintf("  %s: %.2f%%\n", fn, func_means[fn]))
-  }
-} else {
-  cat("  [SKIPPED] FAPROTAX output file not found.\n")
+# All FAPROTAX functions >1% mean in heartwood
+sub_header("All FAPROTAX functions >1% mean in heartwood")
+func_means <- colMeans(perc_species)
+func_means <- sort(func_means[func_means > 1], decreasing = TRUE)
+for (fn in names(func_means)) {
+  cat(sprintf("  %s: %.2f%%\n", fn, func_means[fn]))
 }
 
 # PICRUSt pathway verification
@@ -1776,9 +1805,13 @@ if (all(file.exists(pic_files))) {
   stat("Number of species", n_distinct(internal_iso$species))
 
   stat("Internal d13CH4 mean", round(mean(internal_iso$d13CH4), 1), "permil VPDB")
+  stat("Internal d13CH4 median", round(median(internal_iso$d13CH4), 1), "permil VPDB")
   stat("Internal d13CH4 range", paste(round(min(internal_iso$d13CH4), 1), "to",
                                        round(max(internal_iso$d13CH4), 1)), "permil VPDB")
   stat("Internal d13CH4 SD", round(sd(internal_iso$d13CH4), 1), "permil")
+  n_below70 <- sum(internal_iso$d13CH4 <= -70)
+  stat("Samples <= -70 permil", sprintf("%d of %d (%.1f%%)",
+       n_below70, nrow(internal_iso), 100 * n_below70 / nrow(internal_iso)))
   stat("Atmosphere d13CH4 mean", round(mean(atm_iso$d13CH4), 1), "permil VPDB")
 
   # Fraction in each pathway range

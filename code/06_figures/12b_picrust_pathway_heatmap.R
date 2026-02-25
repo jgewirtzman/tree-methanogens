@@ -192,6 +192,7 @@ make_pathway_heatmap <- function(pvals_file, meta_df, gene_col, gene_label,
            main = "")
 
   dev.off()
+
   cat("Saved:", output_file, "\n")
   return(invisible(sig))
 }
