@@ -1,7 +1,7 @@
 
 ************************************************************************ 
   MANUSCRIPT STATISTICS — Tree Microbiomes & Methane
-  Generated: 2026-02-24 18:21:53 
+  Generated: 2026-02-25 13:44:15 
 ************************************************************************ 
 
 Loading data...
@@ -219,7 +219,7 @@ Building phyloseq object...
     Methylomonadaceae: mean 0.000% in heartwood (n_ASVs=15)
 
  ======================================================================== 
-  SECTION 6: FAPROTAX / PICRUSt (Figures S2-S5) 
+  SECTION 6: FAPROTAX / PICRUSt (Figures S3-S5) 
 ======================================================================== 
 
 --- FAPROTAX functional predictions (via microeco) ---
@@ -463,7 +463,7 @@ Running FAPROTAX for species grouping (heartwood)...
   SECTION 12: SUPPLEMENTARY FIGURE STATISTICS 
 ======================================================================== 
 
---- Figure S1: Methanotroph relative abundances by compartment ---
+--- Methanotroph relative abundances by compartment (Figure 5 support) ---
   Heartwood: methanotroph mean = 0.504%, range = 0.000-5.314% (n=131)
   Sapwood: methanotroph mean = 1.095%, range = 0.000-6.971% (n=117)
   Mineral Soil: methanotroph mean = 1.350%, range = 0.000-3.743% (n=126)
@@ -474,19 +474,19 @@ Running FAPROTAX for species grouping (heartwood)...
     Pinus strobus: 0.794% (n=15)
     Kalmia latifolia: 0.671% (n=2)
     Prunus serotina: 0.600% (n=2)
---- Figure S2: FAPROTAX (see Section 6 above) ---
---- Figure S3a: PICRUSt inner vs outer core pathways ---
+--- Figure S3: FAPROTAX (see Section 6 above) ---
+--- PICRUSt pathway statistics (Figures S4-S5) ---
   Total pathways tested (all OTUs)                        407.0000 
   Significant at FDR < 0.01 (all OTUs)                    132.0000 
   Positively associated: 77, Negatively associated: 55
---- Figure S3b: pmoA pathway associations ---
+--- Figure S5: pmoA pathway associations ---
   Significant pmoA pathways (no-pmoA OTUs, FDR < 0.01)    13.0000 
   Positive: 9, Negative: 4
 --- Figure S4: PICRUSt mcrA (all OTUs) heatmap ---
-  See S3a counts above. Full FDR<0.01 set: 132 pathways
+  See pathway counts above. Full FDR<0.01 set: 132 pathways
 --- Figure S5: PICRUSt pmoA heatmap ---
-  See S3b counts above.
---- Figure S6: Internal gas concentrations by species ---
+  See pmoA pathway counts above.
+--- Figure S7: Internal gas concentrations by species ---
   Total trees with internal gas                           157.0000 
   Number of species                                       16.0000 
   Overall CH4 mean                                        2494.0000 ppm
@@ -497,7 +497,7 @@ Running FAPROTAX for species grouping (heartwood)...
     Quercus velutina: 11525 ppm (n=1)
     Quercus rubra: 8658 ppm (n=15)
   O2 range                                                1 to 21.6 %
---- Figure S7: Internal gas correlation panels ---
+--- Figure S8: Internal gas correlation panels ---
   (a) CH4 vs CO2: R2 = 0.184, p = < 0.001 (n=157)
   (b) CH4 vs O2: R2 = 0.074, p = < 0.001 (n=157)
   (c) CH4 conc vs mcrA: R2 = 0.038, p = 0.019 (n=146)
@@ -505,7 +505,7 @@ Running FAPROTAX for species grouping (heartwood)...
     50 cm: R2 = 0.014, p = 0.163 (n=138)
     125 cm: R2 = 0.040, p = 0.020 (n=135)
     200 cm: R2 = 0.071, p = 0.002 (n=137)
---- Figure S8: d13CH4 isotope analysis ---
+--- Figure S9: d13CH4 isotope analysis ---
   Total isotope samples                                   126.0000 
   Internal tree samples                                   125.0000 
   Atmosphere samples                                      1.0000 
@@ -520,7 +520,7 @@ Running FAPROTAX for species grouping (heartwood)...
   In acetoclastic range (-65 to -50): 28 (22%)
   Keeling intercept                                       -77.8000 permil
   Keeling R2                                              0.0020 
---- Figure S9: RF model diagnostics (expanded) ---
+--- Figure S15: RF model diagnostics (expanded) ---
   Tree: CCC = 0.327, R2 = 0.161, RMSE = 0.1 nmol m-2 s-1, n = 353
   Soil: CCC = 0.500, R2 = 0.292, RMSE = 1.0 nmol m-2 s-1, n = 282
 ---   Tree RF top features ---
@@ -541,10 +541,10 @@ Running FAPROTAX for species grouping (heartwood)...
     6. air_temp_C_mean (1.00e-05)
     7. SI (6.68e-06)
     8. month_cos (6.15e-06)
---- Figure S10: Scale-dependent genes (see Sections 8-9) ---
+--- Figure S11: Scale-dependent genes (see Sections 8-9) ---
   Individual gene-flux R2: see Section 8
   Species-level correlations: see Section 9
---- Figure S11: Tree radial mcrA cross-sections ---
+--- Figure S13: Tree radial mcrA cross-sections ---
   Species with >= 3 trees                                 12.0000 
   Species with highest inner/outer mcrA ratio:
     Fagus grandifolia: inner=406310, outer=69, ratio=5875.7
@@ -552,7 +552,7 @@ Running FAPROTAX for species grouping (heartwood)...
     Prunus serotina: inner=106455, outer=74, ratio=1434.3
     Betula alleghaniensis: inner=703942, outer=519, ratio=1357.4
     Betula papyrifera: inner=131418, outer=133, ratio=990.0
---- Figure S12: pmoA/mmoX patterns (see Section 11) ---
+--- Figure S10: pmoA/mmoX patterns (see Section 11) ---
   pmoA detected in wood samples                           293.0000 
   mmoX detected in wood samples                           286.0000 
   Heartwood co-occurrence: 130/145 (90%) of samples with either gene
@@ -561,9 +561,9 @@ Running FAPROTAX for species grouping (heartwood)...
     pmoA:mmoX median ratio = 2.9-fold (log10 = 0.46 +/- 0.71)
   HW vs SW ratio test: p = 0.000
   Ratio vs mcrA: r = 0.18, p = 0.043
---- Figure S13: mcrA vs methanotroph (see Section 9) ---
+--- Figure S14: mcrA vs methanotroph (see Section 9) ---
   Tree-level and species-level correlations reported above.
---- Figure S14: Black oak tissue methanome heatmap ---
+--- Figure S12: Black oak tissue methanome heatmap ---
   Key qualitative results (from manuscript text):
   - Only Methanobacterium (Methanobacteriaceae) detected as methanogen
   - Found exclusively in heartwood and sapwood
@@ -571,10 +571,10 @@ Running FAPROTAX for species grouping (heartwood)...
   - Methanotrophs (Methylocella) in heartwood, sapwood, bark, foliage
   - Methyloferula in sapwood, bark, leaf litter
   - Methylorosula in heartwood, sapwood, leaf litter
---- Figure S15: Family-level 16S x pmoA associations ---
+--- Figure S2: Family-level 16S x pmoA associations ---
   Total pathways tested (pmoA)                            408.0000 
   Significant at FDR < 0.01 (pmoA)                        13.0000 
---- Figure S3: Family-level 16S x mcrA associations ---
+--- Figure S6: Family-level 16S x mcrA associations ---
   Families significantly correlated with mcrA (p<0.05)    28.0000 
   Positively correlated                                   25.0000 
   Negatively correlated                                   3.0000 
@@ -622,5 +622,5 @@ Running FAPROTAX for species grouping (heartwood)...
   wai_tree_mg_m2_yr                             3.850327
 
  ************************************************************************ 
-  DONE —  2026-02-24 18:22:28 
+  DONE —  2026-02-25 13:44:53 
 ************************************************************************ 
