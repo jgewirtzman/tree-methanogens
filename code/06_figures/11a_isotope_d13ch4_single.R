@@ -26,6 +26,7 @@
 library(tidyverse)
 library(ggridges)
 library(ggtext)
+library(cowplot)
 
 # Axis label for δ13CH4 (‰ VPDB) using ggtext HTML markup
 # (plotmath cannot render the per-mil unicode glyph on PNG devices)

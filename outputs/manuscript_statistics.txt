@@ -1,7 +1,7 @@
 
 ************************************************************************ 
   MANUSCRIPT STATISTICS — Tree Microbiomes & Methane
-  Generated: 2026-02-23 21:51:00 
+  Generated: 2026-02-24 18:21:53 
 ************************************************************************ 
 
 Loading data...
@@ -222,8 +222,42 @@ Building phyloseq object...
   SECTION 6: FAPROTAX / PICRUSt (Figures S2-S5) 
 ======================================================================== 
 
---- FAPROTAX functional predictions ---
-  [SKIPPED] FAPROTAX output file not found.
+--- FAPROTAX functional predictions (via microeco) ---
+Running FAPROTAX for core type grouping...
+  fermentation: HW=16.77%, SW=6.65%
+  dark_hydrogen_oxidation: HW=3.61%, SW=1.16%
+  methylotrophy: HW=0.88%, SW=0.53%
+  methanogenesis: HW=3.21%, SW=0.10%
+  methanogenesis_by_CO2_reduction_with_H2: HW=2.57%, SW=0.09%
+  methanogenesis_by_reduction_of_methyl_compounds_with_H2: HW=0.64%, SW=0.01%
+  methanol_oxidation: HW=0.22%, SW=0.49%
+  methanotrophy: HW=0.23%, SW=0.52%
+  aerobic_chemoheterotrophy: HW=28.90%, SW=42.53%
+Running FAPROTAX for species grouping (heartwood)...
+--- Species-level heartwood FAPROTAX means ---
+  fermentation: mean=13.23%, range=0.00-34.54%
+  dark_hydrogen_oxidation: mean=3.57%, range=0.20-11.84%
+  methanogenesis: mean=2.73%, range=0.00-15.69%
+  methylotrophy: mean=0.78%, range=0.00-5.25%
+  methanotrophy: mean=0.32%, range=0.00-2.77%
+  methanol_oxidation: mean=0.29%, range=0.00-2.31%
+  aerobic_chemoheterotrophy: mean=32.68%, range=4.11-80.80%
+--- A. saccharum heartwood FAPROTAX peaks ---
+  fermentation: 18.82%
+  dark_hydrogen_oxidation: 11.84%
+  methylotrophy: 5.25%
+  methanogenesis: 15.69%
+  aerobic_chemoheterotrophy: 24.89%
+--- All FAPROTAX functions >1% mean in heartwood ---
+  chemoheterotrophy: 44.38%
+  aerobic_chemoheterotrophy: 32.68%
+  fermentation: 13.23%
+  anaerobic_chemoheterotrophy: 11.70%
+  dark_hydrogen_oxidation: 3.57%
+  methanogenesis: 2.73%
+  hydrogenotrophic_methanogenesis: 2.73%
+  methanogenesis_by_CO2_reduction_with_H2: 2.27%
+  animal_parasites_or_symbionts: 1.14%
 --- PICRUSt pathway associations (VERIFY pathway names) ---
   Significant mcrA-associated pathways (FDR < 0.01): 132
   Top 15 pathways:
@@ -477,8 +511,10 @@ Building phyloseq object...
   Atmosphere samples                                      1.0000 
   Number of species                                       14.0000 
   Internal d13CH4 mean                                    -58.3000 permil VPDB
+  Internal d13CH4 median                                  -63.7000 permil VPDB
   Internal d13CH4 range                                   -248.8 to 220.8 permil VPDB
   Internal d13CH4 SD                                      57.1000 permil
+  Samples <= -70 permil                                   40 of 125 (32.0%) 
   Atmosphere d13CH4 mean                                  -44.0000 permil VPDB
   In hydrogenotrophic range (-110 to -60): 62 (50%)
   In acetoclastic range (-65 to -50): 28 (22%)
@@ -586,5 +622,5 @@ Building phyloseq object...
   wai_tree_mg_m2_yr                             3.850327
 
  ************************************************************************ 
-  DONE —  2026-02-23 21:51:19 
+  DONE —  2026-02-24 18:22:28 
 ************************************************************************ 
