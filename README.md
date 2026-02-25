@@ -179,7 +179,7 @@ See `code/04_scaling/RF_CH4_workflow_spec.md` for the detailed RF technical spec
 
 ## Methanotroph Definitions
 
-Taxonomy-based methanotroph classification uses a centralized definitions system to ensure consistency across all 16S-based figures (Fig 5, Fig S14, and the standalone methanotroph composition figure):
+Taxonomy-based methanotroph classification uses a centralized definitions system to ensure consistency across all 16S-based figures (Fig 5, Fig S12, and the standalone methanotroph composition figure):
 
 - **Definitions CSV:** `data/processed/molecular/methanotroph_definitions.csv` — a curated 38-row lookup table mapping families and genera to Known, Putative, or Conditional methanotroph status, based on Knief (2015) with SILVA 138 taxonomy cross-referencing. This file is tracked in git (unlike other processed data) because it is a manually curated canonical input, not a generated output.
 - **Shared utility:** `code/00_harmonization/load_methanotroph_definitions.R` — provides `classify_methanotrophs()`, `identify_methanotrophs()`, and `assign_display_family()` functions used by figure scripts `08b`, `08c`, and `10`.
@@ -197,6 +197,7 @@ Key R packages (75 packages total; highlights below):
 - `goFlux` — Flux calculation from continuous gas analyzer data
 - `randomForest`, `ranger` — CH₄ flux prediction models
 - `phyloseq` — 16S amplicon data handling (OTU tables, taxonomy, sample metadata)
+- `microeco` — FAPROTAX functional annotation from 16S data
 - `vegan` — Variance partitioning (varpart), diversity metrics
 - `tidyverse` — Data manipulation and visualization
 - `sf`, `terra`, `akima` — Spatial analysis and interpolation
