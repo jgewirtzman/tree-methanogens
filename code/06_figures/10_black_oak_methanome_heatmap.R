@@ -1,5 +1,5 @@
 # ==============================================================================
-# Black Oak Methanogen/Methanotroph Heatmap (Figure S14)
+# Black Oak Methanogen/Methanotroph Heatmap (Figure S12)
 # ==============================================================================
 # Purpose: Creates a heatmap of methanogenic and methanotrophic taxa across
 #   tissue types in a felled black oak (QUVE), based on 16S rRNA amplicon
@@ -11,7 +11,7 @@
 #   - OTU_table.txt (from data/raw/16s/black_oak/)
 #
 # Outputs:
-#   - figS14_black_oak_methanome.png (absolute abundance heatmap)
+#   - figS12_black_oak_methanome.png (absolute abundance heatmap)
 #
 # Required packages: tidyverse, viridis, cluster
 # ==============================================================================
@@ -176,7 +176,7 @@ p_abs <- Reduce(`/`, panels) +
 
 print(p_abs)
 
-ggsave("outputs/figures/supplementary/figS14_black_oak_methanome.png",
+ggsave("outputs/figures/supplementary/figS12_black_oak_methanome.png",
        p_abs, width = 12, height = 8, dpi = 300)
 
 # ==============================================================================

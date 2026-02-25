@@ -1,5 +1,5 @@
 # ==============================================================================
-# FAPROTAX Functional Prediction Heatmaps (Figure S2)
+# FAPROTAX Functional Prediction Heatmaps (Figure S3)
 # ==============================================================================
 # Purpose: Creates a two-panel figure showing FAPROTAX functional predictions
 #   from 16S rRNA amplicon data:
@@ -19,7 +19,7 @@
 #   - 16s_w_metadata.csv (from data/raw/16s/)
 #
 # Outputs:
-#   - figS2_faprotax_heatmaps.png (in outputs/figures/supplementary/)
+#   - figS3_faprotax_heatmaps.png (in outputs/figures/supplementary/)
 #
 # Required packages: phyloseq, microeco, tidyverse, patchwork
 # ==============================================================================
@@ -349,7 +349,7 @@ combined <- p_a / p_b +
 
 print(combined)
 
-ggsave("outputs/figures/supplementary/figS2_faprotax_heatmaps.png",
+ggsave("outputs/figures/supplementary/figS3_faprotax_heatmaps.png",
        combined, width = 14, height = 12, dpi = 300)
 
-cat("\nSaved figS2_faprotax_heatmaps.png to outputs/figures/supplementary/\n")
+cat("\nSaved figS3_faprotax_heatmaps.png to outputs/figures/supplementary/\n")
