@@ -31,9 +31,19 @@ library(dplyr)
 library(tidyr)
 
 # Load your three datasets
-fg19 <- read.csv('../../data/raw/inventory/ForestGEO_data2021UPDATE_6_21_DW_2019.csv')
-fgplot <- read.csv('../../data/raw/inventory/ForestGEO_data2021UPDATE_6_21_DW_byplot.csv')
-fgtag <- read.csv('../../data/raw/inventory/ForestGEO_data2021UPDATE_6_21_DW_bytag.csv')
+fg19 <- read.csv('data/raw/inventory/ForestGEO_data2021UPDATE_6_21_DW_2019.csv')
+fgplot <- read.csv('data/raw/inventory/ForestGEO_data2021UPDATE_6_21_DW_byplot.csv')
+fgtag <- read.csv('data/raw/inventory/ForestGEO_data2021UPDATE_6_21_DW_bytag.csv')
+
+# Clean BOM characters from column names
+clean_bom <- function(df) {
+  names(df) <- gsub("^X\\.\\.\\.", "", names(df))
+  names(df) <- gsub("^\uFEFF", "", names(df))
+  df
+}
+fg19 <- clean_bom(fg19)
+fgplot <- clean_bom(fgplot)
+fgtag <- clean_bom(fgtag)
 
 # 1. EXTRACT USABLE COORDINATES FROM ALL DATASETS
 # fg19 has PX, PY, Latitude, Longitude
@@ -424,7 +434,7 @@ print(transformation_summary)
 cat("\n")
 
 # PHYLOGENETIC COLORS
-tree_file <- "../../data/processed/metadata/PhytoPhylo"
+tree_file <- "data/processed/metadata/PhytoPhylo"
 
 all_species <- unique(fg_final$Species_Name)
 known_species <- all_species[!grepl("Unknown", all_species)]

@@ -9,8 +9,11 @@
 #   - methods map PNGs (to outputs/figures/)
 # ==============================================================================
 
+# Source upstream dependencies (must run from project root)
+source("code/07_maps/01_forestgeo_alignment.R")
+source("code/07_maps/02_spatial_interpolation.R")
+
 # Overlay stem map on interpolated moisture map
-# This code assumes you've sourced both the moisture interpolation and ForestGEO scripts
 
 # Create overlay plot with stem map on moisture/hillshade background
 stem_moisture_overlay <- ggplot() +
@@ -148,10 +151,8 @@ transformation_comparison <- ggplot() +
 
 print(transformation_comparison)
 
-# Save all plots
-ggsave("../../outputs/figures/stem_map_moisture_overlay.png", stem_moisture_overlay, width = 16, height = 10, dpi = 300)
-ggsave("../../outputs/figures/tree_distribution_moisture.png", tree_distribution_plot, width = 14, height = 10, dpi = 300)
-ggsave("../../outputs/figures/transformation_methods_moisture.png", transformation_comparison, width = 12, height = 8, dpi = 300)
+# Note: figS1 is saved at the end of this script after computing the
+# clipped/aligned final_extended_plot (the publication version)
 
 # Print summary of overlay
 cat("=== STEM MAP - MOISTURE OVERLAY SUMMARY ===\n")
@@ -495,50 +496,75 @@ bbox_polygon <- data.frame(
   Latitude = c(min_bbox$corners$y, min_bbox$corners$y[1])
 )
 
-# Create final overlay with clipped moisture raster and rotated bounding box
+# Create clean publication figure (figS1) with clipped moisture overlay
+# Three point types: All Trees (filled circle), Measured Trees (asterisk),
+#   Research Plots (open circle) — matching the "Point Type" legend
+
+# Add point_type column to each dataset for unified legend
+fg_plot_data <- fg_final
+fg_plot_data$point_type <- "All Trees"
+
+measured_plot_data <- trees_with_plots
+measured_plot_data$point_type <- "Measured Trees"
+
+plots_plot_data <- plots_data
+plots_plot_data$point_type <- "Research Plots"
+
 final_extended_plot <- ggplot() +
   # Clipped moisture interpolation background
   geom_raster(data = clipped_moisture_df, aes(x = Longitude, y = Latitude, fill = VWC), alpha = 0.7) +
-  # Show the minimum bounding box outline (optional)
-  geom_path(data = bbox_polygon, aes(x = Longitude, y = Latitude), 
-            color = "red", size = 1, linetype = "dashed", alpha = 0.7) +
-  # Plot ellipses from previous analysis
-  geom_polygon(data = plot_tree_ellipses, aes(x = Longitude, y = Latitude, group = Site_Plot), 
-               fill = NA, color = "black", size = 1, alpha = 0.8) +
-  # ForestGEO trees
-  geom_point(data = fg_final, 
-             aes(x = Longitude_final, y = Latitude_final, 
-                 size = BasalArea_m2, color = Species_Name), 
+  # Plot ellipses
+  geom_polygon(data = plot_tree_ellipses, aes(x = Longitude, y = Latitude, group = Site_Plot),
+               fill = NA, color = "black", linewidth = 0.8, alpha = 0.8) +
+  # ForestGEO trees (all stems) — filled circles colored by species
+  geom_point(data = fg_plot_data,
+             aes(x = Longitude_final, y = Latitude_final,
+                 size = BasalArea_m2, color = Species_Name, shape = point_type),
              alpha = 0.8, stroke = 0.3) +
-  # Research plots
-  geom_point(data = plots_data, aes(x = Longitude, y = Latitude), 
-             color = "white", fill = "black", size = 2, stroke = 1, shape = 21) +
-  
+  # Measured/sampled trees — asterisk symbol
+  geom_point(data = measured_plot_data,
+             aes(x = Longitude, y = Latitude, shape = point_type),
+             color = "black", size = 3, stroke = 0.8, alpha = 0.9) +
+  # Soil collars — white open circles
+  geom_point(data = plots_plot_data,
+             aes(x = Longitude, y = Latitude, shape = point_type),
+             color = "black", fill = NA, size = 2.5, stroke = 1, alpha = 0.9) +
+
   scale_fill_viridis_c(name = "Soil Moisture\n(VWC %)", option = "mako", direction = -1) +
   scale_color_manual(values = final_colors, breaks = legend_order, name = "Tree Species") +
-  scale_size_continuous(name = "Basal Area\n(m²)", range = c(0.5, 4), 
-                        breaks = c(0.001, 0.01, 0.05, 0.1, 0.2)) +
-  
+  scale_size_continuous(name = "Basal Area\n(m\u00b2)", range = c(0.5, 4),
+                        breaks = c(0.001, 0.01, 0.05, 0.1, 0.2),
+                        guide = guide_legend(override.aes = list(alpha = 1))) +
+  scale_shape_manual(name = "Point Type",
+                     values = c("All Trees" = 16, "Measured Trees" = 8, "Research Plots" = 1),
+                     guide = guide_legend(override.aes = list(size = c(3, 3, 3),
+                                                               color = c("black", "black", "black"),
+                                                               alpha = 1))) +
+
   coord_equal() +
-  labs(
-    title = paste("Minimum Area Bounding Box Clipped Stem Map -", best_method),
-    subtitle = paste("Rotated", round(min_bbox$angle, 1), "° for", round(area_reduction, 1), "% area reduction"),
-    x = "Longitude", y = "Latitude"
-  ) +
+  labs(x = "Longitude", y = "Latitude") +
   theme_minimal() +
   theme(
     legend.position = "right",
     legend.box = "vertical",
-    legend.key.size = unit(0.4, "cm")
+    legend.key.size = unit(0.5, "cm"),
+    legend.text = element_text(size = 10),
+    legend.title = element_text(size = 11, face = "bold"),
+    axis.text = element_text(size = 10),
+    axis.title = element_text(size = 12),
+    panel.grid.major = element_line(color = "grey80", linewidth = 0.3),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank()
+  ) +
+  guides(
+    color = guide_legend(override.aes = list(size = 3, alpha = 1), ncol = 1),
+    size = guide_legend(ncol = 1)
   )
 
 print(final_extended_plot)
 
-# Save all plots
-ggsave("../../outputs/figures/extended_akima_interpolation.png", p1, width = 12, height = 8, dpi = 300)
-ggsave("../../outputs/figures/tps_interpolation.png", p2, width = 12, height = 8, dpi = 300)
-ggsave("../../outputs/figures/gam_interpolation.png", p3, width = 12, height = 8, dpi = 300)
-ggsave("../../outputs/figures/final_extended_moisture_overlay.png", final_extended_plot, width = 16, height = 10, dpi = 300)
+# Save figS1 publication figure
+ggsave("outputs/figures/supplementary/figS1_moisture_overlay.png", final_extended_plot, width = 15, height = 9, dpi = 300)
 
 # Store the best interpolation for future use
 best_moisture_df <- best_df
