@@ -1,12 +1,14 @@
 # Tree Microbiomes and Methane Emissions in Upland Forests
 
+[![DOI](https://zenodo.org/badge/1058191477.svg)](https://doi.org/10.5281/zenodo.18779715)
+
 Analysis code and data processing pipeline for the study of methane fluxes from tree stems and soils at Yale-Myers Forest (YMF), Connecticut, and their relationship to methanogenic and methanotrophic microbial communities.
 
 **Preprint:** [bioRxiv 10.1101/2025.09.30.679632v2](https://www.biorxiv.org/content/10.1101/2025.09.30.679632v2)
 
 ## Data Availability
 
-All data are archived on Zenodo: **[DOI forthcoming]**
+All data are archived on Zenodo: **[10.5281/zenodo.18779715](https://doi.org/10.5281/zenodo.18779715)**
 
 The Zenodo archive contains:
 - **`data/compiled/`** — 12 analysis-ready CSV datasets with clear column names and documented units, suitable for reanalysis and meta-analysis. See `README_data.md` (included in the archive) for full column dictionaries. These can be regenerated from raw data via `Rscript code/compile_zenodo_datasets.R`.
