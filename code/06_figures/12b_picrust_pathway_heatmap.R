@@ -3,19 +3,19 @@
 # ==============================================================================
 # Purpose: Visualizes MetaCyc pathways significantly associated with functional
 #   gene abundances (mcrA, pmoA, mmoX). Uses pre-computed results from the
-#   plastid-filtered, no-mcrA-OTU analysis pipeline.
+#   plastid-filtered, no-mcrA-ASV analysis pipeline.
 #
 # Pipeline stage: 4 — Publication Figures
 #
 # The primary figure (Fig 6) shows mcrA-associated pathways using the no-mcrA-
-#   OTU analysis: pathway abundances reconstructed after removing methanogen
+#   ASV analysis: pathway abundances reconstructed after removing methanogen
 #   contributions, then tested for association with mcrA via LMER. This reveals
 #   community-level functional shifts associated with methanogens beyond the
 #   methanogens themselves.
 #
 # Supplementary figures show associations for all genes:
-#   - mcrA (all OTUs): includes methanogen pathway contributions
-#   - mcrA (no-mcrA OTUs): excludes methanogen pathway contributions
+#   - mcrA (all ASVs): includes methanogen pathway contributions
+#   - mcrA (no-mcrA ASVs): excludes methanogen pathway contributions
 #   - pmoA: particulate methane monooxygenase
 #   - mmoX: soluble methane monooxygenase
 #
@@ -102,6 +102,10 @@ make_pathway_heatmap <- function(pvals_file, meta_df, gene_col, gene_label,
                                   max_gene_contrib = NULL,
                                   contrib_file = NULL,
                                   contrib_col = NULL,
+                                  row_contrib_bar = FALSE,
+                                  row_contrib_threshold = 0.50,
+                                  show_row_ann_names = TRUE,
+                                  border_color = NA,
                                   cellheight = 10, fontsize_row = 8,
                                   fig_width = 13) {
 
@@ -117,10 +121,15 @@ make_pathway_heatmap <- function(pvals_file, meta_df, gene_col, gene_label,
     filter(!is.na(FDR), FDR < fdr_threshold) %>%
     arrange(t)
 
-  ## Optionally filter by gene-OTU contribution fraction
-  if (!is.null(max_gene_contrib) && !is.null(contrib_file) && !is.null(contrib_col)) {
+  ## Optionally load contribution data (for filtering and/or row annotation)
+  contrib_lookup <- NULL
+  if (!is.null(contrib_file) && !is.null(contrib_col)) {
     combined <- read.csv(contrib_file, stringsAsFactors = FALSE)
     contrib_lookup <- setNames(combined[[contrib_col]], combined$pathway)
+  }
+
+  ## Optionally filter by gene-ASV contribution fraction
+  if (!is.null(max_gene_contrib) && !is.null(contrib_lookup)) {
     sig$gene_contrib <- contrib_lookup[sig$pathway]
     sig$gene_contrib[is.na(sig$gene_contrib)] <- 0
     n_before <- nrow(sig)
@@ -161,6 +170,21 @@ make_pathway_heatmap <- function(pvals_file, meta_df, gene_col, gene_label,
   ann_col <- wood[ordered_samples, c("compartment", "log10_gene"), drop = FALSE]
   colnames(ann_col) <- c("Compartment", paste0("log10(", gene_label, ")"))
 
+  ## Row annotations (optional: gene-ASV contribution bar)
+  ann_row <- NA
+  if (row_contrib_bar && !is.null(contrib_lookup)) {
+    contrib_vals <- contrib_lookup[sig$pathway]
+    contrib_vals[is.na(contrib_vals)] <- 0
+    contrib_label <- paste0(">", round(row_contrib_threshold * 100), "% from ",
+                            gene_label, " ASVs")
+    ann_row <- data.frame(
+      contrib_flag = ifelse(contrib_vals >= row_contrib_threshold, "Yes", "No"),
+      row.names = sig$pathway
+    )
+    colnames(ann_row) <- contrib_label
+    ann_colors[[contrib_label]] <- c("Yes" = "#b71c1c", "No" = "#f0f0f0")
+  }
+
   ## Row labels: pathway descriptions
   row_labels <- ifelse(!is.na(sig$description) & sig$description != "",
                         sig$description, sig$pathway)
@@ -178,18 +202,19 @@ make_pathway_heatmap <- function(pvals_file, meta_df, gene_col, gene_label,
              color = heatmap_colors,
              scale = "row",
              annotation_col = ann_col,
+             annotation_row = if (is.data.frame(ann_row)) ann_row else NA,
              annotation_colors = ann_colors,
              show_colnames = FALSE,
              cluster_cols = FALSE,
              cluster_rows = FALSE,
              treeheight_row = 0,
              labels_row = row_labels,
-             annotation_names_row = TRUE,
+             annotation_names_row = show_row_ann_names,
              fontsize_row = fontsize_row,
              fontsize = 10,
              fontsize_col = 8,
              cellheight = cellheight,
-             border_color = NA,
+             border_color = border_color,
              main = "")
 
     dev.off()
@@ -208,11 +233,14 @@ make_pathway_heatmap <- function(pvals_file, meta_df, gene_col, gene_label,
 
 results_dir <- "data/processed/molecular/picrust"
 
-## --- Figure 6: mcrA (no-mcrA OTUs) — MAIN TEXT ---
-## FDR < 1e-4 with mcrA-OTU contribution < 50% (~35 pathways).
+## --- Figure 6: mcrA (no-mcrA ASVs) — MAIN TEXT ---
+## FDR < 0.001 with mcrA-ASV contribution < 10% (~45 pathways).
 ## The contribution filter removes archaeal housekeeping pathways dominated
-## by methanogen OTUs (e.g., archaetidylinositol, CDP-archaeol), retaining
-## community-level functional shifts.
+## by methanogen ASVs (e.g., archaetidylinositol, CDP-archaeol, mevalonate),
+## retaining community-level functional shifts. The relaxed FDR (vs. 1e-4)
+## captures ecologically informative pathways like homolactic fermentation,
+## mannan degradation, aerobic respiration I, and sulfate assimilation that
+## narrowly missed the stricter threshold.
 make_pathway_heatmap(
   pvals_file = file.path(results_dir, "pathway_associations_mcra_no_mcra_otus.csv"),
   meta_df = meta,
@@ -220,15 +248,18 @@ make_pathway_heatmap(
   gene_label = "mcrA",
   ann_colors = ann_colors_mcra,
   output_file = "outputs/figures/main/fig6_picrust_mcra_no_mcra_heatmap.png",
-  fdr_threshold = 1e-4,
-  max_gene_contrib = 0.50,
+  fdr_threshold = 0.001,
+  max_gene_contrib = 0.10,
   contrib_file = file.path(results_dir, "pathway_associations_combined.csv"),
   contrib_col = "mean_percent_from_mcra",
-  cellheight = 12,
-  fontsize_row = 8
+  cellheight = 10,
+  fontsize_row = 7
 )
 
-## --- Supplementary: mcrA (no-mcrA OTUs, full FDR < 0.01 set) ---
+## --- Supplementary: mcrA (no-mcrA ASVs, full FDR < 0.01 set) ---
+## Includes row annotation bar flagging pathways where >50% of predicted
+## abundance comes from mcrA-carrying ASVs. Cell borders added for
+## readability with 109 pathways.
 make_pathway_heatmap(
   pvals_file = file.path(results_dir, "pathway_associations_mcra_no_mcra_otus.csv"),
   meta_df = meta,
@@ -237,11 +268,19 @@ make_pathway_heatmap(
   ann_colors = ann_colors_mcra,
   output_file = "outputs/figures/supplementary/figS4_picrust_mcra_all_heatmap.png",
   fdr_threshold = 0.01,
+  contrib_file = file.path(results_dir, "pathway_associations_combined.csv"),
+  contrib_col = "mean_percent_from_mcra",
+  row_contrib_bar = TRUE,
+  row_contrib_threshold = 0.50,
+  show_row_ann_names = FALSE,
+  border_color = "#e0e0e0",
   cellheight = 8,
   fontsize_row = 6
 )
 
-## --- Supplementary: pmoA (no-pmoA OTUs, contribution < 50%) ---
+## --- Supplementary: pmoA (no-pmoA ASVs, contribution < 50%) ---
+## Matches mcrA supplementary logic: contrib bar for >50% from pmoA ASVs,
+## cell borders for readability.
 make_pathway_heatmap(
   pvals_file = file.path(results_dir, "pathway_associations_pmoa_no_pmoa_otus.csv"),
   meta_df = meta,
@@ -253,6 +292,10 @@ make_pathway_heatmap(
   max_gene_contrib = 0.50,
   contrib_file = file.path(results_dir, "pathway_associations_pmoa_combined.csv"),
   contrib_col = "mean_percent_from_pmoa",
+  row_contrib_bar = TRUE,
+  row_contrib_threshold = 0.50,
+  show_row_ann_names = FALSE,
+  border_color = "#e0e0e0",
   cellheight = 12,
   fontsize_row = 8
 )
