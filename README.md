@@ -158,7 +158,7 @@ See `code/04_scaling/RF_CH4_workflow_spec.md` for the detailed RF technical spec
 | Fig 3 | `fig3_variance_partitioning.png` | Variance partitioning | `06_figures/04_variance_partition.R` |
 | Fig 4 | `fig4_methanogen_methanotroph_abundance.png` | Methanogen/methanotroph abundance | `02_ddpcr/util_combined_plot.R` |
 | Fig 5 | `fig5_combined_methane_cycling_composition.png` | Combined methane-cycling 16S composition | `06_figures/08c_combined_methane_cycling_composition.R` |
-| Fig 6 | `fig6_picrust_mcra_no_mcra_heatmap.png` | MetaCyc pathway × mcrA associations (no-mcrA OTU) | `06_figures/12b_picrust_pathway_heatmap.R` |
+| Fig 6 | `fig6_picrust_mcra_no_mcra_heatmap.png` | MetaCyc pathway × mcrA associations (no-mcrA ASV) | `06_figures/12b_picrust_pathway_heatmap.R` |
 | Fig 7 | `fig7_felled_oak_profiles.png` | Felled oak vertical profiles | `06_figures/09_felled_oak_profiles.R` |
 | Fig 8 | `fig8_radial_species_comparison.png` | Radial cross-sections + species comparison | `05_gene_flux_analysis/04_species_gene_flux.R` |
 | Fig 9 | `fig9_upscaled_flux_seasonal.png` | Upscaled seasonal flux overview | `04_scaling/09_upscale_publication_plots.R` |
@@ -166,7 +166,7 @@ See `code/04_scaling/RF_CH4_workflow_spec.md` for the detailed RF technical spec
 | S2 | `figS2_taxonomy_pmoa_heatmap.png` | Family-level 16S × pmoA associations | `06_figures/12c_taxonomy_pmoa_heatmap.R` |
 | S3 | `figS3_faprotax_heatmaps.png` | FAPROTAX functional heatmaps | `06_figures/08d_faprotax_heatmaps.R` |
 | S4 | `figS4_picrust_mcra_all_heatmap.png` | MetaCyc pathway × mcrA (full FDR < 0.01 set) | `06_figures/12b_picrust_pathway_heatmap.R` |
-| S5 | `figS5_picrust_pmoa_heatmap.png` | MetaCyc pathway × pmoA associations (no-pmoA OTU) | `06_figures/12b_picrust_pathway_heatmap.R` |
+| S5 | `figS5_picrust_pmoa_heatmap.png` | MetaCyc pathway × pmoA associations (no-pmoA ASV) | `06_figures/12b_picrust_pathway_heatmap.R` |
 | S6 | `figS6_taxonomy_mcra_heatmap.png` | Family-level 16S × mcrA associations | `06_figures/12a_taxonomy_mcra_heatmap.R` |
 | S7 | `figS7_internal_gas_beeswarm.png` | Internal gas beeswarm by species | `06_figures/05_internal_gas_plots.R` |
 | S8 | `figS8_internal_gas_profiles.png` | Internal gas multi-panel profiles | `06_figures/05_internal_gas_plots.R` |
