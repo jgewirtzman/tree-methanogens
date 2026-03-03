@@ -278,7 +278,7 @@ make_pathway_heatmap(
   fontsize_row = 6
 )
 
-## --- Supplementary: pmoA (no-pmoA ASVs, contribution < 50%) ---
+## --- Supplementary: pmoA (no-pmoA ASVs, no contribution filter) ---
 ## Matches mcrA supplementary logic: contrib bar for >50% from pmoA ASVs,
 ## cell borders for readability.
 make_pathway_heatmap(
@@ -289,7 +289,6 @@ make_pathway_heatmap(
   ann_colors = ann_colors_pmoa,
   output_file = "outputs/figures/supplementary/figS5_picrust_pmoa_heatmap.png",
   fdr_threshold = 0.01,
-  max_gene_contrib = 0.50,
   contrib_file = file.path(results_dir, "pathway_associations_pmoa_combined.csv"),
   contrib_col = "mean_percent_from_pmoa",
   row_contrib_bar = TRUE,
