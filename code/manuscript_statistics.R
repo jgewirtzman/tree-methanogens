@@ -898,31 +898,31 @@ if (file.exists(picrust_pmoa)) {
 section_header("SECTION 6b: PICRUSt PATHWAY-GENE HEATMAP (Figure 6)")
 
 # Figure 6 is the mcrA-pathway heatmap from 12b_picrust_pathway_heatmap.R
-# Uses the no-mcrA-OTU pipeline: pathway abundances reconstructed after removing
-# methanogen OTU contributions, then tested against mcrA via LMER.
-# FDR threshold 1e-4 with mcrA-OTU contribution < 50%.
+# Uses the no-mcrA-ASV pipeline: pathway abundances reconstructed after removing
+# methanogen ASV contributions, then tested against mcrA via LMER.
+# FDR threshold 0.001 with mcrA-ASV contribution < 10%.
 
 picrust_no_mcra_file <- "data/processed/molecular/picrust/pathway_associations_mcra_no_mcra_otus.csv"
 picrust_combined_file <- "data/processed/molecular/picrust/pathway_associations_combined.csv"
 
 if (file.exists(picrust_no_mcra_file)) {
   pvals_no_mcra <- read.csv(picrust_no_mcra_file, stringsAsFactors = FALSE)
-  stat("Total pathways tested (no-mcrA-OTU pipeline)", nrow(pvals_no_mcra))
+  stat("Total pathways tested (no-mcrA-ASV pipeline)", nrow(pvals_no_mcra))
 
-  sig_1e4 <- pvals_no_mcra %>% filter(!is.na(FDR), FDR < 1e-4)
-  stat("Significant at FDR < 1e-4", nrow(sig_1e4))
+  sig_001 <- pvals_no_mcra %>% filter(!is.na(FDR), FDR < 0.001)
+  stat("Significant at FDR < 0.001", nrow(sig_001))
 
-  sig_001 <- pvals_no_mcra %>% filter(!is.na(FDR), FDR < 0.01)
-  stat("Significant at FDR < 0.01", nrow(sig_001))
+  sig_01 <- pvals_no_mcra %>% filter(!is.na(FDR), FDR < 0.01)
+  stat("Significant at FDR < 0.01", nrow(sig_01))
 
-  # Apply mcrA-OTU contribution filter (< 50%)
+  # Apply mcrA-ASV contribution filter (< 10%)
   if (file.exists(picrust_combined_file)) {
     combined_pvals <- read.csv(picrust_combined_file, stringsAsFactors = FALSE)
     contrib_lookup <- setNames(combined_pvals$mean_percent_from_mcra, combined_pvals$pathway)
-    sig_1e4$gene_contrib <- contrib_lookup[sig_1e4$pathway]
-    sig_1e4$gene_contrib[is.na(sig_1e4$gene_contrib)] <- 0
-    sig_filtered <- sig_1e4 %>% filter(gene_contrib < 0.50)
-    stat("After mcrA-OTU contribution < 50% filter", nrow(sig_filtered))
+    sig_001$gene_contrib <- contrib_lookup[sig_001$pathway]
+    sig_001$gene_contrib[is.na(sig_001$gene_contrib)] <- 0
+    sig_filtered <- sig_001 %>% filter(gene_contrib < 0.10)
+    stat("After mcrA-ASV contribution < 10% filter", nrow(sig_filtered))
     record("fig6_n_pathways_heatmap", nrow(sig_filtered))
 
     # List top pathways (positive and negative associations)
@@ -962,7 +962,7 @@ if (file.exists(picrust_no_mcra_file)) {
     }
   }
 } else {
-  cat("  [SKIPPED] No-mcrA-OTU pathway associations file not found.\n")
+  cat("  [SKIPPED] No-mcrA-ASV pathway associations file not found.\n")
 }
 
 
@@ -1640,8 +1640,8 @@ picrust_mcra_all <- "data/processed/molecular/picrust/pathway_associations_mcra_
 if (file.exists(picrust_mcra_all)) {
   pa_all <- read.csv(picrust_mcra_all, stringsAsFactors = FALSE)
   sig_all <- pa_all %>% filter(!is.na(FDR), FDR < 0.01)
-  stat("Total pathways tested (all OTUs)", nrow(pa_all))
-  stat("Significant at FDR < 0.01 (all OTUs)", nrow(sig_all))
+  stat("Total pathways tested (all ASVs)", nrow(pa_all))
+  stat("Significant at FDR < 0.01 (all ASVs)", nrow(sig_all))
 
   # Top positive (heartwood-enriched) and negative (sapwood-enriched)
   pos_all <- sig_all %>% filter(t > 0) %>% arrange(FDR)
@@ -1655,7 +1655,7 @@ picrust_pmoa_no <- "data/processed/molecular/picrust/pathway_associations_pmoa_n
 if (file.exists(picrust_pmoa_no)) {
   pa_pmoa <- read.csv(picrust_pmoa_no, stringsAsFactors = FALSE)
   sig_pmoa_no <- pa_pmoa %>% filter(!is.na(FDR), FDR < 0.01)
-  stat("Significant pmoA pathways (no-pmoA OTUs, FDR < 0.01)", nrow(sig_pmoa_no))
+  stat("Significant pmoA pathways (no-pmoA ASVs, FDR < 0.01)", nrow(sig_pmoa_no))
   pos_pmoa <- sig_pmoa_no %>% filter(t > 0)
   neg_pmoa <- sig_pmoa_no %>% filter(t < 0)
   cat(sprintf("  Positive: %d, Negative: %d\n", nrow(pos_pmoa), nrow(neg_pmoa)))
@@ -1668,8 +1668,8 @@ if (file.exists(picrust_pmoa_no)) {
   }
 }
 
-# --- Figure S4: PICRUSt mcrA all-OTU heatmap (expanded version of Fig 6) ---
-sub_header("Figure S4: PICRUSt mcrA (all OTUs) heatmap")
+# --- Figure S4: PICRUSt mcrA no-mcrA-ASV heatmap (expanded version of Fig 6) ---
+sub_header("Figure S4: PICRUSt mcrA (no-mcrA ASVs, full FDR < 0.01) heatmap")
 if (file.exists(picrust_mcra_all)) {
   cat(sprintf("  See pathway counts above. Full FDR<0.01 set: %d pathways\n", nrow(sig_all)))
 }
