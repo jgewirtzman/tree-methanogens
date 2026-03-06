@@ -19,6 +19,17 @@
 # --- Claude Code ---
 .claude/
 
+# --- Manuscript files (not for public repos) ---
+manuscript/
+*.docx
+*.tex
+REVISED_*.md
+REFERENCE_*.md
+supporting_information.md
+references.bib
+doi_list.txt
+outputs/figure_captions.md
+
 # --- Data files (archived on Zenodo, not in git) ---
 # Compiled analysis-ready datasets (Zenodo only, regenerable via compile_zenodo_datasets.R)
 data/compiled/
