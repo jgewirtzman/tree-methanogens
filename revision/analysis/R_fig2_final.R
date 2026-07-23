@@ -208,7 +208,7 @@ species_results <- do.call(rbind, lapply(species_list, test_species_height_effec
 # Original drew each species on its own free linear axis (its min/mid/max), so
 # scales were not comparable and single outliers distorted panels. Same transform
 # now on every panel; dashed line = zero net flux. Layout/grid otherwise unchanged.
-PANEL_A_STYLE <- "meanSE"   # "boxplot" (half-boxplot + jitter) or "meanSE" (mean +/- SE over jitter)
+PANEL_A_STYLE <- "boxplot"   # "boxplot" (half-boxplot + jitter) or "meanSE" (mean +/- SE over jitter)
 # arcsinh (inverse hyperbolic sine) transform: signed, ~linear within the cofactor
 # window, log-like for larger |x|; handles zeros/negatives. Cofactor 0.1 unified
 # across the main flux-axis figures (Fig 1, Fig 2, Fig 3).
@@ -232,9 +232,6 @@ create_species_plot_half <- function(species_name, species_data, breaks_data, si
   g <- ggplot(species_data, aes(x = height_m, y = CH4_best.flux)) +
     geom_hline(yintercept = 0, linetype = "dashed", color = "gray40",
                linewidth = 0.6, alpha = 0.8)
-  # significant height trend: LINEAR fit on CONTINUOUS height (matches the lmer test)
-  if (is_sig) g <- g + geom_smooth(method = "lm", formula = y ~ x, se = FALSE,
-                                   color = sign_color, linewidth = 0.55)
   if (PANEL_A_STYLE == "boxplot") {
     g <- g +
       geom_half_boxplot(aes(group = height_m), alpha = 0.6, outlier.shape = NA,
