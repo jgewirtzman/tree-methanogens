@@ -34,7 +34,7 @@
 > pathways are assimilatory, so this is a community redox-state signal rather than direct evidence of
 > terminal-electron-acceptor competition (no significant *dissimilatory* denitrification/sulfate-reduction
 > signal). See Methods and SI for the full classification. **(d)** Stable carbon isotopic composition of internal stem CH₄
-> (n internal samples; kernel density above, individual samples below sized by CH₄ concentration).
+> (n = 117 internal stem samples; kernel density above, individual samples below sized by CH₄ concentration).
 > The distribution is ¹³C-depleted, and the atmosphere-corrected tree-produced source (Keeling-plot
 > intercept −79‰, 95% CI shown; two-endmember mixing correction −70‰) falls in the hydrogenotrophic
 > (CO₂-reduction) range (brackets, Whiticar 1999); the apparent CO₂–CH₄ fractionation ε_C = 54–64‰ is
