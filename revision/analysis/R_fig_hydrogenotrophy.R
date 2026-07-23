@@ -60,29 +60,34 @@ pb <- ggplot(fap, aes(lr, fn, fill = lr)) +
   scale_x_continuous(expand = expansion(mult = c(0.08, 0.05))) +
   labs(x = expression(log[2]*"(heartwood / sapwood)"), y = NULL) + th
 
-# ---- (c) PATHWAY (Fig6 EXACT filter), C1 vs fermentation split ----------------
+# ---- (c) PATHWAY (Fig6 filter gc<0.10): a-priori FUNCTIONAL categories --------
+# Not top-t. Classify the full FDR<0.01, low-mcrA-contribution set by MetaCyc
+# function (membership independent of the association), drop housekeeping, show
+# representative pathways per mechanistic category. See panel_c_pathway_categories.md
+ABLU <- "#92c5de"  # light blue: oxidative biosynthesis / assimilation (negative, aerobic-associated)
 p6 <- read.csv("data/processed/molecular/picrust/pathway_associations_mcra_no_mcra_otus.csv")
 cb <- read.csv("data/processed/molecular/picrust/pathway_associations_combined.csv")
 contrib <- setNames(cb$mean_percent_from_mcra, cb$pathway)
-sig <- p6 %>% filter(!is.na(FDR), FDR < 0.001) %>%
+sig <- p6 %>% filter(!is.na(FDR), FDR < 0.01) %>%
   mutate(gc = ifelse(is.na(contrib[pathway]), 0, contrib[pathway])) %>% filter(gc < 0.10)
-classify_pw <- function(desc, t) { d <- tolower(desc)
-  if (t < 0) return("Aerobic (mcrA-depleted)")
-  if (grepl("ferment|glutamate degrad|amino.?acid degrad|propionate|butanoate|stickland", d)) return("Fermentation / AA degradation")
-  if (grepl("acetyl coenzyme a|formaldehyde|rump|calvin|carbon fix|coenzyme m|methanog", d)) return("C1 metabolism / carbon fixation")
-  return("Other mcrA-associated") }
-pwc <- bind_rows(sig %>% filter(t > 0) %>% arrange(desc(t)) %>% slice(1:8),
-                 sig %>% filter(t < 0) %>% arrange(t) %>% slice(1:3)) %>%
-  rowwise() %>% mutate(cat = classify_pw(description, t)) %>% ungroup() %>%
-  mutate(cat = factor(cat, levels = c("C1 metabolism / carbon fixation","Fermentation / AA degradation",
-                                      "Other mcrA-associated","Aerobic (mcrA-depleted)")),
-         lab = str_replace_all(description, "superpathay|superpathway", "superpath.") %>% str_wrap(26),
+classify_pw <- function(id, desc) { x <- tolower(paste(id, desc))
+  if (grepl("acetyl coenzyme a|calvin|rump|formaldehyde|carbon fix", x)) return("C1 / carbon fixation")
+  if (grepl("ferment|glycolysis|glycogen|mannan|starch|xylan|cellulose|propanoate|butanoate|glutamate degrad|lactate|pyruvate", x)) return("Fermentation / carbohydrate")
+  if (grepl("aerobic respiration|tca cycle|glyoxylate|ubiquin|cytochrome|menaquin", x)) return("Aerobic respiration")
+  if (grepl("fatty acid|oleate|stearate|palmitole|mycolate|sulfate|sulfur|thiosulf|sulfhydr|cysteine|nitrate|nitrite|denitrif|nitrogen", x)) return("Oxidative biosynthesis (lipid, S/N)")
+  return("other") }
+DISP <- c("C1 / carbon fixation","Fermentation / carbohydrate","Aerobic respiration","Oxidative biosynthesis (lipid, S/N)")
+pwc <- sig %>% rowwise() %>% mutate(cat = classify_pw(pathway, description)) %>% ungroup() %>%
+  filter(cat %in% DISP, !grepl("anaerobic", tolower(description))) %>%
+  group_by(cat) %>% arrange(desc(abs(t))) %>% slice(1:3) %>% ungroup() %>%
+  mutate(cat = factor(cat, levels = DISP),
+         lab = str_replace_all(description, "superpathway|superpathay", "superpath.") %>% str_wrap(26),
          lab = fct_reorder(lab, t))
 pc <- ggplot(pwc, aes(t, lab, color = cat)) +
   geom_segment(aes(x = 0, xend = t, yend = lab), color = "grey78", linewidth = 0.6) +
   geom_point(size = 3.2) + geom_vline(xintercept = 0, color = "grey50") +
-  scale_color_manual(values = c(`C1 metabolism / carbon fixation`=RED, `Fermentation / AA degradation`=SYN,
-                                `Other mcrA-associated`=OTH, `Aerobic (mcrA-depleted)`=BLU), name = NULL) +
+  scale_color_manual(values = c(`C1 / carbon fixation`=RED, `Fermentation / carbohydrate`=SYN,
+                                `Aerobic respiration`=BLU, `Oxidative biosynthesis (lipid, S/N)`=ABLU), name = NULL) +
   labs(x = "Association with mcrA (t-statistic)", y = NULL,
        title = "c  Pathway (PICRUSt2): anaerobic C-metabolism tracks mcrA") + th +
   theme(legend.position = c(0.98, 0.04), legend.justification = c(1, 0),
