@@ -1,10 +1,10 @@
 # Captions for the two new/reworked main figures (revision)
 
-## Synthesis figure — convergent evidence for hydrogenotrophic, syntrophy-fed methanogenesis
+## Synthesis figure — convergent evidence for hydrogenotrophic, syntrophy-associated methanogenesis
 `revision/outputs/fig_hydrogenotrophy.png` (script `R_fig_hydrogenotrophy.R`)
 
-> **Figure X. Convergent evidence for hydrogenotrophic, syntrophy-fed methanogenesis in tree
-> heartwood.** Four independent lines of evidence. **(a)** Microbial families whose relative
+> **Figure X. Convergent evidence for hydrogenotrophic, syntrophy-associated methanogenesis in tree
+> heartwood.** Convergent taxonomic, functional-inference, and isotopic evidence. **(a)** Microbial families whose relative
 > abundance is significantly associated with heartwood *mcrA* gene abundance (linear mixed-effects
 > models controlling for compartment and 16S load; FDR < 0.05), grouped by evidence for feeding
 > methanogenesis: methanogens (red; *Methanobacteriaceae*, *Methanomassiliicoccaceae*);
@@ -12,13 +12,17 @@
 > demonstrated H₂ transfer to a methanogen; *Dysgonomonadaceae*, community-level association); and
 > a co-occurring amino-acid fermenter without an established H₂ link (grey; *Eggerthellaceae*).
 > **(b)** FAPROTAX-predicted
-> metabolic functions as log₂(heartwood/sapwood) relative abundance; anaerobic and H₂-based
-> functions (hydrogenotrophic methanogenesis, dark hydrogen oxidation, fermentation, methylotrophy)
-> are enriched in heartwood (red) while aerobic functions (aerobic chemoheterotrophy, methanotrophy)
-> are enriched in sapwood (blue); colour intensity scales with log₂(HW/SW). **(c)** MetaCyc pathways
+> metabolic functions as log₂(heartwood/sapwood) relative abundance (energy/redox functions with mean
+> abundance ≥0.1% in a compartment; host-association, pathogen, and phototrophy annotations excluded).
+> Anaerobic and H₂-based functions (hydrogenotrophic methanogenesis, dark hydrogen oxidation,
+> fermentation, anaerobic chemoheterotrophy, methylotrophy) are enriched in heartwood (red); aerobic
+> and oxidant-linked functions (aerobic chemoheterotrophy, methanol oxidation, methanotrophy,
+> cellulolysis, nitrate reduction) are enriched in sapwood (blue); colour scales with log₂(HW/SW).
+> Dissimilatory denitrification and sulfate/sulfur respiration were near-zero (<0.03%) in both
+> compartments. **(c)** MetaCyc pathways
 > (PICRUSt2) associated with *mcrA* abundance (linear mixed-effects t-statistic; FDR < 0.05, after
 > removing predicted contributions from methanogen-classified ASVs and excluding pathways with >10%
-> methanogen-ASV contribution, as in Fig. 6). Pathways were classified by MetaCyc function *a priori*
+> methanogen-ASV contribution). Pathways were classified by MetaCyc function *a priori*
 > (independent of the association) and generic housekeeping pathways excluded; up to four representative
 > pathways per category are shown (top by |t|). Anaerobic carbon flow tracks *mcrA* — C1/carbon-
 > fixation (red; RuMP cycle, reductive acetyl-CoA, Calvin-Benson) and fermentation/carbohydrate
@@ -39,8 +43,10 @@
 > gold = fermentative associates / fermentation); cool = depleted / oxidant-linked (dark blue = aerobic
 > respiration; light blue = sulfur/nitrogen metabolism); grey = co-occurring fermenter without an H₂
 > link (panel a); purple (d) = internal CH₄.
-> Taxonomy (a) and isotopes (d) are the primary evidence; the 16S-based functional predictions (b, c)
-> are corroborative and subject to the known limitations of taxonomy-based functional inference (Methods).
+> The isotopic signal (d) is an independent geochemical line of evidence; the sequence-based lines
+> (a–c) derive from the same 16S/*mcrA* data and are mutually corroborative rather than statistically
+> independent. Taxonomy (a) and isotopes (d) are the primary evidence, with the functional predictions
+> (b, c) subject to the known limitations of taxonomy-based functional inference (Methods).
 
 ## Reworked upscaling figure — plot CH₄ component budget (bounding exercise)
 `revision/outputs/fig_budget_maps.png` (script `R_fig_component_budget.R`)

@@ -48,12 +48,26 @@ pa <- ggplot(fa, aes(t, family, color = group)) +
         legend.background = element_rect(fill="white", color="grey80"),
         axis.text.y = element_text(face = "italic", size = 10))
 
-# ---- (b) FUNCTION (FAPROTAX HW/SW), bars coloured by metabolic process --------
-fap <- tribble(~fn, ~hw, ~sw,
-  "Hydrogenotrophic methanogenesis", 3.21, 0.10, "Dark hydrogen oxidation", 3.61, 1.16,
-  "Fermentation", 16.77, 6.65, "Methylotrophy", 0.88, 0.53,
-  "Aerobic chemoheterotrophy", 28.90, 42.53, "Methanotrophy", 0.23, 0.52) %>%
-  mutate(lr = log2(hw/sw), fn = fct_reorder(fn, lr))
+# ---- (b) FUNCTION (FAPROTAX HW/SW) — documented energy/redox-metabolism set ----
+# Values reproduced from the FAPROTAX pipeline (revision/outputs/FAPROTAX_all_functions_HW_SW.csv).
+# Inclusion rule: energy/redox functions with mean rel. abundance >= 0.1% in a compartment;
+# host-association/pathogen/phototrophy and redundant parent annotations (generic chemoheterotrophy,
+# generic/CO2/methyl methanogenesis) excluded; hydrogenotrophic_methanogenesis shown as the
+# representative methanogenesis route. See panel_b_faprotax_selection.md.
+fap_all <- read.csv("revision/outputs/FAPROTAX_all_functions_HW_SW.csv")
+fap_sel <- tribble(~func, ~disp,
+  "hydrogenotrophic_methanogenesis", "Hydrogenotrophic methanogenesis",
+  "dark_hydrogen_oxidation",         "Dark hydrogen oxidation",
+  "fermentation",                    "Fermentation",
+  "anaerobic_chemoheterotrophy",     "Anaerobic chemoheterotrophy",
+  "methylotrophy",                   "Methylotrophy",
+  "nitrate_reduction",               "Nitrate reduction",
+  "aerobic_chemoheterotrophy",       "Aerobic chemoheterotrophy",
+  "methanol_oxidation",              "Methanol oxidation",
+  "methanotrophy",                   "Methanotrophy",
+  "cellulolysis",                    "Cellulolysis")
+fap <- fap_sel %>% left_join(fap_all, by = "func") %>%
+  mutate(lr = log2(HW/SW), fn = fct_reorder(disp, lr))
 pb <- ggplot(fap, aes(lr, fn, fill = lr)) +
   geom_col() + geom_vline(xintercept = 0, color = "grey50") +
   scale_fill_gradient2(low = BLU, mid = "grey93", high = RED, midpoint = 0, guide = "none") +
