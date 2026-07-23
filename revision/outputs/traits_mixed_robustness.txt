@@ -1,0 +1,27 @@
+=================================================================
+Traits: species-level vs individual (mixed model) robustness
+=================================================================
+Predictor = species-level trait (z-scored). 'species rho' aggregates BOTH to
+species medians (n=species). 'mixed' = response_ij ~ trait + (1|species) on
+individual trees (per-tree OLS would be pseudoreplication; not reported).
+
+--- microbial balance / pools (per-tree from tree_level_complete) ---
+  log_meth    ~ bark_density_gcm3 | n_sp=13 n_tree=104 | species rho=-0.47 p=0.106 | mixed slope=-0.206 p=0.092 (df=7.6) 
+  log_meth    ~ wood_density_gcm3 | n_sp=15 n_tree=121 | species rho=-0.48 p=0.071 | mixed slope=-0.227 p=0.046 (df=9.1) 
+  log_ratio   ~ bark_density_gcm3 | n_sp=13 n_tree=104 | species rho=0.26 p=0.394 | mixed slope=0.352 p=0.017 (df=4.9) 
+  log_mcra    ~ vwc_realized     | n_sp=14 n_tree=120 | species rho=0.42 p=0.137 | mixed slope=0.101 p=0.228 (df=12.2) 
+  log_ratio   ~ vwc_realized     | n_sp=14 n_tree=120 | species rho=-0.28 p=0.333 | mixed slope=0.040 p=0.776 (df=11.0) 
+
+--- stem CH4 flux (per-tree from flux_all, pooled 2021+2023) ---
+  CH4_flux    ~ bark_density_gcm3 | n_sp=13 n_tree=416 | species rho=0.35 p=0.239 | mixed slope=0.035 p=0.216 (df=7.9) 
+  CH4_flux    ~ wood_density_gcm3 | n_sp=15 n_tree=478 | species rho=0.12 p=0.667 | mixed slope=0.022 p=0.424 (df=9.7) 
+  CH4_flux    ~ gymnosperm       | n_sp=15 n_tree=478 | species rho=-0.41 p=0.131 | mixed slope=-0.044 p=0.160 (df=7.1) 
+  CH4_flux    ~ vwc_realized     | n_sp=14 n_tree=477 | species rho=0.08 p=0.797 | mixed slope=0.038 p=0.062 (df=18.9) 
+
+READING: mixed-model Satterthwaite df come out ~5-9 (species-level), NOT tree-
+level -> the p-values are honest (conservative), not inflated by many trees.
+The density->methanotroph and density->balance effects hold in the mixed model
+(wood_density->log_meth p=0.046; bark_density->log_ratio p=0.017), so they are
+NOT aggregation artifacts. Stem flux is null at both levels. VWC->methanogen is
+sample-dependent (stronger in the strict n=10 set, marginal here). Present all
+as descriptive/hypothesis-generating given n<=16 species.

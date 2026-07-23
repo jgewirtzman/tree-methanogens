@@ -1,0 +1,59 @@
+Best-subset models (n=10 species; EXPLORATORY -- LOO-CV guards overfit).
+in-sample adjR2 will flatter; trust LOO-CV R2.
+
+================ Stem CH4 flux ================
+-- top single predictors (by LOO-CV R2):
+                        p adjR2    loo
+         try_plant_height 0.345  0.127
+        bark_density_gcm3 0.285  0.045
+               try_stem_C 0.195 -0.010
+               gymnosperm 0.079 -0.070
+ try_bark_volume_rel_wood 0.162 -0.073
+-- top 2-predictor models (by LOO-CV R2):
+                           pair adjR2    loo
+  try_plant_height + gymnosperm 0.359 -0.124
+ bark_density_gcm3 + gymnosperm 0.168 -0.244
+ bark_density_gcm3 + try_stem_C 0.242 -0.278
+
+================ Methanogen:methanotroph balance ================
+-- top single predictors (by LOO-CV R2):
+                          p adjR2    loo
+          bark_density_gcm3 0.380  0.195
+          wood_density_gcm3 0.265  0.069
+ try_CWD_stem_decomp_rate_k 0.154 -0.079
+             try_antifungal 0.272 -0.211
+      try_wetland_indicator 0.201 -0.213
+-- top 2-predictor models (by LOO-CV R2):
+                                           pair adjR2   loo
+ bark_density_gcm3 + try_CWD_stem_decomp_rate_k 0.626 0.285
+             bark_density_gcm3 + try_antifungal 0.509 0.201
+             wood_density_gcm3 + try_antifungal 0.365 0.095
+
+================ mcrA abundance ================
+-- top single predictors (by LOO-CV R2):
+                          p  adjR2    loo
+               vwc_realized  0.564  0.234
+             try_antifungal  0.693 -0.153
+ try_CWD_stem_decomp_rate_k  0.013 -0.227
+               porosity_num -0.057 -0.274
+          try_rooting_depth -0.120 -0.365
+-- top 2-predictor models (by LOO-CV R2):
+                                      pair adjR2   loo
+             vwc_realized + try_antifungal 0.825 0.375
+               vwc_realized + porosity_num 0.529 0.097
+ vwc_realized + try_CWD_stem_decomp_rate_k 0.529 0.012
+
+================ Methanotroph abundance ================
+-- top single predictors (by LOO-CV R2):
+                     p adjR2    loo
+     wood_density_gcm3 0.445  0.307
+     bark_density_gcm3 0.426  0.285
+ try_wetland_indicator 0.162  0.027
+     try_rooting_depth 0.207 -0.027
+            try_stem_C 0.124 -0.116
+-- top 2-predictor models (by LOO-CV R2):
+                                      pair adjR2   loo
+     wood_density_gcm3 + try_rooting_depth 0.469 0.287
+ wood_density_gcm3 + try_wetland_indicator 0.437 0.237
+ bark_density_gcm3 + try_wetland_indicator 0.518 0.123
+

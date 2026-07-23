@@ -1,0 +1,42 @@
+=================================================================
+pmoA and mmoX reported SEPARATELY (Referee 2 #1c)
+=================================================================
+
+By compartment (median concentration, copies/uL; detection %):
+  compartment pmoA_n pmoA_detect pmoA_median mmoX_n mmoX_detect mmoX_median
+    Heartwood    150          95       1.003    149          93       1.080
+      Sapwood    156          99       2.652    156          97       0.968
+ Soil_Mineral    129         100     316.354    129         100       3.220
+ Soil_Organic    136         100     260.288    135         100       2.313
+ pmoA_to_mmoX_ratio
+               0.93
+               2.74
+              98.24
+             112.55
+
+KEY PATTERN (R2's point that combining obscures):
+ * SOIL: pmoA >> mmoX (ratio ~ 98.24 in mineral) -- pmoA-bearing (pMMO) methanotrophs dominate soil.
+ * HEARTWOOD: pmoA ~ mmoX (ratio ~ 0.93 ) -- mmoX-bearing / pMMO-lacking lineages relatively more important in wood.
+ * This is consistent with the sMMO/copper interpretation and the mmoX predictive value already noted (Methods S1, L695-700).
+
+By species (wood, pmoA:mmoX ratio):
+               species  pmoA  mmoX pmoA_to_mmoX
+          Quercus alba 0.737 0.042        17.63
+      Kalmia latifolia 3.012 0.390         7.73
+           Acer rubrum 5.050 0.669         7.55
+          Betula lenta 9.000 1.299         6.93
+     Sassafras albidum 4.293 0.699         6.14
+           Carya ovata 4.572 1.035         4.42
+         Pinus strobus 3.562 0.927         3.84
+     Betula papyrifera 3.172 1.190         2.67
+    Fraxinus americana 2.143 1.235         1.73
+ Betula alleghaniensis 1.789 1.082         1.65
+      Tsuga canadensis 1.650 1.099         1.50
+        Acer saccharum 1.200 1.047         1.15
+       Prunus serotina 0.509 0.564         0.90
+         Quercus rubra 0.583 0.705         0.83
+     Fagus grandifolia 0.548 1.224         0.45
+      Quercus velutina 0.257 0.640         0.40
+
+CAVEAT: absolute copies subject to pending x10 conversion (ddpcr_controls_LoD.md);
+the pmoA:mmoX ratio and relative patterns here are unaffected by that.

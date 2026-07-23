@@ -1,0 +1,32 @@
+=================================================================
+EXPANDED trait analysis -- flux & microbial balance (Editor + R3)
+=================================================================
+Predictors: 20 traits (incl. roots, trait+realized moisture,
+wood chemistry). Responses = manuscript canonical species vars. n<=10 species.
+
+SIGNIFICANT (p_spearman<0.05):
+                        response                            trait  n   rho
+ Methanogen:methanotroph balance                     Bark density  9  0.73
+ Methanogen:methanotroph balance                  Plant longevity 10  0.67
+                   Stem CH4 flux                     Plant height 10 -0.72
+                  mcrA abundance Realized soil moisture (OUR VWC) 10  0.72
+          Methanotroph abundance                     Bark density  9 -0.73
+          Methanotroph abundance                     Wood density 10 -0.65
+     p
+ 0.031
+ 0.039
+ 0.024
+ 0.024
+ 0.031
+ 0.049
+
+NULLS worth reporting (answer R3 directly):
+  Rooting depth                vs flux: rho=-0.19 p=0.61
+  Wetland indicator (trait)    vs flux: rho=-0.23 p=0.52
+  Waterlogging tol. (trait)    vs flux: rho=0.09 p=0.80
+  Realized soil moisture (OUR VWC) vs flux: rho=-0.02 p=0.97
+  Wood porosity                vs flux: rho=0.06 p=0.88
+
+See traits_multitrait_models.txt for LOO-CV best-subset (exploratory, n=10).
+See traits_multitrait_collinearity.csv for predictor inter-correlations.
+CAVEAT: absolute ddPCR loads subject to pending x10; ratios/correlations unaffected.

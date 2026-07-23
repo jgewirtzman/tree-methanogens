@@ -1,0 +1,19 @@
+PLS regression traits -> response, leave-one-out CV (n=10).
+Judge ONLY by CV R2 (>0 means predicts out-of-sample). Up to 3 components.
+
+Stem CH4 flux      CV R2 by ncomp: -0.29 / -0.66 / -0.75  -> best = 1 comp, CV R2 = -0.294
+   comp-1 trait loadings (top +): WoodDens=0.45, BarkDens=0.43, Porosity=0.29, Antifungal=0.26 
+   comp-1 trait loadings (top -): Longevity=-0.22, WoodC.N=-0.35, Gymnosperm=-0.45, Height=-0.46 
+
+mcrA:MOB balance   CV R2 by ncomp: -0.11 / -0.05 / -0.15  -> best = 2 comp, CV R2 = -0.046
+   comp-1 trait loadings (top +): WoodDens=0.48, BarkDens=0.47, Antifungal=0.39, RealizedVWC=0.30 
+   comp-1 trait loadings (top -): RootDepth=-0.19, WoodC.N=-0.25, Gymnosperm=-0.35, Height=-0.36 
+
+mcrA (methanogen)  CV R2 by ncomp: -0.43 / -0.18 / -0.02  -> best = 3 comp, CV R2 = -0.024
+   comp-1 trait loadings (top +): Antifungal=0.59, RealizedVWC=0.55, Longevity=0.18, WoodDens=0.17 
+   comp-1 trait loadings (top -): Porosity=-0.09, HeartwoodpH=-0.15, DecompRate=-0.35, SapwoodpH=-0.42 
+
+Methanotroph       CV R2 by ncomp: 0.02 / 0.07 / 0.07  -> best = 3 comp, CV R2 = 0.069
+   comp-1 trait loadings (top +): Gymnosperm=0.44, Height=0.42, WoodC.N=0.33, RootDepth=0.23 
+   comp-1 trait loadings (top -): Antifungal=-0.22, Porosity=-0.37, BarkDens=-0.48, WoodDens=-0.52 
+

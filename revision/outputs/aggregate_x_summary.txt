@@ -1,0 +1,73 @@
+================================================================
+AGGREGATE-X / KEEP-INDIVIDUAL-Y  vs  species medians  vs  individual
+Two flux scales: raw (manuscript) and pseudo-log (asinh, skew-tamed)
+================================================================
+
+--- mcrA:methanotroph ratio ---
+ flux_scale                                model   n  slope     R2      p
+        raw     M1 individual (x & y individual) 121 0.0293 0.0088 0.3052
+        raw  M2 species medians (both axes, OLS)  10 0.0521 0.5135 0.0197
+        raw  M2 species medians (both axes, SMA)  10 0.0726 0.5135 0.0197
+        raw M3 aggregate-x, individual chamber y 460 0.0284 0.0010 0.5086
+        raw    M3b aggregate-x, per-tree 125cm y 115 0.1263 0.0251 0.0911
+ pseudo-log     M1 individual (x & y individual) 121 0.0448 0.0259 0.0779
+ pseudo-log  M2 species medians (both axes, OLS)  10 0.1091 0.5105 0.0202
+ pseudo-log  M2 species medians (both axes, SMA)  10 0.1528 0.5105 0.0202
+ pseudo-log M3 aggregate-x, individual chamber y 460 0.0756 0.0105 0.0277
+ pseudo-log    M3b aggregate-x, per-tree 125cm y 115 0.1634 0.0540 0.0125
+
+--- mcrA (area-weighted) ---
+ flux_scale                                model   n  slope     R2      p
+        raw     M1 individual (x & y individual) 121 0.0104 0.0009 0.7401
+        raw  M2 species medians (both axes, OLS)  10 0.0977 0.3938 0.0521
+        raw  M2 species medians (both axes, SMA)  10 0.1557 0.3938 0.0521
+        raw M3 aggregate-x, individual chamber y 460 0.2577 0.0115 0.0213
+        raw    M3b aggregate-x, per-tree 125cm y 115 0.3146 0.0277 0.0752
+ pseudo-log     M1 individual (x & y individual) 121 0.0280 0.0085 0.3157
+ pseudo-log  M2 species medians (both axes, OLS)  10 0.2046 0.3905 0.0534
+ pseudo-log  M2 species medians (both axes, SMA)  10 0.3274 0.3905 0.0534
+ pseudo-log M3 aggregate-x, individual chamber y 460 0.3578 0.0346 0.0001
+ pseudo-log    M3b aggregate-x, per-tree 125cm y 115 0.3365 0.0408 0.0304
+
+--- methanotroph (pmoA+mmoX) ---
+ flux_scale                                model   n   slope     R2      p
+        raw     M1 individual (x & y individual) 121 -0.0808 0.0172 0.1522
+        raw  M2 species medians (both axes, OLS)  10 -0.0418 0.2300 0.1607
+        raw  M2 species medians (both axes, SMA)  10 -0.0872 0.2300 0.1607
+        raw M3 aggregate-x, individual chamber y 460  0.0076 0.0001 0.8528
+        raw    M3b aggregate-x, per-tree 125cm y 115 -0.1236 0.0221 0.1128
+ pseudo-log     M1 individual (x & y individual) 121 -0.0838 0.0232 0.0954
+ pseudo-log  M2 species medians (both axes, OLS)  10 -0.0875 0.2278 0.1630
+ pseudo-log  M2 species medians (both axes, SMA)  10 -0.1833 0.2278 0.1630
+ pseudo-log M3 aggregate-x, individual chamber y 460 -0.0260 0.0014 0.4275
+ pseudo-log    M3b aggregate-x, per-tree 125cm y 115 -0.1475 0.0404 0.0312
+
+KEY FINDING (ratio predictor):
+
+On RAW flux, individual and aggregate-x fits are NON-significant and small:
+  M1 individual           slope=0.0293 R2=0.009 p=0.305
+  M3 aggregate-x chamber  slope=0.0284 R2=0.001 p=0.509
+  -> NOT because x-attenuation is absent, but because raw flux is heavily
+     right-skewed: a few extreme emission events (unrelated to the ratio)
+     dominate the mean-based OLS. cor(x, species MEDIAN flux)=0.717 but
+     cor(x, species MEAN flux)=0.328. The species result uses the MEDIAN.
+
+On PSEUDO-LOG flux (valid OLS scale; the manuscript already uses this for
+individual flux display), the relationship strengthens as x is aggregated:
+  M1 individual           slope=0.0448 R2=0.026 p=0.078  <- MARGINAL (weak, ~0.08)
+  M3 aggregate-x chamber  slope=0.0756 R2=0.011 p=0.028  <- SIGNIFICANT, de-biased
+  M3b aggregate-x 125cm   slope=0.1634 R2=0.054 p=0.013  <- SIGNIFICANT
+  M2 species SMA          slope=0.1528 R2=0.510 p=0.020
+  -> aggregating the noisy predictor moves the fit from marginal (individual)
+     to significant (aggregate-x), i.e. x-attenuation IS operating once the
+     y-scale is appropriate. Aggregation sharpens rather than manufactures
+     the signal (the individual fit is already marginally positive, not zero).
+
+IMPLICATION for the manuscript: the 'individual R2<0.001, no individual
+relationship' claim is largely an artifact of raw heavy-tailed flux. A more
+defensible framing: a weak (marginal) individual relationship, strongly
+attenuated by within-tree heterogeneity AND flux skew, that sharpens to a
+robust species-level (species-typical/median) association. This removes the
+'how can species work if individual is exactly zero' paradox R3 pressed on.
+DECISION NEEDED (Jon/Mark): present on raw or pseudo-log scale; whether to
+retire the 'exactly null individually' claim in favor of 'weak+attenuated'.

@@ -1,0 +1,5 @@
+"compartment","n_mmox","n_pmoa","pct_detect_mmox","pct_detect_pmoa","median_conc_mmox","median_conc_pmoa","pmoA_to_mmoX_ratio"
+"Heartwood",149,150,93,95,1.07970237731934,1.00301995873451,0.93
+"Sapwood",156,156,97,99,0.967864573001862,2.65177071094513,2.74
+"Soil_Mineral",129,129,100,100,3.22036600112915,316.354125976563,98.24
+"Soil_Organic",135,136,100,100,2.31267428398132,260.288024902344,112.55

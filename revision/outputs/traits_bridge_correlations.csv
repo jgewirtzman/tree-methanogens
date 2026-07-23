@@ -1,0 +1,25 @@
+"trait","trait_label","response","response_label","n","rho","p_spearman","pearson_r","p_pearson"
+"bark_density_gcm3","Bark density","balance","Methanogen:methanotroph ratio (log10, area-wtd)",9,0.733333333333333,0.0311232363315697,0.676240999039841,0.0455082225039678
+"wood_density_gcm3","Wood density","balance","Methanogen:methanotroph ratio (log10, area-wtd)",10,0.6,0.0731198750392827,0.589067738671775,0.0731511893508707
+"wood_sapwood_pH","Sapwood pH","balance","Methanogen:methanotroph ratio (log10, area-wtd)",10,-0.379220852432413,0.279809070938306,-0.319820321938732,0.367667653822457
+"gymnosperm","Gymnosperm (vs angiosperm)","balance","Methanogen:methanotroph ratio (log10, area-wtd)",10,-0.261116483933547,0.466185283504031,-0.29658917509046,0.405332920287859
+"wood_heartwood_pH","Heartwood pH","balance","Methanogen:methanotroph ratio (log10, area-wtd)",10,-0.153864363724166,0.671277393340076,-0.173246647453011,0.632194347280436
+"porosity_num","Wood porosity (tracheid<diffuse<ring)","balance","Methanogen:methanotroph ratio (log10, area-wtd)",10,0.110096376512636,0.762062229048775,0.130952497013743,0.718403426573007
+"bark_density_gcm3","Bark density","flux","Stem CH4 flux (species median)",9,0.633333333333333,0.0760361552028219,0.611880884771346,0.0799116270116879
+"gymnosperm","Gymnosperm (vs angiosperm)","flux","Stem CH4 flux (species median)",10,-0.522232967867094,0.121502918817113,-0.425731475626968,0.219941885089595
+"wood_density_gcm3","Wood density","flux","Stem CH4 flux (species median)",10,0.418181818181818,0.232418098250503,0.443697080067813,0.198977251882923
+"wood_heartwood_pH","Heartwood pH","flux","Stem CH4 flux (species median)",10,0.313883301997299,0.377122831482475,0.40676161440628,0.243390087565292
+"wood_sapwood_pH","Sapwood pH","flux","Stem CH4 flux (species median)",10,-0.134562237959889,0.71091733208345,-0.0172343780541411,0.962310993867853
+"porosity_num","Wood porosity (tracheid<diffuse<ring)","flux","Stem CH4 flux (species median)",10,0.055048188256318,0.879946327971484,0.0193378853377484,0.957714191128181
+"wood_sapwood_pH","Sapwood pH","mcra","mcrA abundance (log10, area-wtd)",10,-0.477084298221423,0.163234711355641,-0.462283895689838,0.178563278447926
+"porosity_num","Wood porosity (tracheid<diffuse<ring)","mcra","mcrA abundance (log10, area-wtd)",10,-0.440385506050544,0.202750555511042,-0.245070956930168,0.494961212344751
+"gymnosperm","Gymnosperm (vs angiosperm)","mcra","mcrA abundance (log10, area-wtd)",10,0.174077655955698,0.630536075556976,-0.0187766175737147,0.958940627047537
+"wood_heartwood_pH","Heartwood pH","mcra","mcrA abundance (log10, area-wtd)",10,-0.153864363724166,0.671277393340076,0.0240495552747805,0.947422014984567
+"bark_density_gcm3","Bark density","mcra","mcrA abundance (log10, area-wtd)",9,0.166666666666667,0.677744708994709,0.204994151640271,0.596738424587853
+"wood_density_gcm3","Wood density","mcra","mcrA abundance (log10, area-wtd)",10,0.115151515151515,0.758833070490857,0.164740296056806,0.649252571127223
+"bark_density_gcm3","Bark density","meth","Methanotroph abundance (log10, area-wtd)",9,-0.733333333333333,0.0311232363315697,-0.705806302132945,0.0336159932656767
+"wood_density_gcm3","Wood density","meth","Methanotroph abundance (log10, area-wtd)",10,-0.648484848484848,0.0490426316833764,-0.711857356093354,0.0209309235589365
+"gymnosperm","Gymnosperm (vs angiosperm)","meth","Methanotroph abundance (log10, area-wtd)",10,0.348155311911396,0.324204183553433,0.404188863086818,0.246673497636021
+"porosity_num","Wood porosity (tracheid<diffuse<ring)","meth","Methanotroph abundance (log10, area-wtd)",10,-0.330289129537908,0.351286465947497,-0.435842995662327,0.207993413262131
+"wood_sapwood_pH","Sapwood pH","meth","Methanotroph abundance (log10, area-wtd)",10,0.0366987921708787,0.919829424122262,-0.0276322051244279,0.939600682593608
+"wood_heartwood_pH","Heartwood pH","meth","Methanotroph abundance (log10, area-wtd)",10,-0.0246182981958665,0.946180098725265,0.133016728016711,0.714119818158014

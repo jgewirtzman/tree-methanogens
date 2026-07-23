@@ -1,0 +1,29 @@
+=================================================================
+CO2 ISOTOPES & APPARENT FRACTIONATION (raw Picarro deltas)
+Addresses R2 L607-610: source CO2 d13C WAS recorded; here it is.
+=================================================================
+
+Internal wood-gas samples with paired CH4+CO2 isotopes: 456 (14 species)
+
+d13C-CH4  : median -63.7 (IQR -72.3 to -45.7) permil (raw)
+d13C-CO2  : median -20.5 (IQR -22.4 to -17.5) permil (raw)
+alpha_C   : median 1.0481 (IQR 1.0258 to 1.0653) 
+eps_C     : median 48.1 (IQR 25.8 to 65.3) permil
+
+Samples with eps_C > 55 (CO2-reduction / hydrogenotrophic range): 168 of 456 (37%)
+
+Keeling intercepts (source signatures):
+  d13C-CO2 = -23.0 permil
+  d13C-CH4 = -81.3 permil
+
+Tissue breakdown (median eps_C):
+    tissue   n      eps
+ Heartwood 119 48.06695
+     Other 213 48.06695
+   Sapwood 124 48.33124
+
+VALIDATION: median raw d13C-CH4 here = -63.7 permil, which reproduces the
+manuscript's reported calibrated value EXACTLY -> the raw CH4 delta is
+effectively the calibrated value (negligible offset). d13C-CO2 is likely
+similarly close, but confirm against a CO2 isotope standard before reporting
+absolute d13CO2 / alpha_C in the paper.

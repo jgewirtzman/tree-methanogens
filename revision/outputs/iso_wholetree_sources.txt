@@ -1,0 +1,36 @@
+=================================================================
+WHOLE-TREE ISOTOPE SOURCE TERMS (Keeling vs Miller-Tans)
+=================================================================
+
+Sample classes across all 4 runs:
+      class   n
+ Atmosphere  17
+ Incubation  93
+   Standard  12
+     Tissue 122
+  WholeTree 164
+
+Whole-tree CH4 isotope samples (ch4>=1.5): 130
+Whole-tree CO2 isotope samples: 164
+
+Bulk signatures:
+  d13C-CH4 : median -63.0 (IQR -72.2 to -46.5) permil
+  d13C-CO2 : median -20.1 (IQR -21.7 to -15.6) permil
+  eps_C    : median 47.2 (IQR 25.9 to 65.2) permil
+
+SOURCE d13C-CH4:
+  Keeling      : -79.2 permil [95% CI -92.2, -66.2]  (n=130, R2=0.13)
+  Miller-Tans  : -65.2 permil [95% CI -68.4, -61.9]  (n=130, R2=0.93)
+SOURCE d13C-CO2:
+  Keeling      : -20.6 permil [95% CI -21.7, -19.4]  (n=164, R2=0.25)
+  Miller-Tans  : -34.8 permil [95% CI -36.4, -33.2]  (n=164, R2=0.92)
+
+RECOMMENDATION (CORRECTED): do NOT use Miller-Tans here. Despite its high R2,
+Miller-Tans is dominated by a few high-CH4 points -- its CH4 source swings
+-65 -> -89 permil as the top 1-5 points are dropped (the R2 is a concentration-
+weighting artifact, not fit quality). KEELING is the robust estimate here
+(stable ~ -79 permil to point removal). Better still, report the bulk median
+d13CH4 (-63.7, manuscript) plus the atmosphere-mass-balance tree-produced
+source (~ -70 permil, endmember-robust; see R_isotopes_convergence_threshold.R).
+The tree-produced source is MORE depleted than the measured bulk because the
+measured gas is diluted with atmospheric CH4 -- consistent with hydrogenotrophy.

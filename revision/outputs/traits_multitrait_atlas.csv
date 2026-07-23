@@ -1,0 +1,81 @@
+"trait","trait_label","response","response_label","n","rho","p_spearman","pearson_r","p_pearson"
+"bark_density_gcm3","Bark density","balance","Methanogen:methanotroph balance",9,0.733333333333333,0.0311232363315697,0.676240999039841,0.0455082225039678
+"try_plant_longevity","Plant longevity","balance","Methanogen:methanotroph balance",10,0.672727272727273,0.0393814092829061,0.333005393715336,0.347097523350514
+"wood_density_gcm3","Wood density","balance","Methanogen:methanotroph balance",10,0.6,0.0731198750392827,0.589067738671775,0.0731511893508707
+"try_CWD_stem_decomp_rate_k","CWD decomp rate","balance","Methanogen:methanotroph balance",9,-0.577410912041449,0.103506884832988,-0.509730256007394,0.160971015213677
+"try_antifungal","Antifungal chem.","balance","Methanogen:methanotroph balance",10,0.522232967867094,0.121502918817113,0.594038453977385,0.0701641432143061
+"try_wetland_indicator","Wetland indicator (trait)","balance","Methanogen:methanotroph balance",10,-0.467099366496914,0.173485919794423,-0.538259005842573,0.108480508614556
+"try_plant_height","Plant height","balance","Methanogen:methanotroph balance",10,-0.418181818181818,0.232418098250503,-0.370218233515367,0.292316851856594
+"wood_sapwood_pH","Sapwood pH","balance","Methanogen:methanotroph balance",10,-0.379220852432413,0.279809070938306,-0.319820321938732,0.367667653822457
+"try_wood_CN_ratio","Wood C:N","balance","Methanogen:methanotroph balance",8,0.357142857142857,0.389384920634921,-0.0692955969361561,0.870486092966752
+"gymnosperm","Gymnosperm","balance","Methanogen:methanotroph balance",10,-0.261116483933547,0.466185283504031,-0.29658917509046,0.405332920287859
+"try_stem_C","Stem C","balance","Methanogen:methanotroph balance",9,-0.25,0.520634920634921,-0.330425910082317,0.385137405105609
+"bark_wood_ratio","Bark:wood ratio","balance","Methanogen:methanotroph balance",9,0.233333333333333,0.551708553791887,0.262825614651817,0.494447280124482
+"try_rooting_depth","Rooting depth","balance","Methanogen:methanotroph balance",10,-0.212121212121212,0.559908079271241,-0.332388205280766,0.348047098860208
+"try_waterlogging_tolerance","Waterlogging tol. (trait)","balance","Methanogen:methanotroph balance",10,-0.206687884851222,0.566695138006874,-0.329074810069378,0.353167371422981
+"wood_heartwood_pH","Heartwood pH","balance","Methanogen:methanotroph balance",10,-0.153864363724166,0.671277393340076,-0.173246647453011,0.632194347280436
+"vwc_realized","Realized soil moisture (OUR VWC)","balance","Methanogen:methanotroph balance",10,0.151515151515151,0.681807643477163,0.393588508286293,0.26046079416271
+"porosity_num","Wood porosity","balance","Methanogen:methanotroph balance",10,0.110096376512636,0.762062229048775,0.130952497013743,0.718403426573007
+"try_fine_root_diameter","Fine-root diameter","balance","Methanogen:methanotroph balance",10,0.0666666666666667,0.864753528804526,0.10229255061494,0.778561806187675
+"try_bark_volume_rel_wood","Bark volume rel. wood","balance","Methanogen:methanotroph balance",10,-0.0365860459991462,0.920075064270543,-0.0161609801287705,0.964657087698282
+"try_fine_root_tissue_density","Fine-root tissue density","balance","Methanogen:methanotroph balance",9,-0.0333333333333333,0.948390652557319,-0.223614854873758,0.563013365364308
+"try_plant_height","Plant height","flux","Stem CH4 flux",10,-0.721212121212121,0.0241945875284697,-0.64644859520521,0.0434127606834983
+"try_bark_volume_rel_wood","Bark volume rel. wood","flux","Stem CH4 flux",10,-0.603669758985913,0.0646052775594127,-0.504922710009518,0.136615027634518
+"bark_density_gcm3","Bark density","flux","Stem CH4 flux",9,0.633333333333333,0.0760361552028219,0.611880884771346,0.0799116270116879
+"try_antifungal","Antifungal chem.","flux","Stem CH4 flux",10,0.522232967867094,0.121502918817113,0.558236818472034,0.0935263304410292
+"gymnosperm","Gymnosperm","flux","Stem CH4 flux",10,-0.522232967867094,0.121502918817113,-0.425731475626968,0.219941885089595
+"bark_wood_ratio","Bark:wood ratio","flux","Stem CH4 flux",9,0.5,0.177662037037037,0.282655678690959,0.461150815614386
+"wood_density_gcm3","Wood density","flux","Stem CH4 flux",10,0.418181818181818,0.232418098250503,0.443697080067813,0.198977251882923
+"try_stem_C","Stem C","flux","Stem CH4 flux",9,-0.35,0.358581349206349,-0.543914113572672,0.130074778615154
+"wood_heartwood_pH","Heartwood pH","flux","Stem CH4 flux",10,0.313883301997299,0.377122831482475,0.40676161440628,0.243390087565292
+"try_wetland_indicator","Wetland indicator (trait)","flux","Stem CH4 flux",10,-0.233549683248457,0.516076633781176,-0.32194949364027,0.364305763580765
+"try_rooting_depth","Rooting depth","flux","Stem CH4 flux",10,-0.187878787878788,0.607566897460635,-0.0760720670207163,0.834552008605537
+"try_fine_root_tissue_density","Fine-root tissue density","flux","Stem CH4 flux",9,-0.183333333333333,0.643639770723104,-0.261356403583719,0.496952511352026
+"wood_sapwood_pH","Sapwood pH","flux","Stem CH4 flux",10,-0.134562237959889,0.71091733208345,-0.0172343780541411,0.962310993867853
+"try_waterlogging_tolerance","Waterlogging tol. (trait)","flux","Stem CH4 flux",10,0.0911858315520097,0.802181291509266,0.0893008114796355,0.806204844513078
+"porosity_num","Wood porosity","flux","Stem CH4 flux",10,0.055048188256318,0.879946327971484,0.0193378853377484,0.957714191128181
+"try_CWD_stem_decomp_rate_k","CWD decomp rate","flux","Stem CH4 flux",9,0.0334730963502289,0.93187280621366,-0.12353189243954,0.751521225238471
+"try_wood_CN_ratio","Wood C:N","flux","Stem CH4 flux",8,-0.0476190476190476,0.934871031746032,-0.251862376505479,0.547348992149199
+"try_plant_longevity","Plant longevity","flux","Stem CH4 flux",10,0.0303030303030303,0.94570980835199,-0.121835278854053,0.737406317686322
+"vwc_realized","Realized soil moisture (OUR VWC)","flux","Stem CH4 flux",10,-0.0181818181818182,0.972841176143636,0.347065146642304,0.325824704551347
+"try_fine_root_diameter","Fine-root diameter","flux","Stem CH4 flux",10,0.00606060606060606,1,0.102395209494056,0.778344222740464
+"vwc_realized","Realized soil moisture (OUR VWC)","mcra","mcrA abundance",10,0.721212121212121,0.0241945875284697,0.782496670068201,0.00746016023548265
+"try_antifungal","Antifungal chem.","mcra","mcrA abundance",10,0.522232967867094,0.121502918817113,0.852876163114032,0.00170962383448836
+"wood_sapwood_pH","Sapwood pH","mcra","mcrA abundance",10,-0.477084298221423,0.163234711355641,-0.462283895689838,0.178563278447926
+"porosity_num","Wood porosity","mcra","mcrA abundance",10,-0.440385506050544,0.202750555511042,-0.245070956930168,0.494961212344751
+"try_waterlogging_tolerance","Waterlogging tol. (trait)","mcra","mcrA abundance",10,-0.322189938150434,0.363927075967511,-0.187921874418331,0.603132993016821
+"try_wetland_indicator","Wetland indicator (trait)","mcra","mcrA abundance",10,-0.311399577664609,0.38111344254489,-0.602828877530766,0.065078689522818
+"try_wood_CN_ratio","Wood C:N","mcra","mcrA abundance",8,0.333333333333333,0.427876984126984,0.141744595594672,0.737767258827076
+"try_plant_longevity","Plant longevity","mcra","mcrA abundance",10,0.272727272727273,0.448272158936988,0.0369847958603158,0.919206335156723
+"try_CWD_stem_decomp_rate_k","CWD decomp rate","mcra","mcrA abundance",9,-0.284521318976946,0.458068843705731,-0.369860510885598,0.327220123767906
+"try_fine_root_tissue_density","Fine-root tissue density","mcra","mcrA abundance",9,-0.283333333333333,0.462990520282187,-0.196553331281225,0.612252868156148
+"try_bark_volume_rel_wood","Bark volume rel. wood","mcra","mcrA abundance",10,-0.189027904328922,0.60096233836,0.00298184681811548,0.993477268081865
+"bark_wood_ratio","Bark:wood ratio","mcra","mcrA abundance",9,0.2,0.613403880070547,0.10014083420481,0.797691919025865
+"gymnosperm","Gymnosperm","mcra","mcrA abundance",10,0.174077655955698,0.630536075556976,-0.0187766175737147,0.958940627047537
+"try_fine_root_diameter","Fine-root diameter","mcra","mcrA abundance",10,-0.163636363636364,0.656721421523199,0.0627952066720218,0.863175866040467
+"wood_heartwood_pH","Heartwood pH","mcra","mcrA abundance",10,-0.153864363724166,0.671277393340076,0.0240495552747805,0.947422014984567
+"bark_density_gcm3","Bark density","mcra","mcrA abundance",9,0.166666666666667,0.677744708994709,0.204994151640271,0.596738424587853
+"try_rooting_depth","Rooting depth","mcra","mcrA abundance",10,0.127272727272727,0.732886836413125,0.0639195095823328,0.860745952842099
+"try_stem_C","Stem C","mcra","mcrA abundance",9,0.133333333333333,0.743540564373898,0.0813627219481391,0.835160879116734
+"wood_density_gcm3","Wood density","mcra","mcrA abundance",10,0.115151515151515,0.758833070490857,0.164740296056806,0.649252571127223
+"try_plant_height","Plant height","mcra","mcrA abundance",10,-0.0666666666666667,0.864753528804526,-0.110819223229908,0.760538176067376
+"bark_density_gcm3","Bark density","meth","Methanotroph abundance",9,-0.733333333333333,0.0311232363315697,-0.705806302132945,0.0336159932656767
+"wood_density_gcm3","Wood density","meth","Methanotroph abundance",10,-0.648484848484848,0.0490426316833764,-0.711857356093354,0.0209309235589365
+"try_plant_longevity","Plant longevity","meth","Methanotroph abundance",10,-0.636363636363636,0.0544450679375418,-0.289950209742686,0.41642144189315
+"try_CWD_stem_decomp_rate_k","CWD decomp rate","meth","Methanotroph abundance",9,0.569042637953892,0.109804000209182,0.448154183076101,0.226357392307324
+"try_wetland_indicator","Wetland indicator (trait)","meth","Methanotroph abundance",10,0.467099366496914,0.173485919794423,0.505514484798421,0.136080286776564
+"try_plant_height","Plant height","meth","Methanotroph abundance",10,0.442424242424242,0.204200583289326,0.445487219887631,0.196954666794008
+"try_stem_C","Stem C","meth","Methanotroph abundance",9,0.466666666666667,0.212522045855379,0.482879780587377,0.187945290428906
+"try_rooting_depth","Rooting depth","meth","Methanotroph abundance",10,0.36969696969697,0.295604089197811,0.543649698798737,0.104306700089523
+"gymnosperm","Gymnosperm","meth","Methanotroph abundance",10,0.348155311911396,0.324204183553433,0.404188863086818,0.246673497636021
+"porosity_num","Wood porosity","meth","Methanotroph abundance",10,-0.330289129537908,0.351286465947497,-0.435842995662327,0.207993413262131
+"try_antifungal","Antifungal chem.","meth","Methanotroph abundance",10,-0.29012942659283,0.416120253507059,-0.299339092555705,0.400781644551616
+"try_wood_CN_ratio","Wood C:N","meth","Methanotroph abundance",8,-0.238095238095238,0.582142857142857,0.173610216728634,0.680962575063584
+"try_waterlogging_tolerance","Waterlogging tol. (trait)","meth","Methanotroph abundance",10,0.127660164172814,0.725250139656936,0.357949229919505,0.309834384118589
+"try_fine_root_diameter","Fine-root diameter","meth","Methanotroph abundance",10,-0.0909090909090909,0.811416953056796,-0.0840017634591311,0.817537283706829
+"bark_wood_ratio","Bark:wood ratio","meth","Methanotroph abundance",9,-0.0833333333333333,0.843182319223986,-0.1274502004831,0.743849499028801
+"try_fine_root_tissue_density","Fine-root tissue density","meth","Methanotroph abundance",9,-0.0666666666666667,0.880092592592593,0.153415040953258,0.69353059384819
+"try_bark_volume_rel_wood","Bark volume rel. wood","meth","Methanotroph abundance",10,-0.0548790689987194,0.880312933620968,-0.114251460955846,0.753311828560018
+"wood_sapwood_pH","Sapwood pH","meth","Methanotroph abundance",10,0.0366987921708787,0.919829424122262,-0.0276322051244279,0.939600682593608
+"wood_heartwood_pH","Heartwood pH","meth","Methanotroph abundance",10,-0.0246182981958665,0.946180098725265,0.133016728016711,0.714119818158014
+"vwc_realized","Realized soil moisture (OUR VWC)","meth","Methanotroph abundance",10,0.00606060606060606,1,-0.0924694272952425,0.799443860063691

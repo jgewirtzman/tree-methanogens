@@ -1,0 +1,26 @@
+=================================================================
+Multivariate trait <-> methane-response co-structure (permutation)
+n = 10 species; responses = mcrA, methanotroph, balance, flux
+=================================================================
+
+1) RDA  (responses ~ trait PC1-3):
+   constrained (traits explain) = 54.5% of response variance; adjusted R2 = 0.318
+   permutation test: F = 2.40, p = 0.101 (999 perms)
+
+   by trait axis:
+     tPC1: F=1.94 p=0.172
+     tPC2: F=4.69 p=0.030
+     tPC3: F=0.56 p=0.631
+
+2) Mantel (trait-dist vs response-dist): r = 0.191, p = 0.174
+
+3) Procrustes (trait PCA vs response PCA alignment):
+   correlation = 0.561, PROTEST p = 0.098
+
+----------------------------------------------------------------
+READING: all three ask whether trait space and methane-response space share
+significant multivariate structure. p>0.05 => no significant joint co-structure
+detectable at this n; consistent with the failed PLS prediction. Individual
+a-priori links (density->methanotroph/balance; moisture->methanogen) can still
+hold -- these omnibus tests are low-powered at n= 10  and test the JOINT structure.
+NOT run: t-SNE/UMAP (need hundreds of points; artifacts at this n).

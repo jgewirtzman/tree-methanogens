@@ -1,0 +1,37 @@
+=================================================================
+ISOTOPE DATA PROVENANCE + heartwood/sapwood enrichment
+=================================================================
+
+Sample classes (ch4>=1.5 ppm):
+      class   n
+ Atmosphere   3
+  Heartwood  14
+    Sapwood  12
+   Standard  11
+  WholeTree 130
+
+(A) WHOLE-TREE single-borehole = the manuscript basis (11a):
+    n=130; median d13CH4 = -63.0 permil (manuscript reports -63.7)
+    median d13CO2 = -20.4; median eps_C = 47 permil
+
+(B) PAIRED HEARTWOOD vs SAPWOOD (tissue-resolved 'second project'):
+    11 trees with both H and S.
+    median d13CH4  Heartwood = -68.8 ; Sapwood = -70.4 permil
+    median SW-HW CH4 enrichment = -0.7 permil  (paired Wilcoxon p=0.206)
+    median SW-HW CO2 enrichment = -0.7 permil
+
+INTERPRETATION (honest): oxidation of CH4 diffusing from heartwood out through
+oxic sapwood would predict sapwood CH4 to be MORE 13C-enriched (positive SW-HW).
+We do NOT see that: SW-HW is small and slightly NEGATIVE (-0.7 permil) and NOT
+significant (p=0.21, n=11 paired). So the tissue-resolved isotopes do NOT provide
+clear evidence of sapwood oxidation enrichment. The oxidation story should rest
+on the gene distribution (methanotrophs enriched in sapwood; pmoA:mmoX), not on
+HW/SW isotopic enrichment. Caveats: small n after QC, noisy raw deltas at low CH4;
+the incubations (V_*) may be a better-controlled oxidation test if designed for it.
+(Also confirm suffix H=heartwood, S=sapwood before using at all.)
+
+WHICH DATASET FOR WHAT:
+  * Main in-situ d13CH4/d13CO2/Keeling  -> WHOLE-TREE set (matches manuscript).
+  * Heartwood vs sapwood enrichment     -> PAIRED H/S set (this script).
+  * Incubations (V_*, Run 4)            -> separate resource, not in-situ.
+  * The tissue labels in R_isotopes_co2.R are NOT valid (whole-tree join).

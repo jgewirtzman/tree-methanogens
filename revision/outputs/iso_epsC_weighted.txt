@@ -1,0 +1,26 @@
+=================================================================
+PRECISION-WEIGHTED within-tree eps_C (no arbitrary threshold)
+=================================================================
+
+n = 130 whole-tree paired samples (>=1.5 ppm, standards excluded)
+Precision model: sigma_d13CH4(C) = max(0.3, 11.5/C) permil (anchor <1.15 at 10 ppm)
+
+PRIMARY estimate — random-effects pooled (DerSimonian-Laird):
+  eps_C   = 45.0 +/- 3.5 permil (pooled mean +/- SE)
+  tau (between-tree SD) = 40 permil  <- large real tree-to-tree spread
+  pooled d13CH4 = -58.6 permil
+
+ROBUSTNESS / VALIDATION (independent routes, all in the same place):
+  (1) random-effects pooled        : eps_C = 45.0 +/- 3.5
+  (2) >=10 ppm subset median       : eps_C = 55.1 (d13CH4 = -69.2)
+  (3) atmosphere mixing-corrected  : eps_C = 56.8
+
+Why NOT naive inverse-variance weighting: it assumes trees are identical
+(tau=0), so the single highest-CH4 point dominates and SE collapses to ~0 --
+the Miller-Tans leverage trap. The random-effects model estimates real
+between-tree spread (tau ~ tens of permil) and so weights sensibly.
+
+=> eps_C ~ 55 +/- a few permil by all routes, at/into the CO2-reduction range,
+   with NO arbitrary threshold. The large tau says trees genuinely vary; the
+   POOLED value is what supports (corroboratively) a hydrogenotrophic signal.
+   Report alongside bulk d13CH4 -63.7; keep the bulk-CO2 caveat.

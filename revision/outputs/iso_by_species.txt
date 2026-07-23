@@ -1,0 +1,47 @@
+=================================================================
+ISOTOPE SOURCE AGGREGATION — is it one source or species-specific?
+=================================================================
+
+SETUP: whole-tree = ~1 sample per tree, so the pooled Keeling/Miller-Tans
+concentration axis is BETWEEN-tree variation. The pooled source is an
+ECOSYSTEM/POPULATION-AVERAGE signature, NOT a within-tree source.
+
+*** THRESHOLD SENSITIVITY (the decisive test) ***
+Low-CH4 samples have unreliable d13C. Is the species difference real?
+ ch4_threshold   n n_species  kruskal_p d13CH4_IQR
+           1.5 125        10 0.02077895  26.620009
+           5.0  68         9 0.17866594  17.036624
+          10.0  58         6 0.44029870  14.231495
+          50.0  37         4 0.17513410  10.319217
+         100.0  30         4 0.52729681   8.360539
+
+=> The among-species difference is significant ONLY at the lowest threshold
+   (>=1.5 ppm, p~0.02, d13C IQR ~27) and DISAPPEARS at >=5-10 ppm (p>0.18)
+   as the IQR collapses to ~8. So the apparent heterogeneity is a
+   CONCENTRATION-DEPENDENT NOISE ARTIFACT, not distinct species sources.
+
+Per-species Miller-Tans (n>=8): unreliable at small n -- some fits are
+physically impossible (e.g. BELE ~-218 permil). Flagged 'plausible':
+ species        src         lo         hi        r2 plausible
+    BELE -218.29698 -221.99012 -214.60383 0.9993505     FALSE
+    ACRU  -89.30846  -91.75185  -86.86507 0.9981115      TRUE
+    FRAM  -87.18185  -90.05383  -84.30987 0.9983701      TRUE
+    BEAL  -72.74389  -76.21104  -69.27673 0.9948681      TRUE
+    ACSA  -71.53247  -72.17540  -70.88954 0.9998166      TRUE
+    FAGR  -70.12170  -73.68794  -66.55547 0.9948171      TRUE
+    TSCA  -69.58526  -70.64215  -68.52838 0.9994765      TRUE
+    PIST  -65.35624  -79.78834  -50.92415 0.9210144      TRUE
+    QURU  -59.80871  -65.31412  -54.30330 0.9790305      TRUE
+
+CORRECTED ANSWER (do we aggregate or divide?):
+ 1. AGGREGATE is appropriate. At concentrations where d13C is reliable
+    (>=5-10 ppm), species converge on one depleted source -- no significant
+    among-species heterogeneity. The pooled Miller-Tans (concentration-
+    weighted) is robust BECAUSE it downweights the noisy low-CH4 samples.
+ 2. FRAME the pooled source as an ecosystem/population-average (whole-tree
+    is ~1 sample/tree, so the mixing line is between-tree, not within-tree).
+ 3. eps_C uses BULK internal CO2 (mostly respiration), NOT the methanogenic
+    substrate CO2 -> APPARENT fractionation; caveat it (R2's L607-610 point).
+ 4. For a TRUE within-sample source of PRODUCED CH4, the incubation time-
+    series (V*_H1..H48) are the right tool -- but that is a separate dataset
+    (likely a separate paper); flag for Jon, don't fold in here.
