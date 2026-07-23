@@ -209,9 +209,10 @@ species_results <- do.call(rbind, lapply(species_list, test_species_height_effec
 # scales were not comparable and single outliers distorted panels. Same transform
 # now on every panel; dashed line = zero net flux. Layout/grid otherwise unchanged.
 PANEL_A_STYLE <- "meanSE"   # "boxplot" (half-boxplot + jitter) or "meanSE" (mean +/- SE over jitter)
-# arcsinh (inverse hyperbolic sine) transform: signed, ~linear within the small
-# cofactor window, log-like for larger |x|; handles zeros and negatives.
-asinh_cofac <- 0.01
+# arcsinh (inverse hyperbolic sine) transform: signed, ~linear within the cofactor
+# window, log-like for larger |x|; handles zeros/negatives. Cofactor 0.1 unified
+# across the main flux-axis figures (Fig 1, Fig 2, Fig 3).
+asinh_cofac <- 0.1
 trans_symlog_fig2 <- scales::trans_new("arcsinh",
   transform = function(x) asinh(x / asinh_cofac),
   inverse   = function(x) asinh_cofac * sinh(x))
