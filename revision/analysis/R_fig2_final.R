@@ -228,9 +228,18 @@ create_species_plot_half <- function(species_name, species_data, breaks_data, si
   g <- ggplot(species_data, aes(x = factor(height_m), y = CH4_best.flux)) +
     geom_hline(yintercept = 0, linetype = "dashed", color = "gray40",
                linewidth = 0.6, alpha = 0.8)
-  # significant height trend: line through per-height means, coloured by slope sign
-  if (is_sig) g <- g + stat_summary(fun = mean, geom = "line", aes(group = 1),
-                                     color = sign_color, linewidth = 0.9, alpha = 0.9)
+  # significant height trend: LINEAR fit (matches the continuous-height lmer test),
+  # drawn as a 2-point line on the SAME discrete factor axis (heights are evenly
+  # spaced, so a fit on factor position is linear in height). Coloured by slope sign.
+  if (is_sig) {
+    lv <- levels(factor(species_data$height_m)); hts <- sort(unique(species_data$height_m))
+    tsd <- species_data; tsd$hpos <- as.numeric(factor(tsd$height_m))
+    tfit <- lm(CH4_best.flux ~ hpos, data = tsd)
+    yy <- predict(tfit, newdata = data.frame(hpos = c(1, length(lv))))
+    tl <- data.frame(hm = factor(c(hts[1], hts[length(hts)]), levels = lv), flux = yy)
+    g <- g + geom_line(data = tl, aes(x = hm, y = flux, group = 1),
+                       color = sign_color, linewidth = 0.9, inherit.aes = FALSE)
+  }
   if (PANEL_A_STYLE == "boxplot") {
     g <- g +
       geom_half_boxplot(alpha = 0.6, outlier.shape = NA, fill = boxplot_color,
@@ -267,15 +276,14 @@ create_species_plot_half <- function(species_name, species_data, breaks_data, si
     )
 }
 
-# Build individual species plots — ordered by height slope (desc) to match panels b/c
+# Build individual species plots (alphabetical order)
 sig_lookup <- species_results %>%
   transmute(species,
             is_sig = !is.na(height_p) & height_p < 0.05,
             slope_sign = ifelse(!is.na(height_coef) & height_coef < 0, "neg", "pos"))
-ordered_species <- species_results %>% arrange(desc(height_coef)) %>% pull(species)  # NA slope (n=1) last
 
 plot_list_half <- list()
-for(sp in ordered_species) {
+for(sp in species_list) {
   sp_data <- plot_data_top %>% filter(species == sp)
   if(nrow(sp_data) > 0) {
     plot_list_half[[sp]] <- create_species_plot_half(sp, sp_data, species_breaks, sig_lookup)
