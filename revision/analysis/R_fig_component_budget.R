@@ -56,8 +56,7 @@ pa <- ggplot(soil_map, aes(x, y, fill = mean_flux_nmol)) + geom_raster(interpola
                       limits = c(min(soil_map$mean_flux_nmol), 0),
                       guide = guide_colorbar(title.position = "top")) +
   map_scales +
-  coord_quickmap(xlim = xl, ylim = yl, expand = FALSE) +
-  ggtitle(expression(bold("a  Soil CH"[4]*" flux (uptake)"))) + th_map
+  coord_quickmap(xlim = xl, ylim = yl, expand = FALSE) + th_map
 
 # ---- (b) tree map (source = red; per m2 WOODY SURFACE; quantile-spread color) -
 tv <- tree_pts$flux_nmol_m2_s
@@ -68,8 +67,7 @@ pb <- ggplot(tree_pts %>% arrange(flux_nmol_m2_s), aes(x, y, color = flux_nmol_m
                         guide = guide_colorbar(title.position = "top")) +
   scale_size_continuous(range = c(0.15, 1.9), guide = "none") +
   map_scales +
-  coord_quickmap(xlim = xl, ylim = yl, expand = FALSE) +
-  ggtitle(expression(bold("b  Tree stem CH"[4]*" flux (emission; size = DBH)"))) + th_map
+  coord_quickmap(xlim = xl, ylim = yl, expand = FALSE) + th_map
 
 # ---- add scale bar (50 m) + traditional north arrow to both maps -------------
 m_per_deg_lon <- 111320 * cos(mean(yl) * pi/180)
@@ -78,8 +76,8 @@ dx <- diff(xl); dy <- diff(yl)
 add_ctx <- function(p) {
   # scale bar: bottom-left corner (white gap)
   x0 <- xl[1] + 0.05*dx; y0 <- yl[1] + 0.04*dy
-  # traditional two-tone compass needle, top-right corner (white gap, clear of data)
-  ax <- xl[2] - 0.07*dx; apex <- yl[2] - 0.02*dy; base <- yl[2] - 0.11*dy; w <- 0.022*dx
+  # traditional two-tone compass needle, top-right corner (moved down so "N" isn't clipped)
+  ax <- xl[2] - 0.08*dx; apex <- yl[2] - 0.09*dy; base <- yl[2] - 0.18*dy; w <- 0.022*dx
   left  <- data.frame(x = c(ax, ax - w, ax),            y = c(apex, base, base + 0.028*dy))
   right <- data.frame(x = c(ax, ax + w, ax),            y = c(apex, base, base + 0.028*dy))
   p +
@@ -105,10 +103,10 @@ pc <- ggplot(seas, aes(season, nmol, fill = src)) +
   facet_wrap(~src, ncol = 1, scales = "free_y", strip.position = "right") +
   scale_fill_manual(values = c(Soil = SINK, Tree = SRC), guide = "none") +
   labs(x = NULL, y = expression("CH"[4]*" flux (nmol m"^-2*" s"^-1*", per m"^2*" ground)")) +
-  ggtitle(expression(bold("c  Seasonal cycle"))) +
   theme_bw(base_size = 9) +
-  theme(plot.title = element_text(size = 9, face = "bold"),
-        axis.text.x = element_text(size = 7.5), strip.text = element_text(size = 7.5),
+  theme(axis.text.x = element_text(size = 8),
+        strip.background = element_rect(fill = "white", color = NA),
+        strip.text = element_text(size = 8.5, color = "black"),
         panel.grid.minor = element_blank())
 
 # ---- (d) net budget waterfall (mg m-2 yr-1) ----------------------------------
@@ -127,21 +125,19 @@ pd <- ggplot(wf) +
   geom_segment(aes(x = as.numeric(step)+0.42, xend = as.numeric(step)+1-0.42, y = ymax, yend = ymax),
                data = wf[1:3,], color = "grey55", linetype = "dashed", linewidth = 0.3) +
   geom_hline(yintercept = 0, color = "grey60") +
-  geom_hline(yintercept = netmeas, color = NETC, linetype = "dotted", linewidth = 0.4) +
-  annotate("text", x = 4.2, y = netmeas, label = "net if measured\nonly (-903)", size = 2, hjust = 0, color = NETC) +
   scale_fill_manual(values = c(sink = SINK, src = SRC, src_lt = SRC_LT, net = NETC), guide = "none") +
-  scale_x_continuous(breaks = 1:4, labels = levels(wf$step), limits = c(0.4, 5.3)) +
-  annotate("text", x = 1, y = soil_ann, label = "-904", vjust = 1.4, size = 2.6) +
-  annotate("text", x = 4, y = soil_ann + tree_scen, label = sprintf("%.0f", soil_ann+tree_scen), vjust = 1.4, size = 2.6) +
-  labs(x = NULL, y = expression("CH"[4]*" (mg m"^-2*" yr"^-1*", per m"^2*" ground)"),
-       subtitle = sprintf("Trees offset %.2f%% (measured 0-2 m) to ~%.0f%% (full-woody-area scenario) of soil uptake.", off(tree_meas), off(tree_scen))) +
-  ggtitle(expression(bold("d  Net annual budget (bounding exercise)"))) +
+  scale_x_continuous(breaks = 1:4, labels = levels(wf$step), limits = c(0.4, 4.6)) +
+  annotate("text", x = 1, y = soil_ann,             label = "-904", vjust = 1.5, size = 2.9) +
+  annotate("text", x = 2, y = soil_ann + tree_meas, label = "+1.3", vjust = -0.8, size = 2.9) +
+  annotate("text", x = 3, y = soil_ann + tree_scen, label = "+113", vjust = -0.8, size = 2.9) +
+  annotate("text", x = 4, y = soil_ann + tree_scen, label = "-790", vjust = 1.5, size = 2.9) +
+  labs(x = NULL, y = expression("CH"[4]*" (mg m"^-2*" yr"^-1*", per m"^2*" ground)")) +
   theme_bw(base_size = 9) +
-  theme(plot.title = element_text(size = 9, face = "bold"), plot.subtitle = element_text(size = 6.3),
-        axis.text.x = element_text(size = 6.8), panel.grid.minor = element_blank())
+  theme(axis.text.x = element_text(size = 7.5), panel.grid.minor = element_blank())
 
 # ---- assemble (net-sink / RF-R2 / basis notes go in the figure CAPTION) -------
-fig <- (pa | pb) / (pc | pd) + plot_layout(heights = c(1.05, 1))
+fig <- (pa | pb) / (pc | pd) + plot_layout(heights = c(1.05, 1)) +
+  plot_annotation(tag_levels = 'a') & theme(plot.tag = element_text(face = "bold", size = 13))
 ggsave(file.path(out, "fig_budget_maps.png"), fig, width = 10.5, height = 9, dpi = 300, bg = "white")
 cat("Wrote fig_budget_maps.png\n")
 cat(sprintf("Soil %.0f | tree measured %.2f (%.2f%%) | tree scenario %d (~%.0f%%) | net -903 to %.0f mg/m2/yr\n",
