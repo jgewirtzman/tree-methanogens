@@ -19,12 +19,15 @@
 #       wood-only). 16S axis is a normalizer (copies/uL), so the SLOPE is the result
 #       and is unit-invariant; complete-case (both genes detected), 16S >= 100.
 #
-# UNITS: copies g^-1 dry (environmental concentration = copies/uL x elution/mass;
-#   what is actually in the wood/soil, not the eluate concentration). Robust to
-#   normalization: within-habitat sample-mass CV is only 3-4%, so copies/uL gives
-#   near-identical structure -> shared-mass normalization is NOT the driver. (Only
-#   POOLING wood+soil is unsafe: cross-habitat mass CV = 44%; habitats kept separate.)
-#   Balances/ratios are unit-invariant regardless.
+# UNITS: copies g^-1 (= copies/uL x elution/mass; what is in the wood/soil). BASIS
+#   DIFFERS BY MATERIAL: WOOD tube mass is a subsample of freeze-dried core -> DRY
+#   basis; SOIL has no per-sample dry mass or moisture (only bulk mean_vwc), so the
+#   tube mass is FIELD-MOIST -> FRESH basis (labeled as such; dry-basis harmonization
+#   is pending and needs per-sample soil moisture we do not have). Conclusions are
+#   basis-invariant: decoupling/composition are ratio- and slope-based, so a per-sample
+#   mass scalar cancels; also robust to normalization (within-habitat mass CV 3-4%,
+#   copies/uL near-identical). Only POOLING wood+soil is unsafe (cross-habitat mass
+#   CV = 44%); habitats kept separate. Balances/ratios are unit-invariant regardless.
 # NONDETECTS: kept via log10(x+1) in the decoupling panels (wood ND 3-5%, soil 0%).
 #   The composition/scaling panels need genes detected (a ratio with a zero is
 #   undefined), so they are complete-case; this is stated.
@@ -80,7 +83,7 @@ fmtp <- function(p) ifelse(p < 0.001, "<0.001", sprintf("=%.2f", p))
 fmtr <- function(r) ifelse(r < 0.001, "<0.001", sprintf("=%.3f", r))
 
 # ---- (a),(b) decoupling by compartment ---------------------------------------
-decouple_panel <- function(comps) {
+decouple_panel <- function(comps, basis) {
   dd <- dec %>% filter(comp %in% comps)
   p <- ggplot(dd, aes(lp1, lm1, color = comp)) +
     geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "grey50") +
@@ -93,10 +96,10 @@ decouple_panel <- function(comps) {
                       label = sprintf("%s (n=%d): slope=%.2f  R2%s  p%s", k, r$n, r$slope, fmtr(r$r2), fmtp(r$p)))
   }
   p + coord_fixed(ratio = 1, xlim = lim, ylim = lim) +
-    labs(x = expression(log[10]~"pmoA (copies g"^-1*" dry + 1)"),
-         y = expression(log[10]~"mmoX (copies g"^-1*" dry + 1)")) + th + theme(legend.position = "none")
+    labs(x = bquote(log[10]~"pmoA (copies g"^-1*" "*.(basis)*" + 1)"),
+         y = bquote(log[10]~"mmoX (copies g"^-1*" "*.(basis)*" + 1)")) + th + theme(legend.position = "none")
 }
-pa <- decouple_panel(WOODC); pb <- decouple_panel(SOILC)
+pa <- decouple_panel(WOODC, "dry"); pb <- decouple_panel(SOILC, "fresh")
 
 # ---- (c) composition vs size, all four compartments --------------------------
 pc <- ggplot(cc, aes(size, bal, color = comp)) +
