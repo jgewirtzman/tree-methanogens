@@ -218,25 +218,32 @@ shared_lab_fig2   <- function(x) ifelse(x == 0, "0",
                             ifelse(abs(x) < 0.1, sprintf("%.2f", x), sprintf("%.1f", x)))
 se <- function(z) sd(z) / sqrt(length(z))
 
-create_species_plot_half <- function(species_name, species_data, breaks_data) {
+create_species_plot_half <- function(species_name, species_data, breaks_data, sig_lookup) {
   current_label <- breaks_data$species_label[breaks_data$species == species_name]
+  sig_row    <- sig_lookup[sig_lookup$species == species_name, , drop = FALSE]
+  is_sig     <- nrow(sig_row) == 1 && isTRUE(sig_row$is_sig)
+  sign_color <- if (nrow(sig_row) == 1 && isTRUE(sig_row$slope_sign == "neg")) "#4575B4" else "#D73027"
+  mean_col   <- if (is_sig) sign_color else boxplot_color
 
   g <- ggplot(species_data, aes(x = factor(height_m), y = CH4_best.flux)) +
     geom_hline(yintercept = 0, linetype = "dashed", color = "gray40",
                linewidth = 0.6, alpha = 0.8)
+  # significant height trend: line through per-height means, coloured by slope sign
+  if (is_sig) g <- g + stat_summary(fun = mean, geom = "line", aes(group = 1),
+                                     color = sign_color, linewidth = 0.9, alpha = 0.9)
   if (PANEL_A_STYLE == "boxplot") {
     g <- g +
       geom_half_boxplot(alpha = 0.6, outlier.shape = NA, fill = boxplot_color,
                         color = "gray30", side = "r") +
-      geom_jitter(alpha = 0.4, size = 0.7, color = "gray20",
+      geom_jitter(alpha = 0.4, size = 1.1, color = "gray20",
                   position = position_jitter(width = 0.15, height = 0))
   } else {                      # mean +/- SE overlaid on jittered points
     g <- g +
-      geom_jitter(alpha = 0.35, size = 0.7, color = "gray55",
+      geom_jitter(alpha = 0.4, size = 1.1, color = "gray60",
                   position = position_jitter(width = 0.15, height = 0)) +
       stat_summary(fun = mean, fun.min = function(z) mean(z) - se(z),
                    fun.max = function(z) mean(z) + se(z),
-                   geom = "pointrange", color = boxplot_color, size = 0.35, fatten = 1.8)
+                   geom = "pointrange", color = mean_col, size = 0.55, fatten = 2.4)
   }
   g +
     coord_flip() +
@@ -260,12 +267,18 @@ create_species_plot_half <- function(species_name, species_data, breaks_data) {
     )
 }
 
-# Build individual species plots
+# Build individual species plots — ordered by height slope (desc) to match panels b/c
+sig_lookup <- species_results %>%
+  transmute(species,
+            is_sig = !is.na(height_p) & height_p < 0.05,
+            slope_sign = ifelse(!is.na(height_coef) & height_coef < 0, "neg", "pos"))
+ordered_species <- species_results %>% arrange(desc(height_coef)) %>% pull(species)  # NA slope (n=1) last
+
 plot_list_half <- list()
-for(sp in species_list) {
+for(sp in ordered_species) {
   sp_data <- plot_data_top %>% filter(species == sp)
   if(nrow(sp_data) > 0) {
-    plot_list_half[[sp]] <- create_species_plot_half(sp, sp_data, species_breaks)
+    plot_list_half[[sp]] <- create_species_plot_half(sp, sp_data, species_breaks, sig_lookup)
   }
 }
 
@@ -312,7 +325,7 @@ plot_data_middle <- species_results %>%
   arrange(height_coef)
 
 p_middle <- ggplot(plot_data_middle,
-                   aes(x = reorder(species_label, height_coef),
+                   aes(x = reorder(species_label, -height_coef),
                        y = height_coef * 100,
                        color = color_group, shape = color_group)) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "gray50", alpha = 0.8) +
@@ -419,9 +432,9 @@ soil_mcra_data <- merged_data %>%
             by = "species") %>%
   filter(!is.na(species_label_with_n))
 
-# Species order from height effect panel
-species_order <- plot_data_middle %>% arrange(height_coef) %>% pull(species_label)
-species_order_no_n <- plot_data_middle %>% arrange(height_coef) %>% pull(species_label_no_n)
+# Species order from height effect panel (highest -> lowest slope, matches panels a/b)
+species_order <- plot_data_middle %>% arrange(desc(height_coef)) %>% pull(species_label)
+species_order_no_n <- plot_data_middle %>% arrange(desc(height_coef)) %>% pull(species_label_no_n)
 
 # Z-score normalize for heatmap, using log-transformed mcrA
 heatmap_data <- soil_mcra_data %>%
