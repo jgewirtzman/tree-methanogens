@@ -210,23 +210,35 @@ species_results <- do.call(rbind, lapply(species_list, test_species_height_effec
 # Original drew each species on its own free linear axis (its min/mid/max), so
 # scales were not comparable and single outliers distorted panels. Same transform
 # now on every panel; dashed line = zero net flux. Layout/grid otherwise unchanged.
+PANEL_A_STYLE <- "meanSE"   # "boxplot" (half-boxplot + jitter) or "meanSE" (mean +/- SE over jitter)
 trans_symlog_fig2 <- pseudo_log_trans(sigma = 0.005, base = 10)
-shared_brks_fig2  <- c(-0.01, 0, 0.01, 0.1, 1)
+shared_brks_fig2  <- c(0, 0.1, 1)   # 3 well-separated ticks (fixes label crowding near zero)
 shared_lims_fig2  <- range(c(plot_data_top$CH4_best.flux, shared_brks_fig2), na.rm = TRUE)
 shared_lab_fig2   <- function(x) ifelse(x == 0, "0",
                             ifelse(abs(x) < 0.1, sprintf("%.2f", x), sprintf("%.1f", x)))
+se <- function(z) sd(z) / sqrt(length(z))
 
 create_species_plot_half <- function(species_name, species_data, breaks_data) {
-  current_breaks <- breaks_data$breaks_list[[which(breaks_data$species == species_name)]]
   current_label <- breaks_data$species_label[breaks_data$species == species_name]
 
-  ggplot(species_data, aes(x = factor(height_m), y = CH4_best.flux)) +
+  g <- ggplot(species_data, aes(x = factor(height_m), y = CH4_best.flux)) +
     geom_hline(yintercept = 0, linetype = "dashed", color = "gray40",
-               linewidth = 0.6, alpha = 0.8) +
-    geom_half_boxplot(alpha = 0.6, outlier.shape = NA, fill = boxplot_color,
-                      color = "gray30", side = "r") +
-    geom_jitter(alpha = 0.4, size = 0.7, color = "gray20",
-                position = position_jitter(width = 0.15, height = 0)) +
+               linewidth = 0.6, alpha = 0.8)
+  if (PANEL_A_STYLE == "boxplot") {
+    g <- g +
+      geom_half_boxplot(alpha = 0.6, outlier.shape = NA, fill = boxplot_color,
+                        color = "gray30", side = "r") +
+      geom_jitter(alpha = 0.4, size = 0.7, color = "gray20",
+                  position = position_jitter(width = 0.15, height = 0))
+  } else {                      # mean +/- SE overlaid on jittered points
+    g <- g +
+      geom_jitter(alpha = 0.35, size = 0.7, color = "gray55",
+                  position = position_jitter(width = 0.15, height = 0)) +
+      stat_summary(fun = mean, fun.min = function(z) mean(z) - se(z),
+                   fun.max = function(z) mean(z) + se(z),
+                   geom = "pointrange", color = boxplot_color, size = 0.35, fatten = 1.8)
+  }
+  g +
     coord_flip() +
     scale_y_continuous(
       trans = trans_symlog_fig2, breaks = shared_brks_fig2, limits = shared_lims_fig2,
@@ -481,11 +493,9 @@ combined_plot <- (p_top_gg / p_middle / p_bottom) +
 
 print(combined_plot)
 
-ggsave("revision/outputs/fig2_final.png",
-       plot = combined_plot,
-       width = 7, height = 7.5,
-       units = "in", dpi = 300)
-cat("Wrote revision/outputs/fig2_final.png (shared pseudo-log axis; original layout)\n")
+out_fn <- if (PANEL_A_STYLE == "meanSE") "revision/outputs/fig2_final_meanSE.png" else "revision/outputs/fig2_final.png"
+ggsave(out_fn, plot = combined_plot, width = 7, height = 7.5, units = "in", dpi = 300)
+cat("Wrote", out_fn, "(panel-a style:", PANEL_A_STYLE, ")\n")
 
 
 # ==============================================================================
