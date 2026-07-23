@@ -17,10 +17,11 @@
 suppressPackageStartupMessages({ library(tidyverse); library(patchwork); library(scales) })
 out <- "revision/outputs"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
 
-# ---- palette: soft "coolwarm" red<->blue, matching Fig 12a heatmap -----------
-BLUES <- c("#3b4cc0","#5977c9","#7092d5","#98b6e5","#c5d5ea","#e8eef4")  # deep uptake -> ~0
-REDS  <- c("#f7f2ef","#f5c5a3","#ef9d78","#e8845a","#d0654a","#b40426")  # ~0 -> deep emission
-SINK <- "#7092d5"; SRC <- "#e8845a"; SRC_LT <- "#f5c5a3"; NETC <- "grey40"
+# ---- palette: RdBu family matching the paper's red/blue (sink = blue #2166ac,
+#      source = red #b2182b), consistent with the other main figures -----------
+BLUES <- c("#f7f7f7","#d1e5f0","#92c5de","#4393c3","#2166ac")  # ~0 -> deep uptake (sink)
+REDS  <- c("#f7f7f7","#fddbc7","#f4a582","#d6604d","#b2182b")  # ~0 -> deep emission (source)
+SINK <- "#2166ac"; SRC <- "#b2182b"; SRC_LT <- "#f4a582"; NETC <- "grey40"
 
 soil_map <- read.csv("outputs/tables/soil_flux_extended_annual.csv")   # x,y,mean_flux_nmol
 tree_pts <- read.csv("outputs/tables/tree_flux_predictions.csv")       # x,y,dbh_m,flux_nmol_m2_s
@@ -33,9 +34,18 @@ rf_tree_r2 <- 0.15; rf_soil_r2 <- 0.28; n_trees <- nrow(tree_pts)
 
 # shared map extent so a & b align exactly
 xl <- range(c(soil_map$x, tree_pts$x)); yl <- range(c(soil_map$y, tree_pts$y))
-th_map <- theme_minimal(base_size = 9) +
-  theme(plot.title = element_text(size = 9, face = "bold"), axis.text = element_blank(),
-        axis.title = element_blank(), panel.grid = element_blank(),
+# lat/long graticule labels (coords are decimal degrees; lon W, lat N)
+deg_lon <- function(x) paste0(formatC(abs(x), format = "f", digits = 3), " W")
+deg_lat <- function(y) paste0(formatC(y,      format = "f", digits = 3), " N")
+map_scales <- list(
+  scale_x_continuous(breaks = scales::breaks_pretty(3), labels = deg_lon),
+  scale_y_continuous(breaks = scales::breaks_pretty(3), labels = deg_lat))
+th_map <- theme_bw(base_size = 9) +
+  theme(plot.title = element_text(size = 9, face = "bold"),
+        axis.text = element_text(size = 5.5, color = "grey45"), axis.title = element_blank(),
+        panel.grid.major = element_line(color = "grey88", linewidth = 0.25),
+        panel.grid.minor = element_blank(),
+        panel.border = element_rect(color = "grey40", fill = NA, linewidth = 0.4),
         legend.position = "bottom", legend.key.height = unit(0.3, "cm"),
         legend.key.width = unit(0.9, "cm"), legend.title = element_text(size = 7),
         legend.text = element_text(size = 6))
@@ -45,6 +55,7 @@ pa <- ggplot(soil_map, aes(x, y, fill = mean_flux_nmol)) + geom_raster(interpola
   scale_fill_gradientn(colours = rev(BLUES), name = expression("Soil CH"[4]*"  (nmol m"^-2*" s"^-1*", per m"^2*" ground)"),
                       limits = c(min(soil_map$mean_flux_nmol), 0),
                       guide = guide_colorbar(title.position = "top")) +
+  map_scales +
   coord_quickmap(xlim = xl, ylim = yl, expand = FALSE) +
   ggtitle(expression(bold("a  Soil CH"[4]*" flux (uptake)"))) + th_map
 
@@ -56,6 +67,7 @@ pb <- ggplot(tree_pts %>% arrange(flux_nmol_m2_s), aes(x, y, color = flux_nmol_m
                         values = scales::rescale(quantile(tv, probs = seq(0, 1, length.out = length(REDS)))),
                         guide = guide_colorbar(title.position = "top")) +
   scale_size_continuous(range = c(0.15, 1.9), guide = "none") +
+  map_scales +
   coord_quickmap(xlim = xl, ylim = yl, expand = FALSE) +
   ggtitle(expression(bold("b  Tree stem CH"[4]*" flux (emission; size = DBH)"))) + th_map
 
@@ -94,7 +106,7 @@ pc <- ggplot(seas, aes(season, nmol, fill = src)) +
   scale_fill_manual(values = c(Soil = SINK, Tree = SRC), guide = "none") +
   labs(x = NULL, y = expression("CH"[4]*" flux (nmol m"^-2*" s"^-1*", per m"^2*" ground)")) +
   ggtitle(expression(bold("c  Seasonal cycle"))) +
-  theme_bw(base_size = 8) +
+  theme_bw(base_size = 9) +
   theme(plot.title = element_text(size = 9, face = "bold"),
         axis.text.x = element_text(size = 7.5), strip.text = element_text(size = 7.5),
         panel.grid.minor = element_blank())
@@ -124,7 +136,7 @@ pd <- ggplot(wf) +
   labs(x = NULL, y = expression("CH"[4]*" (mg m"^-2*" yr"^-1*", per m"^2*" ground)"),
        subtitle = sprintf("Trees offset %.2f%% (measured 0-2 m) to ~%.0f%% (full-woody-area scenario) of soil uptake.", off(tree_meas), off(tree_scen))) +
   ggtitle(expression(bold("d  Net annual budget (bounding exercise)"))) +
-  theme_bw(base_size = 8) +
+  theme_bw(base_size = 9) +
   theme(plot.title = element_text(size = 9, face = "bold"), plot.subtitle = element_text(size = 6.3),
         axis.text.x = element_text(size = 6.8), panel.grid.minor = element_blank())
 
