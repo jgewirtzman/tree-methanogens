@@ -1,7 +1,8 @@
 # ==============================================================================
-# REVISION — SI extended-isotope source composite (6 panels).
-# Design (Jon): CH4 Keeling | CH4 Miller-Tans | d13CH4 convergence vs conc
-#               CO2 Keeling | CO2 Miller-Tans | eps_C convergence vs conc
+# REVISION — SI extended-isotope source composite (4 panels, 2x2).
+# Design (Jon): CH4 Keeling      | CO2 Keeling
+#               d13CH4 convergence | eps_C convergence
+# (Miller-Tans dropped: leverage-biased, redundant with Keeling.)
 # Data load replicated verbatim from ISOTOPES_final.R (settled QC). NEW file.
 # Output: revision/outputs/SI_isotopes_source_composite.png
 # ==============================================================================
@@ -31,10 +32,8 @@ pt <- function(dat, x, y) ggplot(dat, aes({{x}}, {{y}})) +
   geom_point(alpha = 0.45, size = 1.2, color = "grey30")
 
 # ---- source estimates --------------------------------------------------------
-kc  <- lm(d13CH4 ~ I(1/ch4_ppm), data = d);  s_kc  <- coef(kc)[1];  ci_kc <- confint(kc)[1,]
-mtc <- lm(I(d13CH4*ch4_ppm) ~ ch4_ppm, data = d); s_mtc <- coef(mtc)[2]
-ko  <- lm(d13CO2 ~ I(1/co2_ppm), data = wt); s_ko  <- coef(ko)[1];  ci_ko <- confint(ko)[1,]
-mto <- lm(I(d13CO2*co2_ppm) ~ co2_ppm, data = wt); s_mto <- coef(mto)[2]
+kc <- lm(d13CH4 ~ I(1/ch4_ppm), data = d);  s_kc <- coef(kc)[1];  ci_kc <- confint(kc)[1,]
+ko <- lm(d13CO2 ~ I(1/co2_ppm), data = wt); s_ko <- coef(ko)[1];  ci_ko <- confint(ko)[1,]
 
 # ---- (a) CH4 Keeling ---------------------------------------------------------
 pa <- pt(d, 1/ch4_ppm, d13CH4) +
@@ -43,13 +42,7 @@ pa <- pt(d, 1/ch4_ppm, d13CH4) +
   labs(x = expression(1/CH[4]~"(ppm"^-1*")"), y = expression(delta^13*"C-CH"[4]~"(per mil)"),
        title = "CH4 Keeling",
        subtitle = sprintf("source intercept = %.0f [%.0f, %.0f] per mil", s_kc, ci_kc[1], ci_kc[2])) + th
-# ---- (b) CH4 Miller-Tans -----------------------------------------------------
-pb <- pt(d, ch4_ppm, d13CH4*ch4_ppm) +
-  geom_smooth(method = "lm", formula = y~x, color = "black", fill = "grey80", linewidth = 0.7) +
-  labs(x = expression(CH[4]~"(ppm)"), y = expression(delta^13*"C-CH"[4]%*%CH[4]),
-       title = "CH4 Miller-Tans",
-       subtitle = sprintf("source slope = %.0f per mil (leverage-sensitive)", s_mtc)) + th
-# ---- (c) d13CH4 convergence --------------------------------------------------
+# ---- d13CH4 convergence ------------------------------------------------------
 pc <- pt(d, ch4_ppm, d13CH4) +
   geom_smooth(method = "loess", se = TRUE, color = "black", fill = "grey80", linewidth = 0.7) +
   geom_hline(yintercept = -70, linetype = "dashed", color = RED, linewidth = 0.6) +
@@ -63,12 +56,7 @@ pd <- pt(wt, 1/co2_ppm, d13CO2) +
   labs(x = expression(1/CO[2]~"(ppm"^-1*")"), y = expression(delta^13*"C-CO"[2]~"(per mil)"),
        title = "CO2 Keeling",
        subtitle = sprintf("source intercept = %.0f [%.0f, %.0f] per mil", s_ko, ci_ko[1], ci_ko[2])) + th
-# ---- (e) CO2 Miller-Tans -----------------------------------------------------
-pe <- pt(wt, co2_ppm, d13CO2*co2_ppm) +
-  geom_smooth(method = "lm", formula = y~x, color = "black", fill = "grey80", linewidth = 0.7) +
-  labs(x = expression(CO[2]~"(ppm)"), y = expression(delta^13*"C-CO"[2]%*%CO[2]),
-       title = "CO2 Miller-Tans", subtitle = sprintf("source slope = %.0f per mil", s_mto)) + th
-# ---- (f) eps_C convergence ---------------------------------------------------
+# ---- eps_C convergence -------------------------------------------------------
 pf <- pt(wt, ch4_ppm, eps_C) +
   annotate("rect", xmin = 1, xmax = Inf, ymin = 54, ymax = 64, fill = RED, alpha = 0.10) +
   geom_smooth(method = "loess", se = TRUE, color = "black", fill = "grey80", linewidth = 0.7) +
@@ -77,10 +65,10 @@ pf <- pt(wt, ch4_ppm, eps_C) +
        title = "Apparent fractionation convergence",
        subtitle = expression(paste("plateau ", epsilon[C], " ~ 54-64 per mil (hydrogenotrophic)"))) + th
 
-fig <- (pa | pb | pc) / (pd | pe | pf) +
+fig <- (pa | pd) / (pc | pf) +          # top row = Keeling source plots; bottom = convergence
   plot_annotation(tag_levels = "a", tag_prefix = "(", tag_suffix = ")") &
   theme(plot.tag = element_text(face = "bold", size = 13))
-ggsave(file.path(out, "SI_isotopes_source_composite.png"), fig, width = 13.5, height = 8, dpi = 300, bg = "white")
-cat(sprintf("CH4: Keeling %.0f, Miller-Tans %.0f | CO2: Keeling %.0f, Miller-Tans %.0f | wt n=%d, d n=%d\n",
-            s_kc, s_mtc, s_ko, s_mto, nrow(wt), nrow(d)))
+ggsave(file.path(out, "SI_isotopes_source_composite.png"), fig, width = 9.5, height = 8, dpi = 300, bg = "white")
+cat(sprintf("CH4 Keeling %.0f | CO2 Keeling %.0f | source-based eps_C = %.0f | n=%d\n",
+            s_kc, s_ko, s_ko - s_kc, nrow(wt)))
 cat("Wrote SI_isotopes_source_composite.png\n")
