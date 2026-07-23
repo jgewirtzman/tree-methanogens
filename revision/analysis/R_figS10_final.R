@@ -48,18 +48,19 @@ pa <- ggplot(w, aes(lp, lm, color = comp)) +
   geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "grey50") +
   geom_point(alpha = 0.6, size = 1.6) +
   scale_color_manual(values = COMP, name = NULL) +
-  labs(x = expression(log[10]~pmoA~"(copies g"^-1*" dry)"), y = expression(log[10]~mmoX~"(copies g"^-1*" dry)"),
-       title = "pmoA and mmoX are decoupled",
-       subtitle = sprintf("r2 = %.3f (1:1 dashed)", cor(w$lp, w$lm)^2)) + th
+  annotate("text", x = -Inf, y = Inf, hjust = -0.15, vjust = 1.5,
+           label = sprintf("r^2 == %.3f", cor(w$lp, w$lm)^2), parse = TRUE, size = 3.3) +
+  labs(x = expression(log[10]~pmoA~"(copies g"^-1*" dry)"), y = expression(log[10]~mmoX~"(copies g"^-1*" dry)")) + th
 
 # ---- (b) composition vs size -------------------------------------------------
 pb <- ggplot(w, aes(size, bal)) +
   geom_smooth(method = "lm", formula = y~x, color = "black", fill = "grey80", linewidth = 0.8) +
   geom_point(aes(color = comp), alpha = 0.6, size = 1.6) +
   scale_color_manual(values = COMP, name = NULL) +
-  labs(x = expression("size  "*frac(1,2)*"[log pmoA + log mmoX]"), y = expression("balance  log"[10]*"(pmoA / mmoX)"),
-       title = "Larger pmoA+mmoX pools are more pmoA-dominated",
-       subtitle = sprintf("slope = %.2f [%.2f, %.2f]; = independence expectation (perm p = %.2f)\n-> pmoA's larger range, not co-regulation", obs, ci[1], ci[2], permp)) + th
+  annotate("text", x = -Inf, y = Inf, hjust = -0.08, vjust = 1.35,
+           label = sprintf("slope = %.2f [%.2f, %.2f]\nperm p = %.2f", obs, ci[1], ci[2], permp),
+           size = 3, lineheight = 0.9) +
+  labs(x = expression("size  "*frac(1,2)*"[log pmoA + log mmoX]"), y = expression("balance  log"[10]*"(pmoA / mmoX)")) + th
 
 # ---- (c) scaling vs independent 16S ------------------------------------------
 wc <- w %>% filter(pos_16s_bact > 0, !is.na(conc_16s_bact)) %>% mutate(g16 = log10(conc_16s_bact*cg))
@@ -71,9 +72,10 @@ pc <- ggplot(long, aes(g16, val, color = gene)) +
   geom_point(alpha = 0.5, size = 1.4) +
   geom_smooth(method = "lm", formula = y~x, se = TRUE, linewidth = 0.9) +
   scale_color_manual(values = GENE, name = NULL) +
-  labs(x = expression(log[10]~"16S bacterial (copies g"^-1*")"), y = expression(log[10]~"gene (copies g"^-1*")"),
-       title = "pmoA tracks community size; mmoX is flat",
-       subtitle = sprintf("pmoA slope = %.2f (p = %.0e);  mmoX slope = %.2f (p = %.2f)", sp[2], pp, sm[2], pm)) +
+  annotate("text", x = Inf, y = -Inf, hjust = 1.05, vjust = -0.5,
+           label = sprintf("pmoA slope = %.2f (p = %.0e)\nmmoX slope = %.2f (p = %.2f)", sp[2], pp, sm[2], pm),
+           size = 3, lineheight = 0.9) +
+  labs(x = expression(log[10]~"16S bacterial (copies g"^-1*")"), y = expression(log[10]~"gene (copies g"^-1*")")) +
   th + theme(legend.position = c(0.02, 0.98), legend.justification = c(0, 1))
 
 fig <- (pa | pb | pc) +
