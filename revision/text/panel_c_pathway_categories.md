@@ -16,11 +16,19 @@ statistic — then shows representative pathways per mechanistically-relevant ca
    the same non-circularity filter as Fig. 6 — it removes the archaeal/methanogenesis-cofactor
    pathways (coenzyme M/B, tetrahydromethanopterin, methanogenesis-from-acetate, archaeal
    lipids), which are the methanogens' own genomes and would be tautological.
-2. FDR < 0.01 (linear mixed-effects association with *mcrA*).
+2. FDR < 0.05 (linear mixed-effects association with *mcrA*).
 
-Result: 143 significant low-contribution pathways at FDR < 0.05 (109 at FDR < 0.01), of which
-98 (~69%) are generic housekeeping and are **not shown**. The remaining pathways fall into the
-functional categories below.
+Result: 143 significant low-contribution pathways, of which ~69% are generic housekeeping (and
+lipid/fatty-acid biosynthesis) that are **not shown**. The remaining pathways fall into the four
+displayed functional categories below; up to four representative pathways per category are shown
+(top by |t|).
+
+**Display note (lipid + threshold):** the *displayed* Sulfur/nitrogen category excludes lipid/
+fatty-acid biosynthesis so that the assimilatory nitrate- and sulfate-reduction pathways (ranks
+#3–4 within an S/N-only category) are visible; in a merged lipid+S/N category they would rank #8–9
+behind five lipid pathways. Lipid biosynthesis is retained in the SI classification table under its
+own label. The FDR threshold is 0.05 (looser than Fig. 6's 0.01) so that the two reduction pathways
+(FDR 0.015 and 0.020) are included; this is noted in the caption.
 
 ## Full-set category summary (FDR < 0.05, all pathways; independent of display)
 
@@ -40,17 +48,30 @@ There is essentially **no dissimilatory N/S/Fe/Mn respiration signal** — the o
 present are *assimilatory* sulfate/nitrate and they trend negative (aerobe-associated). So we do
 not frame this as metal/N/S redox cycling.
 
-## Displayed pathways (top 3 by |t| per category; colours as in figure)
+## Displayed pathways (top 4 by |t| per category, FDR < 0.05; colours as in figure)
 
 - **C1 / carbon fixation** (red, positive): formaldehyde assimilation II (RuMP cycle, t=+11.5);
-  reductive acetyl-CoA pathway (+7.6); Calvin-Benson-Bassham cycle (+6.0).
+  reductive acetyl-CoA pathway (+7.6); Calvin-Benson-Bassham cycle (+6.0). [only 3 in category]
 - **Fermentation / carbohydrate** (gold, positive): L-glutamate degradation VIII → propanoate
-  (+6.3); mannan degradation (+4.4); homolactic fermentation (+4.3).
+  (+6.3); mannan degradation (+4.4); homolactic fermentation (+4.3); glycolysis III (+3.4).
 - **Aerobic respiration** (dark blue, negative): TCA cycle IV (−6.3); TCA cycle V
-  (2-oxoglutarate:ferredoxin oxidoreductase) (−4.2); TCA cycle I, prokaryotic (−3.9).
-- **Oxidative biosynthesis — lipid, assimilatory S/N** (light blue, negative): superpathway of
-  L-methionine biosynthesis by sulfhydrylation (−4.9); superpathway of sulfate assimilation +
-  cysteine biosynthesis (−4.3); stearate biosynthesis II (−3.2).
+  (2-oxoglutarate:ferredoxin oxidoreductase) (−4.2); TCA cycle I, prokaryotic (−3.9);
+  aerobic respiration I, cytochrome c (−3.9).
+- **Sulfur / nitrogen metabolism** (light blue, negative): L-methionine biosynthesis by
+  sulfhydrylation (−4.95); sulfate assimilation + cysteine biosynthesis (−4.31);
+  **nitrate reduction VI, assimilatory (−2.84)**; **sulfate reduction I, assimilatory (−2.71)**.
+
+## Redox-ladder interpretation (and its limit)
+
+The joint depletion of aerobic respiration *and* assimilatory nitrate/sulfate reduction where
+*mcrA* is high is consistent with methanogens occupying the most reducing, oxidant-poor microsites —
+the classic thermodynamic redox ladder, in which methanogenesis is favoured only once higher-yield
+electron acceptors (O₂ > NO₃⁻ > … > SO₄²⁻) are drawn down. **Important limit:** the significant N/S
+pathways here are *assimilatory* (incorporating N/S into biomass), not *dissimilatory* (using
+NO₃⁻/SO₄²⁻ as terminal electron acceptors in respiration). The only dissimilatory pathway present —
+nitrate reduction I (denitrification) — is non-significant (t = −0.42, FDR = 0.74). So this is best
+read as a **community redox-state proxy**, not direct evidence of terminal-electron-acceptor
+competition. Phrase text accordingly ("consistent with," not "demonstrates").
 
 ## Defensibility notes
 - Category membership is assigned from MetaCyc pathway descriptions (keyword rules, documented in

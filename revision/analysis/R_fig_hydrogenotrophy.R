@@ -64,30 +64,37 @@ pb <- ggplot(fap, aes(lr, fn, fill = lr)) +
 # Not top-t. Classify the full FDR<0.01, low-mcrA-contribution set by MetaCyc
 # function (membership independent of the association), drop housekeeping, show
 # representative pathways per mechanistic category. See panel_c_pathway_categories.md
-ABLU <- "#92c5de"  # light blue: oxidative biosynthesis / assimilation (negative, aerobic-associated)
+ABLU <- "#92c5de"  # light blue: sulfur/nitrogen metabolism (negative, aerobic/oxidant-associated)
 p6 <- read.csv("data/processed/molecular/picrust/pathway_associations_mcra_no_mcra_otus.csv")
 cb <- read.csv("data/processed/molecular/picrust/pathway_associations_combined.csv")
 contrib <- setNames(cb$mean_percent_from_mcra, cb$pathway)
-sig <- p6 %>% filter(!is.na(FDR), FDR < 0.01) %>%
+sig <- p6 %>% filter(!is.na(FDR), FDR < 0.05) %>%
   mutate(gc = ifelse(is.na(contrib[pathway]), 0, contrib[pathway])) %>% filter(gc < 0.10)
 classify_pw <- function(id, desc) { x <- tolower(paste(id, desc))
   if (grepl("acetyl coenzyme a|calvin|rump|formaldehyde|carbon fix", x)) return("C1 / carbon fixation")
   if (grepl("ferment|glycolysis|glycogen|mannan|starch|xylan|cellulose|propanoate|butanoate|glutamate degrad|lactate|pyruvate", x)) return("Fermentation / carbohydrate")
   if (grepl("aerobic respiration|tca cycle|glyoxylate|ubiquin|cytochrome|menaquin", x)) return("Aerobic respiration")
-  if (grepl("fatty acid|oleate|stearate|palmitole|mycolate|sulfate|sulfur|thiosulf|sulfhydr|cysteine|nitrate|nitrite|denitrif|nitrogen", x)) return("Oxidative biosynthesis (lipid, S/N)")
-  return("other") }
-DISP <- c("C1 / carbon fixation","Fermentation / carbohydrate","Aerobic respiration","Oxidative biosynthesis (lipid, S/N)")
+  if (grepl("sulfate|sulfur|thiosulf|sulfhydr|cysteine|nitrate|nitrite|denitrif|nitrogen", x)) return("Sulfur / nitrogen metabolism")
+  return("other") }  # lipid/fatty-acid biosynthesis -> 'other' (in SI table, not displayed)
+DISP <- c("C1 / carbon fixation","Fermentation / carbohydrate","Aerobic respiration","Sulfur / nitrogen metabolism")
 pwc <- sig %>% rowwise() %>% mutate(cat = classify_pw(pathway, description)) %>% ungroup() %>%
   filter(cat %in% DISP, !grepl("anaerobic", tolower(description))) %>%
-  group_by(cat) %>% arrange(desc(abs(t))) %>% slice(1:3) %>% ungroup() %>%
+  group_by(cat) %>% arrange(desc(abs(t))) %>% slice(1:4) %>% ungroup() %>%
   mutate(cat = factor(cat, levels = DISP),
-         lab = str_replace_all(description, "superpathway|superpathay", "superpath.") %>% str_wrap(26),
+         lab = description %>%
+           str_replace_all("superpathway of |superpathay of ", "") %>%
+           str_replace_all("biosynthesis", "biosynth.") %>%
+           str_replace_all("assimilation", "assim.") %>%
+           str_replace_all("\\(2-oxoglutarate:ferredoxin oxidoreductase\\)", "(Fd oxidoreductase)") %>%
+           str_replace_all("\\(2-oxoglutarate decarboxylase\\)", "(2-OG decarboxylase)") %>%
+           str_replace_all("\\(by sulfhydrylation\\)", "(sulfhydrylation)") %>%
+           str_wrap(24),
          lab = fct_reorder(lab, t))
 pc <- ggplot(pwc, aes(t, lab, color = cat)) +
   geom_segment(aes(x = 0, xend = t, yend = lab), color = "grey78", linewidth = 0.6) +
   geom_point(size = 3.2) + geom_vline(xintercept = 0, color = "grey50") +
   scale_color_manual(values = c(`C1 / carbon fixation`=RED, `Fermentation / carbohydrate`=SYN,
-                                `Aerobic respiration`=BLU, `Oxidative biosynthesis (lipid, S/N)`=ABLU), name = NULL) +
+                                `Aerobic respiration`=BLU, `Sulfur / nitrogen metabolism`=ABLU), name = NULL) +
   labs(x = "Association with mcrA (t-statistic)", y = NULL,
        title = "c  Pathway (PICRUSt2): anaerobic C-metabolism tracks mcrA") + th +
   theme(legend.position = c(0.98, 0.04), legend.justification = c(1, 0),
@@ -127,9 +134,9 @@ pd <- ggplot() +
              legend.background=element_rect(fill="white",color="grey80"),
              plot.margin=margin(6,10,42,6), panel.grid=element_blank())
 
-fig <- (pa | pb) / (pc | pd) + plot_layout(heights = c(1, 1.08)) +
+fig <- (pa | pb) / (pc | pd) + plot_layout(heights = c(1, 1.25)) +
   plot_annotation(tag_levels = 'a') & theme(plot.tag = element_text(face = "bold", size = 18))
-ggsave(file.path(out, "fig_hydrogenotrophy.png"), fig, width = 13.5, height = 10, dpi = 300, bg = "white")
+ggsave(file.path(out, "fig_hydrogenotrophy.png"), fig, width = 13.5, height = 11, dpi = 300, bg = "white")
 cat("Wrote fig_hydrogenotrophy.png (semantic palette; base_size 11)\n")
 cat("(a) families:", paste(as.character(fa$family), collapse=", "), "\n")
 cat("(c) categories:", paste(levels(droplevels(pwc$cat)), collapse=" | "), "\n")

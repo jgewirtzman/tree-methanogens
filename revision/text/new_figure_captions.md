@@ -16,25 +16,29 @@
 > functions (hydrogenotrophic methanogenesis, dark hydrogen oxidation, fermentation, methylotrophy)
 > are enriched in heartwood (red) while aerobic functions (aerobic chemoheterotrophy, methanotrophy)
 > are enriched in sapwood (blue); colour intensity scales with log₂(HW/SW). **(c)** MetaCyc pathways
-> (PICRUSt2) associated with *mcrA* abundance (linear mixed-effects t-statistic; FDR < 0.01, after
+> (PICRUSt2) associated with *mcrA* abundance (linear mixed-effects t-statistic; FDR < 0.05, after
 > removing predicted contributions from methanogen-classified ASVs and excluding pathways with >10%
 > methanogen-ASV contribution, as in Fig. 6). Pathways were classified by MetaCyc function *a priori*
-> (independent of the association) and generic housekeeping pathways excluded; three representative
+> (independent of the association) and generic housekeeping pathways excluded; up to four representative
 > pathways per category are shown (top by |t|). Anaerobic carbon flow tracks *mcrA* — C1/carbon-
 > fixation (red; RuMP cycle, reductive acetyl-CoA, Calvin-Benson) and fermentation/carbohydrate
-> degradation (gold) — while aerobic and oxidative metabolism is depleted — aerobic respiration
-> (dark blue; TCA-cycle variants) and oxidative biosynthesis including assimilatory sulfur/nitrogen
-> and lipid synthesis (light blue). No dissimilatory N/S/Fe/Mn respiration signal was present; see
-> Methods and SI for the full classification. **(d)** Stable carbon isotopic composition of internal stem CH₄
+> degradation (gold) — while oxidant-linked metabolism is depleted: aerobic respiration (dark blue;
+> aerobic respiration I, TCA-cycle variants) and sulfur/nitrogen metabolism (light blue; assimilatory
+> sulfate and nitrate reduction, sulfate/cysteine and methionine biosynthesis). The joint depletion of
+> aerobic respiration *and* nitrate/sulfate reduction where *mcrA* is high is consistent with methanogens
+> occupying the most reducing, oxidant-poor microsites (the thermodynamic redox ladder); note these N/S
+> pathways are assimilatory, so this is a community redox-state signal rather than direct evidence of
+> terminal-electron-acceptor competition (no significant *dissimilatory* denitrification/sulfate-reduction
+> signal). See Methods and SI for the full classification. **(d)** Stable carbon isotopic composition of internal stem CH₄
 > (n internal samples; kernel density above, individual samples below sized by CH₄ concentration).
 > The distribution is ¹³C-depleted, and the atmosphere-corrected tree-produced source (Keeling-plot
 > intercept −79‰, 95% CI shown; two-endmember mixing correction −70‰) falls in the hydrogenotrophic
 > (CO₂-reduction) range (brackets, Whiticar 1999); the apparent CO₂–CH₄ fractionation ε_C = 54–64‰ is
 > likewise consistent with CO₂ reduction. Dashed line, atmospheric δ¹³CH₄ (−47‰).
 > Colour scheme: warm = *mcrA*-associated / anaerobic (red = methanogenesis, C1/carbon fixation;
-> gold = fermentative associates / fermentation); cool = depleted / aerobic (dark blue = aerobic
-> respiration; light blue = oxidative biosynthesis, assimilatory S/N); grey = co-occurring fermenter
-> without an H₂ link (panel a); purple (d) = internal CH₄.
+> gold = fermentative associates / fermentation); cool = depleted / oxidant-linked (dark blue = aerobic
+> respiration; light blue = sulfur/nitrogen metabolism); grey = co-occurring fermenter without an H₂
+> link (panel a); purple (d) = internal CH₄.
 > Taxonomy (a) and isotopes (d) are the primary evidence; the 16S-based functional predictions (b, c)
 > are corroborative and subject to the known limitations of taxonomy-based functional inference (Methods).
 
