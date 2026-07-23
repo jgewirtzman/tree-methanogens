@@ -72,4 +72,30 @@ print(as.data.frame(sp_tab %>% transmute(species = species_name,
 cat("\nCAVEAT: absolute copies subject to pending x10 conversion (ddpcr_controls_LoD.md);\n")
 cat("the pmoA:mmoX ratio and relative patterns here are unaffected by that.\n")
 sink()
+
+# ---- SI figure: pmoA vs mmoX separately by compartment (median + IQR) ---------
+# Medians (as in the table) so the figure matches the ratio narrative; means are
+# outlier-inflated. Log axis; IQR floor-clamped to keep zeros on-scale.
+plot_df <- d %>%
+  mutate(comp = recode(compartment, Soil_Mineral = "Mineral Soil", Soil_Organic = "Organic Soil"),
+         comp = factor(comp, levels = c("Heartwood", "Sapwood", "Mineral Soil", "Organic Soil")),
+         gene = factor(target_gene, levels = c("pmoa", "mmox"),
+                       labels = c("pmoA (pMMO)", "mmoX (sMMO)"))) %>%
+  group_by(comp, gene) %>%
+  summarise(med = median(concentration_copies_per_uL, na.rm = TRUE),
+            lo  = quantile(concentration_copies_per_uL, 0.25, na.rm = TRUE),
+            hi  = quantile(concentration_copies_per_uL, 0.75, na.rm = TRUE), .groups = "drop") %>%
+  mutate(across(c(med, lo, hi), ~ pmax(.x, 0.05)))   # floor for log axis
+p_sep <- ggplot(plot_df, aes(comp, med, color = gene)) +
+  geom_pointrange(aes(ymin = lo, ymax = hi),
+                  position = position_dodge(width = 0.5), size = 0.6, fatten = 2.6, linewidth = 0.8) +
+  scale_color_manual(values = c("pmoA (pMMO)" = "#2166ac", "mmoX (sMMO)" = "#b2182b"), name = NULL) +
+  scale_y_log10() +
+  labs(x = NULL, y = expression("Gene abundance (copies "*mu*"L"^-1*", median + IQR)")) +
+  theme_bw(base_size = 12) +
+  theme(legend.position = "bottom",
+        panel.grid.minor = element_blank(), axis.text.x = element_text(size = 10))
+ggsave(file.path(out, "SI_fig_pmoa_mmox_separate.png"), p_sep, width = 7, height = 4.8, dpi = 300, bg = "white")
+cat("Wrote SI_fig_pmoa_mmox_separate.png\n")
+
 cat(readLines(file.path(out,"pmoa_mmox_summary.txt")), sep="\n")
