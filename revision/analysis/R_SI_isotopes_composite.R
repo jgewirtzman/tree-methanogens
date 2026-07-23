@@ -74,7 +74,8 @@ pf <- pt(wt, ch4_ppm, eps_C) +
   geom_smooth(method = "loess", se = TRUE, color = "black", fill = "grey80", linewidth = 0.7) +
   scale_x_log10() +
   labs(x = expression(CH[4]~"(ppm, log)"), y = expression(epsilon[C]~"(per mil)"),
-       title = "Apparent fractionation convergence", subtitle = "plateau eps_C ~ 54-64 per mil (hydrogenotrophic)") + th
+       title = "Apparent fractionation convergence",
+       subtitle = expression(paste("plateau ", epsilon[C], " ~ 54-64 per mil (hydrogenotrophic)"))) + th
 
 fig <- (pa | pb | pc) / (pd | pe | pf) +
   plot_annotation(tag_levels = "a", tag_prefix = "(", tag_suffix = ")") &
