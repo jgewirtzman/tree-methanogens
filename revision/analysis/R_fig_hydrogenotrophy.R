@@ -149,7 +149,7 @@ pd <- ggplot() +
              plot.margin=margin(6,10,42,6), panel.grid=element_blank())
 
 fig <- (pa | pb) / (pc | pd) + plot_layout(heights = c(1, 1.25)) +
-  plot_annotation(tag_levels = 'a') & theme(plot.tag = element_text(face = "bold", size = 18))
+  plot_annotation(tag_levels = 'a', tag_prefix = "(", tag_suffix = ")") & theme(plot.tag = element_text(face = "bold", size = 18))
 ggsave(file.path(out, "fig_hydrogenotrophy.png"), fig, width = 13.5, height = 11, dpi = 300, bg = "white")
 cat("Wrote fig_hydrogenotrophy.png (semantic palette; base_size 11)\n")
 cat("(a) families:", paste(as.character(fa$family), collapse=", "), "\n")

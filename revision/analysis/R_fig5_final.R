@@ -441,7 +441,7 @@ p_mt_b <- p_mt_b + tag_theme
 
 fig_combined <- p_mg_a / p_mg_b / p_mt_a / p_mt_b +
   plot_layout(heights = c(1, 1.2, 1, 1.2)) +
-  plot_annotation(tag_levels = "a")
+  plot_annotation(tag_levels = "a", tag_prefix = "(", tag_suffix = ")")
 
 print(fig_combined)
 

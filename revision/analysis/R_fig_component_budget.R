@@ -137,7 +137,7 @@ pd <- ggplot(wf) +
 
 # ---- assemble (net-sink / RF-R2 / basis notes go in the figure CAPTION) -------
 fig <- (pa | pb) / (pc | pd) + plot_layout(heights = c(1.05, 1)) +
-  plot_annotation(tag_levels = 'a') & theme(plot.tag = element_text(face = "bold", size = 13))
+  plot_annotation(tag_levels = 'a', tag_prefix = "(", tag_suffix = ")") & theme(plot.tag = element_text(face = "bold", size = 13))
 ggsave(file.path(out, "fig_budget_maps.png"), fig, width = 10.5, height = 9, dpi = 300, bg = "white")
 cat("Wrote fig_budget_maps.png\n")
 cat(sprintf("Soil %.0f | tree measured %.2f (%.2f%%) | tree scenario %d (~%.0f%%) | net -903 to %.0f mg/m2/yr\n",
