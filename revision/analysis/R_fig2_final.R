@@ -225,37 +225,29 @@ create_species_plot_half <- function(species_name, species_data, breaks_data, si
   sign_color <- if (nrow(sig_row) == 1 && isTRUE(sig_row$slope_sign == "neg")) "#4575B4" else "#D73027"
   mean_col   <- if (is_sig) sign_color else boxplot_color
 
-  g <- ggplot(species_data, aes(x = factor(height_m), y = CH4_best.flux)) +
+  g <- ggplot(species_data, aes(x = height_m, y = CH4_best.flux)) +
     geom_hline(yintercept = 0, linetype = "dashed", color = "gray40",
                linewidth = 0.6, alpha = 0.8)
-  # significant height trend: LINEAR fit (matches the continuous-height lmer test),
-  # drawn as a 2-point line on the SAME discrete factor axis (heights are evenly
-  # spaced, so a fit on factor position is linear in height). Coloured by slope sign.
-  if (is_sig) {
-    lv <- levels(factor(species_data$height_m)); hts <- sort(unique(species_data$height_m))
-    tsd <- species_data; tsd$hpos <- as.numeric(factor(tsd$height_m))
-    tfit <- lm(CH4_best.flux ~ hpos, data = tsd)
-    yy <- predict(tfit, newdata = data.frame(hpos = c(1, length(lv))))
-    tl <- data.frame(hm = factor(c(hts[1], hts[length(hts)]), levels = lv), flux = yy)
-    g <- g + geom_line(data = tl, aes(x = hm, y = flux, group = 1),
-                       color = sign_color, linewidth = 0.9, inherit.aes = FALSE)
-  }
+  # significant height trend: LINEAR fit on CONTINUOUS height (matches the lmer test)
+  if (is_sig) g <- g + geom_smooth(method = "lm", formula = y ~ x, se = FALSE,
+                                   color = sign_color, linewidth = 0.9)
   if (PANEL_A_STYLE == "boxplot") {
     g <- g +
-      geom_half_boxplot(alpha = 0.6, outlier.shape = NA, fill = boxplot_color,
-                        color = "gray30", side = "r") +
+      geom_half_boxplot(aes(group = height_m), alpha = 0.6, outlier.shape = NA,
+                        fill = boxplot_color, color = "gray30", side = "r") +
       geom_jitter(alpha = 0.4, size = 1.1, color = "gray20",
-                  position = position_jitter(width = 0.15, height = 0))
+                  position = position_jitter(width = 0.1, height = 0))
   } else {                      # mean +/- SE overlaid on jittered points
     g <- g +
       geom_jitter(alpha = 0.4, size = 1.1, color = "gray60",
-                  position = position_jitter(width = 0.15, height = 0)) +
-      stat_summary(fun = mean, fun.min = function(z) mean(z) - se(z),
-                   fun.max = function(z) mean(z) + se(z),
+                  position = position_jitter(width = 0.1, height = 0)) +
+      stat_summary(aes(group = height_m), fun = mean,
+                   fun.min = function(z) mean(z) - se(z), fun.max = function(z) mean(z) + se(z),
                    geom = "pointrange", color = mean_col, size = 0.55, fatten = 2.4)
   }
   g +
     coord_flip() +
+    scale_x_continuous(breaks = c(0.5, 1.25, 2), expand = expansion(mult = c(0.13, 0.13))) +
     scale_y_continuous(
       trans = trans_symlog_fig2, breaks = shared_brks_fig2, limits = shared_lims_fig2,
       labels = shared_lab_fig2, expand = expansion(mult = c(0.05, 0.12))
