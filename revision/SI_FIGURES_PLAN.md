@@ -20,10 +20,9 @@
 | 3 | Random-forest flux predictions (upscaling support) | old S15 |
 
 ### Gene–flux relationships
-| 4 | Per-regression: mcrA – flux (individual / aggregate-x / species) | NEW `regfig_mcra` |
-| 5 | Per-regression: methanogenesis – flux | NEW `regfig_meth` |
-| 6 | Scale-dependent gene patterns | old S11 |
-| 7 | mcrA vs methanotroph | old S14 |
+| 4 | Per-regression: mcrA & methanogenesis vs flux (COMBINED regfig_mcra + regfig_meth) | NEW |
+| 5 | Scale-dependent gene patterns | old S11 |
+| 6 | mcrA vs methanotroph | old S14 |
 
 ### Microbial abundance & composition
 | 8 | Methanotroph abundance patterns | old S10 |
@@ -39,7 +38,7 @@
 
 ### Isotopes
 | 16 | δ13CH4 raincloud (full) | old S9 |
-| 17 | Extended isotopes composite: Keeling + CH4-vs-CO2 cross-plot + εC + whole-tree sources | NEW (`iso_co2_keeling`, `iso_co2_ch4_vs_co2`, `iso_epsC_weighted`/`iso_co2_epsC_distribution`, `iso_wholetree_sources`) |
+| 17 | Extended-isotope source composite (6 panels): CH4 Keeling / CH4 Miller-Tans / d13CH4 convergence / CO2 Keeling / CO2 Miller-Tans / εC convergence | **BUILT** `R_SI_isotopes_composite.R` → `SI_isotopes_source_composite.png`. εC discrepancy RESOLVED: source-based εC = −23−(−79)=+56 in the 54–64 plateau. |
 
 ### Internal gas & anatomy
 | 18 | Internal-gas beeswarm | old S7 |
@@ -50,12 +49,13 @@
 ### Plant traits
 | 22 | Plant-trait composite: heatmap + ordination (PCA/Procrustes) + density breakdown | NEW (`traits_heatmap`, `traits_pca_biplot`/`traits_procrustes`, `traits_breakdown`) |
 
-**Total: 22 SI figures.**
+**Total: 21 SI figures** (regfigs combined; numbering above is provisional and shifts by −1 after the gene-flux section).
 
 ## To build (new composites)
-- **SI-17 extended isotopes** — assemble Keeling + CH4-vs-CO2 + εC + whole-tree sources into one 4-panel figure (new script).
-- **SI-22 plant-trait composite** — assemble heatmap + ordination + breakdown into one figure (new script).
-- SI-14 (PICRUSt no-mcrA) is the existing main Fig 6 image, just relabeled/renumbered.
+- ~~Extended-isotope composite~~ — **BUILT** (`SI_isotopes_source_composite.png`).
+- **Combined regfig** (mcrA + methanogenesis vs flux) — assemble regfig_mcra + regfig_meth into one figure.
+- **Plant-trait composite** — assemble heatmap + ordination + breakdown into one figure.
+- PICRUSt no-mcrA is the existing main Fig 6 image, just relabeled/renumbered.
 
 ## SI TABLES (separate track)
 Known/putative taxa; pmoA/mmoX by compartment + by species; pmoA/mmoX robustness;
