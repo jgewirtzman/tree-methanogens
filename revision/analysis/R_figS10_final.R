@@ -10,8 +10,14 @@
 #       compartment. Wood compartments steep (perm p ~ 0.4 -> matches independence
 #       null: mmoX = fixed low background, pmoA carries dynamics); soil compartments
 #       flat (perm p ~ 1 -> isometric, composition invariant with abundance).
-#   (d) Scaling vs total 16S (wood only; soil has no 16S): pmoA tracks community
-#       abundance, mmoX is flat -> mechanism behind the wood decoupling.
+#   (d) Scaling vs total 16S (wood AND soil, faceted): pmoA & mmoX vs total 16S
+#       rRNA. WOOD: pmoA weakly tracks community, mmoX is FLAT/negative (fixed
+#       background) -> mechanism behind the wood decoupling. SOIL: BOTH genes track
+#       total community strongly (mmoX most of all) -> mechanism behind soil coupling.
+#       Uses X16S_per_ul (16S_tree_sample_table_with_meta.csv), the project-standard
+#       total-16S normalizer and the ONLY 16S available for soil (ddPCR 16s_bact is
+#       wood-only). 16S axis is a normalizer (copies/uL), so the SLOPE is the result
+#       and is unit-invariant; complete-case (both genes detected), 16S >= 100.
 #
 # UNITS: copies g^-1 dry (environmental concentration = copies/uL x elution/mass;
 #   what is actually in the wood/soil, not the eluate concentration). Robust to
@@ -105,23 +111,30 @@ for (i in seq_len(nrow(compstat))) {
 pc <- pc + labs(x = expression("size  "*frac(1,2)*"[log"[10]*" pmoA + log"[10]*" mmoX]"),
                 y = expression("balance  log"[10]*"(pmoA / mmoX)")) + th + theme(legend.position = "none")
 
-# ---- (d) scaling vs independent 16S (wood only) ------------------------------
-wc <- W %>% filter(material == "Wood", pos_pmoa > 0, pos_mmox > 0, !is.na(pos_16s_bact), pos_16s_bact > 0) %>%
-  mutate(g16 = log10(conc_16s_bact * cg), lp = log10(conc_pmoa * cg), lmm = log10(conc_mmox * cg))
-fcp <- lm(lp ~ g16, wc); fcm <- lm(lmm ~ g16, wc)
-long <- wc %>% transmute(g16, `pmoA (pMMO)` = lp, `mmoX (sMMO)` = lmm) %>%
-  pivot_longer(-g16, names_to = "gene", values_to = "val")
-pd <- ggplot(long, aes(g16, val, color = gene)) +
-  geom_point(alpha = 0.5, size = 1.4) +
+# ---- (d) scaling vs total 16S (wood AND soil, faceted) -----------------------
+tm <- read.csv("data/raw/picrust/16S_tree_sample_table_with_meta.csv", row.names = 1, check.names = FALSE) %>%
+  filter(material %in% c("Wood", "Soil"), pmoa_loose > 0, mmox_loose > 0, X16S_per_ul >= 100) %>%
+  mutate(material = factor(material, levels = c("Wood", "Soil")),
+         g16 = log10(X16S_per_ul), lp = log10(pmoa_loose), lmm = log10(mmox_loose))
+sfit <- tm %>% group_by(material) %>% summarise(
+  n = n(),
+  ps = coef(lm(lp ~ g16))[2], pr = summary(lm(lp ~ g16))$r.squared,
+  ms = coef(lm(lmm ~ g16))[2], mr = summary(lm(lmm ~ g16))$r.squared, .groups = "drop") %>%
+  mutate(lab = sprintf("n=%d\npmoA: slope=%.2f  R2=%.2f\nmmoX: slope=%.2f  R2=%.2f", n, ps, pr, ms, mr))
+longd <- tm %>% transmute(material, g16, `pmoA (pMMO)` = lp, `mmoX (sMMO)` = lmm) %>%
+  pivot_longer(c(-material, -g16), names_to = "gene", values_to = "val")
+pd <- ggplot(longd, aes(g16, val, color = gene)) +
+  geom_point(alpha = 0.4, size = 1.1) +
   geom_smooth(method = "lm", formula = y~x, se = TRUE, linewidth = 0.9) +
+  geom_text(data = sfit, aes(x = -Inf, y = Inf, label = lab), inherit.aes = FALSE,
+            hjust = -0.07, vjust = 1.12, size = 2.35, lineheight = 0.95) +
+  facet_wrap(~ material, scales = "free_x") +
   scale_color_manual(values = GENE, name = NULL) +
-  annotate("text", x = Inf, y = -Inf, hjust = 1.04, vjust = -0.5, size = 2.8, lineheight = 0.95,
-           label = sprintf("Wood (n = %d)\npmoA: slope=%.2f  R2=%.2f  p=%.0e\nmmoX: slope=%.2f  R2=%.2f  p=%.2f",
-                           nrow(wc), coef(fcp)[2], summary(fcp)$r.squared, summary(fcp)$coef[2,4],
-                           coef(fcm)[2], summary(fcm)$r.squared, summary(fcm)$coef[2,4])) +
-  labs(x = expression(log[10]~"16S bacterial (copies g"^-1*" dry)"),
-       y = expression(log[10]~"gene (copies g"^-1*" dry)")) +
-  th + theme(legend.position = c(0.02, 0.98), legend.justification = c(0, 1))
+  labs(x = expression(log[10]~"total 16S rRNA (copies "*mu*"L"^-1*")"),
+       y = expression(log[10]~"gene abundance")) +
+  theme_bw(base_size = 11) +
+  theme(legend.position = "top", panel.grid.minor = element_blank(),
+        strip.background = element_rect(fill = "grey92"), legend.text = element_text(size = 8.3))
 
 fig <- (pa | pb) / (pc | pd) +
   plot_annotation(tag_levels = "a", tag_prefix = "(", tag_suffix = ")") &
