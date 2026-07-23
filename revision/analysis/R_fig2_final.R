@@ -73,15 +73,13 @@ species_mapping <- c(
 colors_pub <- c(
   "Significant Negative" = "#4575B4",
   "Significant Positive" = "#D73027",
-  "Non-significant Negative" = "#74ADD1",
-  "Non-significant Positive" = "#F46D43"
+  "Non-significant" = "grey60"
 )
 
 shapes_pub <- c(
   "Significant Negative" = 16,
   "Significant Positive" = 16,
-  "Non-significant Negative" = 1,
-  "Non-significant Positive" = 1
+  "Non-significant" = 1
 )
 
 boxplot_color <- "#756BB1"
@@ -211,7 +209,12 @@ species_results <- do.call(rbind, lapply(species_list, test_species_height_effec
 # scales were not comparable and single outliers distorted panels. Same transform
 # now on every panel; dashed line = zero net flux. Layout/grid otherwise unchanged.
 PANEL_A_STYLE <- "meanSE"   # "boxplot" (half-boxplot + jitter) or "meanSE" (mean +/- SE over jitter)
-trans_symlog_fig2 <- pseudo_log_trans(sigma = 0.005, base = 10)
+# arcsinh (inverse hyperbolic sine) transform: signed, ~linear within the small
+# cofactor window, log-like for larger |x|; handles zeros and negatives.
+asinh_cofac <- 0.01
+trans_symlog_fig2 <- scales::trans_new("arcsinh",
+  transform = function(x) asinh(x / asinh_cofac),
+  inverse   = function(x) asinh_cofac * sinh(x))
 shared_brks_fig2  <- c(0, 0.1, 1)   # 3 well-separated ticks (fixes label crowding near zero)
 shared_lims_fig2  <- range(c(plot_data_top$CH4_best.flux, shared_brks_fig2), na.rm = TRUE)
 shared_lab_fig2   <- function(x) ifelse(x == 0, "0",
@@ -223,14 +226,14 @@ create_species_plot_half <- function(species_name, species_data, breaks_data, si
   sig_row    <- sig_lookup[sig_lookup$species == species_name, , drop = FALSE]
   is_sig     <- nrow(sig_row) == 1 && isTRUE(sig_row$is_sig)
   sign_color <- if (nrow(sig_row) == 1 && isTRUE(sig_row$slope_sign == "neg")) "#4575B4" else "#D73027"
-  mean_col   <- if (is_sig) sign_color else boxplot_color
+  mean_col   <- boxplot_color   # consistent mean-point colour for all species; only trend LINES are red/blue
 
   g <- ggplot(species_data, aes(x = height_m, y = CH4_best.flux)) +
     geom_hline(yintercept = 0, linetype = "dashed", color = "gray40",
                linewidth = 0.6, alpha = 0.8)
   # significant height trend: LINEAR fit on CONTINUOUS height (matches the lmer test)
   if (is_sig) g <- g + geom_smooth(method = "lm", formula = y ~ x, se = FALSE,
-                                   color = sign_color, linewidth = 0.9)
+                                   color = sign_color, linewidth = 0.55)
   if (PANEL_A_STYLE == "boxplot") {
     g <- g +
       geom_half_boxplot(aes(group = height_m), alpha = 0.6, outlier.shape = NA,
@@ -295,7 +298,7 @@ p_top_final <- arrangeGrob(
   ncol = 5,
   left = textGrob("Height (m)", rot = 90, vjust = 1, gp = gpar(fontsize = 10)),
   bottom = textGrob(
-    expression("CH"[4]*" flux (nmol m"^-2*" s"^-1*"),  signed pseudo-log scale"),
+    expression("CH"[4]*" flux (nmol m"^-2*" s"^-1*"),  arcsinh scale"),
     vjust = -0.3, gp = gpar(fontsize = 10)
   ),
   padding = unit(0.2, "lines")
@@ -318,8 +321,7 @@ plot_data_middle <- species_results %>%
     color_group = case_when(
       significant & negative_trend ~ "Significant Negative",
       significant & !negative_trend ~ "Significant Positive",
-      !significant & negative_trend ~ "Non-significant Negative",
-      TRUE ~ "Non-significant Positive"
+      TRUE ~ "Non-significant"
     )
   ) %>%
   arrange(height_coef)
