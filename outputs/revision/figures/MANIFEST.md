@@ -52,7 +52,9 @@ heatmap → SI; SI resequenced per `SI_FIGURES_PLAN.md`).
 - **Fig 9** is the new CH₄-budget figure (maps+seasonal+waterfall), replacing the old
   `fig9_upscaled_flux_seasonal`. If both are wanted, the budget becomes Fig 10 and everything holds.
 - **Fig 8** is unchanged from the as-reviewed version (Jon: "I like Fig 8 as-is").
-- SI numbering is sequential S01–S18 following the main-text flow (no gaps).
+- SI numbering is sequential S01–S20 following the main-text flow (no gaps). S19 (mcrA probe
+  validation) and S20 (stem deterioration) are new exploratory additions appended at the end;
+  placement can be reordered (e.g. S19 near the ddPCR figures) on request.
 - **S15 (black-oak)** uses the revised methanotroph definitions (Methylacidiphilaceae
   Known→Putative), matching Fig 5 and the classification table.
 - The 12 "orig" figures are pulled from the frozen original pipeline's `outputs/figures/`.
