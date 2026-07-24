@@ -16,10 +16,11 @@
 suppressPackageStartupMessages({library(tidyverse);library(gridExtra);library(grid)}); options(warn=-1)
 num<-function(x) suppressWarnings(as.numeric(x)); uq<-function(x) length(unique(x[!is.na(x)]))
 sp_map <- c(ACRU="Acer rubrum",ACSA="Acer saccharum",BEAL="Betula alleghaniensis",
-  BELE="Betula lenta",BEPA="Betula papyrifera",BEPO="Betula populifolia",CALA="Carya laciniosa",
+  BELE="Betula lenta",BEPA="Betula papyrifera",BEPO="Betula sp.",CALA="Carya sp.",
   CAOV="Carya ovata",FAGR="Fagus grandifolia",FRAM="Fraxinus americana",KALA="Kalmia latifolia",
   PIST="Pinus strobus",PRSE="Prunus serotina",QUAL="Quercus alba",QURU="Quercus rubra",
   QUVE="Quercus velutina",SAAL="Sassafras albidum",TSCA="Tsuga canadensis")
+# BEPO/CALA are in-plot 2023 IDs absent from the census -> reported at genus level (uncertain sp.)
 # confirmed data-entry code corrections (not real distinct species)
 corr <- c(TSLA="TSCA")   # TSLA typo for Tsuga canadensis (2021 aux); BEPO/CALA left pending Jon
 lab<-function(code){code<-toupper(trimws(code)); code<-ifelse(code %in% names(corr), corr[code], code)
