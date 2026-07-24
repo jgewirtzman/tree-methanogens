@@ -1,6 +1,6 @@
 # ==============================================================================
 # REVISION — S11 rebuilt: 4-column scale-dependent gene-flux figure.
-# ALL columns on a common arcsinh flux scale (asinh(x/0.2)/log10 = pseudolog10_individual),
+# ALL columns on a common arcsinh flux scale (asinh(x/0.1)/log10; cofactor matches Fig 1/2/3),
 # and aggregation is TRANSFORM-THEN-AGGREGATE on both axes, so the median-vs-mean
 # comparison reflects real aggregation, not raw right-skew sensitivity.
 #   M1 Individual         : individual log-gene, individual arcsinh-flux
@@ -21,7 +21,8 @@ suppressWarnings(suppressMessages(
 ))
 suppressPackageStartupMessages({ library(tidyverse); library(patchwork); library(grid) })
 out <- "revision/outputs"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
-asf <- pseudolog10_individual            # arcsinh flux transform (cofactor 0.2)
+COFAC <- 0.1                             # arcsinh cofactor — matches Fig 1/2/3; conclusions robust across 0.05-2 (sweep)
+asf <- function(x) asinh(x / COFAC) / log(10)
 ybrk <- asf(c(0, 0.1, 1))
 
 PRED <- tibble(
