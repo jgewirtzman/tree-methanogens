@@ -42,7 +42,7 @@ heatmap → SI; SI resequenced per `SI_FIGURES_PLAN.md`).
 | S17 | plant-traits | Plant-trait × methane-cycling heatmap (clade-robust) | NEW `rev_figS17_plant-traits.R` | — |
 | S18 | rf-flux-predictions | Random-forest flux predictions | orig | old S15 |
 | S19 | mcra-probe-validation | Probe vs EvaGreen *mcrA* ddPCR (agreement + EvaGreen false positives) | NEW `rev_figS19_mcra-probe-validation.R` | — |
-| S20 | stem-deterioration | Stem deterioration vs CH₄ flux (PC1 decay hump; PC2 wounding monotonic) | NEW `rev_figS20_stem-deterioration.R` | — |
+| S20 | stem-deterioration | Stem condition vs CH₄ flux (bark loss: hump over full gradient; wounding: rise over sampled range) | NEW `rev_figS20_stem-deterioration.R` | — |
 
 ### Retired from the SI set (moved to `exploratory/`)
 - **pmoa-mmox-by-compartment** (`rev_figS07_pmoa-mmox-compartment.R`) — redundant with S04.
