@@ -1,55 +1,57 @@
 #!/usr/bin/env Rscript
 # ==============================================================================
-# rev_figS20_stem-deterioration.R  (exploratory / SI candidate)
+# rev_figS20_stem-deterioration.R  (SI)
 # Stem deterioration vs CH4 flux (2023 cross-species survey, species-controlled).
-# Tests the early-decay hypothesis: emission should peak at *moderate* stem
-# deterioration (moisture, labile C, anoxia) then fall as structure is lost and
-# O2 enters. (A) arcsinh flux by 3-level bark condition (the hump); (B) composite
-# deterioration score (bark+wounding) with a species-controlled quadratic fit.
+# A PCA of four stem-condition scores (bark loss, wounding, moss/lichen, fungus)
+# separates two orthogonal, mechanistically distinct axes:
+#   PC1 = overall decay  -> INVERTED-U (early decay peaks; moisture/labile C/anoxia
+#         before structural loss + O2 ingress) — quadratic p=0.002
+#   PC2 = wounding        -> MONOTONIC increase (physical gas-escape) — linear p=0.021
+# (C) the same hump on the intuitive bark-condition scale. Dead trees are too few
+# and campaign-inconsistent to resolve the extreme; the signal is early/moderate.
 # Reads data/; writes outputs/revision/figS20_stem_deterioration.png
 # ==============================================================================
-suppressMessages({library(ggplot2); library(patchwork); library(lme4); library(lmerTest)})
+suppressMessages({library(ggplot2);library(patchwork);library(lme4);library(lmerTest)})
 options(warn=-1, stringsAsFactors=FALSE)
 asinh10<-function(x) asinh(x/0.1)/log(10)
-y<-read.csv("data/processed/flux/methanogen_tree_flux_complete_dataset.csv", check.names=FALSE)
+ord<-function(v){v<-tolower(trimws(as.character(v)));x<-suppressWarnings(as.numeric(v));x[v=="dead"]<-4;x}
+y<-read.csv("data/processed/flux/methanogen_tree_flux_complete_dataset.csv",check.names=FALSE)
 names(y)<-make.names(names(y)); y<-y[!is.na(y$CH4_best.flux),]
 y$fx<-asinh10(y$CH4_best.flux); y$sp<-as.factor(y$Species)
-ord<-function(v){v<-tolower(trimws(as.character(v))); x<-suppressWarnings(as.numeric(v)); x[v=="dead"]<-4; x}
-y$bark<-ord(y$Bark.Missing); y$wound<-ord(y$Wounding.Holes)
-d<-y[complete.cases(y[,c("bark","wound")]),]
-d$cond<-cut(d$bark, c(0,1,2,4), labels=c("healthy","moderate","severe/dead"))
-d$score<-d$bark+d$wound
+y$bark<-ord(y$Bark.Missing);y$wound<-ord(y$Wounding.Holes);y$moss<-ord(y$Moss.Lichen.Cover);y$fungus<-ord(y$Visible.fungus)
+d<-y[complete.cases(y[,c("bark","wound","moss","fungus")]),]
+pc<-prcomp(d[,c("bark","wound","moss","fungus")],scale.=TRUE)
+d$PC1<-pc$x[,1]; d$PC2<-pc$x[,2]
+ve<-round(100*summary(pc)$importance[2,1:2])
 
-# ---- Panel A: hump by bark condition ----
-nlab<-as.data.frame(table(d$cond)); names(nlab)<-c("cond","n")
-pA<-ggplot(d, aes(cond, fx, fill=cond)) +
-  geom_hline(yintercept=0, linetype=3, colour="grey60") +
-  geom_boxplot(width=.55, outlier.size=.7, alpha=.85) +
-  geom_text(data=nlab, aes(cond, y=-2.2, label=paste0("n=",n)), inherit.aes=FALSE, size=3.2) +
-  scale_fill_manual(values=c(healthy="#7fbf7b",moderate="#f0a202","severe/dead"="#8c510a"), guide="none") +
-  labs(x="stem condition (bark loss)", y=expression(CH[4]~flux~(arcsinh)),
-       title="A  Emission peaks at moderate deterioration") +
-  theme_bw(base_size=11)
+qfit<-function(v,quad){f<-if(quad)paste0("fx~",v,"+I(",v,"^2)+(1|sp)") else paste0("fx~",v,"+(1|sp)")
+  m<-lmer(as.formula(f),data=d);co<-summary(m)$coefficients
+  g<-data.frame(x=seq(min(d[[v]]),max(d[[v]]),length=60))
+  g$y<-if(quad) co[1,1]+co[2,1]*g$x+co[3,1]*g$x^2 else co[1,1]+co[2,1]*g$x
+  list(g=g, p=co[nrow(co),"Pr(>|t|)"])}
+th<-theme_bw(base_size=11)
+A<-qfit("PC1",TRUE); B<-qfit("PC2",FALSE)
 
-# ---- Panel B: composite score + species-controlled quadratic fit ----
-d$sc<-scale(d$score, scale=FALSE)[,1]
-m<-lmer(fx~sc+I(sc^2)+(1|sp), data=d); co<-summary(m)$coefficients
-pq<-co["I(sc^2)","Pr(>|t|)"]
-gr<-data.frame(score=seq(min(d$score),max(d$score),.1)); gr$sc<-gr$score-mean(d$score)
-gr$fx<-co["(Intercept)","Estimate"]+co["sc","Estimate"]*gr$sc+co["I(sc^2)","Estimate"]*gr$sc^2
-pB<-ggplot(d, aes(score, fx)) +
-  geom_hline(yintercept=0, linetype=3, colour="grey60") +
-  geom_jitter(width=.15, height=0, alpha=.35, size=1.4, colour="#8c510a") +
-  geom_line(data=gr, linewidth=1, colour="black") +
-  annotate("text", x=min(d$score), y=max(d$fx), hjust=0, vjust=1, size=3.3,
-    label=sprintf("quadratic (hump): p=%.3f\nspecies-controlled", pq)) +
-  scale_x_continuous(breaks=2:7) +
-  labs(x="deterioration score (bark + wounding)", y=expression(CH[4]~flux~(arcsinh)),
-       title="B  Inverted-U on a continuous deterioration axis") +
-  theme_bw(base_size=11)
-
-ggsave("outputs/revision/figS20_stem_deterioration.png", pA+pB+plot_layout(widths=c(1,1.15)),
-       width=11, height=4.6, dpi=300)
-cat(sprintf("quadratic p=%.3f | means by cond: %s\n", pq,
-  paste(sprintf("%s=%.3f",levels(d$cond),tapply(d$CH4_best.flux,d$cond,mean)),collapse="  ")))
+pA<-ggplot(d,aes(PC1,fx))+geom_hline(yintercept=0,linetype=3,colour="grey60")+
+  geom_jitter(width=.05,height=0,alpha=.35,size=1.4,colour="#8c510a")+
+  geom_line(data=A$g,aes(x,y),linewidth=1)+
+  annotate("text",-Inf,Inf,hjust=-.08,vjust=1.4,size=3.2,label=sprintf("quadratic p=%.3f",A$p))+
+  labs(title=sprintf("A  Overall decay axis (PC1, %d%%) — inverted-U",ve[1]),
+       x="PC1  (bark loss + fungus + moss + wounding)",y=expression(CH[4]~flux~(arcsinh)))+th
+pB<-ggplot(d,aes(PC2,fx))+geom_hline(yintercept=0,linetype=3,colour="grey60")+
+  geom_jitter(width=.05,height=0,alpha=.35,size=1.4,colour="#8c510a")+
+  geom_line(data=B$g,aes(x,y),linewidth=1)+
+  annotate("text",-Inf,Inf,hjust=-.08,vjust=1.4,size=3.2,label=sprintf("linear p=%.3f",B$p))+
+  labs(title=sprintf("B  Wounding axis (PC2, %d%%) — monotonic",ve[2]),
+       x="PC2  (wounding vs. surface colonization)",y=NULL)+th
+d$cond<-cut(d$bark,c(0,1,2,4),labels=c("healthy","moderate","severe/dead"))
+nD<-as.data.frame(table(d$cond));names(nD)<-c("cond","n")
+pC<-ggplot(d,aes(cond,fx,fill=cond))+geom_hline(yintercept=0,linetype=3,colour="grey60")+
+  geom_boxplot(width=.55,alpha=.85,outlier.size=.6)+
+  geom_text(data=nD,aes(cond,-2.1,label=paste0("n=",n)),inherit.aes=FALSE,size=3)+
+  scale_fill_manual(values=c(healthy="#7fbf7b",moderate="#f0a202","severe/dead"="#8c510a"),guide="none")+
+  labs(title="C  Bark condition (intuitive hump)",x=NULL,y=NULL)+th
+ggsave("outputs/revision/figS20_stem_deterioration.png", pA+pB+pC+plot_layout(widths=c(1,1,.9)),
+       width=14.5,height=4.6,dpi=300)
+cat(sprintf("PC1 quad p=%.3f  PC2 linear p=%.3f\n",A$p,B$p))
 cat("wrote outputs/revision/figS20_stem_deterioration.png\n")
