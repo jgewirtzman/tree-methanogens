@@ -78,11 +78,10 @@ pd<-ggplot(mcra,aes(Height_cm/100,mcrA_g))+geom_smooth(se=FALSE,aes(color=Compon
   scale_color_manual(values=col_ht)+scale_fill_manual(values=col_ht)+coord_flip()+
   ylab(expression(italic(mcrA)~"(copies g"^-1*")"))+xlab("")+scale_x_continuous(breaks=hb,minor_breaks=NULL)+
   guides(fill=guide_legend(title=NULL),color=guide_legend(title=NULL))
-pe<-ggplot(fdf,aes(height,flux,fill=ch4))+geom_smooth(se=FALSE,color="black")+
-  geom_point(size=3,shape=21,color="black",stroke=.6,alpha=.85)+shared_theme+
-  scale_fill_viridis_c(option="E",name=expression(CH[4]~"(ppm)"))+coord_flip()+xlab("")+
-  ylab(expression(CH[4]~"flux (nmol m"^-2*" s"^-1*")"))+scale_x_continuous(breaks=hb,minor_breaks=NULL)+
-  guides(fill=guide_colorbar(barwidth=7,barheight=.5,title.position="top"))
+# flux points in the same purple as panel a (CH4-ppm colour dropped: redundant with panel c)
+pe<-ggplot(fdf,aes(height,flux))+geom_smooth(se=FALSE,color="black")+
+  geom_point(size=3,shape=21,fill="#756BB1",color="black",stroke=.6,alpha=.85)+shared_theme+coord_flip()+xlab("")+
+  ylab(expression(CH[4]~"flux (nmol m"^-2*" s"^-1*")"))+scale_x_continuous(breaks=hb,minor_breaks=NULL)
 # linear axis: makes the single 2 m heartwood spike read as the true peak (log/arcsinh
 # under-weight it and the LOESS wiggles toward the ~1e4 points)
 pf<-ggplot(itw,aes(height,ITS_g))+geom_smooth(se=FALSE,color="black",span=1)+
