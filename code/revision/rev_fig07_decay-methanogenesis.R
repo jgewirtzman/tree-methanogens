@@ -21,7 +21,8 @@ asinh10<-function(x) asinh(x/0.1)/log(10)
 r2m<-function(m){vf<-var(predict(m,re.form=NA));vc<-as.data.frame(VarCorr(m))
   vr<-sum(vc$vcov[vc$grp!="Residual"]);ve<-vc$vcov[vc$grp=="Residual"];as.numeric(vf/(vf+vr+ve))}
 pfmt<-function(p) ifelse(p<0.001,"p < 0.001",sprintf("p = %.3f",p))
-stat_lab<-function(R2,p,dAIC) sprintf("R2 = %.2f\n%s\ndAIC = %.1f",R2,pfmt(p),dAIC)
+# panel stats show R2 + p only; dAIC (hump vs linear) reported in text
+stat_lab<-function(R2,p) sprintf("R2 = %.2f\n%s",R2,pfmt(p))
 shared_theme <- theme_classic(base_size=12)+theme(axis.title=element_text(size=12),axis.text=element_text(size=10),
   legend.position="bottom",legend.title=element_text(size=9),legend.text=element_text(size=8),
   legend.margin=margin(0,0,0,0),legend.box.margin=margin(-5,0,0,0),plot.margin=margin(5,7,5,5))
@@ -82,9 +83,11 @@ pe<-ggplot(fdf,aes(height,flux,fill=ch4))+geom_smooth(se=FALSE,color="black")+
   scale_fill_viridis_c(option="E",name=expression(CH[4]~"(ppm)"))+coord_flip()+xlab("")+
   ylab(expression(CH[4]~"flux (nmol m"^-2*" s"^-1*")"))+scale_x_continuous(breaks=hb,minor_breaks=NULL)+
   guides(fill=guide_colorbar(barwidth=7,barheight=.5,title.position="top"))
-pf<-ggplot(itw,aes(height,ITS_g+1))+geom_smooth(se=FALSE,color="black",span=1)+
-  geom_jitter(width=.15,size=3,shape=21,fill="#a6611a",color="black",stroke=.6,alpha=.85)+shared_theme+
-  coord_flip()+scale_y_log10(breaks=c(1,1e2+1,1e4+1,1e6+1,1e8+1),labels=c("0","1e2","1e4","1e6","1e8"))+xlab("")+
+# linear axis: makes the single 2 m heartwood spike read as the true peak (log/arcsinh
+# under-weight it and the LOESS wiggles toward the ~1e4 points)
+pf<-ggplot(itw,aes(height,ITS_g))+geom_smooth(se=FALSE,color="black",span=1)+
+  geom_jitter(width=.15,height=0,size=3,shape=21,fill="#a6611a",color="black",stroke=.6,alpha=.85)+shared_theme+
+  coord_flip()+scale_y_continuous(breaks=c(0,1e9,2e9),labels=c("0","1e9","2e9"))+xlab("")+
   ylab(expression("fungal ITS load (copies g"^-1*")"))+scale_x_continuous(breaks=hb,minor_breaks=NULL)
 
 ## ===================== TOP ROW: population humps =====================
@@ -100,7 +103,7 @@ pa<-ggplot(y,aes(x,fx))+geom_hline(yintercept=0,linetype=3,colour="grey70")+
   geom_jitter(width=.12,alpha=.15,size=1.1,colour="#756BB1")+
   geom_ribbon(data=gA,aes(x,ymin=fit-1.96*se,ymax=fit+1.96*se),alpha=.2,fill="#756BB1",inherit.aes=FALSE)+
   geom_line(data=gA,aes(x,fit),linewidth=1,colour="#54278f",inherit.aes=FALSE)+
-  annotate("text",1,asinh10(0.9),hjust=0,vjust=1,size=2.9,lineheight=.9,label=stat_lab(R2a,pqa,dAICa))+
+  annotate("text",1,asinh10(0.9),hjust=0,vjust=1,size=2.9,lineheight=.9,label=stat_lab(R2a,pqa))+
   scale_x_continuous(breaks=1:4,labels=c("healthy","moderate","severe","dead"))+scale_y_continuous(breaks=asinh10(obrk),labels=obrk)+
   coord_cartesian(ylim=asinh10(c(-0.3,1)))+shared_theme+labs(x="bark loss (decay)",y=expression(CH[4]~flux~(nmol~m^-2~s^-1)))
 
@@ -126,14 +129,13 @@ pb<-ggplot(d,aes(X,Y,colour=material))+geom_point(alpha=.4,size=1.2)+
   geom_line(data=gw,aes(X,fit),colour=col_ws["Wood"],linewidth=1,inherit.aes=FALSE)+
   geom_line(data=gs,aes(X,fit),colour=col_ws["Soil"],linewidth=1,inherit.aes=FALSE)+
   scale_colour_manual(values=col_ws,name=NULL)+scale_fill_manual(values=col_ws,guide="none")+
-  annotate("text",-Inf,Inf,hjust=-.05,vjust=1.2,size=2.9,lineheight=.9,label=paste0("wood:\n",stat_lab(R2b,pqb,dAICb)))+
+  annotate("text",-Inf,Inf,hjust=-.05,vjust=1.2,size=2.9,lineheight=.9,label=paste0("wood:\n",stat_lab(R2b,pqb)))+
   shared_theme+theme(legend.position="right")+
   labs(x=expression(log[10]~fungal~ITS~load~(copies~g^-1)),y=expression(log[10]~italic(mcrA)~(copies~g^-1)))
 
 fig<-(pa|pb)/(pc|pd|pe|pf)+plot_layout(heights=c(1,1.15))+
   plot_annotation(tag_levels="a",tag_prefix="(",tag_suffix=")",
-    title="Methane production peaks at moderate wood decay",
-    theme=theme(plot.tag=element_text(size=11,face="bold"),plot.title=element_text(face="bold",size=14)))
+    theme=theme(plot.tag=element_text(size=11,face="bold")))
 ggsave("outputs/revision/fig7_decay_methanogenesis.png",fig,width=13,height=9,dpi=250)
-cat(sprintf("bark-flux hump p=%.4f | wood mcrA-ITS hump p=%.4f\n",pqa,pqb))
+cat(sprintf("bark-flux: R2=%.2f p=%.4f dAIC=%.1f | wood mcrA-ITS: R2=%.2f p=%.4f dAIC=%.1f\n",R2a,pqa,dAICa,R2b,pqb,dAICb))
 cat("wrote outputs/revision/fig7_decay_methanogenesis.png\n")
