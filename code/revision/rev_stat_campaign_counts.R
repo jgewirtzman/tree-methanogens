@@ -41,10 +41,23 @@ mon_pos   <- table(srt$Plot.Letter[!is.na(srt$CH4_best.flux.x)])   # U/I/WD/WS
 h_trees <- length(unique(paste(hd$plot, hd$tree_id))); h_spp <- uq(hd$species)
 t23_ok <- !is.na(y23$CH4_best.flux); t23_trees <- uq(y23$Tree.Tag[t23_ok]); t23_spp <- uq(y23$Species.Code[t23_ok])
 
-# unique trees across campaigns (normalise + crosswalk; report reproducible union)
+# unique trees across campaigns, reconciled via the ID crosswalk.
+# NOTE (verified): tree_id_comprehensive_mapping.csv is 2021-only — it collapses the
+# 2021 survey trees' name variants (SM6, BO1, AB 3/5 ...) but does NOT contain the
+# numeric monthly/2023 tags, so it cannot bridge campaigns. It is applied to the 2021
+# IDs; monthly & 2023 numeric tags reconcile to each other directly.
 norm <- function(x) toupper(trimws(as.character(x)))
-ids  <- c(norm(srt$Plot.Tag[!is.na(srt$CH4_best.flux.x)]), norm(paste(hd$plot,hd$tree_id)), norm(y23$Tree.Tag[t23_ok]))
-union_naive <- length(unique(ids))
+canon <- function(x) norm(x)
+map_f <- "data/processed/tree_data/tree_id_comprehensive_mapping.csv"
+if (file.exists(map_f)) {
+  M <- read.csv(map_f, check.names = FALSE)
+  vcols <- grep("^name_in_|^variant_|^name_variants$|primary_id|Tree_ID_normalized", names(M), value = TRUE)
+  prim <- if ("primary_id" %in% names(M)) M$primary_id else M$Tree_ID_normalized
+  lut <- c(); for (cc in vcols) { v <- norm(M[[cc]]); ok <- v != "" & !is.na(v); lut[v[ok]] <- norm(prim[ok]) }
+  canon <- function(x) { x <- norm(x); ifelse(x %in% names(lut), lut[x], x) }
+}
+ids <- unique(c(canon(srt$Plot.Tag[!is.na(srt$CH4_best.flux.x)]), canon(hd$tree_id), canon(y23$Tree.Tag[t23_ok])))
+union_trees <- length(ids)
 
 # ============================================================= B. COVARIATES ===
 cov_has <- function(f, pat){ h <- names(read.csv(f, nrows=1, check.names=FALSE)); any(grepl(pat, h, ignore.case=TRUE)) }
@@ -64,7 +77,9 @@ wood_ct <- c("Inner","Outer"); soil_ct <- c("Organic","Mineral")
 s16_w <- sum(s16$Material=="Wood" & s16$core_type %in% wood_ct)
 s16_s <- sum(s16$Material=="Soil" & s16$core_type %in% soil_ct)
 s16_none <- sum(s16$Material %in% c("Wood","Soil") & !(s16$core_type %in% c(wood_ct, soil_ct)))
-s16_oak <- sum(s16$Material=="QUVE")   # 2022 felled-tree tissues
+# 2022 felled-tree tissues: real biological samples exclude core_type None/empty
+s16_oak_all <- sum(s16$Material=="QUVE")
+s16_oak <- sum(s16$Material=="QUVE" & !(s16$core_type %in% c("None","empty","")) & !is.na(s16$core_type))
 n_gas <- nn(read.csv("data/processed/internal_gas/sample_data_only.csv", check.names=FALSE)[[1]])
 iso <- read.csv("data/processed/internal_gas/stem_gas_isotopes_picarro_run.csv", check.names=FALSE)
 iso_stcol <- grep("Sample.Type|Sample Type", names(iso), value=TRUE)[1]
@@ -100,8 +115,9 @@ P("  Height 2021 (3 heights; upland-focused, in plot): %d fluxes | %d trees | %d
 P("      by height (cm): %s", paste(sprintf("%s=%d",names(h_by),h_by), collapse="  "))
 P("  Cross-species 2023 (breast ht; spatial in plot):  %d fluxes | %d trees | %d spp", n_2023, t23_trees, t23_spp)
 P("  ---------------------------------------------")
-P("  STEM TOTAL: %d      SOIL (monthly only): %d", stem_total, n_soil)
-P("  Unique flux trees across campaigns (reproducible union): %d  (manuscript 482; needs 2021<->2023 tag crosswalk)", union_naive)
+P("  Survey stem: %d   + felled oak %d   = GRAND STEM TOTAL %d", stem_total, bo_flux, stem_total + bo_flux)
+P("  Soil (monthly only): %d", n_soil)
+P("  Unique flux trees: survey %d  + felled oak 1  = %d  (crosswalk-reconciled; 2021-only crosswalk)", union_trees, union_trees + 1)
 
 cat("\nB. COVARIATES per flux measurement (VWC / DBH / temp)\n")
 P("  Monthly 2020-21 : merged in the Fig 1 workflow (06_soil_tree_timeseries.R) from soil-moisture/DBH/weather; not in the raw flux file")
@@ -114,12 +130,16 @@ P("  16S survey samples  : %d  (wood inner/outer %d / soil org/min %d) -- paired
 P("      (+%d 'None'/uncharacterised + control samples in the 16S file — excluded from the paired survey count)", s16_none)
 P("  Internal gas (survey): %d      Isotopes (Picarro): %d runs, %d samples (rest standards)", n_gas, nrow(iso), iso_samp)
 
-cat("\nD. FELLED BLACK OAK (single tree, Oct 2022) — separate from the 2021 survey black oaks; NOT in totals\n")
+cat("\nD. FELLED BLACK OAK (single tree, Oct 2022) — separate individual from the 2021 survey black oaks\n")
 P("  Stem flux    : %d (heights 0.5,1.25,2,4,6,8,10 m + basal seam)", bo_flux)
-P("  Internal gas : %d samples (multiple heights; file also holds standards/blanks)", bo_gas)
-P("  ddPCR        : %d samples (mcrA; %d heights x sapwood/heartwood)", bo_ddpcr, bo_mcra_h)
-P("  16S tissues  : %d  (%s)", s16_oak, paste(sprintf("%s=%d",names(bo_tiss),bo_tiss), collapse=", "))
-P("  Extractions  : %d (heights x components incl. bark/branch/foliage/roots/litter/rot/soil)", bo_ext)
+P("  Internal gas : %d samples (multiple heights; file also holds standards/blanks). No isotopes for this tree.", bo_gas)
+P("  ddPCR        : %d samples (mcrA only)", bo_ddpcr)
+P("  16S tissues  : %d biological (inner/outer + bark/branch/roots/foliage/litter/rot/soil); %d total incl. %d None/controls", s16_oak, s16_oak_all, s16_oak_all - s16_oak)
+P("  Extractions  : %d", bo_ext)
+
+cat("\nGRAND TOTALS (survey + felled oak):\n")
+P("  Stem fluxes: %d   Soil fluxes: %d   Trees: %d", stem_total + bo_flux, n_soil, union_trees + 1)
+P("  ddPCR: %d   16S: %d   Internal gas: %d   Isotopes: %d", dd_surv + bo_ddpcr, (s16_w+s16_s) + s16_oak, n_gas + bo_gas, iso_samp)
 
 cat("\nE. INVENTORY / UPSCALING\n")
 P("  Live stems: %d | %d species | extent-based area ~%s ha (CONFIRM censused plot area)", inv_live, inv_spp, inv_area)
