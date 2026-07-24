@@ -24,6 +24,8 @@ m <- merge(a,b,by="sample_id"); m <- m[is.finite(m$eg)&is.finite(m$pr),]
 m$cat <- with(m, ifelse(eg>0 & pr>0, "both detect",
                  ifelse(eg>0 & pr==0, "EvaGreen only (probe = 0)",
                  ifelse(eg==0 & pr>0, "probe only", "both = 0"))))
+# axes: probe (trusted/reference) on X, EvaGreen (assay under test) on Y, so its
+# false positives read as a vertical stripe rising from probe = 0 (non-detect).
 
 # ---- place non-detects (0) at a floor a decade below the lowest detected value ----
 posmin <- min(c(m$eg[m$eg>0], m$pr[m$pr>0]))
@@ -44,19 +46,19 @@ cols <- c("both detect"="#2c7fb8","EvaGreen only (probe = 0)"="#d95f02",
 brk <- 10^(seq(floor(log10(floor)), ceiling(log10(topmax))))
 lbl <- ifelse(brk==floor, "0 (nd)", parse(text=paste0("10^", round(log10(brk)))))
 
-p <- ggplot(m, aes(egp, prp, colour=cat)) +
+p <- ggplot(m, aes(prp, egp, colour=cat)) +
   annotate("rect", xmin=floor/3.5, xmax=floor*3.5, ymin=-Inf, ymax=Inf, fill="grey92", alpha=.5) +
   annotate("rect", ymin=floor/3.5, ymax=floor*3.5, xmin=-Inf, xmax=Inf, fill="grey92", alpha=.5) +
   geom_abline(slope=1, intercept=0, linetype=2, colour="grey45") +
-  geom_smooth(data=pos, aes(eg,pr), method="lm", se=FALSE, colour="black", linewidth=.6, inherit.aes=FALSE) +
+  geom_smooth(data=pos, aes(pr,eg), method="lm", se=FALSE, colour="black", linewidth=.6, inherit.aes=FALSE) +
   geom_point(alpha=.7, size=1.9) +
   scale_x_log10(breaks=brk, labels=lbl) + scale_y_log10(breaks=brk, labels=lbl) +
   annotation_logticks(sides="bl", colour="grey60") +
   scale_colour_manual(values=cols, name=NULL) +
   annotate("text", x=floor, y=topmax, label=lab, hjust=0, vjust=1, size=3.2) +
-  labs(x=expression(EvaGreen~italic(mcrA)~(copies~mu*L^{-1}~reaction)),
-       y=expression(Probe~italic(mcrA)~(copies~mu*L^{-1}~reaction)),
-       title=expression("Probe vs. EvaGreen "*italic(mcrA)*" ddPCR (paired wood samples; 0 = non-detect)")) +
+  labs(x=expression(Probe~italic(mcrA)~(copies~mu*L^{-1}~reaction)~-~trusted~assay),
+       y=expression(EvaGreen~italic(mcrA)~(copies~mu*L^{-1}~reaction)),
+       title=expression("EvaGreen vs. probe "*italic(mcrA)*" ddPCR (paired wood samples; 0 = non-detect)")) +
   theme_bw(base_size=11) + theme(legend.position=c(.99,.02), legend.justification=c(1,0),
                                  legend.background=element_rect(fill=alpha("white",.7), colour=NA))
 ggsave("outputs/revision/figS19_mcra_probe_validation.png", p, width=7.6, height=6.4, dpi=300)
