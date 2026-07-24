@@ -87,18 +87,15 @@ p <- ggplot(grid, aes(response, trait_label, fill=rho)) +
   scale_fill_gradient2(low="#2166ac", mid="white", high="#b2182b", midpoint=0, limits=c(-1,1), name="Spearman\nrho") +
   facet_grid(category ~ ., scales="free_y", space="free_y", switch="y") +
   scale_x_discrete(position="top") +
-  labs(x=NULL, y=NULL, title="Plant traits structure the stem methane-cycling community (n<=10 species)",
-       caption=paste("Cell = Spearman rho (species level); columns follow the microbial chain: methanogens -> methanotrophs -> balance -> net flux.",
-         "\nSignificance ladder (highest reached):  * p<0.10   ** p<0.05   *** FDR q<0.10   **** FDR q<0.05  (BH across all cells).",
-         "\nBlack outline = survives control for the gymnosperm/angiosperm split (rank-partial, all n, 1 df; |rho|>=0.3).",
-         "\nEXPLORATORY, n<=10: no cell reaches *** -> nothing survives FDR. Density->methanotroph is largely the conifer contrast",
-         "(no outline); plant longevity, moisture->mcrA, bark density->balance are clade-robust. Read as descriptive structure.")) +
+  labs(x=NULL, y=NULL, title=NULL,
+       caption=paste0("*  p<0.10      **  p<0.05      ***  FDR<0.10      ****  FDR<0.05  (Benjamini-Hochberg, all cells)",
+                      "\nBold outline: robust to the gymnosperm/angiosperm split (partial rank correlation)")) +
   theme_minimal(base_size=9) +
   theme(axis.text.x.top=element_text(angle=15, hjust=0, size=8.5), axis.text.y=element_text(size=8),
         strip.text.y.left=element_text(angle=0, face="bold", size=8), strip.placement="outside",
-        panel.grid=element_blank(), plot.title=element_text(size=12, margin=margin(b=22)),
-        plot.caption=element_text(size=7.3, hjust=0, margin=margin(t=10)), plot.margin=margin(t=10,r=45,b=6,l=6))
-ggsave(file.path(out,"traits_heatmap_robust.png"), p, width=9.2, height=8.2, dpi=300, bg="white")
+        panel.grid=element_blank(),
+        plot.caption=element_text(size=7.8, hjust=0, margin=margin(t=12)), plot.margin=margin(t=40,r=45,b=8,l=6))
+ggsave(file.path(out,"traits_heatmap_robust.png"), p, width=9.2, height=7.6, dpi=300, bg="white")
 cat("clade-robust (dagger) cells:\n")
 print(grid %>% filter(!is.na(p_clade) & p_clade<0.05) %>% select(trait_label,response,rho,p_uni,p_clade), row.names=FALSE)
 cat("Wrote traits_heatmap_robust.png\n")
