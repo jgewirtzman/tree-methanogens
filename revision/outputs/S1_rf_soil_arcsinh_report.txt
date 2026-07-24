@@ -1,0 +1,52 @@
+### S1 (RF). Area-weighted random forest: species + dbh + area-weighted genes
+------------------------------------------------------------------------------ 
+n trees = 121 
+
+[RAW]  variance explained = 18.3%
+   importance (%IncMSE, ranked):
+      species          18.00
+      log_tree_mmox    6.29
+      log_pmoa         5.39
+      dbh              4.85
+      log_tree_mcra    -0.25
+
+[ARCSINH]  variance explained = 23.3%
+   importance (%IncMSE, ranked):
+      species          25.82
+      log_tree_mmox    10.96
+      dbh              6.92
+      log_pmoa         4.73
+      log_tree_mcra    3.28
+
+
+### S1 (soil). Soil-gene additions to species + tree mmoX (linear)
+------------------------------------------------------------------------------ 
+  soil mcrA  [RAW    ] n=107  dR2=+0.0066  p(soil)=0.316
+  soil mcrA  [ARCSINH] n=107  dR2=+0.0028  p(soil)=0.489
+  soil pmoA  [RAW    ] n=107  dR2=+0.0028  p(soil)=0.516
+  soil pmoA  [ARCSINH] n=107  dR2=+0.0030  p(soil)=0.469
+  soil mmoX  [RAW    ] n=107  dR2=+0.0005  p(soil)=0.792
+  soil mmoX  [ARCSINH] n=107  dR2=+0.0003  p(soil)=0.817
+
+
+### S1 (RF conc). Concentration random forest: species + dbh + hw/sw genes + soil genes
+------------------------------------------------------------------------------ 
+(tests the 'heartwood mcrA is top predictor' ranking; absolute variance not comparable to paper
+ because environmental predictors from the original pipeline are not included)
+n trees = 107 
+
+[RAW]  variance explained = 2.0%   top predictors (%IncMSE):
+      species      11.16
+      soil_mcra    7.21
+      sw_mmox      2.84
+      sw_pmoa      2.80
+      hw_pmoa      2.12
+      dbh          2.06
+
+[ARCSINH]  variance explained = 15.4%   top predictors (%IncMSE):
+      species      18.56
+      soil_mcra    8.26
+      dbh          6.18
+      sw_pmoa      5.04
+      soil_mmox    3.52
+      hw_pmoa      3.50
