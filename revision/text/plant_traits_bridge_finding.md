@@ -1,5 +1,21 @@
 # Plant traits → stem CH₄ flux and the microbial balance (Editor + R3 #3.1)
 
+> **UPDATE / CORRECTION (2026-07) — read first; supersedes parts of this log.**
+> The final SI figure is now a SINGLE heatmap, `traits_heatmap_robust.png`
+> (`R_traits_heatmap_robust.R`), which folds the robustness in: `*` p<0.10, `**` p<0.05,
+> `***` FDR<0.10, `****` FDR<0.05 (BH), + bold outline = survives control for the
+> gymnosperm/angiosperm split (rank-partial). It replaces the heatmap+ordination+breakdown
+> sequence. Clean deliverable + caption: `plant_traits_SI_and_discussion.md`.
+> Two substantive corrections to the analysis below: (1) the claim "**nothing significant
+> among angiosperms**" (breakdown figure) is WRONG — **plant longevity** is significant among
+> angiosperms (→methanotroph & →balance, p=0.005). (2) The clade-robust signals (survive the
+> gymnosperm control) are **plant longevity → balance +0.67 / methanotroph −0.64**, **realized
+> soil moisture → mcrA +0.72**, and **bark density → balance +0.73** — while density →
+> methanotroph is NOT clade-robust (the conifer contrast, as this log already noted). Reframe
+> the discussion around **longevity + moisture**, with density as a correlated-but-clade-
+> confounded axis. FDR still kills everything at n=10 (min q≈0.5 full grid; PC axes don't
+> rescue it) — descriptive only. The prose in this log below predates these corrections.
+
 **Scope: SI figure(s) + a discussion paragraph to address the editor's plant-framing
 note — NOT a repositioning of the paper.** Editor De Kauwe and R3 asked what *about a
 species* relates to stem CH₄ flux / the microbial community. This adds a bounded,
