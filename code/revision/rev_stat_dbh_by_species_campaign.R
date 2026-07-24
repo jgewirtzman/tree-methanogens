@@ -20,7 +20,10 @@ sp_map <- c(ACRU="Acer rubrum",ACSA="Acer saccharum",BEAL="Betula alleghaniensis
   CAOV="Carya ovata",FAGR="Fagus grandifolia",FRAM="Fraxinus americana",KALA="Kalmia latifolia",
   PIST="Pinus strobus",PRSE="Prunus serotina",QUAL="Quercus alba",QURU="Quercus rubra",
   QUVE="Quercus velutina",SAAL="Sassafras albidum",TSCA="Tsuga canadensis")
-lab<-function(code){code<-toupper(trimws(code)); ifelse(code %in% names(sp_map), sp_map[code], code)}
+# confirmed data-entry code corrections (not real distinct species)
+corr <- c(TSLA="TSCA")   # TSLA typo for Tsuga canadensis (2021 aux); BEPO/CALA left pending Jon
+lab<-function(code){code<-toupper(trimws(code)); code<-ifelse(code %in% names(corr), corr[code], code)
+  ifelse(code %in% names(sp_map), sp_map[code], code)}
 fd<-"data/processed/flux"
 
 ## 2020-2021 monthly — unique Plot.Tag with valid flux (== campaign_counts 41)
