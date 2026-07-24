@@ -9,37 +9,48 @@ and is git-tracked; **data** lives in the one consolidated `data/` tree (Zenodo 
 ```
 Rscript code/revision/run_all.R
 ```
-Runs every final generator (stats then figures), then assembles the numbered
-manuscript figure set into `outputs/revision/figures/{main,SI}/`. Reads `data/` and
-`code/`; writes only to `outputs/revision/`.
+Runs every final generator (stats then figures via glob), then assembles the numbered
+manuscript figure set into `outputs/revision/figures/{main,SI,photos}/`. Reads `data/`
+and `code/`; writes only to `outputs/revision/`.
+
+**Master inventory of everything new/updated in the revision:** `notes/REVISION_INVENTORY.md`.
 
 ## Layout
 ```
 code/revision/
-├── run_all.R                  # one-command reproduce
-├── rev_00_assemble_figures.R  # copies finals -> outputs/revision/figures/{main,SI}/ (numbered)
+├── run_all.R                  # one-command reproduce (globs rev_stat_*/rev_fig*)
+├── rev_00_assemble_figures.R  # copies finals -> outputs/revision/figures/{main,SI,photos}/ (numbered)
 ├── rev_prep_species_data.R    # shared, side-effect-free species-level data prep (sourced)
-├── rev_fig01_*.R … rev_fig09_*.R, rev_figS02/04/11/12/15/17_*.R   # final figure generators
-│                              #   (named by manuscript figure number; see MANIFEST)
+├── rev_fig01_*.R … rev_fig09_*.R    # main-figure generators (by manuscript number)
+│     rev_fig06_hydrogenotrophy      #   NEW synthesis main fig
+│     rev_fig07_decay-methanogenesis #   NEW expanded Fig 7 (decay + fungi + felled-oak; replaces felled-oak-only)
+├── rev_figS02/04/11/12/15/17/19/20/21_*.R   # SI-figure generators
+│     rev_figS19 probe validation · rev_figS20 stem deterioration · rev_figS21 ddPCR-16S concordance  # NEW
+├── rev_figS_black-oak-cross-sections.R      # NEW felled-oak cross-section photo plate (-> photos/)
 ├── rev_fig02a/07b/07c_*.R     # supporting panel scripts
-├── rev_stat_*.R               # final analyses / tables (arcsinh redo, RMA, multigene, isotopes, …)
+├── rev_stat_*.R               # final analyses / tables (campaign counts, RMA, multigene, isotopes, …)
+├── rev_bo-funguild-saprotroph.R  # exploratory FUNGuild on felled-oak ITS (not wired into a figure)
 ├── exploratory/               # superseded / provenance scripts (NOT run by run_all)
-└── notes/                     # response-to-referees, captions, findings, planning docs
+└── notes/                     # REVISION_INVENTORY.md, response-to-referees, captions, findings, planning
 ```
 
 ## Data
 All inputs come from the consolidated `data/` archive (drop-in from Zenodo). Revision-
 specific curated inputs were added there, alongside the existing files:
 - `data/processed/molecular/methanotroph_definitions_revised.csv` (Known→Putative reclass)
-- `data/processed/molecular/black_oak/` (extraction/core/soil masses for the felled-oak copies/g)
+- `data/processed/molecular/black_oak/` — extraction/core/soil masses (felled-oak copies/g) and
+  `bo_its_load.csv` (felled-oak QUVE ITS load for Fig 7 panel f; makes Fig 7 standalone)
 
 ## Outputs
 - `outputs/revision/` — all generated figures, reports, tables (CSV/TXT/PNG).
-- `outputs/revision/exploratory/` — outputs of the exploratory scripts.
-- `outputs/revision/figures/main/`, `.../SI/` — the numbered manuscript figure set.
-- `outputs/revision/figures/MANIFEST.md` — number → content → source script → source PNG.
+- `outputs/revision/exploratory/` — outputs of the exploratory scripts (incl. `explore_*.png`).
+- `outputs/revision/figures/main/`, `.../SI/`, `.../photos/` — the numbered manuscript figure set
+  (photos = field plates, e.g. cross-sections + chamber photos; separate from SI data figures).
+- Some assembled figures are original-pipeline figures (unchanged); run `generate_all_figures.R`
+  first to populate them, else the assembler reports them MISSING.
 
 ## Notes
-`notes/` holds the prose deliverables and planning records: `response_to_referees_skeleton.md`,
-`plant_traits_SI_and_discussion.md`, the isotope/microbiology findings, `SI_FIGURES_PLAN.md`,
-`PENDING_CHANGES.md`, `STATUS.md`, and the verbatim reviews.
+`notes/` holds the prose deliverables and planning records: **`REVISION_INVENTORY.md`** (master
+stock-take), `response_to_referees_skeleton.md`, `plant_traits_SI_and_discussion.md`, the
+isotope/microbiology findings, `SI_FIGURES_PLAN.md`, `PENDING_CHANGES.md`, `STATUS.md`, and the
+verbatim reviews.

@@ -157,11 +157,14 @@ See `code/04_scaling/RF_CH4_workflow_spec.md` for the detailed RF technical spec
 
 > **Two figure sets.** The table below maps the **as-submitted** manuscript figures (Fig 1–9, S1–S15)
 > to the original pipeline scripts — this is what `Rscript code/generate_all_figures.R` produces.
-> The **revised** manuscript figure set (Fig 1–9, **S01–S18**) is produced by
-> `Rscript code/revision/run_all.R` and defined authoritatively in
-> [`outputs/revision/figures/MANIFEST.md`](outputs/revision/figures/MANIFEST.md). Key renumberings in
-> the revision: Fig 6 → convergent-hydrogenotrophy synthesis (old PICRUSt-mcrA heatmap demoted to S09);
-> Fig 9 → CH₄ budget (maps + seasonal + net waterfall); the SI is resequenced to follow the main-text flow.
+> The **revised** manuscript figure set (Fig 1–9, **S01–S23**) is produced by
+> `Rscript code/revision/run_all.R`, assembled by `rev_00_assemble_figures.R`, and inventoried in
+> [`code/revision/notes/REVISION_INVENTORY.md`](code/revision/notes/REVISION_INVENTORY.md). Key changes in
+> the revision: Fig 6 → convergent-hydrogenotrophy synthesis (old PICRUSt-mcrA heatmap demoted to the SI);
+> **Fig 7 → decay–methanogenesis (fungal decay + felled-oak profiles; replaces the felled-oak-only figure)**;
+> Fig 9 → CH₄ budget (maps + seasonal + net waterfall); new SI figs (ddPCR probe validation, ddPCR–16S
+> concordance, stem deterioration) added and the SI resequenced to follow the main-text citation order.
+> Field photo plates (cross-sections, chamber) live in `outputs/revision/figures/photos/`, separate from SI data figures.
 
 | Figure | Output File | Description | Script |
 |--------|------------|-------------|--------|
