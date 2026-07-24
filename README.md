@@ -56,14 +56,16 @@ tree-methanogens/
 │   │   ├── integrated/         # Multi-source merged datasets
 │   │   └── metadata/           # Phylogenetic data (PhytoPhylo)
 │   └── compiled/               # Analysis-ready datasets for Zenodo (not in git)
-├── code/                       # See "Pipeline" section below
+├── code/                       # Numbered pipeline (see "Pipeline" below)
+│   └── revision/               #   Manuscript-revision scripts (Rscript code/revision/run_all.R)
 ├── outputs/
 │   ├── figures/                # All generated figures
 │   │   ├── main/               #   Main text figures
 │   │   └── supplementary/      #   Supplementary figures
 │   ├── tables/                 # Summary statistics & model tables
 │   ├── models/                 # Saved RF model objects (.RData)
-│   └── flux_predictions/       # Upscaled monthly/annual flux estimates
+│   ├── flux_predictions/       # Upscaled monthly/annual flux estimates
+│   └── revision/               # Revision outputs + numbered manuscript figure set (figures/main, figures/SI)
 └── deprecated/                 # Superseded scripts and data (not tracked)
 ```
 
