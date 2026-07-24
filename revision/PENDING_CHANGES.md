@@ -23,9 +23,12 @@
 
 ## B. FIGURES
 
-### B1. Fig 4 (methanogen/methanotroph abundance) — pending A1/A2 only
-- Otherwise fine (legend fix was caption-only). When A1/A2 resolve, rebuild as a new
-  `R_fig4_final.R` with the ×10 toggle and the harmonized basis.
+### B1. Fig 4 (methanogen/methanotroph abundance) — BUILT (`R_fig4_final.R`)
+- `R_fig4_final.R` reproduces it (barplot by compartment + pmoA+mmoX vs mcrA scatter) with a
+  `DILUTION_10X` toggle (default 1). Confirmed the ddpcr_*_loose columns are ALREADY copies/g
+  (harmonization `02_harmonize_all_data.R:317`), so the toggle applies the ×10 directly.
+- Remaining: flip toggle 1→10 on Wyatt confirm (A1); soil dry-basis (A2) still pending — soil
+  bars/scatter currently fresh-mass basis (same as all other copies/g figures).
 
 ### B2. Fig 6 restructure — DECIDED, not executed
 - Hydrogenotrophy synthesis becomes **Fig 6**; old PICRUSt *mcrA* heatmap moves to **SI**.
