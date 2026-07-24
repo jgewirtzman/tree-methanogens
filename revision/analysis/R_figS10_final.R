@@ -6,10 +6,15 @@
 #   (a) Wood decoupling: pmoA vs mmoX by heartwood/sapwood — no co-variation.
 #   (b) Soil decoupling: pmoA vs mmoX by organic/mineral — co-vary.
 #   (c) Composition: balance log(pmoA/mmoX) vs size 1/2[log pmoA + log mmoX], all
-#       four compartments with individual fits + 3000x independence permutation per
-#       compartment. Wood compartments steep (perm p ~ 0.4 -> matches independence
-#       null: mmoX = fixed low background, pmoA carries dynamics); soil compartments
-#       flat (perm p ~ 1 -> isometric, composition invariant with abundance).
+#       four compartments with individual fits + independence permutation (3000x).
+#       NULL: shuffle pmoA and mmoX INDEPENDENTLY across samples (preserves each
+#       gene's marginal distribution, breaks the within-sample pairing), recompute
+#       the balance-size slope; two-sided p = deviation from that null. This is the
+#       correct control for the built-in balance-vs-size geometry: when one gene has
+#       restricted variance, a steep slope is mechanically expected. WOOD matches the
+#       null (perm p 0.47/0.32) -> the ~1.4 slope IS that mechanical expectation
+#       (mmoX = fixed low background, pmoA carries the variance), NOT co-regulation.
+#       SOIL deviates from the null (perm p < 0.001) -> genuine coupling.
 #   (d) Scaling vs total 16S (wood AND soil, faceted): pmoA & mmoX vs total 16S
 #       rRNA. WOOD: pmoA weakly tracks community, mmoX is FLAT/negative (fixed
 #       background) -> mechanism behind the wood decoupling. SOIL: BOTH genes track
