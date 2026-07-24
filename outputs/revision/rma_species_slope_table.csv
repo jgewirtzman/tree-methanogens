@@ -1,4 +1,0 @@
-"predictor","n_species","pearson_r","R2","p_value","OLS_slope","SMA_slope","SMA_CI_low","SMA_CI_high","correction_1_over_absr","relationship_significant_p05"
-"ratio",10,0.717,0.513,0.0197,0.0521,0.0726,0.0423,0.1249,1.396,TRUE
-"mcrA",10,0.628,0.394,0.0521,0.0977,0.1557,0.0856,0.2833,1.593,FALSE
-"methanotroph",10,-0.48,0.23,0.1607,-0.0418,-0.0872,-0.0448,-0.1695,2.085,FALSE

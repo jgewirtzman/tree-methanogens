@@ -39,19 +39,15 @@ data/**
 !data/**/
 !data/**/.gitkeep
 
-# --- Model objects (large binary files) ---
-outputs/models/*.RData
-outputs/models/*.rds
+# --- Outputs (regenerable via the pipeline; git tracks ONLY the folder structure
+#     and the assembled numbered manuscript figure set) ---
+outputs/**
+!outputs/**/
+!outputs/**/.gitkeep
+!outputs/revision/figures/**
 
 # --- Deprecated directory (old code/data, not tracked) ---
 deprecated/
-
-# --- Large diagnostic outputs ---
-outputs/figures/LGR3_flux_plots_*.pdf
-
-# --- Stray output files ---
-outputs/output.txt
-outputs/auxfile_goFlux_soilflux_with_weather.txt
 
 # --- Temporary/auto-generated files ---
 Rplots.pdf
