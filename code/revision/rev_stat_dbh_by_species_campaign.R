@@ -62,12 +62,15 @@ dbh_by_cid<-tapply(num(mg$dbh), canon(mg$tree_id), function(v) if(all(is.na(v)))
 hd$dbh<-as.numeric(dbh_by_cid[canon(hd$tree_id)])
 t2<-transmute(hd, campaign="2021 summer (height)", location="adjacent to inventory plot", code=species, dbh)
 
-## 2023 cross-species — unique Tree.Tag with valid flux (== campaign_counts 332)
-o23<-!is.na(y23$CH4_best.flux); t23<-y23[o23,]; t23<-t23[!duplicated(t23$`Tree Tag`),]
+## 2023 cross-species — unique tree with valid flux. Untagged trees share a non-unique
+## "untagged"/"untagged, forked" tag -> key those by UniqueID so each is a distinct tree.
+o23<-!is.na(y23$CH4_best.flux)
+tg23<-trimws(as.character(y23$`Tree Tag`)); tk23<-ifelse(grepl("^[0-9]+$",tg23), tg23, as.character(y23$UniqueID))
+t23<-y23[o23,]; t23$tk<-tk23[o23]; t23<-t23[!duplicated(t23$tk),]
 t3<-transmute(t23, campaign="2023 cross-species", location="in inventory plot", code=`Species Code`, dbh=num(`DBH (cm)`))
 
 allt<-bind_rows(t1,t2,t3) %>% filter(!is.na(code), toupper(trimws(code))!="NA", code!="") %>% mutate(Species=lab(code))
-cat(sprintf("tree-set check vs campaign_counts:  monthly %d (want 41)  |  height %d (want 150)  |  2023 %d (want 332)\n",
+cat(sprintf("tree-set check vs campaign_counts:  monthly %d (want 41)  |  height %d (want 150)  |  2023 %d (want 336, untagged-corrected)\n",
     nrow(t1), nrow(t2), nrow(t3)))
 cat("DBH available:", sprintf("monthly %d/%d, height %d/%d, 2023 %d/%d\n",
     sum(!is.na(t1$dbh)),nrow(t1), sum(!is.na(t2$dbh)),nrow(t2), sum(!is.na(t3$dbh)),nrow(t3)))

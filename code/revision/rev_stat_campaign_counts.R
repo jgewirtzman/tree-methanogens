@@ -47,7 +47,9 @@ mon_species <- ifelse(mon_tags %in% names(sp_lut), sp_lut[mon_tags],
                       ifelse(mon_tags %in% names(sp23), sp23[mon_tags], NA))
 mon_spp <- uq(mon_species); mon_unres <- sum(is.na(mon_species))
 h_trees <- length(unique(paste(hd$plot, hd$tree_id))); h_spp <- uq(hd$species)
-t23_ok <- !is.na(y23$CH4_best.flux); t23_trees <- uq(y23$Tree.Tag[t23_ok]); t23_spp <- uq(y23$Species.Code[t23_ok])
+# untagged 2023 trees share a non-unique "untagged"/"forked" tag -> key by UniqueID so each counts once
+t23_key <- ifelse(grepl("^[0-9]+$", trimws(as.character(y23$Tree.Tag))), trimws(as.character(y23$Tree.Tag)), as.character(y23$UniqueID))
+t23_ok <- !is.na(y23$CH4_best.flux); t23_trees <- uq(t23_key[t23_ok]); t23_spp <- uq(y23$Species.Code[t23_ok])
 
 # unique trees across campaigns, reconciled via the ID crosswalk.
 # NOTE (verified): tree_id_comprehensive_mapping.csv is 2021-only — it collapses the
@@ -64,7 +66,7 @@ if (file.exists(map_f)) {
   lut <- c(); for (cc in vcols) { v <- norm(M[[cc]]); ok <- v != "" & !is.na(v); lut[v[ok]] <- norm(prim[ok]) }
   canon <- function(x) { x <- norm(x); ifelse(x %in% names(lut), lut[x], x) }
 }
-ids <- unique(c(canon(srt$Plot.Tag[!is.na(srt$CH4_best.flux.x)]), canon(hd$tree_id), canon(y23$Tree.Tag[t23_ok])))
+ids <- unique(c(canon(srt$Plot.Tag[!is.na(srt$CH4_best.flux.x)]), canon(hd$tree_id), canon(t23_key[t23_ok])))
 union_trees <- length(ids)
 
 # ============================================================= B. COVARIATES ===
