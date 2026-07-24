@@ -14,7 +14,7 @@ mainD <- "outputs/revision/figures/main"; siD <- "outputs/revision/figures/SI"
 photoD <- "outputs/revision/figures/photos"; tableD <- "outputs/revision/figures/tables"
 for (d in c(mainD, siD, photoD, tableD)) {
   dir.create(d, showWarnings = FALSE, recursive = TRUE)
-  unlink(list.files(d, "\\.png$", full.names = TRUE))   # clear stale/renamed figures each run
+  unlink(list.files(d, "\\.(png|csv)$", full.names = TRUE))   # clear stale/renamed outputs each run
 }
 
 # dest basename  <-  source path
@@ -63,9 +63,17 @@ SI <- c(
   # Plant traits (discussion) — single heatmap with in-panel significance covers it (no composite)
   "Figure_S22_plant-traits"              = "outputs/revision/traits_heatmap_robust.png")
 
-# SI TABLES (rendered). Numbering provisional — other SI tables are CSVs in outputs/revision/.
+# Manuscript tables — data CSVs (+ rendered views). Numbering provisional; Table S1 = primer
+# sequences, a formatted table in notes/primer_sequences.md (markdown), not assembled here.
 TABLES <- c(
-  "Table_ddpcr-16s-concordance"          = "outputs/revision/tbl_ddpcr_16s_concordance.png")
+  "Table_1_campaign-summary"             = "outputs/revision/campaign_counts.csv",
+  "Table_S02_known-putative-taxa"        = "outputs/revision/known_putative_taxa_table.csv",
+  "Table_S03_pmoa-mmox-by-compartment"   = "outputs/revision/pmoa_mmox_by_compartment.csv",
+  "Table_S04_pmoa-mmox-by-species"       = "outputs/revision/pmoa_mmox_by_species.csv",
+  "Table_S05_pathway-classification"     = "outputs/revision/panel_c_pathway_classification.csv",
+  "Table_S06_ddpcr-16s-concordance"      = "outputs/revision/tbl_ddpcr_16s_concordance.csv",
+  "Table_S06_ddpcr-16s-concordance-view" = "outputs/revision/tbl_ddpcr_16s_concordance.png",
+  "Table_S07_dbh-by-landscape"           = "outputs/revision/tree_dbh_landscape_table.csv")
 
 # Photo plates — separate section (NOT SI data figures); chamber photos to be added
 PHOTOS <- c(
@@ -75,7 +83,7 @@ copy_set <- function(map, dest) {
   miss <- 0
   for (nm in names(map)) {
     src <- map[[nm]]
-    if (file.exists(src)) file.copy(src, file.path(dest, paste0(nm, ".png")), overwrite = TRUE)
+    if (file.exists(src)) file.copy(src, file.path(dest, paste0(nm, ".", tools::file_ext(src))), overwrite = TRUE)
     else { cat("  MISSING:", src, "->", nm, "\n"); miss <- miss + 1 }
   }
   miss
@@ -91,6 +99,6 @@ sect <- function(title, map, dest) c(paste0("## ", title), "", "| Figure | Sourc
   vapply(names(map), function(nm) sprintf("| %s | `%s`%s |", nm, map[[nm]],
     if (!file.exists(map[[nm]])) " (missing — run generate_all_figures.R)" else ""), character(1)), "")
 man <- c(man, sect("Main", MAIN, mainD), sect("Supplementary", SI, siD),
-         sect("Photo plates", PHOTOS, photoD), sect("SI tables (rendered)", TABLES, tableD))
+         sect("Photo plates", PHOTOS, photoD), sect("Tables (data CSV + rendered)", TABLES, tableD))
 writeLines(man, "outputs/revision/figures/MANIFEST.md")
 cat("Wrote outputs/revision/figures/MANIFEST.md\n")
