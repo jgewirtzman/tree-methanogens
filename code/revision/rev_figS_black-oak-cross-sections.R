@@ -20,9 +20,7 @@ grobs<-Map(function(f,l){
   arrangeGrob(rasterGrob(crop,interpolate=TRUE),
     top=textGrob(l,gp=gpar(fontsize=17,fontface="bold"),vjust=.3),padding=unit(2,"mm"))
 },ord,labs)
-plate<-arrangeGrob(grobs=grobs,nrow=1,padding=unit(3,"mm"),
-  top=textGrob("Felled black oak: stem cross-sections by height (base to top)",gp=gpar(fontsize=19,fontface="bold")),
-  bottom=textGrob("Visible decay cone concentrated near the base (basal rot cavity, discolouration to ~1-2 m); wood appears sound by ~6 m. Ruler shown for scale.",
-    gp=gpar(fontsize=12)))
-ggplot2::ggsave("outputs/revision/figS_black_oak_cross_sections.png",plate,width=15.5,height=3.7,dpi=220,bg="white")
+# title/caption intentionally omitted -> lives in the manuscript figure caption
+plate<-arrangeGrob(grobs=grobs,nrow=1,padding=unit(3,"mm"))
+ggplot2::ggsave("outputs/revision/figS_black_oak_cross_sections.png",plate,width=15.5,height=3.1,dpi=220,bg="white")
 cat("wrote outputs/revision/figS_black_oak_cross_sections.png\n")

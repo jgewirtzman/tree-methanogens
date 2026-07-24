@@ -118,7 +118,8 @@ gw<-fm("Wood",TRUE);gs<-fm("Soil",FALSE)
 dw<-d[d$material=="Wood",];dw$xc<-dw$X-mean(dw$X)
 mqb<-lmer(Y~xc+I(xc^2)+(1|sp),dw);mlb<-lmer(Y~xc+(1|sp),dw)
 pqb<-summary(mqb)$coefficients[3,"Pr(>|t|)"];dAICb<-as.numeric(AIC(mlb)-AIC(mqb));R2b<-r2m(mqb)
-col_ws<-c(Wood="#2c7a2c",Soil="#8c6d3f")
+# paper BrBG convention: wood = brown, soil = teal (matches Fig 4/5 compartment palette)
+col_ws<-c(Wood="#a6611a",Soil="#018571")
 pb<-ggplot(d,aes(X,Y,colour=material))+geom_point(alpha=.4,size=1.2)+
   geom_ribbon(data=rbind(gw,gs),aes(X,ymin=fit-1.96*se,ymax=fit+1.96*se,fill=material),alpha=.15,colour=NA,inherit.aes=FALSE)+
   geom_line(data=gw,aes(X,fit),colour=col_ws["Wood"],linewidth=1,inherit.aes=FALSE)+
