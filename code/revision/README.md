@@ -19,7 +19,7 @@ code/revision/
 ├── run_all.R                  # one-command reproduce
 ├── rev_00_assemble_figures.R  # copies finals -> outputs/revision/figures/{main,SI}/ (numbered)
 ├── rev_prep_species_data.R    # shared, side-effect-free species-level data prep (sourced)
-├── rev_fig01_*.R … rev_fig09_*.R, rev_figS02/04/06/07/15/20_*.R   # final figure generators
+├── rev_fig01_*.R … rev_fig09_*.R, rev_figS02/04/11/12/15/17_*.R   # final figure generators
 │                              #   (named by manuscript figure number; see MANIFEST)
 ├── rev_fig02a/07b/07c_*.R     # supporting panel scripts
 ├── rev_stat_*.R               # final analyses / tables (arcsinh redo, RMA, multigene, isotopes, …)
