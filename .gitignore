@@ -29,57 +29,14 @@ supporting_information.md
 references.bib
 doi_list.txt
 outputs/figure_captions.md
+# Revision prose/notes (manuscript-adjacent; not for public repo)
+code/revision/notes/
 
-# --- Data files (archived on Zenodo, not in git) ---
-# Compiled analysis-ready datasets (Zenodo only, regenerable via compile_zenodo_datasets.R)
-data/compiled/
-
-# Deprecated data (removed duplicates, scratch files)
-data/deprecated/
-
-# Raw data
-data/raw/**/*.csv
-data/raw/**/*.txt
-data/raw/**/*.tsv
-data/raw/**/*.xlsx
-data/raw/**/*.xls
-data/raw/**/*.RData
-data/raw/**/*.rds
-data/raw/**/*.biom
-data/raw/**/*.fasta
-data/raw/**/*.fastq
-data/raw/**/*.gz
-data/raw/**/*.nwk
-data/raw/**/*.gsheet
-data/raw/**/*.mxd
-data/raw/**/*.docx
-data/raw/**/*.png
-data/raw/**/*.json
-
-# Processed data (regenerable from code + raw data)
-data/processed/**/*.csv
-# Exception: curated definitions files (canonical inputs, not generated)
-!data/processed/molecular/methanotroph_definitions.csv
-data/processed/**/*.txt
-data/processed/**/*.tsv
-data/processed/**/*.xlsx
-data/processed/**/*.RData
-data/processed/**/*.rds
-
-# Raw data subdirectories (nested directory structures)
-data/raw/lgr/semirigid_2020-2021/
-data/raw/lgr/static_2021/
-data/raw/lgr/static_2023/
-data/raw/inventory/spatial_data/
-data/raw/inventory/jon_r_files/
-data/raw/internal_gas/picarro/
-data/raw/ddpcr/Data Files/
-data/raw/field_data/static_chamber_scratch/
-
-# Processed metadata
-data/processed/metadata/
-
-# Keep .gitkeep files to preserve directory structure
+# --- Data (all archived on Zenodo; git tracks ONLY the folder structure) ---
+# Every data file lives in the Zenodo archive and drops into data/ locally.
+# Git keeps only .gitkeep so the directory layout (and all paths) are pre-wired.
+data/**
+!data/**/
 !data/**/.gitkeep
 
 # --- Model objects (large binary files) ---
