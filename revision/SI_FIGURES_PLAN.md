@@ -25,8 +25,8 @@
 | 6 | mcrA vs methanotroph | old S14 |
 
 ### Microbial abundance & composition
-| 8 | Methanotroph abundance patterns | old S10 |
-| 9 | pmoA vs mmoX by compartment | NEW `SI_fig_pmoa_mmox_separate` (R2 #1c) |
+| 8 | pmoA/mmoX coupling & composition — tree-focused 2x2 (cols=habitat wood\|soil, rows=decoupling/composition; 4-compartment; balance-vs-size + two-sided independence permutation). Wood decoupled / composition matches null (mmoX fixed background); soil coupled/deviates. No 16S or moisture panels (dropped as off-tree-focus). | **REBUILT** `R_figS10_final.R` — **REPLACES old S10** (abundance-by-compartment now in row 9 + table) |
+| 9 | pmoA vs mmoX by compartment (abundances) | NEW `SI_fig_pmoa_mmox_separate` (R2 #1c) |
 | 10 | Taxonomy mcrA heatmap (full) | old S6 |
 | 11 | Taxonomy pmoA heatmap | old S2 |
 
