@@ -49,9 +49,7 @@ build <- function(xp, yp, xr, yr, xlab, ylab, out){
     scale_y_continuous(trans=pslog, breaks=brk, labels=lbl, limits=c(-sig,topmax)) +
     scale_colour_manual(values=cols, name=NULL) +
     annotate("text", x=0, y=topmax, label=lab, hjust=0, vjust=1, size=3.2) +
-    labs(x=xlab, y=ylab,
-         title=expression("Our probe vs. literature EvaGreen "*italic(mcrA)*" ddPCR (paired wood)"),
-         subtitle="probe agrees where both detect (validity) and avoids EvaGreen's positives at probe = 0 (specificity)") +
+    labs(x=xlab, y=ylab) +
     theme_bw(base_size=11) + theme(legend.position=c(.99,.02), legend.justification=c(1,0),
                                    legend.background=element_rect(fill=alpha("white",.7), colour=NA))
   ggsave(out, p, width=7.4, height=6.3, dpi=300); out

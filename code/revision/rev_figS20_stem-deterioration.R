@@ -44,15 +44,12 @@ panel<-function(metric,xlab,catlabs){
     annotate("text",-Inf,asinh10(5.5),hjust=-.03,vjust=1,size=2.8,label=txt)+
     scale_x_continuous(breaks=1:4,labels=catlabs)+
     scale_y_continuous(breaks=asinh10(obrk),labels=obrk)+coord_cartesian(ylim=asinh10(c(-0.32,6)))+
-    labs(title=xlab,x=xlab,y=expression(CH[4]~flux~(nmol~m^-2~s^-1)))+th
+    labs(x=xlab,y=expression(CH[4]~flux~(nmol~m^-2~s^-1)))+th
 }
 pA<-panel("bark","Bark loss (decay)",c("healthy","moderate","severe","dead"))
 pB<-panel("wound","Wounding (damage)",c("1","2","3","4"))
 ggsave("outputs/revision/figS20_stem_deterioration.png",
   (pA | pB+labs(y=NULL))+plot_annotation(
-    title="CH4 flux vs stem condition: linear vs quadratic mixed-model fits",
-    subtitle="dashed = linear fit, solid = quadratic +/- 95% CI; AIC selects the shape (full categories, no aggregation)",
-    caption="Species-controlled (1|species), n=282. Rise into moderate deterioration robust to mean/median/rank.",
-    theme=theme(plot.subtitle=element_text(size=9))),
+    caption="Species-controlled (1|species), n=282. Rise into moderate deterioration robust to mean/median/rank."),
   width=11,height=5,dpi=300)
 cat("wrote outputs/revision/figS20_stem_deterioration.png\n")

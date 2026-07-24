@@ -62,8 +62,6 @@ g<-list(c("mcra","mg16","mcrA","methanogen"),c("pmoa","mt16","pmoA","methanotrop
 mk<-function(mat) lapply(g,function(x) panel(x[1],x[2],mat,sprintf("%s vs 16S %s (%s)",x[3],x[4],mat),sprintf("16S %s taxa (%%, 0=nd)",x[4])))
 W<-mk("Wood"); S<-mk("Soil")
 fig<-(W[[1]]|W[[2]]|W[[3]])/(S[[1]]|S[[2]]|S[[3]])+plot_layout(guides="collect")+
-  plot_annotation(title="ddPCR detects methane-cycling genes where 16S taxa are absent (wood vs soil)",
-    subtitle="16S methanogens are seen mainly in heartwood, ~none in soil (matches manuscript); ddPCR detects them throughout. taxonomy-based (Fig 5 defs).",
-    theme=theme(plot.title=element_text(face="bold",size=13),plot.subtitle=element_text(size=9),legend.position="bottom"))
+  plot_annotation(theme=theme(legend.position="bottom"))
 ggsave("outputs/revision/figS21_ddpcr_16s_concordance.png",fig,width=13.5,height=9,dpi=200)
 cat("wrote outputs/revision/figS21_ddpcr_16s_concordance.png\n")

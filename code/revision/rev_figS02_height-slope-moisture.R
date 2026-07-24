@@ -57,20 +57,20 @@ p1 <- ggplot(slopes, aes(VWC_mean, height_slope)) +
   geom_smooth(method = "lm", se = TRUE, color = "black", formula = y ~ x) +
   scale_color_manual(values = c(`FALSE` = "gray50", `TRUE` = "firebrick"),
                      labels = c("other", "B. alleghaniensis"), name = NULL) +
-  labs(title = "Per-tree height slope of CH4 flux vs soil moisture",
-       subtitle = sprintf("Pearson r = %.2f, p = %.3f (n=%d). Negative slope = flux declines with height.",
-                          ct_all$estimate, ct_all$p.value, nrow(slopes)),
-       x = "Soil VWC (%)", y = "Height slope (flux change per cm)") + theme_bw(base_size = 10)
+  annotate("text", -Inf, Inf, hjust = -0.05, vjust = 1.4, size = 3,
+           label = sprintf("r = %.2f, %s, n = %d", ct_all$estimate,
+                           ifelse(ct_all$p.value < 0.001, "p < 0.001", sprintf("p = %.3f", ct_all$p.value)), nrow(slopes))) +
+  labs(x = "Soil VWC (%)", y = "Height slope (flux change per cm)") + theme_bw(base_size = 10)
 
 # R3's specific birch check: birch flux (base height) vs VWC
 birch <- slopes %>% filter(species == "Betula alleghaniensis")
 p2 <- ggplot(birch, aes(VWC_mean, flux_base)) +
   geom_point(size = 2.5, color = "firebrick") +
   geom_smooth(method = "lm", se = TRUE, color = "black", formula = y ~ x) +
-  labs(title = "B. alleghaniensis: are highest fluxes in wettest soil? (R3)",
-       subtitle = if (nrow(birch) > 2) sprintf("r = %.2f, p = %.3f, n = %d",
-                    cor(birch$VWC_mean, birch$flux_base), cor.test(birch$VWC_mean, birch$flux_base)$p.value, nrow(birch)) else "n too small",
-       x = "Soil VWC (%)", y = "Base-height CH4 flux") + theme_bw(base_size = 10)
+  annotate("text", -Inf, Inf, hjust = -0.05, vjust = 1.4, size = 3,
+           label = if (nrow(birch) > 2) sprintf("r = %.2f, p = %.3f, n = %d",
+                    cor(birch$VWC_mean, birch$flux_base), cor.test(birch$VWC_mean, birch$flux_base)$p.value, nrow(birch)) else "n too small") +
+  labs(x = "Soil VWC (%)", y = "Base-height CH4 flux") + theme_bw(base_size = 10)
 
 if (requireNamespace("gridExtra", quietly = TRUE))
   ggsave(file.path(out_dir, "height_slope_vs_moisture.png"),

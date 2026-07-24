@@ -93,7 +93,9 @@ if (requireNamespace("gridExtra", quietly = TRUE)) {
   ggsave(file.path(out_dir, "tree_distribution_panels.png"), g, width = 13, height = 7, dpi = 140)
 }
 # panel A (species soil-moisture niches) standalone -> SI figure (R3 L286)
-ggsave(file.path(out_dir, "tree_species_moisture_niche.png"), p_niche, width = 6.8, height = 6.2, dpi = 200)
+# title/subtitle stripped for publication (moves to caption)
+ggsave(file.path(out_dir, "tree_species_moisture_niche.png"),
+       p_niche + labs(title = NULL, subtitle = NULL), width = 6.8, height = 6.2, dpi = 200)
 
 # ---- Forest-inventory context (full census) ----------------------------------
 fi <- read_csv("data/compiled/forest_inventory.csv", show_col_types = FALSE)
