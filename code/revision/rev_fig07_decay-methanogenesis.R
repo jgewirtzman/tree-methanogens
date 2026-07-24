@@ -95,10 +95,11 @@ mq<-lmer(fx~x+I(x^2)+(1|sp),data=y);co<-summary(mq)$coefficients;pqa<-co["I(x^2)
 mla<-lmer(fx~x+(1|sp),data=y);dAICa<-as.numeric(AIC(mla)-AIC(mq));R2a<-r2m(mq)
 gA<-data.frame(x=seq(1,4,.05));Xa<-model.matrix(~x+I(x^2),gA);ba<-fixef(mq);Va<-as.matrix(vcov(mq));gA$fit<-as.vector(Xa%*%ba);gA$se<-sqrt(diag(Xa%*%Va%*%t(Xa)))
 obrk<-c(0,0.05,0.2,1)
+# stem-flux purple, matching Fig 2 (avoids implying 'wood' via brown)
 pa<-ggplot(y,aes(x,fx))+geom_hline(yintercept=0,linetype=3,colour="grey70")+
-  geom_jitter(width=.12,alpha=.15,size=1.1,colour="#8c510a")+
-  geom_ribbon(data=gA,aes(x,ymin=fit-1.96*se,ymax=fit+1.96*se),alpha=.2,fill="#8c510a",inherit.aes=FALSE)+
-  geom_line(data=gA,aes(x,fit),linewidth=1,colour="#5e3a06",inherit.aes=FALSE)+
+  geom_jitter(width=.12,alpha=.15,size=1.1,colour="#756BB1")+
+  geom_ribbon(data=gA,aes(x,ymin=fit-1.96*se,ymax=fit+1.96*se),alpha=.2,fill="#756BB1",inherit.aes=FALSE)+
+  geom_line(data=gA,aes(x,fit),linewidth=1,colour="#54278f",inherit.aes=FALSE)+
   annotate("text",1,asinh10(0.9),hjust=0,vjust=1,size=2.9,lineheight=.9,label=stat_lab(R2a,pqa,dAICa))+
   scale_x_continuous(breaks=1:4,labels=c("healthy","moderate","severe","dead"))+scale_y_continuous(breaks=asinh10(obrk),labels=obrk)+
   coord_cartesian(ylim=asinh10(c(-0.3,1)))+shared_theme+labs(x="bark loss (decay)",y=expression(CH[4]~flux~(nmol~m^-2~s^-1)))
