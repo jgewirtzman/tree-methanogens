@@ -336,6 +336,17 @@ black_oak_clean <- black_oak %>%
 write_csv(black_oak_clean, file.path(out_dir, "black_oak_experiment.csv"))
 cat(sprintf("  -> Wrote black_oak_experiment.csv (%d rows)\n\n", nrow(black_oak_clean)))
 
+# felled-oak fungal ITS load by height/tissue (used in Fig 7 panel f)
+bo_its <- read_csv("data/processed/molecular/black_oak/bo_its_load.csv", show_col_types = FALSE)
+bo_its_clean <- bo_its %>%
+  transmute(
+    sample_id      = `Sample ID`,
+    ITS_copies_uL  = ITS_per_ul,
+    material       = Material
+  )
+write_csv(bo_its_clean, file.path(out_dir, "black_oak_its_load.csv"))
+cat(sprintf("  -> Wrote black_oak_its_load.csv (%d rows)\n\n", nrow(bo_its_clean)))
+
 
 # ============================================================================
 # 10. METHANOTROPH DEFINITIONS (curated taxonomy lookup)
