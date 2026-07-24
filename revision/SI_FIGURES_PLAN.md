@@ -20,8 +20,8 @@
 | 3 | Random-forest flux predictions (upscaling support) | old S15 |
 
 ### Gene–flux relationships
-| 4 | Per-regression: mcrA & methanogenesis vs flux (COMBINED regfig_mcra + regfig_meth) | NEW |
-| 5 | Scale-dependent gene patterns | old S11 |
+| 4 | ~~Per-regression combined (regfig_mcra + regfig_meth)~~ **RETIRED** — superseded by the 3-column S11 (row 5), which carries the aggregation ladder across all 5 predictors. `R_SI_regfig_combined.R` draft not used. | — |
+| 5 | Scale-dependent gene patterns — **3-column** (Individual M1 \| Aggregate-predictor M3 \| Species-level M2) × 5 predictors + gene-only R² bars; slope+R²+p on every panel. Shows gene–flux R² ~0 at M1/M3, emerging only at M2 (response aggregation). | **REBUILT** `R_figS11_final.R` (replaces old S11) |
 | 6 | mcrA vs methanotroph | old S14 |
 
 ### Microbial abundance & composition
