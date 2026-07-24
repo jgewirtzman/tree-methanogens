@@ -38,11 +38,14 @@ hd <- hd[!is.na(hd$best.flux), ]
 h_by <- sort(table(hd$measurement_height), decreasing = TRUE)
 mon_trees <- uq(srt$Plot.Tag[!is.na(srt$CH4_best.flux.x)])
 mon_pos   <- table(srt$Plot.Letter[!is.na(srt$CH4_best.flux.x)])   # U/I/WD/WS
-# monthly species: not in the flux file; resolve via the 2023 tag<->species map
-mon_tags <- unique(srt$Plot.Tag[!is.na(srt$CH4_best.flux.x)])
-sp23 <- unique(y23[, c("Tree.Tag","Species.Code")])
-mon_sp <- merge(data.frame(Tree.Tag = mon_tags), sp23, by = "Tree.Tag", all.x = TRUE)
-mon_spp <- uq(mon_sp$Species.Code); mon_unres <- sum(is.na(mon_sp$Species.Code))
+# monthly species: not in the flux file; resolve from the field tree list (fallback: 2023 map)
+mon_tags <- unique(as.character(srt$Plot.Tag[!is.na(srt$CH4_best.flux.x)]))
+ymt <- read.csv("data/raw/field_data/static_chamber_field/YM_trees_measured.csv.csv", check.names=FALSE)
+sp_lut <- setNames(as.character(ymt$Species), as.character(ymt$Label))
+sp23   <- setNames(as.character(y23$Species.Code), as.character(y23$Tree.Tag))
+mon_species <- ifelse(mon_tags %in% names(sp_lut), sp_lut[mon_tags],
+                      ifelse(mon_tags %in% names(sp23), sp23[mon_tags], NA))
+mon_spp <- uq(mon_species); mon_unres <- sum(is.na(mon_species))
 h_trees <- length(unique(paste(hd$plot, hd$tree_id))); h_spp <- uq(hd$species)
 t23_ok <- !is.na(y23$CH4_best.flux); t23_trees <- uq(y23$Tree.Tag[t23_ok]); t23_spp <- uq(y23$Species.Code[t23_ok])
 
@@ -118,7 +121,7 @@ cat("Rule: keep all fluxes (non-NA best.flux, no QC). Black oak = separate secti
 cat("Source: code/revision/rev_stat_campaign_counts.R\n"); cat(strrep("=",78),"\n\n")
 
 cat("A. STEM FLUX (deployments with a CH4 value)\n")
-P("  Monthly 2020-21 (breast ht; positions U/I/WD/WS): %d fluxes | %d trees | >=%d species (%d tags unresolved: wetland-margin, need raw datasheet)", n_monthly, mon_trees, mon_spp, mon_unres)
+P("  Monthly 2020-21 (breast ht; positions U/I/WD/WS): %d fluxes | %d trees | %d species (%d tags unresolved)", n_monthly, mon_trees, mon_spp, mon_unres)
 P("      positions (fluxes): %s", paste(sprintf("%s=%d",names(mon_pos),mon_pos), collapse="  "))
 P("  Height 2021 (3 heights; upland-focused, in plot): %d fluxes | %d trees | %d spp", n_height, h_trees, h_spp)
 P("      by height (cm): %s", paste(sprintf("%s=%d",names(h_by),h_by), collapse="  "))
