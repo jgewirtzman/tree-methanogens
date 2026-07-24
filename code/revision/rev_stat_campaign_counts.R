@@ -78,6 +78,11 @@ dd  <- read.csv(file.path(comp,"ddpcr_gene_abundances.csv")); dds <- dd[!duplica
 # survey ddPCR = all wood/soil cores (includes the 2021 survey black oaks bo1/bo2/bowser)
 dd_surv <- nrow(dds); dd_w <- sum(dds$material=="Wood"); dd_s <- sum(dds$material=="Soil")
 dd_genes <- sort(unique(dd$target_gene))
+# per-target reactions (one ddPCR reaction = a sample x target; loose/strict are 2 analyses of it)
+dd$key <- paste(dd$sample_id, dd$target_gene)
+dd_by_target <- sort(table(dd[!duplicated(dd$key), "target_gene"]), decreasing = TRUE)
+dd_reactions <- sum(dd_by_target)          # total survey ddPCR reactions
+dd_datapoints <- nrow(dd)                  # incl. loose + strict threshold analyses
 # 16S: pair to the ddPCR sampling by counting core-typed samples (inner/outer wood,
 # organic/mineral soil). The file also holds ~"None"/control samples that inflate a raw total.
 s16 <- read.csv(file.path(comp,"sample_metadata_16S.csv"), check.names=FALSE)
@@ -149,9 +154,15 @@ P("  ddPCR        : %d samples (mcrA only)", bo_ddpcr)
 P("  16S tissues  : %d biological (inner/outer + bark/branch/roots/foliage/litter/rot/soil); %d total incl. %d None/controls", s16_oak, s16_oak_all, s16_oak_all - s16_oak)
 P("  Extractions  : %d", bo_ext)
 
+cat("\nMOLECULAR ASSAY COUNT (ddPCR reactions = sample x target)\n")
+P("  survey by target: %s", paste(sprintf("%s=%d",names(dd_by_target),dd_by_target), collapse="  "))
+P("  survey ddPCR reactions: %d (%d data points incl. loose+strict) + felled oak %d = %d reactions",
+  dd_reactions, dd_datapoints, nrow(bom), dd_reactions + nrow(bom))
+P("  + 16S libraries %d  => ~%d molecular assays total", (s16_w+s16_s)+s16_oak, dd_reactions + nrow(bom) + (s16_w+s16_s)+s16_oak)
+
 cat("\nGRAND TOTALS (survey + felled oak):\n")
 P("  Stem fluxes: %d   Soil fluxes: %d   Trees: %d", stem_total + bo_flux, n_soil, union_trees + 1)
-P("  ddPCR: %d   16S: %d   Internal gas: %d   Isotopes: %d", dd_surv + bo_ddpcr, (s16_w+s16_s) + s16_oak, n_gas + bo_gas, iso_samp)
+P("  ddPCR samples: %d   16S: %d   Internal gas: %d   Isotopes: %d", dd_surv + bo_ddpcr, (s16_w+s16_s) + s16_oak, n_gas + bo_gas, iso_samp)
 
 cat("\nE. WOOD PROPERTIES (2021 cores)\n")
 P("  Wood density: %d trees | wood moisture: %d trees (inner/outer/middle)", wood_dens, wood_moist)
