@@ -54,11 +54,8 @@ SI order = reference order (see notes/REVISION_INVENTORY.md); S16 & S21 placemen
 | Figure | Source |
 |---|---|
 | Table_1_campaign-summary | `outputs/revision/campaign_counts.csv` |
-| Table_S02_known-putative-taxa | `outputs/revision/known_putative_taxa_table.csv` |
-| Table_S03_pmoa-mmox-by-compartment | `outputs/revision/pmoa_mmox_by_compartment.csv` |
-| Table_S04_pmoa-mmox-by-species | `outputs/revision/pmoa_mmox_by_species.csv` |
-| Table_S05_pathway-classification | `outputs/revision/panel_c_pathway_classification.csv` |
-| Table_S06_ddpcr-16s-concordance | `outputs/revision/tbl_ddpcr_16s_concordance.csv` |
-| Table_S06_ddpcr-16s-concordance-view | `outputs/revision/tbl_ddpcr_16s_concordance.png` |
-| Table_S07_dbh-by-landscape | `outputs/revision/tree_dbh_landscape_table.csv` |
+| Table_S2_known-putative-taxa | `outputs/revision/known_putative_taxa_table.csv` |
+| Table_S3_ddpcr-16s-concordance | `outputs/revision/tbl_ddpcr_16s_concordance.csv` |
+| Table_S3_ddpcr-16s-concordance-view | `outputs/revision/tbl_ddpcr_16s_concordance.png` |
+| Table_S4_dbh-by-species-campaign | `outputs/revision/dbh_by_species_campaign.csv` |
 
