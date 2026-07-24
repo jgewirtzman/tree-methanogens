@@ -57,13 +57,22 @@ grid <- expand_grid(trait=pred_cols, response=resp_cols) %>% rowwise() %>% mutat
     p_clade = if(n>=6 && trait!="gymnosperm") tryCatch({
         xi<-unlist(x)[unlist(ok)]; yi<-unlist(y)[unlist(ok)]; gi<-unlist(g)[unlist(ok)]
         summary(lm(rank(yi) ~ rank(xi) + gi))$coef["rank(xi)",4] }, error=function(e) NA_real_) else NA_real_) %>%
-  ungroup() %>% mutate(trait_label=trait_lab[trait], category=cat_of[trait_label],
-    mark = ifelse(!is.na(p_uni)&p_uni<0.05,"*",""),
-    # clade-robust = survives gymnosperm control AND univariate rho is meaningful (|rho|>=0.3;
-    # excludes near-zero-rho suppression artifacts of the 1-df partial at n<=10)
-    robust = !is.na(p_clade) & p_clade<0.05 & abs(rho)>=0.3,
-    label = ifelse(is.na(rho),"", sprintf("%.2f%s", rho, mark)))
-write.csv(grid %>% select(category,trait_label,response,n,rho,p_uni,p_clade),
+  ungroup() %>% mutate(trait_label=trait_lab[trait], category=cat_of[trait_label])
+# BH-FDR across the whole displayed grid (all trait x response tests with data)
+grid$q_uni <- NA_real_
+grid$q_uni[!is.na(grid$p_uni)] <- p.adjust(grid$p_uni[!is.na(grid$p_uni)], "BH")
+grid <- grid %>% mutate(
+  # nested stringency ladder; each cell shows the HIGHEST level it reaches
+  stars = dplyr::case_when(
+    !is.na(q_uni) & q_uni < 0.05 ~ "****",   # FDR q<0.05
+    !is.na(q_uni) & q_uni < 0.10 ~ "***",    # FDR q<0.10
+    !is.na(p_uni) & p_uni < 0.05 ~ "**",     # raw p<0.05
+    !is.na(p_uni) & p_uni < 0.10 ~ "*",      # raw p<0.10
+    TRUE ~ ""),
+  # clade-robust = survives gymnosperm control AND |rho|>=0.3 (excludes near-zero suppression artifacts)
+  robust = !is.na(p_clade) & p_clade<0.05 & abs(rho)>=0.3,
+  label = ifelse(is.na(rho),"", sprintf("%.2f%s", rho, stars)))
+write.csv(grid %>% select(category,trait_label,response,n,rho,p_uni,q_uni,p_clade),
           file.path(out,"traits_heatmap_robust_matrix.csv"), row.names=FALSE)
 
 row_order <- grid %>% filter(response=="Stem CH4 flux") %>%
@@ -80,14 +89,16 @@ p <- ggplot(grid, aes(response, trait_label, fill=rho)) +
   scale_x_discrete(position="top") +
   labs(x=NULL, y=NULL, title="Plant traits structure the stem methane-cycling community (n<=10 species)",
        caption=paste("Cell = Spearman rho (species level); columns follow the microbial chain: methanogens -> methanotrophs -> balance -> net flux.",
-         "\n*  univariate p<0.05.   Black outline = survives control for the gymnosperm/angiosperm split (rank-partial, all n, 1 df; |rho|>=0.3).",
-         "\nEXPLORATORY (n<=10, nothing survives FDR): density->methanotroph is largely the conifer contrast (no outline); plant longevity is clade-robust.")) +
+         "\nSignificance ladder (highest reached):  * p<0.10   ** p<0.05   *** FDR q<0.10   **** FDR q<0.05  (BH across all cells).",
+         "\nBlack outline = survives control for the gymnosperm/angiosperm split (rank-partial, all n, 1 df; |rho|>=0.3).",
+         "\nEXPLORATORY, n<=10: no cell reaches *** -> nothing survives FDR. Density->methanotroph is largely the conifer contrast",
+         "(no outline); plant longevity, moisture->mcrA, bark density->balance are clade-robust. Read as descriptive structure.")) +
   theme_minimal(base_size=9) +
   theme(axis.text.x.top=element_text(angle=15, hjust=0, size=8.5), axis.text.y=element_text(size=8),
         strip.text.y.left=element_text(angle=0, face="bold", size=8), strip.placement="outside",
         panel.grid=element_blank(), plot.title=element_text(size=12, margin=margin(b=22)),
         plot.caption=element_text(size=7.3, hjust=0, margin=margin(t=10)), plot.margin=margin(t=10,r=45,b=6,l=6))
-ggsave(file.path(out,"traits_heatmap_robust.png"), p, width=9.2, height=7.6, dpi=300, bg="white")
+ggsave(file.path(out,"traits_heatmap_robust.png"), p, width=9.2, height=8.2, dpi=300, bg="white")
 cat("clade-robust (dagger) cells:\n")
 print(grid %>% filter(!is.na(p_clade) & p_clade<0.05) %>% select(trait_label,response,rho,p_uni,p_clade), row.names=FALSE)
 cat("Wrote traits_heatmap_robust.png\n")
