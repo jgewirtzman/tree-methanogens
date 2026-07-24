@@ -10,12 +10,12 @@
 #   Methanogens/gas/flux peak at 4-6 m — the leading edge of the ~4 m decay cone
 #   (cavity <1 m, staining 1-2 m, clean >6 m) = intermediate/early decay, matching
 #   the two population humps.
-# Matches rev_fig07 felled-oak aesthetics. Fungal ITS from sibling tree-microbiome.
+# Matches rev_fig07 felled-oak aesthetics. Felled-oak ITS load = local
+# data/processed/molecular/black_oak/bo_its_load.csv (QUVE subset of the ITS metadata).
 # Writes outputs/revision/fig7_decay_methanogenesis.png
 # ==============================================================================
 suppressMessages({library(tidyverse);library(patchwork);library(lme4);library(lmerTest)})
 options(warn=-1)
-TM<-"/Users/jongewirtzman/My Drive/Research/YMF Tree Microbiomes & Methane/tree-microbiome"
 asinh10<-function(x) asinh(x/0.1)/log(10)
 # marginal R2 for a mixed model (fixed-effects variance / total)
 r2m<-function(m){vf<-var(predict(m,re.form=NA));vc<-as.data.frame(VarCorr(m))
@@ -58,7 +58,7 @@ flux$Height_m<-suppressWarnings(as.numeric(flux$Height_m))
 fdf<-flux%>%filter(!is.na(Height_m))%>%select(height=Height_m,flux=CH4_best.flux)%>%
   left_join(int_gas%>%group_by(Tree.Height)%>%summarize(ch4=mean(CH4_concentration,na.rm=TRUE),.groups="drop"),by=c("height"="Tree.Height"))
 # felled-oak ITS load (heartwood), by height -> copies/g dry (same basis as mcrA panel d)
-its<-read.csv(file.path(TM,"Other-Metadata/ITS_w_metadata.csv"),check.names=FALSE);its$ITS<-suppressWarnings(as.numeric(its$ITS_per_ul))
+its<-read.csv("data/processed/molecular/black_oak/bo_its_load.csv",check.names=FALSE);its$ITS<-suppressWarnings(as.numeric(its$ITS_per_ul))
 iid<-toupper(its[[1]]);itw<-its[grepl("^QUVE[0-9]+HEART",iid)&!is.na(its$ITS),]
 itw$height<-as.numeric(sub("^QUVE([0-9]+).*","\\1",toupper(itw[[1]])))/100;itw$tissue<-"Heartwood"
 # heartwood extraction masses (mean per height) from bo_extraction_mass -> copies/g
