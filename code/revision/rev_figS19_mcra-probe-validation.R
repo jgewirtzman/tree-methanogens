@@ -11,8 +11,10 @@
 # ==============================================================================
 suppressMessages({library(ggplot2); library(scales)}); options(warn=-1, stringsAsFactors=FALSE)
 dd <- read.csv("data/compiled/ddpcr_gene_abundances.csv")
-dd$conc <- suppressWarnings(as.numeric(dd$concentration_copies_per_uL))
-dd$copies_g <- dd$conc * 75 / dd$sample_mass_mg * 1000        # copies per g dry wood
+# Compare on copies/uL (the direct ddPCR measurement). copies/g would multiply BOTH
+# assays of a sample by the same 75/mass factor, artificially inflating agreement;
+# copies/uL removes that shared mass term (fairer) and tightens the detection gap.
+dd$copies_g <- suppressWarnings(as.numeric(dd$concentration_copies_per_uL))
 
 AT <- "loose"
 a <- dd[dd$target_gene=="mcra"       & dd$analysis_type==AT, c("sample_id","copies_g")]
@@ -52,8 +54,8 @@ p <- ggplot(m, aes(egp, prp, colour=cat)) +
   annotation_logticks(sides="bl", colour="grey60") +
   scale_colour_manual(values=cols, name=NULL) +
   annotate("text", x=floor, y=topmax, label=lab, hjust=0, vjust=1, size=3.2) +
-  labs(x=expression(EvaGreen~italic(mcrA)~(copies~g^{-1}~dry~wood)),
-       y=expression(Probe~italic(mcrA)~(copies~g^{-1}~dry~wood)),
+  labs(x=expression(EvaGreen~italic(mcrA)~(copies~mu*L^{-1}~reaction)),
+       y=expression(Probe~italic(mcrA)~(copies~mu*L^{-1}~reaction)),
        title=expression("Probe vs. EvaGreen "*italic(mcrA)*" ddPCR (paired wood samples; 0 = non-detect)")) +
   theme_bw(base_size=11) + theme(legend.position=c(.99,.02), legend.justification=c(1,0),
                                  legend.background=element_rect(fill=alpha("white",.7), colour=NA))
