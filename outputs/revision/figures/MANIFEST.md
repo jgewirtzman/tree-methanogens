@@ -35,14 +35,13 @@ SI order = reference order (see notes/REVISION_INVENTORY.md); S16 & S21 placemen
 | Figure_S13_picrust-pmoa | `outputs/figures/supplementary/figS5_picrust_pmoa_heatmap.png` |
 | Figure_S14_internal-gas-beeswarm | `outputs/figures/supplementary/figS7_internal_gas_beeswarm.png` |
 | Figure_S15_internal-gas-profiles | `outputs/figures/supplementary/figS8_internal_gas_profiles.png` |
-| Figure_S16_black-oak-methanome | `outputs/revision/black_oak_methanome_revised.png` |
-| Figure_S17_stem-deterioration | `outputs/revision/figS20_stem_deterioration.png` |
-| Figure_S18_d13ch4-raincloud | `outputs/figures/supplementary/figS9_d13ch4_rainfall.png` |
-| Figure_S19_isotope-sources | `outputs/revision/SI_isotopes_source_composite.png` |
-| Figure_S20_scale-dependent-genes | `outputs/revision/figS11_final.png` |
-| Figure_S21_radial-sections | `outputs/figures/supplementary/figS13_tree_radial_sections.png` |
-| Figure_S22_rf-flux-predictions | `outputs/figures/supplementary/figS15_rf_predictions.png` |
-| Figure_S23_plant-traits | `outputs/revision/traits_heatmap_robust.png` |
+| Figure_S16_isotope-sources | `outputs/revision/SI_isotopes_source_composite.png` |
+| Figure_S17_black-oak-methanome | `outputs/revision/black_oak_methanome_revised.png` |
+| Figure_S18_stem-deterioration | `outputs/revision/figS20_stem_deterioration.png` |
+| Figure_S19_scale-dependent-genes | `outputs/revision/figS11_final.png` |
+| Figure_S20_radial-sections | `outputs/figures/supplementary/figS13_tree_radial_sections.png` |
+| Figure_S21_rf-flux-predictions | `outputs/figures/supplementary/figS15_rf_predictions.png` |
+| Figure_S22_plant-traits | `outputs/revision/traits_heatmap_robust.png` |
 
 ## Photo plates
 

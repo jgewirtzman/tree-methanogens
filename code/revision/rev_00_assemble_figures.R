@@ -48,21 +48,20 @@ SI <- c(
   "Figure_S11_picrust-mcra-all"          = "outputs/figures/supplementary/figS4_picrust_mcra_all_heatmap.png",
   "Figure_S12_picrust-mcra-no-mcra"      = "outputs/figures/main/fig6_picrust_mcra_no_mcra_heatmap.png",  # demoted old main Fig 6
   "Figure_S13_picrust-pmoa"              = "outputs/figures/supplementary/figS5_picrust_pmoa_heatmap.png",
-  # Within-tree / decay (Fig 7)
+  # Within-tree gas + isotopes (Fig 7 / Fig 6). raincloud dropped (now covered in main Fig 6).
   "Figure_S14_internal-gas-beeswarm"     = "outputs/figures/supplementary/figS7_internal_gas_beeswarm.png",
   "Figure_S15_internal-gas-profiles"     = "outputs/figures/supplementary/figS8_internal_gas_profiles.png",
-  "Figure_S16_black-oak-methanome"       = "outputs/revision/black_oak_methanome_revised.png",  # PLACEMENT TBC
-  "Figure_S17_stem-deterioration"        = "outputs/revision/figS20_stem_deterioration.png",    # supports Fig 7a
-  # Isotopes (right after internal gas)
-  "Figure_S18_d13ch4-raincloud"          = "outputs/figures/supplementary/figS9_d13ch4_rainfall.png",
-  "Figure_S19_isotope-sources"           = "outputs/revision/SI_isotopes_source_composite.png",
+  "Figure_S16_isotope-sources"           = "outputs/revision/SI_isotopes_source_composite.png",  # moved up: right after gas profiles
+  # Within-tree / decay (Fig 7)
+  "Figure_S17_black-oak-methanome"       = "outputs/revision/black_oak_methanome_revised.png",  # PLACEMENT TBC
+  "Figure_S18_stem-deterioration"        = "outputs/revision/figS20_stem_deterioration.png",    # supports Fig 7a
   # Gene-flux scaling (Fig 8)
-  "Figure_S20_scale-dependent-genes"     = "outputs/revision/figS11_final.png",
-  "Figure_S21_radial-sections"           = "outputs/figures/supplementary/figS13_tree_radial_sections.png",  # PLACEMENT TBC
+  "Figure_S19_scale-dependent-genes"     = "outputs/revision/figS11_final.png",
+  "Figure_S20_radial-sections"           = "outputs/figures/supplementary/figS13_tree_radial_sections.png",  # PLACEMENT TBC
   # Upscaling (Fig 9)
-  "Figure_S22_rf-flux-predictions"       = "outputs/figures/supplementary/figS15_rf_predictions.png",
+  "Figure_S21_rf-flux-predictions"       = "outputs/figures/supplementary/figS15_rf_predictions.png",
   # Plant traits (discussion)
-  "Figure_S23_plant-traits"              = "outputs/revision/traits_heatmap_robust.png")
+  "Figure_S22_plant-traits"              = "outputs/revision/traits_heatmap_robust.png")
 
 # Photo plates — separate section (NOT SI data figures); chamber photos to be added
 PHOTOS <- c(
