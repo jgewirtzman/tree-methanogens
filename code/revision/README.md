@@ -9,9 +9,12 @@ and is git-tracked; **data** lives in the one consolidated `data/` tree (Zenodo 
 ```
 Rscript code/revision/run_all.R
 ```
-Runs every final generator (stats then figures via glob), then assembles the numbered
-manuscript figure set into `outputs/revision/figures/{main,SI,photos}/`. Reads `data/`
-and `code/`; writes only to `outputs/revision/`.
+Runs the original figure pipeline first (`generate_all_figures.R`, which populates the
+**unchanged** figures like Fig 8 and several SI — two scripts fail there by design, fig5 &
+S12, both replaced by revision versions), then every revision generator (stats then figures
+via glob), then assembles the numbered set into `outputs/revision/figures/{main,SI,photos}/`.
+A full run yields **9 main + 23 SI + 1 photo, 0 missing**. Reads `data/` and `code/`; writes
+to `outputs/figures/` (originals) and `outputs/revision/`.
 
 **Master inventory of everything new/updated in the revision:** `notes/REVISION_INVENTORY.md`.
 
