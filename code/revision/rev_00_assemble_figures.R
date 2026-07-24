@@ -38,7 +38,9 @@ SI <- c(
   "Figure_S15_black-oak-methanome"       = "outputs/revision/black_oak_methanome_revised.png",  # revised putative defs
   "Figure_S16_radial-sections"           = "outputs/figures/supplementary/figS13_tree_radial_sections.png",
   "Figure_S17_plant-traits"              = "outputs/revision/traits_heatmap_robust.png",
-  "Figure_S18_rf-flux-predictions"       = "outputs/figures/supplementary/figS15_rf_predictions.png")
+  "Figure_S18_rf-flux-predictions"       = "outputs/figures/supplementary/figS15_rf_predictions.png",
+  "Figure_S19_mcra-probe-validation"     = "outputs/revision/figS19_mcra_probe_validation.png",
+  "Figure_S20_stem-deterioration"        = "outputs/revision/figS20_stem_deterioration.png")
 
 copy_set <- function(map, dest) {
   miss <- 0

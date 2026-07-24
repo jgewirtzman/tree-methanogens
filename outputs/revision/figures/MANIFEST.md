@@ -20,7 +20,7 @@ heatmap → SI; SI resequenced per `SI_FIGURES_PLAN.md`).
 | 8 | Figure_8_radial-species | Radial species comparison **(kept as-is)** | `05_gene_flux_analysis/04_species_gene_flux.R` | outputs/figures/main/fig8_radial_species_comparison.png |
 | 9 | Figure_9_ch4-budget | CH₄ budget: maps + seasonal + net waterfall **(NEW — replaces old `fig9_upscaled_flux_seasonal`)** | `rev_fig09_budget.R` | fig_budget_maps.png |
 
-## SI figures (18)
+## SI figures (20)
 | # | File | Content | Source | Was |
 |---|---|---|---|---|
 | S01 | moisture-overlay | Moisture overlay | orig | old S1 |
@@ -41,6 +41,8 @@ heatmap → SI; SI resequenced per `SI_FIGURES_PLAN.md`).
 | S16 | radial-sections | Tree radial sections | orig | old S13 |
 | S17 | plant-traits | Plant-trait × methane-cycling heatmap (clade-robust) | NEW `rev_figS17_plant-traits.R` | — |
 | S18 | rf-flux-predictions | Random-forest flux predictions | orig | old S15 |
+| S19 | mcra-probe-validation | Probe vs EvaGreen *mcrA* ddPCR (agreement + EvaGreen false positives) | NEW `rev_figS19_mcra-probe-validation.R` | — |
+| S20 | stem-deterioration | Stem deterioration vs CH₄ flux (PC1 decay hump; PC2 wounding monotonic) | NEW `rev_figS20_stem-deterioration.R` | — |
 
 ### Retired from the SI set (moved to `exploratory/`)
 - **pmoa-mmox-by-compartment** (`rev_figS07_pmoa-mmox-compartment.R`) — redundant with S04.
