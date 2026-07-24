@@ -4,7 +4,11 @@
 # (soil), each with its own fit. Core finding: the two methanotroph marker genes
 # are DECOUPLED in wood but COUPLED in soil.
 #   (a) Wood decoupling: pmoA vs mmoX by heartwood/sapwood — no co-variation.
-#   (b) Soil decoupling: pmoA vs mmoX by organic/mineral — co-vary.
+#   (b) Soil decoupling: pmoA vs mmoX, points colored by SOIL MOISTURE (mean_vwc).
+#       Genes co-vary (slope ~0.48), and the wet samples are the mmoX-dominated
+#       cluster near the 1:1 line: wetter -> more mmoX (balance~VWC p~1e-4; mmoX~VWC
+#       R2 0.29 vs pmoA~VWC 0.07). Toeslope/wetland-margin signal (sMMO Type II favored
+#       in wet, organic, low-Cu soils). moisture joined by treecode+horizon (239/265).
 #   (c) Composition: balance log(pmoA/mmoX) vs size 1/2[log pmoA + log mmoX], all
 #       four compartments with individual fits + independence permutation (3000x).
 #       NULL: shuffle pmoA and mmoX INDEPENDENTLY across samples (preserves each
@@ -60,6 +64,13 @@ W <- d0 %>% select(sample_id, target_gene, conc = concentration_copies_per_uL, p
          cg = E / (mass/1000) * DILUTION_10X) %>%
   filter(!is.na(comp))
 
+# join soil moisture (mean_vwc) for panel (b) recolor; key = treecode + horizon
+vwc_lu <- read.csv("data/raw/picrust/16S_tree_sample_table_with_meta.csv", row.names = 1, check.names = FALSE)
+vwc_df <- tibble(joinkey = sub("[.]16S[.].*$", "", rownames(vwc_lu)), vwc = vwc_lu$mean_vwc) %>%
+  filter(!is.na(vwc)) %>% distinct(joinkey, .keep_all = TRUE)
+W <- W %>% mutate(joinkey = paste0(sub("\n.*", "", sub("^[A-Z]+_", "", sample_id)), core_type)) %>%
+  left_join(vwc_df, by = "joinkey")
+
 # ---- decoupling data: keep nondetects, +1, copies/g --------------------------
 dec <- W %>% mutate(pmoa_g = ifelse(is.na(conc_pmoa), 0, conc_pmoa) * cg,
                     mmox_g = ifelse(is.na(conc_mmox), 0, conc_mmox) * cg,
@@ -104,7 +115,31 @@ decouple_panel <- function(comps, basis) {
     labs(x = bquote(log[10]~"pmoA (copies g"^-1*" "*.(basis)*" + 1)"),
          y = bquote(log[10]~"mmoX (copies g"^-1*" "*.(basis)*" + 1)")) + th + theme(legend.position = "none")
 }
-pa <- decouple_panel(WOODC, "dry"); pb <- decouple_panel(SOILC, "fresh")
+pa <- decouple_panel(WOODC, "dry")
+
+# ---- (b) soil decoupling, recolored by soil moisture (mean_vwc) ---------------
+soil <- dec %>% filter(comp %in% SOILC)
+fs  <- lm(lm1 ~ lp1, soil)
+fbv <- lm((lp1 - lm1) ~ vwc, soil %>% filter(!is.na(vwc)))
+cat(sprintf("Soil moisture join: %d/%d matched | balance~VWC slope=%.3f p=%.1e | mmoX~VWC R2=%.2f pmoA~VWC R2=%.2f\n",
+            sum(!is.na(soil$vwc)), nrow(soil), coef(fbv)[2], summary(fbv)$coef[2,4],
+            summary(lm(lm1~vwc, soil))$r.squared, summary(lm(lp1~vwc, soil))$r.squared))
+pb <- ggplot(soil, aes(lp1, lm1)) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "grey50") +
+  geom_point(aes(color = vwc), alpha = 0.8, size = 1.7) +
+  geom_smooth(method = "lm", formula = y~x, se = FALSE, color = "grey25", linewidth = 0.9) +
+  scale_color_distiller(palette = "YlGnBu", direction = 1, na.value = "grey80", name = "soil moisture\n(% VWC)") +
+  annotate("text", x = -Inf, y = Inf, hjust = -0.06, vjust = 1.3, size = 2.7, color = "grey15",
+           label = sprintf("Soil (n=%d): slope=%.2f  R2=%.2f", nrow(soil), coef(fs)[2], summary(fs)$r.squared)) +
+  annotate("text", x = -Inf, y = Inf, hjust = -0.06, vjust = 2.75, size = 2.6, color = "#08519c",
+           label = sprintf("wetter -> mmoX-dominated\n(balance~VWC p=%.0e)", summary(fbv)$coef[2,4])) +
+  coord_fixed(ratio = 1, xlim = lim, ylim = lim) +
+  labs(x = bquote(log[10]~"pmoA (copies g"^-1*" fresh + 1)"),
+       y = bquote(log[10]~"mmoX (copies g"^-1*" fresh + 1)")) + th +
+  theme(legend.position = c(0.985, 0.03), legend.justification = c(1, 0),
+        legend.key.height = unit(0.30, "cm"), legend.key.width = unit(0.28, "cm"),
+        legend.title = element_text(size = 7.3), legend.text = element_text(size = 6.8),
+        legend.background = element_rect(fill = "white", color = "grey80"))
 
 # ---- (c) composition vs size, all four compartments --------------------------
 pc <- ggplot(cc, aes(size, bal, color = comp)) +
