@@ -86,7 +86,7 @@ pe<-ggplot(fdf,aes(height,flux))+geom_smooth(se=FALSE,color="black")+
 # under-weight it and the LOESS wiggles toward the ~1e4 points)
 pf<-ggplot(itw,aes(height,ITS_g))+geom_smooth(se=FALSE,color="black",span=1)+
   geom_jitter(width=.15,height=0,size=3,shape=21,fill="#a6611a",color="black",stroke=.6,alpha=.85)+shared_theme+
-  coord_flip()+scale_y_continuous(breaks=c(0,1e9,2e9),labels=c("0","1e9","2e9"))+xlab("")+
+  coord_flip()+scale_y_continuous(breaks=c(0,1e9,2e9),labels=expression(0,10^9,2%*%10^9))+xlab("")+
   ylab(expression("fungal ITS load (copies g"^-1*")"))+scale_x_continuous(breaks=hb,minor_breaks=NULL)
 
 ## ===================== TOP ROW: population humps =====================
