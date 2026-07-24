@@ -38,6 +38,11 @@ y23<-read.csv(file.path(fd,"methanogen_tree_flux_complete_dataset.csv"),check.na
 sp23<-setNames(as.character(y23$`Species Code`),as.character(y23$`Tree Tag`))
 mon$code<-ifelse(mon$tag %in% names(sp_lut), sp_lut[mon$tag], ifelse(mon$tag %in% names(sp23), sp23[mon$tag], NA))
 mon$dbh<-dbh_lut[mon$tag]
+# gap-fill: a few monthly trees lack a YM D_stem but are the SAME physical tree
+# re-measured in 2023 (shared numeric tag) -> use the 2023 DBH (static over ~2 yr)
+dbh23<-tapply(num(y23$`DBH (cm)`), as.character(y23$`Tree Tag`), function(v) mean(v,na.rm=TRUE))
+need<-is.na(mon$dbh) & mon$tag %in% names(dbh23)
+mon$dbh[need]<-dbh23[mon$tag[need]]
 mon$location<-dplyr::recode(mon$pos, U="Upland", I="Intermediate", WD="Wetland", WS="Wetland", .default=mon$pos)
 t1<-transmute(mon, campaign="2020-2021 monthly", location, code, dbh)
 
