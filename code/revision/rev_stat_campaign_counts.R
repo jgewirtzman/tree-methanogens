@@ -38,6 +38,11 @@ hd <- hd[!is.na(hd$best.flux), ]
 h_by <- sort(table(hd$measurement_height), decreasing = TRUE)
 mon_trees <- uq(srt$Plot.Tag[!is.na(srt$CH4_best.flux.x)])
 mon_pos   <- table(srt$Plot.Letter[!is.na(srt$CH4_best.flux.x)])   # U/I/WD/WS
+# monthly species: not in the flux file; resolve via the 2023 tag<->species map
+mon_tags <- unique(srt$Plot.Tag[!is.na(srt$CH4_best.flux.x)])
+sp23 <- unique(y23[, c("Tree.Tag","Species.Code")])
+mon_sp <- merge(data.frame(Tree.Tag = mon_tags), sp23, by = "Tree.Tag", all.x = TRUE)
+mon_spp <- uq(mon_sp$Species.Code); mon_unres <- sum(is.na(mon_sp$Species.Code))
 h_trees <- length(unique(paste(hd$plot, hd$tree_id))); h_spp <- uq(hd$species)
 t23_ok <- !is.na(y23$CH4_best.flux); t23_trees <- uq(y23$Tree.Tag[t23_ok]); t23_spp <- uq(y23$Species.Code[t23_ok])
 
@@ -97,8 +102,12 @@ bo_mcra_h <- length(unique(bom[[grep("Height", names(bom))[1]]]))
 bo_ext <- nrow(read.csv("data/processed/molecular/black_oak/bo_extraction_mass.csv", check.names=FALSE))
 bo_tiss <- table(s16$core_type[s16$Material=="QUVE"])
 
-# ==================================================================== E. INV ===
+# ============================================== E. WOOD PROPERTIES + INVENTORY ==
+tp <- read.csv(file.path(comp,"tree_properties.csv"), check.names=FALSE)
+wood_dens <- sum(apply(!is.na(tp[,grep("density_final",names(tp))]),1,any))
+wood_moist<- sum(apply(!is.na(tp[,grep("moisture_dry_percent",names(tp))]),1,any))
 inv <- read.csv(file.path(comp,"forest_inventory.csv"))
+inv_stems <- nrow(inv); inv_dbh <- sum(!is.na(inv$dbh_mm)); inv_indiv <- uq(inv$tag)
 inv_live <- sum(inv$status=="LI", na.rm=TRUE); inv_spp <- uq(inv$species_code)
 inv_area <- round(diff(range(inv$x_m,na.rm=TRUE))*diff(range(inv$y_m,na.rm=TRUE))/1e4, 2)
 
@@ -109,7 +118,7 @@ cat("Rule: keep all fluxes (non-NA best.flux, no QC). Black oak = separate secti
 cat("Source: code/revision/rev_stat_campaign_counts.R\n"); cat(strrep("=",78),"\n\n")
 
 cat("A. STEM FLUX (deployments with a CH4 value)\n")
-P("  Monthly 2020-21 (breast ht; positions U/I/WD/WS): %d fluxes | %d trees", n_monthly, mon_trees)
+P("  Monthly 2020-21 (breast ht; positions U/I/WD/WS): %d fluxes | %d trees | >=%d species (%d tags unresolved: wetland-margin, need raw datasheet)", n_monthly, mon_trees, mon_spp, mon_unres)
 P("      positions (fluxes): %s", paste(sprintf("%s=%d",names(mon_pos),mon_pos), collapse="  "))
 P("  Height 2021 (3 heights; upland-focused, in plot): %d fluxes | %d trees | %d spp", n_height, h_trees, h_spp)
 P("      by height (cm): %s", paste(sprintf("%s=%d",names(h_by),h_by), collapse="  "))
@@ -141,8 +150,17 @@ cat("\nGRAND TOTALS (survey + felled oak):\n")
 P("  Stem fluxes: %d   Soil fluxes: %d   Trees: %d", stem_total + bo_flux, n_soil, union_trees + 1)
 P("  ddPCR: %d   16S: %d   Internal gas: %d   Isotopes: %d", dd_surv + bo_ddpcr, (s16_w+s16_s) + s16_oak, n_gas + bo_gas, iso_samp)
 
-cat("\nE. INVENTORY / UPSCALING\n")
-P("  Live stems: %d | %d species | extent-based area ~%s ha (CONFIRM censused plot area)", inv_live, inv_spp, inv_area)
+cat("\nE. WOOD PROPERTIES (2021 cores)\n")
+P("  Wood density: %d trees | wood moisture: %d trees (inner/outer/middle)", wood_dens, wood_moist)
+P("  Internal gas measured for CH4, CO2, N2O, O2 (the 157 survey samples)")
+
+cat("\nF. INVENTORY / UPSCALING (all censused stems)\n")
+P("  Total stems: %d (%d with DBH) | %d individuals | %d species", inv_stems, inv_dbh, inv_indiv, inv_spp)
+P("      of which live (LI): %d; status not recorded: %d", inv_live, inv_stems - inv_live)
+P("      extent-based area ~%s ha (CONFIRM censused plot area)", inv_area)
+
+cat("\nNOTE: covariates (VWC, DBH, air/soil/stem temp) are recorded per flux measurement / per tree\n")
+cat("      as attributes — a Methods sentence, not a separate sample-size stream.\n")
 sink()
 cat(readLines("outputs/revision/campaign_counts.txt"), sep="\n")
 
@@ -152,7 +170,7 @@ write.csv(data.frame(
   period=c("Jun2020-May2021","Summer2021","Oct2022","Summer2023","-"),
   location=c("hillslope U/I/wetland-margin","upland, in plot","stand (1 tree)","spatial, in plot","census plot"),
   heights=c("breast","50/125/200cm","0.5-10m+seam","breast","-"),
-  trees=c(mon_trees,h_trees,1,t23_trees,inv_live), species=c(NA,h_spp,1,t23_spp,inv_spp),
+  trees=c(mon_trees,h_trees,1,t23_trees,inv_stems), species=c(mon_spp,h_spp,1,t23_spp,inv_spp),
   stem_flux=c(n_monthly,n_height,bo_flux,n_2023,NA), soil_flux=c(n_soil,NA,NA,NA,NA),
   ddpcr=c(NA,dd_surv,bo_ddpcr,NA,NA), s16=c(NA,s16_w+s16_s,s16_oak,NA,NA),
   gas=c(NA,n_gas,bo_gas,NA,NA), isotopes=c(NA,iso_samp,NA,NA,NA),
