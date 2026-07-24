@@ -155,6 +155,14 @@ See `code/04_scaling/RF_CH4_workflow_spec.md` for the detailed RF technical spec
 
 ## Figure-Script Reference
 
+> **Two figure sets.** The table below maps the **as-submitted** manuscript figures (Fig 1–9, S1–S15)
+> to the original pipeline scripts — this is what `Rscript code/generate_all_figures.R` produces.
+> The **revised** manuscript figure set (Fig 1–9, **S01–S18**) is produced by
+> `Rscript code/revision/run_all.R` and defined authoritatively in
+> [`outputs/revision/figures/MANIFEST.md`](outputs/revision/figures/MANIFEST.md). Key renumberings in
+> the revision: Fig 6 → convergent-hydrogenotrophy synthesis (old PICRUSt-mcrA heatmap demoted to S09);
+> Fig 9 → CH₄ budget (maps + seasonal + net waterfall); the SI is resequenced to follow the main-text flow.
+
 | Figure | Output File | Description | Script |
 |--------|------------|-------------|--------|
 | Fig 1 | `fig1_temporal_flux_timeseries.png` | Temporal flux across hydrological gradient | `06_figures/06_soil_tree_timeseries.R` |
@@ -189,7 +197,8 @@ See `code/04_scaling/RF_CH4_workflow_spec.md` for the detailed RF technical spec
 | `merged_tree_dataset_final.csv` | `data/processed/integrated/` | Master dataset merging all tree-level measurements |
 | `rf_workflow_input_data_with_2023.RData` | `data/processed/integrated/` | Integrated data ready for RF modeling |
 | `processed_ddpcr_data.csv` | `data/processed/molecular/` | ddPCR gene quantification results |
-| `methanotroph_definitions.csv` | `data/processed/molecular/` | Curated methanotroph taxonomy definitions (Knief 2015) |
+| `methanotroph_definitions.csv` | `data/compiled/` | Curated methanotroph taxonomy definitions (Knief 2015) |
+| `methanotroph_definitions_revised.csv` | `data/processed/molecular/` | Revised defs (Methylacidiphilaceae Known→Putative); used by the revision figures |
 | `methanogen_tree_flux_complete_dataset.csv` | `data/processed/flux/` | Tree flux + methanogen data combined |
 | `tree_id_comprehensive_mapping.csv` | `data/processed/tree_data/` | Authoritative tree ID cross-reference |
 | `RF_MODELS.RData` | `outputs/models/` | Trained tree and soil RF models |
@@ -198,9 +207,10 @@ See `code/04_scaling/RF_CH4_workflow_spec.md` for the detailed RF technical spec
 
 ## Methanotroph Definitions
 
-Taxonomy-based methanotroph classification uses a centralized definitions system to ensure consistency across all 16S-based figures (Fig 5, Fig S12, and the standalone methanotroph composition figure):
+Taxonomy-based methanotroph classification uses a centralized definitions system to ensure consistency across all 16S-based figures (Fig 5, the black-oak methanome figure, and the standalone methanotroph composition figure):
 
-- **Definitions CSV:** `data/processed/molecular/methanotroph_definitions.csv` — a curated 38-row lookup table mapping families and genera to Known, Putative, or Conditional methanotroph status, based on Knief (2015) with SILVA 138 taxonomy cross-referencing. This file is tracked in git (unlike other processed data) because it is a manually curated canonical input, not a generated output.
+- **Definitions CSV:** `data/compiled/methanotroph_definitions.csv` — a curated 38-row lookup table mapping families and genera to Known, Putative, or Conditional methanotroph status, based on Knief (2015) with SILVA 138 taxonomy cross-referencing. Like all other data, it lives only in the Zenodo archive (git tracks the folder, not the file).
+- **Revised definitions (revision):** `data/processed/molecular/methanotroph_definitions_revised.csv` reclassifies Methylacidiphilaceae from Known to Putative (family-level, genus-unresolved). The revision figures (Fig 5, SI black-oak methanome) load this variant via `load_methanotroph_defs(path)`.
 - **Shared utility:** `code/00_harmonization/load_methanotroph_definitions.R` — provides `classify_methanotrophs()`, `identify_methanotrophs()`, and `assign_display_family()` functions used by figure scripts `08b`, `08c`, and `10`.
 
 **Classification hierarchy** (first match wins):
@@ -234,6 +244,6 @@ Key R packages (75 packages total; highlights below):
 
 - Scripts use project-root-relative paths (run from the repository root or open `tree-methanogens.Rproj` in RStudio)
 - All input data is stored within `data/` — no external path dependencies
-- Data file *contents* are excluded from git tracking (archived on Zenodo); only `.gitkeep` files are tracked to preserve directory structure. **Exception:** `data/processed/molecular/methanotroph_definitions.csv` is tracked because it is a curated canonical input, not a generated output
+- Data file *contents* are excluded from git tracking (archived on Zenodo); only `.gitkeep` files are tracked to preserve directory structure. This applies to **all** data files with no exceptions — including the curated methanotroph definitions — so the `data/` tree is a clean Zenodo drop-in
 - The `deprecated/` folder contains superseded script versions and old data (not tracked)
 - Scripts prefixed `util_` are optional diagnostics/utilities, not part of the core pipeline
