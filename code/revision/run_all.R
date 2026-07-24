@@ -21,9 +21,10 @@ cat(">>> generate_all_figures.R (original pipeline — populates unchanged figur
 run("code/generate_all_figures.R")
 
 stats <- sort(list.files("code/revision", "^rev_stat_.*\\.R$", full.names = TRUE))
+tbls  <- sort(list.files("code/revision", "^rev_tbl_.*\\.R$",  full.names = TRUE))
 figs  <- sort(list.files("code/revision", "^rev_fig.*\\.R$",   full.names = TRUE))
-cat(sprintf("== Revision pipeline: %d stat + %d figure generators ==\n", length(stats), length(figs)))
-for (f in c(stats, figs)) run(f)
+cat(sprintf("== Revision pipeline: %d stat + %d table + %d figure generators ==\n", length(stats), length(tbls), length(figs)))
+for (f in c(stats, tbls, figs)) run(f)
 cat("\n>>> assembling numbered manuscript figures\n")
 source("code/revision/rev_00_assemble_figures.R")
 cat("\nDone. Numbered figures in outputs/revision/figures/{main,SI}/ (see MANIFEST.md).\n")
