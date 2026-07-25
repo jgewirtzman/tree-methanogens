@@ -52,3 +52,6 @@ deprecated/
 # --- Temporary/auto-generated files ---
 Rplots.pdf
 *.Rplots.pdf
+
+# goFlux import intermediates (regenerable; see rescue workflow)
+RData/
