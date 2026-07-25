@@ -60,8 +60,9 @@ SI <- c(
   "Figure_S20_radial-sections"           = "outputs/figures/supplementary/figS13_tree_radial_sections.png",  # PLACEMENT TBC
   # Upscaling (Fig 9)
   "Figure_S21_rf-flux-predictions"       = "outputs/figures/supplementary/figS15_rf_predictions.png",
+  "Figure_S22_rf-calibration"            = "outputs/revision/figS_rf_calibration.png",  # OOB budget calibration (R3.3)
   # Plant traits (discussion) — single heatmap with in-panel significance covers it (no composite)
-  "Figure_S22_plant-traits"              = "outputs/revision/traits_heatmap_robust.png")
+  "Figure_S23_plant-traits"              = "outputs/revision/traits_heatmap_robust.png")
 
 # Manuscript tables (ratified w/ Jon). Table S1 = primer sequences (formatted markdown in
 # notes/primer_sequences.md), not assembled here. Dropped: pmoA/mmoX by compartment/species
