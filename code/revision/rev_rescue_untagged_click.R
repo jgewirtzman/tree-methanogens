@@ -10,11 +10,21 @@
 # ==============================================================================
 suppressMessages({library(goFlux);library(dplyr);library(readr)})
 
-# ---- 1. import LGR3 traces (same settings as 04_goflux_trees.R) --------------
-lgr_path <- "data/raw/lgr/semirigid_2020-2021"
-cat("Importing LGR3 traces from", lgr_path, "...\n")
-lgr_data <- import2RData(path = lgr_path, instrument = "UGGA", date.format = "mdy",
+# ---- 1. import LGR3 traces (same as 04_goflux_trees.R: flatten subfolders + unzip) ----
+data_path <- "data/raw/lgr/semirigid_2020-2021"
+cat("Gathering LGR3 traces from", data_path, "...\n")
+zip_files <- list.files(data_path, recursive = TRUE, pattern = "\\.zip$", full.names = TRUE)
+temp_extract <- tempfile("lgr3_extract_"); dir.create(temp_extract, recursive = TRUE)
+for (z in zip_files) try(unzip(z, exdir = temp_extract, overwrite = TRUE), silent = TRUE)
+txt1 <- list.files(data_path, recursive = TRUE, pattern = "\\.txt$", full.names = TRUE)
+txt1 <- txt1[file.size(txt1) > 0]
+txt2 <- list.files(temp_extract, recursive = TRUE, pattern = "\\.txt$", full.names = TRUE)
+flat <- tempfile("lgr3_flat_"); dir.create(flat, recursive = TRUE)
+file.copy(c(txt1, txt2), flat)
+cat("Flattened", length(list.files(flat, pattern = "\\.txt$")), "trace files. Importing...\n")
+lgr_data <- import2RData(path = flat, instrument = "UGGA", date.format = "mdy",
                          timezone = "UTC", keep_all = FALSE, prec = c(0.35, 0.9, 200), merge = TRUE)
+unlink(temp_extract, recursive = TRUE); unlink(flat, recursive = TRUE)
 cat("LGR loaded:", nrow(lgr_data), "rows;",
     "time range", as.character(min(lgr_data$POSIX.time)), "to", as.character(max(lgr_data$POSIX.time)), "\n")
 
