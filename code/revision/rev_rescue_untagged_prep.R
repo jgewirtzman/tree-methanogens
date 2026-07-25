@@ -29,28 +29,31 @@ geo$sp<-toupper(sub(".*?(ACRU|BEAL|BELE|FRAM|TSCA|BEPA|QURU).*","\\1",geo$Sample
 geo$sp[grepl("no tag",geo$Sample,ignore.case=TRUE)]<-"BELE"
 geo<-geo %>% filter(chamber!="XXXX",!is.na(site))
 
-## ---- untagged measurements (treeflux_total) ----
+## ---- untagged measurements (treeflux_total); species from the field NOTES ----
 d<-suppressMessages(read_excel("data/raw/field_data/ipad_data/treeflux_total.xlsx",sheet="Sheet1"))
-d$PT<-as.character(d[["Plot Tag"]]); d$PL<-as.character(d[["Plot Letter"]]); d$CH<-as.character(d$Chamber)
+d$PT<-as.character(d[["Plot Tag"]]); d$PL<-as.character(d[["Plot Letter"]]); d$CH<-as.character(d$Chamber); d$NO<-as.character(d$Notes)
+spof<-function(s){ s<-toupper(s); if(grepl("TUSCAN|TSCA|TSUC",s))"TSCA" else if(grepl("BEAL",s))"BEAL" else if(grepl("BELE",s))"BELE" else if(grepl("ACRU",s))"ACRU" else if(grepl("FRAM",s))"FRAM" else NA_character_ }
 u<-d[grepl("[a-zA-Z]",d$PT)&!grepl("^[0-9]+$",trimws(d$PT)),] %>%
-  transmute(Date=as.Date(Date), time=num(`Time of sampling`), CH, PL,
+  transmute(Date=as.Date(Date), time=num(`Time of sampling`), CH, PL, NO=paste(PT,NO),
             site=case_when(PL=="U"~"Upland",PL=="I"~"Intermediate",grepl("^W",PL)~"Wetland"),
-            month=format(Date,"%Y-%m"),
-            sp_hint=toupper(ifelse(grepl("ACRU|BEAL|BELE|FRAM|TSCA",PT,ignore.case=TRUE),
-                     sub(".*?(ACRU|BEAL|BELE|FRAM|TSCA).*","\\1",PT,ignore.case=TRUE),NA)),
+            month=format(Date,"%Y-%m"), sp=vapply(NO,spof,character(1)),
             chamber=ifelse(CH %in% c("na","NA","") | is.na(CH),NA,sub("[.]0$","",CH)))
 u<-u[!is.na(u$site)&!is.na(u$time),]
+# 2 rows have no species note: Upland ch1 -> BELE; Intermediate -> BELE (TSCA is the noted one that day)
+u$sp[is.na(u$sp) & u$site=="Upland"]<-"BELE"; u$sp[is.na(u$sp) & u$site=="Intermediate"]<-"BELE"
 
-## ---- assign each measurement to a tree (site+month, then chamber/species, then Sc) ----
-assign_tree<-function(r){
-  cand<-geo[geo$site==r$site & geo$month==r$month,]
-  if(!nrow(cand)) cand<-geo[geo$site==r$site,]                       # fallback: any month, same site
-  if(!is.na(r$sp_hint) && any(cand$sp==r$sp_hint)) cand<-cand[cand$sp==r$sp_hint,]
-  else if(!is.na(r$chamber) && any(cand$chamber==r$chamber)) cand<-cand[cand$chamber==r$chamber,]
-  cand[1,]                                                            # ties: first (Sc within-site ~2%)
+## ---- attach geometry for the (now known) site x species x month x chamber tree ----
+assign_geo<-function(r){
+  cand<-geo[geo$site==r$site & geo$sp==r$sp,]
+  if(!nrow(cand)) return(geo[1,][NA,])
+  c2<-cand[cand$month==r$month,]; if(nrow(c2)) cand<-c2
+  if(!is.na(r$chamber) && any(cand$chamber==r$chamber)) cand<-cand[cand$chamber==r$chamber,]
+  cand[1,]
 }
-rows<-lapply(seq_len(nrow(u)),function(i){a<-assign_tree(u[i,]); cbind(u[i,],a[,c("Sample","sp","Sc_cm2","Vc_cm3","Dstem")])})
+rows<-lapply(seq_len(nrow(u)),function(i){a<-assign_geo(u[i,]); cbind(u[i,],a[,c("Sample","Sc_cm2","Vc_cm3","Dstem")])})
 m<-bind_rows(rows)
+# dead = marked dead in ANY source (verified); only Upland BELE is never marked dead
+m$dead <- !(m$site=="Upland" & m$sp=="BELE")
 
 ## ---- build goFlux auxfile (mirror 03_prep_tree_auxfile derivations) ----
 wx<-read.csv("data/raw/weather/ymf_clean_sorted.csv"); wx$TS<-as.POSIXct(wx$TIMESTAMP,tz="UTC")
@@ -64,7 +67,7 @@ m$UniqueID<-paste("UNTAG",m$site,m$sp,format(m$Date,"%Y%m%d"),ifelse(is.na(m$cha
 m$UniqueID<-ave(m$UniqueID,m$UniqueID,FUN=function(x) if(length(x)==1) x else paste(x,seq_along(x),sep="_"))
 aux<-m %>% filter(!is.na(start.time),!is.na(Area),!is.na(Vtot)) %>%
   transmute(UniqueID, start.time, start.time_formatted=format(start.time,"%Y-%m-%d %H:%M:%S"),
-            Area, Vtot, Tcham, Pcham, site, species=sp, Sample, Dstem, obs.length=600)
+            Area, Vtot, Tcham, Pcham, site, species=sp, dead, Sample, Dstem, obs.length=600)
 write.csv(aux,"outputs/revision/untagged_auxfile.csv",row.names=FALSE)
 cat("untagged measurements:",nrow(u)," -> auxfile rows (with geometry+time):",nrow(aux),"\n")
 cat("trees covered:\n"); print(as.data.frame(aux %>% count(site,species,name="n_meas")))
