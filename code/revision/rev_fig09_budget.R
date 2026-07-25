@@ -112,8 +112,8 @@ pc <- ggplot(seas, aes(season, nmol, fill = src)) +
 # ---- (d) net budget waterfall (mg m-2 yr-1) ----------------------------------
 # steps: baseline 0 -> soil -> tree(measured) -> tree(scenario) -> NET(total)
 wf <- tibble(
-  step  = factor(c("Soil\nuptake","Tree\n(measured)","Tree\n(scenario)","Net\nbudget"),
-                 levels = c("Soil\nuptake","Tree\n(measured)","Tree\n(scenario)","Net\nbudget")),
+  step  = factor(c("Soil\nuptake","Tree to 2 m\n(measured)","Tree full woody\nsurface (scenario)","Net\nbudget"),
+                 levels = c("Soil\nuptake","Tree to 2 m\n(measured)","Tree full woody\nsurface (scenario)","Net\nbudget")),
   ymin  = c(soil_ann, soil_ann, soil_ann + tree_meas, 0),
   ymax  = c(0, soil_ann + tree_meas, soil_ann + tree_meas + (tree_scen - tree_meas),
             soil_ann + tree_scen),
