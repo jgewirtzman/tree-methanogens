@@ -5,9 +5,12 @@
 #   definitions CSV and classifying ASVs/OTUs as Known, Putative, or
 #   non-methanotroph. Used by figure scripts 08b, 08c, and 10.
 #
-# Definitions file: data/processed/molecular/methanotroph_definitions.csv
+# Definitions file: data/processed/molecular/methanotroph_definitions_revised.csv
 #   Curated from Knief (2015) with SILVA 138 taxonomy mapping.
 #   Includes Known/Putative/Conditional flags per taxon.
+#   REVISED (2026 revision, R2 #2): Methylacidiphilaceae reclassified at family
+#   level from Known -> Putative (mesophilic genomes lack methanotrophy genes);
+#   genus Methylacidiphilum remains Known.
 #
 # Usage:
 #   source("code/00_harmonization/load_methanotroph_definitions.R")
@@ -20,7 +23,7 @@
 # load_methanotroph_defs: Read the canonical CSV
 # ------------------------------------------------------------------------------
 load_methanotroph_defs <- function(
-    path = "data/processed/molecular/methanotroph_definitions.csv") {
+    path = "data/processed/molecular/methanotroph_definitions_revised.csv") {
   mt_defs <- read.csv(path, stringsAsFactors = FALSE)
   mt_defs$Include_known    <- toupper(trimws(mt_defs$Include_known))
   mt_defs$Include_putative <- toupper(trimws(mt_defs$Include_putative))
