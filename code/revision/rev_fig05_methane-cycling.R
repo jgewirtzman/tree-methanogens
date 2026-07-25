@@ -208,12 +208,12 @@ summary_mg_a <- plot_data %>%
 # Panel (a) — Methanogen relative abundance
 # ==============================================================================
 
-p_mg_a <- ggplot(summary_mg_a, aes(x = species_label, y = mean_pct, fill = compartment)) +
-  geom_col(width = 0.7, color = "black", linewidth = 0.2) +
+# solid fill — compartment is already given by the facet strip (no ambiguous colour mapping)
+p_mg_a <- ggplot(summary_mg_a, aes(x = species_label, y = mean_pct)) +
+  geom_col(width = 0.7, fill = "#B2182B", color = "black", linewidth = 0.2) +
   geom_errorbar(aes(ymin = pmax(mean_pct - se_pct, 0), ymax = mean_pct + se_pct),
                 width = 0.2, linewidth = 0.3) +
   facet_wrap(~ compartment, nrow = 1) +
-  scale_fill_manual(values = compartment_colors, name = "Compartment") +
   labs(x = NULL, y = "Methanogen rel.\nabundance (%)") +
   theme_classic(base_size = 15) +
   theme(axis.text.x = element_blank(),
@@ -297,18 +297,9 @@ summary_mt_total <- plot_data %>%
             se_total = sd(methanotroph_pct, na.rm = TRUE) / sqrt(n()),
             .groups = "drop")
 
-# Known bars match panel (a) compartment colors; Putative in grey
-# Create a composite fill variable: Known bars get compartment name, Putative bars get "Putative"
-summary_mt_a$fill_group <- ifelse(summary_mt_a$Status == "Known",
-                                   as.character(summary_mt_a$compartment),
-                                   "Putative")
-
-# Build fill palette: compartment colors for Known + grey for Putative
-panel_c_fills <- c(compartment_colors, "Putative" = "grey70")
-
-# Factor ordering: compartment levels first (so Known stacks on bottom), then Putative on top
-summary_mt_a$fill_group <- factor(summary_mt_a$fill_group,
-                                   levels = c(names(compartment_colors), "Putative"))
+# colour encodes CLASSIFICATION only (Known vs Putative); compartment is given by the facet strip
+panel_c_fills <- c("Known" = "#2166AC", "Putative" = "grey70")
+summary_mt_a$fill_group <- factor(summary_mt_a$Status, levels = c("Known", "Putative"))
 
 p_mt_a <- ggplot(summary_mt_a, aes(x = species_label, y = mean_pct, fill = fill_group)) +
   geom_col(width = 0.7, color = "black", linewidth = 0.2) +
@@ -318,10 +309,7 @@ p_mt_a <- ggplot(summary_mt_a, aes(x = species_label, y = mean_pct, fill = fill_
                     ymax = mean_total + se_total),
                 inherit.aes = FALSE, width = 0.2, linewidth = 0.3) +
   facet_wrap(~ compartment, nrow = 1) +
-  scale_fill_manual(values = panel_c_fills,
-                    breaks = "Putative",
-                    labels = "Putative",
-                    name = "Classification") +
+  scale_fill_manual(values = panel_c_fills, name = "Classification") +
   labs(x = NULL, y = "Methanotroph rel.\nabundance (%)") +
   theme_classic(base_size = 15) +
   theme(axis.text.x = element_blank(),
