@@ -22,7 +22,7 @@ sp_map <- c(ACRU="Acer rubrum",ACSA="Acer saccharum",BEAL="Betula alleghaniensis
   QUVE="Quercus velutina",SAAL="Sassafras albidum",TSCA="Tsuga canadensis")
 # BEPO/CALA are in-plot 2023 IDs absent from the census -> reported at genus level (uncertain sp.)
 # confirmed data-entry code corrections (not real distinct species)
-corr <- c(TSLA="TSCA")   # TSLA typo for Tsuga canadensis (2021 aux); BEPO/CALA left pending Jon
+corr <- c(TSLA="TSCA")   # TSLA typo for Tsuga canadensis (2021 aux); BEPO/CALA RESOLVED at genus (Betula/Carya sp., final per Jon)
 lab<-function(code){code<-toupper(trimws(code)); code<-ifelse(code %in% names(corr), corr[code], code)
   ifelse(code %in% names(sp_map), sp_map[code], code)}
 fd<-"data/processed/flux"
