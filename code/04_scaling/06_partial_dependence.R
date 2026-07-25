@@ -298,6 +298,7 @@ if("soil_moisture_at_tree" %in% colnames(X_tree)) {
   
   # Sample subset for ICE (too many lines make plot unreadable)
   n_ice <- min(100, nrow(X_tree))
+  set.seed(42)                     # reproducibility: ICE curve subsample
   ice_sample <- sample(1:nrow(X_tree), n_ice)
   
   ice_tree_moisture <- partial(
