@@ -22,7 +22,7 @@ P  <- function(...) cat(sprintf(...), "\n")
 fd <- "data/processed/flux"; comp <- "data/compiled"
 
 # ============================================================== A. STEM FLUX ===
-srt <- read.csv(file.path(fd, "semirigid_tree_final_complete_dataset.csv"))       # monthly 2020-21
+srt <- read.csv(file.path(fd, "semirigid_tree_final_complete_dataset_with_untagged.csv"))  # monthly 2020-21 + recovered untagged/dead-snag trees
 srs <- read.csv(file.path(fd, "semirigid_tree_final_complete_dataset_soil.csv"))  # monthly soil
 ch4 <- read.csv(file.path(fd, "CH4_best_flux_lgr_results.csv"))                   # 2021 height flux
 aux <- read.csv(file.path(fd, "goflux_auxfile.csv"))                             # 2021 height metadata
@@ -44,7 +44,8 @@ ymt <- read.csv("data/raw/field_data/static_chamber_field/YM_trees_measured.csv.
 sp_lut <- setNames(as.character(ymt$Species), as.character(ymt$Label))
 sp23   <- setNames(as.character(y23$Species.Code), as.character(y23$Tree.Tag))
 mon_species <- ifelse(mon_tags %in% names(sp_lut), sp_lut[mon_tags],
-                      ifelse(mon_tags %in% names(sp23), sp23[mon_tags], NA))
+                      ifelse(mon_tags %in% names(sp23), sp23[mon_tags],
+                      ifelse(grepl("^UNTAG_", mon_tags), toupper(sub("UNTAG_[A-Za-z]+_([A-Za-z]+).*","\\1",mon_tags)), NA)))
 mon_spp <- uq(mon_species); mon_unres <- sum(is.na(mon_species))
 h_trees <- length(unique(paste(hd$plot, hd$tree_id))); h_spp <- uq(hd$species)
 # untagged 2023 trees share a non-unique "untagged"/"forked" tag -> key by UniqueID so each counts once

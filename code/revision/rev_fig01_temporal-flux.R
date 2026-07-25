@@ -22,7 +22,7 @@ library(scales)
 
 # Read the datasets
 soil_dataset <- read.csv('data/processed/flux/semirigid_tree_final_complete_dataset_soil.csv')
-tree_dataset <- read.csv('data/processed/flux/semirigid_tree_final_complete_dataset.csv')
+tree_dataset <- read.csv('data/processed/flux/semirigid_tree_final_complete_dataset_with_untagged.csv')  # includes recovered untagged/dead-snag monthly trees
 moisture_data <- read.csv('data/raw/field_data/ipad_data/Cleaned data/soilmoisture_total.csv')
 names(moisture_data)[grep("Date", names(moisture_data))[1]] <- "Date"  # fix BOM-mangled column name
 
