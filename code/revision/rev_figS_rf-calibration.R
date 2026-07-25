@@ -1,13 +1,12 @@
 #!/usr/bin/env Rscript
 # ==============================================================================
 # rev_figS_rf-calibration.R  (SI — RF budget calibration, R3.3/3.5)
-# Out-of-bag aggregate accuracy of the upscaling RF (predicted on x throughout;
-# binned means only — the raw point scatter is already in the RF-predictions SI fig):
-#   TOP  — calibration: bin by PREDICTED flux (deciles); mean observed vs mean predicted
-#          (a) stem  (b) soil
-#   BOT  — budget-unit recovery: mean observed vs mean predicted within the units the
-#          budget sums over — (c) per SPECIES (stem)  (d) per SOIL-MOISTURE bin
-# Modest point-level OOB R2, but means/magnitudes recovered near 1:1 in every view.
+# Out-of-bag CALIBRATION of the upscaling RF (predicted on x; binned means only — the
+# raw point scatter is already in the RF-predictions SI fig). Bin by PREDICTED flux
+# (deciles) and plot mean observed vs mean predicted vs the 1:1 line: (a) stem (b) soil.
+# A reliability check that can fail; modest point-level OOB R2 but calibrated across the
+# range and near-unbiased in the mean. (Per-species / per-moisture aggregations were
+# dropped as near-circular: species and moisture are model predictors.)
 # Reads outputs/models/TRAINING_DATA.RData. Writes outputs/revision/figS_rf_calibration.png.
 # ==============================================================================
 suppressPackageStartupMessages({library(ggplot2); library(dplyr)})
@@ -44,23 +43,9 @@ cal <- function(df, title, col, brks){
   obsvpred(d,title,sprintf("OOB R2 = %.2f | CCC = %.2f | mean pred/obs = %.2f",
            1-mean((o-p)^2)/var(o),ccc(o,p),mean(p)/mean(o)),col,brks)
 }
-pa <- cal(e$tree_train_complete,"(a) Stem: calibration (predicted deciles)","#b2182b",c(0,0.05,0.1,0.2,0.4))
-pb <- cal(e$soil_train_complete,"(b) Soil: calibration (predicted deciles)","#2166ac",c(-3,-1,-0.3,0))
+pa <- cal(e$tree_train_complete,"(a) Stem flux","#b2182b",c(0,0.05,0.1,0.2,0.4))
+pb <- cal(e$soil_train_complete,"(b) Soil flux","#2166ac",c(-3,-1,-0.3,0))
 
-## BOT-c — per species (stem)
-f<-flux(e$tree_train_complete)
-spc <- tibble(o=f$o,p=f$p,sp=e$tree_train_complete$species) %>% filter(is.finite(o),is.finite(p)) %>%
-  group_by(sp) %>% summarise(mp=mean(p),mo=mean(o),se=sd(o)/sqrt(n()),n=n(),.groups="drop") %>% filter(n>=3)
-pc <- obsvpred(spc,"(c) Stem: per-species means",sprintf("%d species | CCC = %.2f",nrow(spc),ccc(asinh10(spc$mo),asinh10(spc$mp))),
-               "#b2182b",c(0,0.05,0.1,0.2))
-
-## BOT-d — per soil-moisture bin
-f<-flux(e$soil_train_complete)
-mob <- tibble(o=f$o,p=f$p,m=e$soil_train_complete$soil_moisture_at_site) %>% filter(is.finite(o),is.finite(p),is.finite(m)) %>%
-  mutate(b=ntile(m,10)) %>% group_by(b) %>% summarise(mp=mean(p),mo=mean(o),se=sd(o)/sqrt(n()),moist=mean(m),.groups="drop")
-pd <- obsvpred(mob,"(d) Soil: per-moisture-bin means",sprintf("10 moisture bins | CCC = %.2f",ccc(asinh10(mob$mo),asinh10(mob$mp))),
-               NULL,c(-3,-1,-0.3,0),colour_by="moist",col_name="VWC",col_grad=c("#d1e5f0","#4393c3","#2166ac"))
-
-g <- if (has_patch) (pa|pb)/(pc|pd) else gridExtra::arrangeGrob(pa,pb,pc,pd,ncol=2)
-ggsave("outputs/revision/figS_rf_calibration.png", g, width=8.6, height=8.4, dpi=200, bg="white")
+g <- if (has_patch) pa|pb else gridExtra::arrangeGrob(pa,pb,ncol=2)
+ggsave("outputs/revision/figS_rf_calibration.png", g, width=8.8, height=4.6, dpi=200, bg="white")
 cat("wrote outputs/revision/figS_rf_calibration.png\n")
