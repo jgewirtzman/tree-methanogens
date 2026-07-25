@@ -117,16 +117,27 @@ wf <- tibble(
   ymin  = c(soil_ann, soil_ann, soil_ann + tree_meas, 0),
   ymax  = c(0, soil_ann + tree_meas, soil_ann + tree_meas + (tree_scen - tree_meas),
             soil_ann + tree_scen),
-  fill  = c("sink","src","src_lt","net"))
+  fill  = c("sink","src","src_lt","net"),
+  # scenario bar (whole woody surface, constant-flux extrapolation) drawn dashed = hypothetical
+  lty   = c("solid","solid","dashed","solid"))
 netmeas <- soil_ann + tree_meas    # net if only measured tree offset
+# foliage: an unmeasured term of unknown MAGNITUDE and SIGN (illustrative half-height only)
+fol_h <- tree_scen
+fol   <- tibble(x = 5)
 pd <- ggplot(wf) +
   geom_rect(aes(xmin = as.numeric(step)-0.42, xmax = as.numeric(step)+0.42,
-                ymin = ymin, ymax = ymax, fill = fill), color = "grey30", linewidth = 0.3) +
+                ymin = ymin, ymax = ymax, fill = fill, linetype = lty),
+            color = "grey30", linewidth = 0.35) +
+  scale_linetype_identity() +
   geom_segment(aes(x = as.numeric(step)+0.42, xend = as.numeric(step)+1-0.42, y = ymax, yend = ymax),
                data = wf[1:3,], color = "grey55", linetype = "dashed", linewidth = 0.3) +
+  # foliage — dashed grey bar straddling zero, unknown sign; magnitude illustrative
+  geom_rect(data = fol, aes(xmin = x-0.42, xmax = x+0.42, ymin = -fol_h, ymax = fol_h),
+            fill = "grey88", color = "grey45", linetype = "dashed", linewidth = 0.4, inherit.aes = FALSE) +
+  annotate("text", x = 5, y = 0, label = "?", size = 4.4, fontface = "bold", color = "grey35") +
   geom_hline(yintercept = 0, color = "grey60") +
   scale_fill_manual(values = c(sink = SINK, src = SRC, src_lt = SRC_LT, net = NETC), guide = "none") +
-  scale_x_continuous(breaks = 1:4, labels = levels(wf$step), limits = c(0.4, 4.6)) +
+  scale_x_continuous(breaks = 1:5, labels = c(levels(wf$step), "Foliage\n(unknown)"), limits = c(0.4, 5.6)) +
   annotate("text", x = 1, y = soil_ann,             label = "-904", vjust = 1.5, size = 2.9) +
   annotate("text", x = 2, y = soil_ann + tree_meas, label = "+1.3", vjust = -0.8, size = 2.9) +
   annotate("text", x = 3, y = soil_ann + tree_scen, label = "+113", vjust = -0.8, size = 2.9) +
