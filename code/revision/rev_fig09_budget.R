@@ -124,6 +124,19 @@ netmeas <- soil_ann + tree_meas    # net if only measured tree offset
 # foliage: an unmeasured term of unknown MAGNITUDE and SIGN (illustrative half-height only)
 fol_h <- tree_scen
 fol   <- tibble(x = 5)
+FOLIAGE_STYLE <- "dashed"   # "dashed" (hard box; preferred) or "gradient" (alpha fades with |flux| — too noisy)
+if (FOLIAGE_STYLE == "dashed") {
+  fol_layer <- list(geom_rect(data = fol, aes(xmin = x-0.42, xmax = x+0.42, ymin = -fol_h, ymax = fol_h),
+                    fill = "grey88", color = "grey45", linetype = "dashed", linewidth = 0.4, inherit.aes = FALSE))
+} else {                       # opaque at zero -> increasingly transparent away from zero (both signs)
+  .bs   <- seq(-fol_h, fol_h, length.out = 121)
+  fgrad <- tibble(x = 5, ymin = head(.bs, -1), ymax = tail(.bs, -1))
+  fgrad$a <- 1 - abs((fgrad$ymin + fgrad$ymax) / 2) / fol_h
+  fol_layer <- list(
+    geom_rect(data = fgrad, aes(xmin = x-0.42, xmax = x+0.42, ymin = ymin, ymax = ymax, alpha = a),
+              fill = "grey35", inherit.aes = FALSE),
+    scale_alpha_identity())
+}
 pd <- ggplot(wf) +
   geom_rect(aes(xmin = as.numeric(step)-0.42, xmax = as.numeric(step)+0.42,
                 ymin = ymin, ymax = ymax, fill = fill, linetype = lty),
@@ -131,10 +144,10 @@ pd <- ggplot(wf) +
   scale_linetype_identity() +
   geom_segment(aes(x = as.numeric(step)+0.42, xend = as.numeric(step)+1-0.42, y = ymax, yend = ymax),
                data = wf[1:3,], color = "grey55", linetype = "dashed", linewidth = 0.3) +
-  # foliage — dashed grey bar straddling zero, unknown sign; magnitude illustrative
-  geom_rect(data = fol, aes(xmin = x-0.42, xmax = x+0.42, ymin = -fol_h, ymax = fol_h),
-            fill = "grey88", color = "grey45", linetype = "dashed", linewidth = 0.4, inherit.aes = FALSE) +
-  annotate("text", x = 5, y = 0, label = "?", size = 4.4, fontface = "bold", color = "grey35") +
+  # foliage — bar straddling zero (unknown sign); style set by FOLIAGE_STYLE above
+  fol_layer +
+  annotate("text", x = 5, y = 0, label = "?", size = 4.4, fontface = "bold",
+           color = if (FOLIAGE_STYLE == "gradient") "white" else "grey35") +
   geom_hline(yintercept = 0, color = "grey60") +
   scale_fill_manual(values = c(sink = SINK, src = SRC, src_lt = SRC_LT, net = NETC), guide = "none") +
   scale_x_continuous(breaks = 1:5, labels = c(levels(wf$step), "Foliage\n(unknown)"), limits = c(0.4, 5.6)) +
