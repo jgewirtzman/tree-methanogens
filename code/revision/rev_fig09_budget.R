@@ -77,7 +77,7 @@ add_ctx <- function(p) {
   # scale bar: bottom-left corner (white gap)
   x0 <- xl[1] + 0.05*dx; y0 <- yl[1] + 0.04*dy
   # traditional two-tone compass needle, in the white header strip ABOVE the raster
-  ax <- xl[2] - 0.08*dx; apex <- yl[2] + 0.075*dy; base <- yl[2] - 0.008*dy; w <- 0.022*dx  # full-size needle, dropped low
+  ax <- xl[2] - 0.08*dx; apex <- yl[2] + 0.060*dy; base <- yl[2] - 0.023*dy; w <- 0.022*dx  # full-size needle, dropped low
   left  <- data.frame(x = c(ax, ax - w, ax),            y = c(apex, base, base + 0.028*dy))
   right <- data.frame(x = c(ax, ax + w, ax),            y = c(apex, base, base + 0.028*dy))
   p +
