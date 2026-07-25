@@ -41,7 +41,8 @@ SI order = reference order (see notes/REVISION_INVENTORY.md); S16 & S21 placemen
 | Figure_S19_scale-dependent-genes | `outputs/revision/figS11_final.png` |
 | Figure_S20_radial-sections | `outputs/figures/supplementary/figS13_tree_radial_sections.png` |
 | Figure_S21_rf-flux-predictions | `outputs/figures/supplementary/figS15_rf_predictions.png` |
-| Figure_S22_plant-traits | `outputs/revision/traits_heatmap_robust.png` |
+| Figure_S22_rf-calibration | `outputs/revision/figS_rf_calibration.png` |
+| Figure_S23_plant-traits | `outputs/revision/traits_heatmap_robust.png` |
 
 ## Photo plates
 
