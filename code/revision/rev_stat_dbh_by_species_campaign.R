@@ -44,7 +44,19 @@ dbh23<-tapply(num(y23$`DBH (cm)`), as.character(y23$`Tree Tag`), function(v) mea
 need<-is.na(mon$dbh) & mon$tag %in% names(dbh23)
 mon$dbh[need]<-dbh23[mon$tag[need]]
 mon$location<-dplyr::recode(mon$pos, U="Upland", I="Intermediate", WD="Wetland", WS="Wetland", .default=mon$pos)
-t1<-transmute(mon, campaign="2020-2021 monthly", location, code, dbh)
+# live/dead status from field notes (tagged monthly); untagged trees carry their own flag
+suppressPackageStartupMessages(library(readxl))
+tfn<-read_excel("data/raw/field_data/ipad_data/treeflux_total.xlsx",sheet="Sheet1")
+tfn$PT<-trimws(as.character(tfn[["Plot Tag"]])); tfn$NO<-as.character(tfn$Notes)
+dead_tags<-unique(tfn$PT[grepl("^[0-9]+$",tfn$PT)&grepl("dead|snag",tfn$NO,ignore.case=TRUE)])
+mon$status<-ifelse(mon$tag %in% dead_tags,"Dead","Live")
+t1<-transmute(mon, campaign="2020-2021 monthly", location, code, dbh, status)
+# recovered untagged/dead-snag monthly trees (7) -> same campaign (breast-ht dia)
+utr<-read.csv("outputs/revision/untagged_monthly_trees.csv",check.names=FALSE)
+t1u<-transmute(utr, campaign="2020-2021 monthly",
+    location=dplyr::recode(Plot_Type, U="Upland", I="Intermediate", W="Wetland"),
+    code=species, dbh=num(dbh), status=ifelse(dead,"Dead","Live"))
+t1<-bind_rows(t1, t1u)
 
 ## 2021 summer height — unique (plot,tree_id) with valid flux (== campaign_counts 150)
 ch4<-read.csv(file.path(fd,"CH4_best_flux_lgr_results.csv")); aux<-read.csv(file.path(fd,"goflux_auxfile.csv"))
@@ -60,25 +72,27 @@ lut<-c(); for(cc in vcols){v<-norm(M[[cc]]); okk<-v!="" & !is.na(v); lut[v[okk]]
 canon<-function(x){x<-norm(x); ifelse(x %in% names(lut), lut[x], x)}
 dbh_by_cid<-tapply(num(mg$dbh), canon(mg$tree_id), function(v) if(all(is.na(v))) NA_real_ else mean(v,na.rm=TRUE))
 hd$dbh<-as.numeric(dbh_by_cid[canon(hd$tree_id)])
-t2<-transmute(hd, campaign="2021 summer (height)", location="adjacent to inventory plot", code=species, dbh)
+t2<-transmute(hd, campaign="2021 summer (height)", location="adjacent to inventory plot", code=species, dbh,
+              status=ifelse(grepl("dead|snag",tree_id,ignore.case=TRUE),"Dead","Live"))
 
 ## 2023 cross-species — unique tree with valid flux. Untagged trees share a non-unique
 ## "untagged"/"untagged, forked" tag -> key those by UniqueID so each is a distinct tree.
 o23<-!is.na(y23$CH4_best.flux)
 tg23<-trimws(as.character(y23$`Tree Tag`)); tk23<-ifelse(grepl("^[0-9]+$",tg23), tg23, as.character(y23$UniqueID))
 t23<-y23[o23,]; t23$tk<-tk23[o23]; t23<-t23[!duplicated(t23$tk),]
-t3<-transmute(t23, campaign="2023 cross-species", location="in inventory plot", code=`Species Code`, dbh=num(`DBH (cm)`))
+t3<-transmute(t23, campaign="2023 cross-species", location="in inventory plot", code=`Species Code`, dbh=num(`DBH (cm)`),
+              status=ifelse(grepl("dead|snag",paste(`Tree Tag`,UniqueID),ignore.case=TRUE),"Dead","Live"))
 
 allt<-bind_rows(t1,t2,t3) %>% filter(!is.na(code), toupper(trimws(code))!="NA", code!="") %>% mutate(Species=lab(code))
-cat(sprintf("tree-set check vs campaign_counts:  monthly %d (want 41)  |  height %d (want 150)  |  2023 %d (want 336, untagged-corrected)\n",
+cat(sprintf("tree-set check vs campaign_counts:  monthly %d (want 48: 41 tagged + 7 untagged)  |  height %d (want 150)  |  2023 %d (want 336, untagged-corrected)\n",
     nrow(t1), nrow(t2), nrow(t3)))
 cat("DBH available:", sprintf("monthly %d/%d, height %d/%d, 2023 %d/%d\n",
     sum(!is.na(t1$dbh)),nrow(t1), sum(!is.na(t2$dbh)),nrow(t2), sum(!is.na(t3$dbh)),nrow(t3)))
 
-tab<-allt %>% group_by(Campaign=campaign,Location=location,Species) %>%
+tab<-allt %>% group_by(Campaign=campaign,Location=location,Species,Status=status) %>%
   summarise(n=n(), m=mean(dbh,na.rm=TRUE), s=sd(dbh,na.rm=TRUE), .groups="drop") %>%
   mutate(`DBH cm (mean +/- sd)`=ifelse(is.nan(m),"-",ifelse(is.na(s)|n<2, sprintf("%.1f",m), sprintf("%.1f +/- %.1f",m,s)))) %>%
-  select(Campaign,Location,Species,n,`DBH cm (mean +/- sd)`) %>% arrange(Campaign,Location,Species)
+  select(Campaign,Location,Species,Status,n,`DBH cm (mean +/- sd)`) %>% arrange(Campaign,Location,Species,Status)
 write.csv(tab,"outputs/revision/dbh_by_species_campaign.csv",row.names=FALSE)
 g<-tableGrob(tab,rows=NULL,theme=ttheme_minimal(base_size=8,colhead=list(fg_params=list(fontface="bold"))))
 ggplot2::ggsave("outputs/revision/dbh_by_species_campaign.png",g,width=8,height=0.22*nrow(tab)+0.6,dpi=200,bg="white",limitsize=FALSE)
