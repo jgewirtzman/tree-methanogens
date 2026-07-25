@@ -349,7 +349,8 @@ compute_empirical_SI <- function(df, flux_col, group_name, use_soil_temp = FALSE
       min.node.size = 5,
       mtry = max(1, floor(sqrt(ncol(X)))),
       num.threads = 1,
-      keep.inbag = TRUE
+      keep.inbag = TRUE,
+      seed = 42                      # reproducibility: this RF's residuals define the seasonal index
     )
     yhat_asinh <- rf0$predictions
   } else {
@@ -424,7 +425,8 @@ compute_taxon_prior <- function(tree_df, taxonomy_df) {
     y = df_clean$y_asinh,
     num.trees = 200,
     min.node.size = 5,
-    num.threads = 1
+    num.threads = 1,
+    seed = 42                        # reproducibility: residuals here define the taxonomy prior (a TreeRF feature)
   )
   
   df_clean$residual <- df_clean$y_asinh - rf_env$predictions
