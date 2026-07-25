@@ -35,6 +35,10 @@ stem_total <- n_monthly + n_height + n_2023
 # 2021 height flux by measurement height
 hd <- merge(ch4, aux[, c("UniqueID","measurement_height","tree_id","species","plot")], by="UniqueID", all.x=TRUE)
 hd <- hd[!is.na(hd$best.flux), ]
+# TSLA is a data-entry typo for TSCA (Tsuga canadensis; single tree HM7, Lowland plot).
+# Same correction applied in rev_stat_dbh_by_species_campaign.R -- without it the 2021
+# campaign reports 17 species instead of the correct 16.
+hd$species[hd$species == "TSLA"] <- "TSCA"
 h_by <- sort(table(hd$measurement_height), decreasing = TRUE)
 mon_trees <- uq(srt$Plot.Tag[!is.na(srt$CH4_best.flux.x)])
 mon_pos   <- table(srt$Plot.Letter[!is.na(srt$CH4_best.flux.x)])   # U/I/WD/WS
