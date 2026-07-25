@@ -56,7 +56,7 @@ pa <- ggplot(soil_map, aes(x, y, fill = mean_flux_nmol)) + geom_raster(interpola
                       limits = c(min(soil_map$mean_flux_nmol), 0),
                       guide = guide_colorbar(title.position = "top")) +
   map_scales +
-  coord_quickmap(xlim = xl, ylim = yl, expand = FALSE) + th_map
+  coord_quickmap(xlim = xl, ylim = c(yl[1], yl[2] + 0.13*diff(yl)), expand = FALSE) + th_map  # top strip for N arrow
 
 # ---- (b) tree map (source = red; per m2 WOODY SURFACE; quantile-spread color) -
 tv <- tree_pts$flux_nmol_m2_s
@@ -67,7 +67,7 @@ pb <- ggplot(tree_pts %>% arrange(flux_nmol_m2_s), aes(x, y, color = flux_nmol_m
                         guide = guide_colorbar(title.position = "top")) +
   scale_size_continuous(range = c(0.15, 1.9), guide = "none") +
   map_scales +
-  coord_quickmap(xlim = xl, ylim = yl, expand = FALSE) + th_map
+  coord_quickmap(xlim = xl, ylim = c(yl[1], yl[2] + 0.13*diff(yl)), expand = FALSE) + th_map  # top strip for N arrow
 
 # ---- add scale bar (50 m) + traditional north arrow to both maps -------------
 m_per_deg_lon <- 111320 * cos(mean(yl) * pi/180)
@@ -76,8 +76,8 @@ dx <- diff(xl); dy <- diff(yl)
 add_ctx <- function(p) {
   # scale bar: bottom-left corner (white gap)
   x0 <- xl[1] + 0.05*dx; y0 <- yl[1] + 0.04*dy
-  # traditional two-tone compass needle, top-right corner (moved down so "N" isn't clipped)
-  ax <- xl[2] - 0.08*dx; apex <- yl[2] - 0.09*dy; base <- yl[2] - 0.18*dy; w <- 0.022*dx
+  # traditional two-tone compass needle, in the white header strip ABOVE the raster
+  ax <- xl[2] - 0.08*dx; apex <- yl[2] + 0.105*dy; base <- yl[2] + 0.02*dy; w <- 0.022*dx
   left  <- data.frame(x = c(ax, ax - w, ax),            y = c(apex, base, base + 0.028*dy))
   right <- data.frame(x = c(ax, ax + w, ax),            y = c(apex, base, base + 0.028*dy))
   p +
