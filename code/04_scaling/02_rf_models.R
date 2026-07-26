@@ -97,8 +97,21 @@ cat("  TREE_YEAR: [", round(min(TREE_YEAR$stem_flux_umol_m2_s, na.rm=T), 6), ","
 cat("  SOIL_YEAR: [", round(min(SOIL_YEAR$soil_flux_umol_m2_s, na.rm=T), 6), ",", 
     round(max(SOIL_YEAR$soil_flux_umol_m2_s, na.rm=T), 6), "]\n")
 
+# NOTE (2026 revision fix): TREE_YEAR already carries its own `species` column.
+# The previous `left_join(INVENTORY %>% select(tree_id, species))` collided with it,
+# producing species.x/species.y and leaving NO `species` column. Every one of the 369
+# year-long monthly rows then failed the downstream completeness filter, so TreeRF was
+# silently trained on the July campaign alone (353 rows, months 6-7, rigid chamber only)
+# and the chamber harmonisation in §2.5 never had any semirigid data to correct.
+# Fix: keep TREE_YEAR's own species and fill only genuine gaps from the inventory.
 TREE_YEAR <- TREE_YEAR %>%
-  left_join(INVENTORY %>% dplyr::select(tree_id, species), by = "tree_id")
+  left_join(INVENTORY %>% dplyr::select(tree_id, species_from_inventory = species),
+            by = "tree_id") %>%
+  mutate(species = dplyr::coalesce(species, species_from_inventory)) %>%
+  dplyr::select(-species_from_inventory)
+
+cat("  TREE_YEAR after species fill:", sum(!is.na(TREE_YEAR$species)), "of",
+    nrow(TREE_YEAR), "rows have species\n")
 
 cat("\n✓ Data loaded successfully\n\n")
 
@@ -278,8 +291,68 @@ cat("  Removing", n_outliers_tree, "tree flux outliers (",
     round(100*n_outliers_tree/nrow(tree_combined), 1), "%)\n")
 
 tree_combined <- tree_combined[outlier_mask_tree, ]
-tree_combined$stem_flux_corrected <- tree_combined$stem_flux_umol_m2_s 
-tree_combined$z_corr <- asinh(tree_combined$stem_flux_corrected)
+
+# =============================================================================
+# CHAMBER CALIBRATION (spec §2.5)
+# -----------------------------------------------------------------------------
+# NOTE (2026 revision fix): this step previously did nothing --
+#   stem_flux_corrected <- stem_flux_umol_m2_s
+# -- because the species-join collision upstream had already dropped every
+# semirigid (monthly-chamber) row, leaving a July/rigid-only training set with no
+# bias to estimate. With that collision fixed, both chamber types are present and
+# the harmonisation the spec calls for is estimated and applied here.
+#
+# Model (asinh scale):  z ~ I_semirigid + airT + soilT + moisture + species
+# beta1 is the systematic offset of the monthly (semirigid) chamber relative to the
+# July (rigid) reference. Only semirigid rows are corrected: z_corr = z - beta1.
+# =============================================================================
+
+CHAMBER_CALIB <- list(beta1 = 0, se = NA_real_, ci = c(NA_real_, NA_real_),
+                      r2 = NA_real_, n_rigid = 0, n_semirigid = 0, fitted = FALSE)
+
+cal_df <- tree_combined %>%
+  filter(!is.na(stem_flux_umol_m2_s), !is.na(chamber_type)) %>%
+  mutate(z = asinh(stem_flux_umol_m2_s),
+         I_semirigid = as.numeric(chamber_type == "semirigid"))
+
+CHAMBER_CALIB$n_rigid     <- sum(cal_df$I_semirigid == 0)
+CHAMBER_CALIB$n_semirigid <- sum(cal_df$I_semirigid == 1)
+
+if (CHAMBER_CALIB$n_rigid >= 10 && CHAMBER_CALIB$n_semirigid >= 10) {
+  # species as a control only where it is estimable
+  sp_ok <- cal_df %>% count(species) %>% filter(n >= 5, !is.na(species)) %>% pull(species)
+  cal_df$species_ctl <- ifelse(cal_df$species %in% sp_ok, cal_df$species, "OTHER")
+
+  chamber_fit <- lm(
+    z ~ I_semirigid + air_temp_C + soil_temp_C + soil_moisture_abs + species_ctl,
+    data = cal_df
+  )
+  cf <- summary(chamber_fit)$coefficients
+  if ("I_semirigid" %in% rownames(cf)) {
+    CHAMBER_CALIB$beta1  <- unname(cf["I_semirigid", "Estimate"])
+    CHAMBER_CALIB$se     <- unname(cf["I_semirigid", "Std. Error"])
+    CHAMBER_CALIB$ci     <- CHAMBER_CALIB$beta1 + c(-1.96, 1.96) * CHAMBER_CALIB$se
+    CHAMBER_CALIB$r2     <- summary(chamber_fit)$r.squared
+    CHAMBER_CALIB$fitted <- TRUE
+  }
+  cat(sprintf("  Chamber bias beta1 = %.4f (SE %.4f, 95%% CI %.4f to %.4f), model R2 = %.3f\n",
+              CHAMBER_CALIB$beta1, CHAMBER_CALIB$se,
+              CHAMBER_CALIB$ci[1], CHAMBER_CALIB$ci[2], CHAMBER_CALIB$r2))
+  cat(sprintf("  n rigid = %d, n semirigid = %d\n",
+              CHAMBER_CALIB$n_rigid, CHAMBER_CALIB$n_semirigid))
+} else {
+  cat("  WARNING: only one chamber type present (rigid =", CHAMBER_CALIB$n_rigid,
+      ", semirigid =", CHAMBER_CALIB$n_semirigid, ") - no chamber correction applied.\n")
+}
+
+# Apply: correct ONLY the semirigid rows, on the asinh scale, then back-transform.
+tree_combined$z_raw  <- asinh(tree_combined$stem_flux_umol_m2_s)
+tree_combined$z_corr <- ifelse(
+  !is.na(tree_combined$chamber_type) & tree_combined$chamber_type == "semirigid",
+  tree_combined$z_raw - CHAMBER_CALIB$beta1,
+  tree_combined$z_raw
+)
+tree_combined$stem_flux_corrected <- sinh(tree_combined$z_corr)
 
 # Soil data outlier removal
 remove_outliers_mad <- function(x, k = 8) {
@@ -472,6 +545,30 @@ compute_taxon_prior <- function(tree_df, taxonomy_df) {
 TAXONOMY_PRIORS <- compute_taxon_prior(tree_combined, TAXONOMY)
 cat("✓ Taxonomy priors computed\n")
 
+# ---------------------------------------------------------------------------
+# Shared species -> genus -> family lookup for taxon_prior_asinh.
+# NOTE (2026 revision fix): the training path applied this prior, but the
+# prediction path hard-set taxon_prior_asinh = 0 for every inventory tree, so the
+# feature was systematically offset from its training distribution and contributed
+# nothing at prediction time. This helper is now used in BOTH places.
+# ---------------------------------------------------------------------------
+lookup_taxon_prior <- function(species_vec, taxonomy, taxon_priors) {
+  tx <- taxonomy %>% dplyr::select(species, genus, family) %>% distinct()
+  idx <- match(species_vec, tx$species)
+  genus_vec  <- tx$genus[idx]
+  family_vec <- tx$family[idx]
+
+  out <- rep(0, length(species_vec))
+  sp_hit <- match(species_vec, taxon_priors$species$species)
+  gn_hit <- match(genus_vec,   taxon_priors$genus$genus)
+  fm_hit <- match(family_vec,  taxon_priors$family$family)
+
+  out <- ifelse(!is.na(sp_hit), taxon_priors$species$med_resid[sp_hit],
+         ifelse(!is.na(gn_hit), taxon_priors$genus$med_resid[gn_hit],
+         ifelse(!is.na(fm_hit), taxon_priors$family$med_resid[fm_hit], 0)))
+  as.numeric(ifelse(is.na(out), 0, out))
+}
+
 build_features_tree <- function(df, drivers, Mhat_fn, SI_table, taxonomy, taxon_priors) {
   df <- df %>%
     left_join(drivers %>% dplyr::select(month, air_temp_C_mean, soil_temp_C_mean),
@@ -652,8 +749,13 @@ X_tree_species_first <- data.frame(
   soil_moisture_at_tree = tree_train_complete$soil_moisture_at_tree,
   SI = tree_train_complete$SI,
   taxon_prior_asinh = tree_train_complete$taxon_prior_asinh,
-  chamber_rigid = tree_train_complete$chamber_rigid,
-  chamber_semirigid = tree_train_complete$chamber_semirigid,
+  # NOTE (2026 revision fix): chamber_rigid / chamber_semirigid removed. Spec §2.5.3
+  # and §10 require the chamber difference to be handled by the beta1 correction on the
+  # target, NOT carried as a predictor -- otherwise there is no defined chamber value at
+  # prediction time (inventory trees have no chamber). Previously these columns were
+  # present but happened to be constant (July-only training), so they were silently
+  # dropped by the zero-variance filter below; that is no longer true now that both
+  # chamber types are in training.
   month_sin = tree_train_complete$month_sin,
   month_cos = tree_train_complete$month_cos
 )
@@ -853,13 +955,13 @@ for (t in 1:12) {
       SI_tree = SI_tree_t,
       month_sin = sin(2 * pi * t / 12),
       month_cos = cos(2 * pi * t / 12),
-      chamber_rigid = 1,
-      chamber_semirigid = 0,
       species_factor = factor(
         species_clean,
         levels = levels(tree_train$species_factor)
       ),
-      taxon_prior_asinh = 0
+      # NOTE (2026 revision fix): was hard-coded to 0 here, which zeroed the taxon
+      # prior for every inventory tree while training rows carried non-zero values.
+      taxon_prior_asinh = lookup_taxon_prior(species, TAXONOMY, TAXONOMY_PRIORS)
     )
   
   # Build prediction features (FIXED)
@@ -878,16 +980,23 @@ for (t in 1:12) {
     soil_moisture_at_tree = inv_predictions$soil_moisture_abs,
     SI = inv_predictions$SI_tree,
     taxon_prior_asinh = inv_predictions$taxon_prior_asinh,
-    chamber_rigid = inv_predictions$chamber_rigid,
-    chamber_semirigid = inv_predictions$chamber_semirigid,
     month_sin = inv_predictions$month_sin,
     month_cos = inv_predictions$month_cos
   )
   
-  # Align columns with training
+  # Align columns with training.
+  # NOTE (2026 revision fix): this loop silently zero-fills any trained feature that is
+  # absent from the prediction frame, which is how a name mismatch can blank out most of
+  # the model's inputs without any error. Check first and fail loudly.
+  missing_tree_feats <- setdiff(colnames(X_tree), colnames(X_pred_tree))
+  if (length(missing_tree_feats) > 0) {
+    stop("TreeRF prediction is missing trained features: ",
+         paste(missing_tree_feats, collapse = ", "))
+  }
+
   X_pred_aligned <- matrix(0, nrow = nrow(X_pred_tree), ncol = ncol(X_tree))
   colnames(X_pred_aligned) <- colnames(X_tree)
-  
+
   for (col_name in colnames(X_tree)) {
     if (col_name %in% colnames(X_pred_tree)) {
       X_pred_aligned[, col_name] <- X_pred_tree[[col_name]]
@@ -973,15 +1082,35 @@ for (t in 1:12) {
       moisture_x_airT = soil_moisture_abs * air_temp_C
     )
   
+  # NOTE (2026 revision fix): these columns are renamed to match the names SoilRF was
+  # TRAINED on. Previously they were passed as soil_temp_C / air_temp_C /
+  # soil_moisture_abs / SI_soil, none of which matched the model's
+  # soil_temp_C_mean / air_temp_C_mean / soil_moisture_at_site / SI. The alignment loop
+  # below then zero-filled all four, so half of SoilRF's inputs were exactly 0 at every
+  # prediction -- biasing mean soil uptake ~1.9x too strong and collapsing its variance.
   X_pred_soil <- grid_predictions %>%
-    dplyr::select(soil_temp_C, soil_moisture_abs, SI_soil, 
-                  moisture_x_soilT, air_temp_C, moisture_x_airT,
-                  month_sin, month_cos) %>%
+    dplyr::transmute(
+      soil_temp_C_mean      = soil_temp_C,
+      air_temp_C_mean       = air_temp_C,
+      soil_moisture_at_site = soil_moisture_abs,
+      SI                    = SI_soil,
+      moisture_x_soilT      = moisture_x_soilT,
+      moisture_x_airT       = moisture_x_airT,
+      month_sin             = month_sin,
+      month_cos             = month_cos
+    ) %>%
     as.matrix()
-  
+
+  # Fail loudly rather than silently zero-filling a missing predictor.
+  missing_soil_feats <- setdiff(colnames(X_soil), colnames(X_pred_soil))
+  if (length(missing_soil_feats) > 0) {
+    stop("SoilRF prediction is missing trained features: ",
+         paste(missing_soil_feats, collapse = ", "))
+  }
+
   X_pred_soil_aligned <- matrix(0, nrow = nrow(X_pred_soil), ncol = ncol(X_soil))
   colnames(X_pred_soil_aligned) <- colnames(X_soil)
-  
+
   for (col_name in colnames(X_soil)) {
     if (col_name %in% colnames(X_pred_soil)) {
       X_pred_soil_aligned[, col_name] <- X_pred_soil[, col_name]
@@ -1067,7 +1196,7 @@ cat("  - SoilRF R² =", round(SoilRF$r.squared, 3), "\n")
 cat("\nGenerating quality control plots...\n")
 
 # QC1: Chamber type comparison
-qc1_data <- tree_train %>%
+qc1_data <- tree_train_complete %>%
   mutate(
     chamber = ifelse(chamber_rigid == 1, "rigid", "semirigid"),
     flux_original = sinh(y_asinh)
@@ -1106,11 +1235,13 @@ p1b <- ggplot(outlier_summary, aes(x = dataset, y = pct_outliers)) +
 ggsave("../../outputs/figures/QC_OUTLIERS.png", p1b, width = 6, height = 6)
 
 # QC2: Predictions vs observations - Trees
-tree_train$pred_asinh <- TreeRF$predictions
-tree_train$pred_flux <- sinh(tree_train$pred_asinh)
-tree_train$chamber <- ifelse(tree_train$chamber_rigid == 1, "rigid", "semirigid")
+# NOTE (2026 revision fix): TreeRF is fitted on tree_train_complete (complete cases),
+# so its predictions align with THAT frame, not the unfiltered tree_train.
+tree_train_complete$pred_asinh <- TreeRF$predictions
+tree_train_complete$pred_flux <- sinh(tree_train_complete$pred_asinh)
+tree_train_complete$chamber <- ifelse(tree_train_complete$chamber_rigid == 1, "rigid", "semirigid")
 
-p2 <- ggplot(tree_train, aes(x = stem_flux_corrected, y = pred_flux, 
+p2 <- ggplot(tree_train_complete, aes(x = stem_flux_corrected, y = pred_flux, 
                              color = chamber)) +
   geom_point(alpha = 0.5) +
   geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
@@ -1127,10 +1258,10 @@ p2 <- ggplot(tree_train, aes(x = stem_flux_corrected, y = pred_flux,
 ggsave("../../outputs/figures/QC_PRED_VS_OBS_TREE.png", p2, width = 8, height = 6)
 
 # QC2b: Predictions vs observations - Soil
-soil_train$pred_asinh <- SoilRF$predictions
-soil_train$pred_flux <- sinh(soil_train$pred_asinh)
+soil_train_complete$pred_asinh <- SoilRF$predictions
+soil_train_complete$pred_flux <- sinh(soil_train_complete$pred_asinh)
 
-p2b <- ggplot(soil_train, aes(x = soil_flux_umol_m2_s, y = pred_flux)) +
+p2b <- ggplot(soil_train_complete, aes(x = soil_flux_umol_m2_s, y = pred_flux)) +
   geom_point(alpha = 0.5, color = "darkgreen") +
   geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
   scale_x_continuous(trans = scales::pseudo_log_trans(base = 10)) +
@@ -1247,9 +1378,17 @@ diagnostics <- list(
   TreeRF_OOB_RMSE = sqrt(TreeRF$prediction.error),
   SoilRF_OOB_R2 = SoilRF$r.squared,
   SoilRF_OOB_RMSE = sqrt(SoilRF$prediction.error),
-  Chamber_as_predictor = TRUE,
-  Month_as_predictor = TRUE,  # ADDED
-  Chamber_beta1 = NA,  # Not applicable with chamber as predictor
+  # NOTE (2026 revision fix): chamber is now handled by the beta1 correction on the
+  # target (spec 2.5), not carried as a predictor.
+  Chamber_as_predictor = FALSE,
+  Month_as_predictor = TRUE,
+  Chamber_beta1 = CHAMBER_CALIB$beta1,
+  Chamber_beta1_SE = CHAMBER_CALIB$se,
+  Chamber_beta1_CI = CHAMBER_CALIB$ci,
+  Chamber_calib_R2 = CHAMBER_CALIB$r2,
+  Chamber_n_rigid = CHAMBER_CALIB$n_rigid,
+  Chamber_n_semirigid = CHAMBER_CALIB$n_semirigid,
+  Chamber_calib_fitted = CHAMBER_CALIB$fitted,
   TreeRF_importance = importance(TreeRF),
   SoilRF_importance = importance(SoilRF),
   n_tree_training = nrow(X_tree),
@@ -1259,14 +1398,20 @@ diagnostics <- list(
     tree_pct = 100*n_outliers_tree/(n_outliers_tree + nrow(tree_combined)),
     soil_n = n_outliers_soil,
     soil_pct = 100*n_outliers_soil/(n_outliers_soil + nrow(SOIL_YEAR)),
-    method = "MAD with k=8"
+    # NOTE (2026 revision fix): the two datasets use DIFFERENT rules; this was
+    # previously mislabelled as "MAD with k=8" for both.
+    method_tree = "asinh 1st/99th percentile trim",
+    method_soil = "MAD with k=8"
   ),
-  data_completeness = list(
-    tree_complete_before_impute = n_before_impute,
-    tree_complete_after_impute = n_after_impute,
-    soil_complete_before_impute = n_before_soil,
-    soil_complete_after_impute = n_after_soil
+  # NOTE (2026 revision fix): these four counters referenced variables that were never
+  # assigned anywhere in the script, so building `diagnostics` aborted before the file
+  # could be saved -- which is why DIAGNOSTICS.RData on disk was stale (Sep 2025) and
+  # disagreed with the saved models (its n_tree_training = 718 vs the model's 353).
+  training_months = list(
+    tree = sort(unique(tree_train_complete$month)),
+    soil = sort(unique(soil_train_complete$month))
   ),
+  training_chambers = as.list(table(tree_train_complete$chamber_type)),
   dbh_corrections_applied = n_dbh_corrected,
   coordinate_system = "GPS (x = longitude, y = latitude)"  # ADDED
 )
@@ -1303,15 +1448,17 @@ cat("All spatial data uses GPS coordinates (x = longitude, y = latitude)\n")
 cat("\nGenerating updated plots with nmol units...\n")
 
 # QC2: Predictions vs observations - Trees (in nmol)
-tree_train$pred_asinh <- TreeRF$predictions
-tree_train$pred_flux <- sinh(tree_train$pred_asinh)
-tree_train$chamber <- ifelse(tree_train$chamber_rigid == 1, "rigid", "semirigid")
+# NOTE (2026 revision fix): TreeRF is fitted on tree_train_complete (complete cases),
+# so its predictions align with THAT frame, not the unfiltered tree_train.
+tree_train_complete$pred_asinh <- TreeRF$predictions
+tree_train_complete$pred_flux <- sinh(tree_train_complete$pred_asinh)
+tree_train_complete$chamber <- ifelse(tree_train_complete$chamber_rigid == 1, "rigid", "semirigid")
 
 # Convert to nmol for plotting (multiply by 1000)
-tree_train$pred_flux_nmol <- tree_train$pred_flux * 1000
-tree_train$obs_flux_nmol <- tree_train$stem_flux_corrected * 1000
+tree_train_complete$pred_flux_nmol <- tree_train_complete$pred_flux * 1000
+tree_train_complete$obs_flux_nmol <- tree_train_complete$stem_flux_corrected * 1000
 
-p2_nmol <- ggplot(tree_train, aes(x = obs_flux_nmol, y = pred_flux_nmol, 
+p2_nmol <- ggplot(tree_train_complete, aes(x = obs_flux_nmol, y = pred_flux_nmol, 
                                   color = chamber)) +
   geom_point(alpha = 0.5) +
   geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
@@ -1333,14 +1480,14 @@ ggsave("../../outputs/figures/QC_PRED_VS_OBS_TREE_nmol.png", p2_nmol, width = 8,
 cat("  Saved: QC_PRED_VS_OBS_TREE_nmol.png\n")
 
 # QC2b: Predictions vs observations - Soil (in nmol)
-soil_train$pred_asinh <- SoilRF$predictions
-soil_train$pred_flux <- sinh(soil_train$pred_asinh)
+soil_train_complete$pred_asinh <- SoilRF$predictions
+soil_train_complete$pred_flux <- sinh(soil_train_complete$pred_asinh)
 
 # Convert to nmol for plotting
-soil_train$pred_flux_nmol <- soil_train$pred_flux * 1000
-soil_train$obs_flux_nmol <- soil_train$soil_flux_umol_m2_s * 1000
+soil_train_complete$pred_flux_nmol <- soil_train_complete$pred_flux * 1000
+soil_train_complete$obs_flux_nmol <- soil_train_complete$soil_flux_umol_m2_s * 1000
 
-p2b_nmol <- ggplot(soil_train, aes(x = obs_flux_nmol, y = pred_flux_nmol)) +
+p2b_nmol <- ggplot(soil_train_complete, aes(x = obs_flux_nmol, y = pred_flux_nmol)) +
   geom_point(alpha = 0.5, color = "darkgreen") +
   geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
   scale_x_continuous(trans = scales::pseudo_log_trans(base = 10)) +
@@ -1360,10 +1507,10 @@ cat("  Saved: QC_PRED_VS_OBS_SOIL_nmol.png\n")
 
 # Optional: Create a combined plot showing both tree and soil on same scale
 combined_data <- bind_rows(
-  tree_train %>% 
+  tree_train_complete %>% 
     dplyr::select(obs_flux_nmol, pred_flux_nmol) %>%
     mutate(type = "Trees"),
-  soil_train %>%
+  soil_train_complete %>%
     dplyr::select(obs_flux_nmol, pred_flux_nmol) %>%
     mutate(type = "Soil")
 )
@@ -1480,8 +1627,8 @@ p2 <- ggplot(tree_train_complete, aes(x = stem_flux_corrected, y = pred_flux,
 ggsave("../../outputs/figures/QC_PRED_VS_OBS_TREE.png", p2, width = 8, height = 6)
 
 # QC2b: Predictions vs observations - Soil
-soil_train$pred_asinh <- SoilRF$predictions
-soil_train$pred_flux <- sinh(soil_train$pred_asinh)
+soil_train_complete$pred_asinh <- SoilRF$predictions
+soil_train_complete$pred_flux <- sinh(soil_train_complete$pred_asinh)
 
 p2b <- ggplot(soil_train[complete_rows_soil,], aes(x = soil_flux_umol_m2_s, y = pred_flux)) +
   geom_point(alpha = 0.5, color = "darkgreen") +
