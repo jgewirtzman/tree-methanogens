@@ -43,6 +43,10 @@ paths <- list(
   inventory = "../../data/raw/inventory/ForestGEO_data2021UPDATE_6_21_DW_2019.csv",
   met_tower = "../../data/raw/weather/ymf_clean_sorted.csv",
   moisture_extra = "../../data/raw/field_data/ipad_data/Cleaned data/soilmoisture_total.csv",
+  # Master per-collar soil temperature + VWC campaign (Date, Site, Plot, Subplot).
+  # Resolves to the individual collar, unlike soilmoisture_total.csv which only
+  # resolves to the plot, and covers 197 of 288 soil flux records vs 104.
+  soil_env_master = "../../data/raw/environmental/Soil_temp_moisture_2020.xlsx",
   moisture_december = "../../data/raw/inventory/spatial_data/soil_moisture_20201216.csv",
   river = "../../data/raw/inventory/spatial_data/River.xlsx",
   plot_locations = "../../data/raw/inventory/spatial_data/plots.csv"
@@ -650,6 +654,41 @@ cat("  With coordinates:", n_with_coords, "of", nrow(TREE_JULY), "\n\n")
 
 cat("Preparing moisture calibration data...\n")
 
+# =============================================================================
+# PER-COLLAR SOIL TEMPERATURE AND MOISTURE (2026 revision)
+# -----------------------------------------------------------------------------
+# The pipeline previously drew these only from soilmoisture_total.csv, which keys on
+# PLOT (1 or 2) rather than collar, so every collar in a plot received the same value
+# and soil temperature ended up with exactly ONE distinct value per month across the
+# whole dataset -- no spatial information at all.
+#
+# Soil_temp_moisture_2020.xlsx records Site + Plot + Subplot, i.e. the individual
+# collar, on 19 dates. Matched on date + landscape position + collar it covers 197 of
+# 288 soil flux records (68%) with genuinely measured temperature and VWC, against 104
+# (39%) before. The remaining 91 fall on four dates when the environmental campaign did
+# not run; those keep the monthly-mean fallback.
+# =============================================================================
+soil_env_collar <- NULL
+if (!is.null(paths$soil_env_master) && file.exists(paths$soil_env_master)) {
+  suppressMessages(library(readxl))
+  .env <- read_excel(paths$soil_env_master, sheet = 1)
+  names(.env) <- make.names(names(.env))
+  .site_map <- c("Upland" = "U", "Intermediate" = "I",
+                 "Wetland dry" = "WD", "Wetland swamp" = "WS")
+  soil_env_collar <- .env %>%
+    mutate(
+      Date        = as.Date(Date),
+      plot_letter = unname(.site_map[trimws(Site)]),
+      plot_tag    = paste0(Plot, "-", Subplot),
+      soil_temp_C = suppressWarnings(as.numeric(Soil.temp)),
+      soil_moisture_abs = suppressWarnings(as.numeric(VWC)) / 100
+    ) %>%
+    filter(!is.na(Date), !is.na(plot_letter), !is.na(soil_temp_C)) %>%
+    select(Date, plot_letter, plot_tag, soil_temp_C, soil_moisture_abs)
+  cat("✓ Per-collar soil env data:", nrow(soil_env_collar), "records on",
+      length(unique(soil_env_collar$Date)), "dates\n")
+}
+
 if (!is.null(semirigid_moisture)) {
   moisture_clean <- semirigid_moisture %>%
     mutate(
@@ -847,6 +886,23 @@ if (!is.null(soil_data) && !is.null(plot_locations)) {
               paste(OUT_OF_STAND_COLLARS, collapse = ", "),
               n_before_stand - nrow(SOIL_YEAR), n_before_stand))
 
+  # Per-collar measurements first (date + landscape position + collar), so each collar
+  # gets ITS OWN temperature and moisture rather than a plot- or month-level constant.
+  if (!is.null(soil_env_collar) && nrow(soil_env_collar) > 0) {
+    SOIL_YEAR <- SOIL_YEAR %>%
+      mutate(Date_only = as.Date(Date)) %>%
+      left_join(soil_env_collar %>%
+                  rename(soil_temp_collar = soil_temp_C,
+                         soil_moisture_collar = soil_moisture_abs),
+                by = c("Date_only" = "Date", "plot_letter", "plot_tag"))
+    cat(sprintf("  Per-collar soil env matched: %d of %d measurements (%.0f%%)\n",
+                sum(!is.na(SOIL_YEAR$soil_temp_collar)), nrow(SOIL_YEAR),
+                100 * mean(!is.na(SOIL_YEAR$soil_temp_collar))))
+  } else {
+    SOIL_YEAR$soil_temp_collar <- NA_real_
+    SOIL_YEAR$soil_moisture_collar <- NA_real_
+  }
+
   # Add moisture data if available
   if (nrow(moisture_clean) > 0) {
     SOIL_YEAR <- SOIL_YEAR %>%
@@ -863,6 +919,9 @@ if (!is.null(soil_data) && !is.null(plot_locations)) {
         by = c("Date_only", "plot_tag" = "plot_tag_match")
       ) %>%
       mutate(
+        # collar-level measurement takes precedence over the plot-level average
+        soil_temp_C = dplyr::coalesce(soil_temp_collar, soil_temp_C),
+        soil_moisture_abs = dplyr::coalesce(soil_moisture_collar, soil_moisture_abs),
         soil_temp_C = ifelse(is.nan(soil_temp_C), NA_real_, soil_temp_C),
         soil_moisture_abs = ifelse(is.nan(soil_moisture_abs), NA_real_, soil_moisture_abs)
       ) %>%
