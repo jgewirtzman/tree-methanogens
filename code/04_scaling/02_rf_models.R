@@ -782,7 +782,19 @@ X_tree_species_first <- data.frame(
   soil_temp_C_mean = tree_train_complete$soil_temp_C_mean,
   soil_moisture_at_tree = tree_train_complete$soil_moisture_at_tree,
   SI = tree_train_complete$SI,
-  taxon_prior_asinh = tree_train_complete$taxon_prior_asinh,
+  # NOTE (2026 revision): taxon_prior_asinh REMOVED from the feature set.
+  # Its purpose is to inform inventory species absent from training -- but 14 of the
+  # 15 censused species were measured, covering 99.98% of stem area. The only
+  # unmeasured species is a single Acer pensylvanicum stem (0.9 of 4,055 m2). So the
+  # prior was adding a noisy, self-including feature for the 99.98% of stems whose
+  # species identity the one-hots already carry.
+  # Tested under grouped CV (whole trees held out), priors refit inside each fold:
+  #   hier 0.152 | NONE 0.151 | traits 0.143 | current 0.137 | loo 0.115
+  # i.e. no prior matches the best, and the implemented one was worse than none.
+  # Tested leave-one-SPECIES-out (its actual purpose), EVERY variant had negative R2
+  # (traits -0.026, none -0.038, hier -0.038, current -0.055): species-level
+  # generalisation is not supported by these data, and is not needed here.
+  # See code/revision/rev_rf_taxon_prior_comparison.R and rev_rf_leave_one_species_out.R
   # NOTE (2026 revision): measurement height enters as a FEATURE. The 2021 campaign
   # measured 50/125/200 cm on the same trees; without this the three rows are identical
   # in every predictor and differ only in the response, so the model averages them and
@@ -1027,7 +1039,6 @@ for (t in 1:12) {
     # by ~6.5% because flux declines with height.)
     height_cm = 125,
     SI = inv_predictions$SI_tree,
-    taxon_prior_asinh = inv_predictions$taxon_prior_asinh,
     month_sin = inv_predictions$month_sin,
     month_cos = inv_predictions$month_cos
   )
