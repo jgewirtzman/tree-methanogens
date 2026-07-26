@@ -36,14 +36,16 @@ cat("Started at:", format(Sys.time()), "\n\n")
 paths <- list(
   merged_tree = "../../data/processed/integrated/merged_tree_dataset_final.csv",
   tree_2023 = "../../data/processed/flux/methanogen_tree_flux_complete_dataset.csv",
-  semirigid_tree = "../../data/processed/flux/semirigid_tree_final_complete_dataset.csv",
+  # NOTE (2026 revision): use the dataset that includes the recovered untagged/dead-snag
+  # monthly trees (+45 fluxes, +7 trees). The revision analyses all use this file.
+  semirigid_tree = "../../data/processed/flux/semirigid_tree_final_complete_dataset_with_untagged.csv",
   soil = "../../data/processed/flux/semirigid_tree_final_complete_dataset_soil.csv",
   inventory = "../../data/raw/inventory/ForestGEO_data2021UPDATE_6_21_DW_2019.csv",
   met_tower = "../../data/raw/weather/ymf_clean_sorted.csv",
-  moisture_extra = "../../data/raw/ipad_data/Cleaned data/soilmoisture_total.csv",
-  moisture_december = "../../data/raw/spatial_data/soil_moisture_20201216.csv",
-  river = "../../data/raw/spatial_data/River.xlsx",
-  plot_locations = "../../data/raw/spatial_data/plots.csv"
+  moisture_extra = "../../data/raw/field_data/ipad_data/Cleaned data/soilmoisture_total.csv",
+  moisture_december = "../../data/raw/inventory/spatial_data/soil_moisture_20201216.csv",
+  river = "../../data/raw/inventory/spatial_data/River.xlsx",
+  plot_locations = "../../data/raw/inventory/spatial_data/plots.csv"
 )
 
 # =============================================================================
@@ -131,8 +133,63 @@ semirigid_data <- load_safe(paths$semirigid_tree, read_csv, show_col_types = FAL
 soil_data <- load_safe(paths$soil, read_csv, show_col_types = FALSE)
 fg19 <- load_safe(paths$inventory, read.csv)
 ymf_met <- load_safe(paths$met_tower, read.csv)
-semirigid_moisture <- load_safe(paths$moisture_extra, read.csv)
+# NOTE (2026 revision): this CSV carries a UTF-8 BOM, which mangles the first column
+# name ("Date") unless declared -- previously it silently failed to load at all.
+semirigid_moisture <- load_safe(paths$moisture_extra, read.csv, fileEncoding = "UTF-8-BOM")
 plot_locations <- load_safe(paths$plot_locations, read.csv)
+
+# =============================================================================
+# CHAMBER INTEGRITY SCREEN (2026 revision)
+# -----------------------------------------------------------------------------
+# A chamber whose CH4 concentration STARTS far above ambient (~2000 ppb) was not
+# properly flushed -- the "flux" then records the chamber venting down, not soil or
+# stem exchange. This is the one failure mode present in these data: exactly two
+# soil deployments (both 2020-06-17) start at 11,687 and 49,049 ppb and produce
+# +31.6 and -176.1 nmol m-2 s-1, the latter ~39x any other uptake observed.
+#
+# This REPLACES the previous statistical filters, which were doing the wrong thing:
+#   * MAD k=8 on soil deleted four genuine wetland-margin emissions (11.6-63.1
+#     nmol m-2 s-1, all with normal C0) while keeping the -176 artifact, making the
+#     soil sink ~2.7x too strong.
+#   * A 1st/99th-percentile trim on tree flux removed the largest emissions -- the
+#     stem hotspots this study documents -- costing 33% of the mean.
+#   * An R2 >= 0.7 gate is not a quality criterion here at all: rho(R2, |flux|) =
+#     0.95, so it simply deletes small fluxes (9x smaller in median magnitude) and
+#     makes the soil mean 30% more negative. Both artifacts above pass it easily
+#     (R2 = 0.94 and 0.9995).
+# Unlike those, a C0 threshold is mechanistic and unbiased with respect to flux size.
+# =============================================================================
+C0_MAX_PPB <- 5000   # ~2.5x ambient
+
+screen_chamber_integrity <- function(df, c0_col, flux_col, label) {
+  if (is.null(df) || !(c0_col %in% names(df))) return(df)
+  c0 <- suppressWarnings(as.numeric(df[[c0_col]]))
+  bad <- !is.na(c0) & c0 > C0_MAX_PPB & !is.na(suppressWarnings(as.numeric(df[[flux_col]])))
+  if (any(bad)) {
+    cat(sprintf("  %s: dropping %d deployment(s) with C0 > %d ppb (max %.0f)\n",
+                label, sum(bad), C0_MAX_PPB, max(c0[bad])))
+    df[[flux_col]][bad] <- NA
+  } else {
+    cat(sprintf("  %s: no deployments exceed C0 = %d ppb\n", label, C0_MAX_PPB))
+  }
+  df
+}
+
+# The revision dataset was written with syntactic column names (Plot.Tag); the older
+# file used literal spaces (`Plot Tag`). Normalise so downstream code is agnostic.
+if (!is.null(semirigid_data)) {
+  nm <- names(semirigid_data)
+  ren <- c("Plot.Tag" = "Plot Tag", "Plot.Letter" = "Plot Letter")
+  for (from in names(ren)) if (from %in% nm && !(ren[[from]] %in% nm)) {
+    names(semirigid_data)[names(semirigid_data) == from] <- ren[[from]]
+  }
+  cat("  semirigid columns normalised (", ncol(semirigid_data), "cols,", nrow(semirigid_data), "rows )\n")
+}
+
+cat("\nChamber integrity screen:\n")
+soil_data      <- screen_chamber_integrity(soil_data,      "CH4_C0",   "CH4_best.flux",   "soil monthly")
+semirigid_data <- screen_chamber_integrity(semirigid_data, "CH4_C0.x", "CH4_best.flux.x", "tree monthly")
+tree_2023_data <- screen_chamber_integrity(tree_2023_data, "CH4_C0",   "CH4_best.flux",   "tree 2023")
 
 # Check critical data loaded
 critical_missing <- c()
@@ -249,16 +306,42 @@ INVENTORY <- fg19_clean %>%
   select(tree_id, species, species_code, dbh_m, x, y, PX, PY) %>%
   filter(!is.na(x), !is.na(y))
 
-# Validate coordinate transformation
+# =============================================================================
+# CENSUSED PLOT DOMAIN (2026 revision)
+# -----------------------------------------------------------------------------
+# PLOT_AREA is the denominator of the entire tree budget (Phi_tree = sum(F_i*S_i)/A_plot),
+# so getting it right matters more than anything else in the scaling.
+#
+# It was previously the NSEW bounding box of stem lat/lon = 10.23 ha. That is wrong three
+# times over: (a) the plot is rotated 10 deg from north, so an axis-aligned box is the wrong
+# SHAPE; (b) the census does not actually cover the nominal 350 x 300 m plot -- stems are
+# confined to roughly PX 0-200, PY 0-200; and (c) the box was inflated to 10.23 ha by just
+# 5 stray stems (0.07%) lying outside the surveyed area, almost certainly coordinate errors.
+#
+# Evidence for the censused extent: on a 50 m grid every cell with PX<200 & PY<200 holds
+# 86-2268 stems, while every cell beyond holds 0-1. Stem density confirms it -- 685 stems/ha
+# over the old box is implausibly low for a census whose median DBH is 2.3 cm, whereas
+# 1,752 stems/ha over the censused core is right.
+#
+# Working in the plot's own (PX, PY) metre coordinates also sidesteps the rotation entirely.
+# NOTE: this cancels in the whole-woody-surface scenario -- Phi_tree and the stem area index
+# both carry 1/A_plot -- but it scales the MEASURED 0-2 m budget directly.
+# =============================================================================
+CENSUS_PX_MAX <- 200   # m, plot coordinates
+CENSUS_PY_MAX <- 200
+
+n_before_core <- nrow(INVENTORY)
+INVENTORY <- INVENTORY %>%
+  filter(PX >= 0, PX <= CENSUS_PX_MAX, PY >= 0, PY <= CENSUS_PY_MAX)
+cat(sprintf("  Censused core: kept %d of %d stems (dropped %d outside PX/PY <= %d m)\n",
+            nrow(INVENTORY), n_before_core, n_before_core - nrow(INVENTORY), CENSUS_PX_MAX))
+
+PLOT_AREA <- CENSUS_PX_MAX * CENSUS_PY_MAX
+
 coord_ranges <- list(
   x = range(INVENTORY$x, na.rm = TRUE),
   y = range(INVENTORY$y, na.rm = TRUE)
 )
-
-# Calculate plot area
-lon_dist_m <- (coord_ranges$x[2] - coord_ranges$x[1]) * 111320 * cos(mean(INVENTORY$y, na.rm=TRUE) * pi/180)
-lat_dist_m <- (coord_ranges$y[2] - coord_ranges$y[1]) * 111320
-PLOT_AREA <- lon_dist_m * lat_dist_m
 
 cat("✓ Inventory:", nrow(INVENTORY), "trees with GPS coordinates\n")
 cat("  Coordinate ranges: lon [", round(coord_ranges$x[1], 6), "-", round(coord_ranges$x[2], 6), 
@@ -337,11 +420,52 @@ TREE_JULY_125 <- merged_tree_data %>%
       TRUE ~ dbh
     ),
     chamber_type = "rigid",
+    measurement_height_cm = 125,
     month = month(Date),
     year = year(Date)
   ) %>%
   select(tree_id, species, species_code, Date, month, year, stem_flux_umol_m2_s, 
-         air_temp_C, soil_temp_C, soil_moisture_abs, dbh_m, chamber_type)
+         air_temp_C, soil_temp_C, soil_moisture_abs, dbh_m, chamber_type,
+         measurement_height_cm)
+
+# =============================================================================
+# 2021 HEIGHT CAMPAIGN: 50 cm and 200 cm (2026 revision)
+# -----------------------------------------------------------------------------
+# Only the 125 cm measurements were previously used, so 291 of the campaign's 439
+# fluxes never reached the model. Including all three heights is not just more data:
+# the budget integrates flux over the 0-2 m stem band, so a mean ACROSS heights
+# estimates that band better than assuming 125 cm is representative of it.
+# Height is carried through as a column so it can be inspected or used as a feature.
+# =============================================================================
+make_height_block <- function(df, flux_col, temp_col, height_cm) {
+  if (!(flux_col %in% names(df))) return(NULL)
+  df %>%
+    filter(!is.na(.data[[flux_col]])) %>%
+    mutate(
+      Date = base_date,
+      tree_id = as.character(tree_id),
+      species_code = species_id,
+      species = ifelse(species_id %in% names(species_mapping),
+                       species_mapping[species_id], paste("Unknown", species_id)),
+      stem_flux_umol_m2_s = .data[[flux_col]],
+      air_temp_C = if (temp_col %in% names(df)) .data[[temp_col]] else Temp_Air_125cm,
+      soil_temp_C = SoilTemp_mean,
+      soil_moisture_abs = VWC_mean / 100,
+      dbh_m = case_when(is.na(dbh) ~ NA_real_, dbh > 3 ~ dbh / 100, TRUE ~ dbh),
+      chamber_type = "rigid",
+      measurement_height_cm = height_cm,
+      month = month(Date),
+      year = year(Date)
+    ) %>%
+    select(tree_id, species, species_code, Date, month, year, stem_flux_umol_m2_s,
+           air_temp_C, soil_temp_C, soil_moisture_abs, dbh_m, chamber_type,
+           measurement_height_cm)
+}
+
+TREE_JULY_50  <- make_height_block(merged_tree_data, "CH4_best.flux_50cm",  "Temp_Air_50cm",  50)
+TREE_JULY_200 <- make_height_block(merged_tree_data, "CH4_best.flux_200cm", "Temp_Air_200cm", 200)
+cat("  50cm chambers:",  if (is.null(TREE_JULY_50)) 0 else nrow(TREE_JULY_50), "\n")
+cat("  200cm chambers:", if (is.null(TREE_JULY_200)) 0 else nrow(TREE_JULY_200), "\n")
 
 # Process Kalmia measurements
 KALMIA_DATA <- merged_tree_data %>%
@@ -392,7 +516,7 @@ OTHER_75CM <- merged_tree_data %>%
          air_temp_C, soil_temp_C, soil_moisture_abs, dbh_m, chamber_type)
 
 # Combine all 2021 July data
-TREE_JULY_2021 <- bind_rows(TREE_JULY_125, KALMIA_DATA, OTHER_75CM)
+TREE_JULY_2021 <- bind_rows(TREE_JULY_125, TREE_JULY_50, TREE_JULY_200, KALMIA_DATA, OTHER_75CM)
 
 cat("✓ 2021 summer data:", nrow(TREE_JULY_2021), "measurements\n")
 cat("  125cm chambers:", nrow(TREE_JULY_125), "\n")
@@ -423,27 +547,53 @@ if (!is.null(tree_2023_data)) {
       filter(!is.na(stem_flux_umol_m2_s), !is.na(tree_tag_num))
     
     # Match with inventory
+    # =========================================================================
+    # NOTE (2026 revision): this block previously required every 2023 tree to match an
+    # INVENTORY record, because it took x, y AND dbh from the inventory and then filtered
+    # on !is.na(x). That discarded 93 measurements on trees that were never censused --
+    # even though the 2023 file carries its OWN DBH (338/338), VWC (~330), soil temp
+    # (338) and air temp (337). It also threw away those measured covariates, setting
+    # soil_moisture_abs to NA outright.
+    #
+    # Training data does not need to be inventory stems: the model is FIT on measured
+    # trees and APPLIED to the inventory. (The 2021 height campaign makes this obvious --
+    # only 1 of its 235 trees is a censused stem, yet it trains the model fine.)
+    # Inventory coordinates are still joined where available, since they let a row
+    # contribute to the moisture affine calibration, but they are no longer required.
+    # =========================================================================
+    # Resolve the campaign's own covariate columns by pattern -- their literal names
+    # contain spaces, parentheses and a degree symbol, so they cannot be referenced directly.
+    .pick <- function(df, pat) { h <- grep(pat, names(df), value = TRUE, ignore.case = TRUE)[1]
+                                 if (is.na(h)) NA_real_ else suppressWarnings(as.numeric(df[[h]])) }
+    tree_2023_clean$dbh_own_m         <- .pick(tree_2023_clean, "^DBH") / 100
+    tree_2023_clean$soil_moisture_own <- .pick(tree_2023_clean, "^vwc_mean$") / 100
+    tree_2023_clean$soil_temp_own     <- .pick(tree_2023_clean, "^Soil.?Temp")
+    tree_2023_clean$air_temp_own      <- .pick(tree_2023_clean, "^air_temp_C$")
+
     tree_2023_matched <- tree_2023_clean %>%
-      mutate(tree_id = as.character(tree_tag_num)) %>%  # Use tag number directly, no prefix
+      mutate(tree_id = as.character(tree_tag_num)) %>%
       left_join(INVENTORY %>% select(tree_id, x, y, dbh_m), by = "tree_id") %>%
       mutate(
         species = species_mapping[species_code],
         Date = date_clean,
-        chamber_type = "rigid"
+        chamber_type = "rigid",
+        # prefer the inventory DBH (censused, consistent) but fall back to the
+        # campaign's own field measurement rather than dropping the tree
+        dbh_m = dplyr::coalesce(dbh_m, dbh_own_m)
       ) %>%
-      filter(!is.na(x), !is.na(y), !is.na(species))
-    
-    # Add met tower temperature
+      filter(!is.na(species), !is.na(dbh_m))
+
+    # Add met tower temperature (fallback where the field reading is missing)
     tree_2023_matched <- add_met_tower_temp(tree_2023_matched, weather_clean, "Date")
-    
-    # Create final 2023 dataset
+
     TREE_JULY_2023 <- tree_2023_matched %>%
       mutate(
-        soil_temp_C = NA_real_, 
-        soil_moisture_abs = NA_real_
+        air_temp_C        = dplyr::coalesce(air_temp_own, air_temp_C_tower),
+        soil_temp_C       = soil_temp_own,
+        soil_moisture_abs = soil_moisture_own
       ) %>%
       select(tree_id, species, species_code, Date, month, year, stem_flux_umol_m2_s,
-             air_temp_C = air_temp_C_tower, soil_temp_C, soil_moisture_abs, 
+             air_temp_C, soil_temp_C, soil_moisture_abs,
              dbh_m, chamber_type, x, y)
     
     # Check for unmatched trees
@@ -646,6 +796,12 @@ if (!is.null(semirigid_data)) {
 # =============================================================================
 # 12. PREPARE SOIL DATA
 # =============================================================================
+
+# NOTE (2026 revision): these paths were stale after the data reorganisation, so
+# plot_locations silently failed to load and SOIL_YEAR came out EMPTY -- the saved
+# RData predated the breakage and hid it. Fail loudly instead.
+if (is.null(plot_locations)) stop("plot_locations failed to load - check paths$plot_locations")
+if (is.null(soil_data))      stop("soil_data failed to load - check paths$soil")
 
 if (!is.null(soil_data) && !is.null(plot_locations)) {
   cat("Preparing soil data...\n")
