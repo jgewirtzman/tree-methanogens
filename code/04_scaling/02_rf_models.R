@@ -983,6 +983,38 @@ clip_to_range <- function(x, range_vals) {
 monthly_results <- tibble(month = 1:12)
 tree_fluxes_monthly <- list()
 
+# =============================================================================
+# BACK-TRANSFORMATION BIAS CORRECTION (2026 revision)
+# -----------------------------------------------------------------------------
+# The models are unbiased ON THE MODELLED SCALE (mean asinh predicted / observed =
+# 1.005 for trees) but sinh() of an unbiased asinh prediction is not unbiased on the
+# raw scale -- Jensen's inequality. The effect is concentrated in the upper tail:
+# the top flux decile carries 68% of total tree flux and is under-predicted by ~62%,
+# which alone drags the aggregate to 0.87 of observed.
+#
+# Correction: a single multiplicative factor, mean(observed)/mean(sinh(OOB pred)),
+# estimated ONLY from training data (a degenerate smearing estimator). Tested under
+# grouped CV against the alternatives:
+#   asinh + naive sinh   R2 0.112  mean ratio 0.819
+#   asinh + Duan smear   R2 0.113  mean ratio 0.877
+#   asinh + ratio        R2 0.116  mean ratio 0.932   <- adopted
+#   raw scale, no asinh  R2 0.104  mean ratio 0.931
+# Duan smearing was rejected: it is unstable here because sinh() exponentially
+# amplifies large positive residuals (it overcorrected soil by 2.6x before screening).
+# A residual ~7% low bias remains and is REPORTED, not corrected away: it reflects the
+# model's genuine inability to predict the extreme upper tail for an unseen tree.
+# =============================================================================
+bt_factor <- function(rf, y_raw) {
+  ins <- sinh(rf$predictions)
+  ok <- is.finite(ins) & is.finite(y_raw)
+  f <- mean(y_raw[ok]) / mean(ins[ok])
+  if (!is.finite(f) || f <= 0) f <- 1
+  f
+}
+BT_TREE <- bt_factor(TreeRF, tree_train_complete$stem_flux_corrected)
+BT_SOIL <- bt_factor(SoilRF, soil_train_complete$soil_flux_umol_m2_s)
+cat(sprintf("\nBack-transformation correction: tree x%.4f, soil x%.4f\n", BT_TREE, BT_SOIL))
+
 for (t in 1:12) {
   cat("  Month", t, "...")
   
@@ -1063,7 +1095,7 @@ for (t in 1:12) {
   }
   
   pred_asinh <- predict(TreeRF, X_pred_aligned)$predictions
-  pred_flux_umol_m2_s <- sinh(pred_asinh)
+  pred_flux_umol_m2_s <- sinh(pred_asinh) * BT_TREE
   
   S_tree <- ifelse(
     inv_predictions$species == "Kalmia latifolia",
@@ -1177,7 +1209,7 @@ for (t in 1:12) {
   }
   
   pred_asinh_soil <- predict(SoilRF, X_pred_soil_aligned)$predictions
-  pred_flux_soil <- sinh(pred_asinh_soil)
+  pred_flux_soil <- sinh(pred_asinh_soil) * BT_SOIL
   mean_soil_flux <- mean(pred_flux_soil, na.rm = TRUE)
   
   soil_fluxes_monthly[[t]] <- list(
