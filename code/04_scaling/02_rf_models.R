@@ -286,8 +286,13 @@ tree_combined <- tree_combined %>%
   ) %>%
   dplyr::select(-dbh_original, -dbh_corrected, -dbh_final)
 
-tree_combined <- smart_impute(tree_combined, 
-                              c("air_temp_C", "soil_temp_C", "soil_moisture_abs", "dbh_m"))
+# NOTE (2026 revision): environmental covariates are no longer median-imputed.
+# smart_impute() substituted a monthly (then overall) median, which fabricates exactly
+# the temp/moisture signal the model is trying to learn -- and it was operating on 26%
+# of tree rows. ranger splits on observed values only, so passing NA through is both
+# honest and better-performing. DBH is still imputed: it is a stable tree property, not
+# an environmental driver, and a missing DBH would otherwise drop the row entirely.
+tree_combined <- smart_impute(tree_combined, c("dbh_m"))
 
 # NOTE (2026 revision): the 1st/99th-percentile trim on asinh(flux) has been REMOVED.
 # It deleted the largest stem emissions -- the hotspots this study documents -- and cost
@@ -384,8 +389,8 @@ remove_outliers_mad <- function(x, k = 8) {
   }
 }
 
-SOIL_YEAR <- smart_impute(SOIL_YEAR, 
-                          c("air_temp_C", "soil_temp_C", "soil_moisture_abs"))
+# See note above: environmental covariates are passed through with their NAs.
+# (soil coverage is now 88% measured)
 
 # NOTE (2026 revision): MAD k=8 outlier removal has been DISABLED. It deleted four
 # genuine wetland-margin emissions (11.6, 25.7, 51.3, 63.1 nmol m-2 s-1 -- all with
@@ -604,10 +609,17 @@ build_features_tree <- function(df, drivers, Mhat_fn, SI_table, taxonomy, taxon_
     df$soil_moisture_at_tree <- NA_real_
   }
   
-  missing_moisture <- is.na(df$soil_moisture_at_tree)
-  if(any(missing_moisture) && !is.null(Mhat_fn)) {
-    df$soil_moisture_at_tree[missing_moisture] <- 
-      Mhat_fn(df$month[missing_moisture], df$x[missing_moisture], df$y[missing_moisture])
+  # NOTE (2026 revision): the interpolated December-anchored moisture surface is no
+  # longer used to FILL training rows. With the per-collar env archive compiled,
+  # measured moisture now covers ~87% of monthly, 90% of 2021-height and 100% of 2023
+  # measurements, and filling the remainder from a surface that was itself fitted to
+  # these same observations is both circular and less accurate than leaving the value
+  # missing (ranger splits on observed values only). The surface is still used at
+  # PREDICTION time, where there is no alternative.
+  if (isTRUE(getOption("rf.fill_training_moisture", FALSE)) &&
+      any(is.na(df$soil_moisture_at_tree)) && !is.null(Mhat_fn)) {
+    mm <- is.na(df$soil_moisture_at_tree)
+    df$soil_moisture_at_tree[mm] <- Mhat_fn(df$month[mm], df$x[mm], df$y[mm])
   }
   df$soil_moisture_at_tree <- as.numeric(df$soil_moisture_at_tree)
   
@@ -736,9 +748,12 @@ cat("✓ Features built for training\n\n")
 
 cat("Training Species-First Random Forest models...\n")
 
-# First identify complete rows - need ALL features to be complete
-complete_rows <- !is.na(tree_train$y_asinh) & 
-  !is.na(tree_train$soil_moisture_at_tree) & 
+# NOTE (2026 revision): requiring non-missing MOISTURE dropped 84 otherwise usable
+# measurements once training-time imputation was removed. ranger splits on observed
+# values only, so a row with a missing environmental covariate still contributes
+# through species, size and season. Only the response and species identity are
+# genuinely required.
+complete_rows <- !is.na(tree_train$y_asinh) &
   !is.na(tree_train$species_factor)
 
 # Subset the training data to complete cases FIRST
