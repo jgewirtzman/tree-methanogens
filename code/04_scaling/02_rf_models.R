@@ -687,10 +687,17 @@ build_features_soil <- function(df, drivers, Mhat_fn, SI_table) {
   df <- df %>%
     left_join(si_soil, by = "month")
   
-  df$air_temp_C_mean <- as.numeric(df$air_temp_C_mean)
-  df$soil_temp_C_mean <- as.numeric(df$soil_temp_C_mean)
+  # NOTE (2026 revision): previously these took the MONTHLY PLOT-LEVEL means only, so
+  # soil temperature had exactly ONE value per month across all collars -- it carried no
+  # spatial information whatsoever and could only encode season. The campaign's own
+  # per-collar readings (104 of 266 measurements) were discarded. Prefer the observed
+  # value and fall back to the monthly mean.
+  obs_soil_t <- if ("soil_temp_C" %in% names(df)) suppressWarnings(as.numeric(df$soil_temp_C)) else NA_real_
+  obs_air_t  <- if ("air_temp_C"  %in% names(df)) suppressWarnings(as.numeric(df$air_temp_C))  else NA_real_
+  df$soil_temp_C_mean <- dplyr::coalesce(obs_soil_t, as.numeric(df$soil_temp_C_mean))
+  df$air_temp_C_mean  <- dplyr::coalesce(obs_air_t,  as.numeric(df$air_temp_C_mean))
   df$SI <- as.numeric(df$SI)
-  
+
   df$month_sin <- sin(2 * pi * df$month / 12)
   df$month_cos <- cos(2 * pi * df$month / 12)
   
