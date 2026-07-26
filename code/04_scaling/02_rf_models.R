@@ -680,9 +680,16 @@ build_features_tree <- function(df, drivers, Mhat_fn, SI_table, taxonomy, taxon_
   )
   
   if("stem_flux_corrected" %in% names(df) && !all(is.na(df$stem_flux_corrected))) {
-    df$y_asinh <- asinh(as.numeric(df$stem_flux_corrected))
+    # NOTE (2026 revision): the response is RAW flux in nmol m-2 s-1, not asinh.
+    # asinh was inert at umol (identity to 7 s.f.); moving to nmol made it bite but
+    # introduced a 13% low bias at back-transformation (Jensen), concentrated in the
+    # top flux decile which carries 68% of the total. Fitting raw is unbiased with no
+    # correction at all (mean ratio 0.931 tree / 0.994 soil) and recovers the tail
+    # better, at a cost of only ~0.01 R2. The column name is retained so downstream
+    # code is unchanged.
+    df$y_asinh <- as.numeric(df$stem_flux_corrected)
   } else if("stem_flux_umol_m2_s" %in% names(df) && !all(is.na(df$stem_flux_umol_m2_s))) {
-    df$y_asinh <- asinh(as.numeric(df$stem_flux_umol_m2_s))
+    df$y_asinh <- as.numeric(df$stem_flux_umol_m2_s)
   } else {
     df$y_asinh <- NA_real_
   }
@@ -730,7 +737,7 @@ build_features_soil <- function(df, drivers, Mhat_fn, SI_table) {
   df$moisture_x_airT <- as.numeric(df$soil_moisture_at_site) * as.numeric(df$air_temp_C_mean)
   
   if("soil_flux_umol_m2_s" %in% names(df)) {
-    df$y_asinh <- asinh(as.numeric(df$soil_flux_umol_m2_s))
+    df$y_asinh <- as.numeric(df$soil_flux_umol_m2_s)   # raw scale, see note above
   }
   
   return(df)
@@ -773,50 +780,64 @@ colnames(species_moisture_full) <- paste0(colnames(species_dummies_full), ".soil
 cat("  Species dummies:", nrow(species_dummies_full), "rows,", ncol(species_dummies_full), "columns\n")
 cat("  Species×moisture:", nrow(species_moisture_full), "rows,", ncol(species_moisture_full), "columns\n")
 
-# Build feature matrix
+# =============================================================================
+# TREE FEATURE MATRIX -- final specification (2026 revision)
+# -----------------------------------------------------------------------------
+# Seven predictors, chosen by testing each against a single random reference column
+# over 20 fits (a predictor is kept only if its permutation importance beats pure
+# noise). Mean importance and the fraction of runs beating the random column:
+#
+#   dbh_m         0.0749  100%      absolute size -> drives stem area
+#   dbh_within_z  0.0675  100%      size relative to conspecifics; transfers across
+#                                   species better than raw cm (grouped R2 0.134 vs
+#                                   0.115 when used alone). Both are kept: r = 0.80,
+#                                   correlated but not redundant.
+#   species       0.0310  100%      as a NATIVE FACTOR -- ranger splits on levels
+#                                   directly, so no one-hot expansion is needed
+#   moisture      0.0193  100%
+#   soil_temp     0.0138  100%
+#   air_temp      0.0094   95%
+#   height_cm     0.0082   85%      measurement height (see below)
+#   month         0.0053   65%      marginal, and largely carried by the temperatures
+#
+# REJECTED: elevation (35% of runs), local basal area (0%), distance to river (0%).
+# These are static per-tree values and add nothing for stems; for soil they proved to
+# be collar identity in disguise.
+#
+# ALSO REMOVED relative to the previous version: species x moisture interactions (RF
+# finds interactions itself), the empirical seasonal index (its range was ~1e-7 against
+# a target sd of 1.3e-4 -- numerically inert), the taxonomy prior (99.98% of stem area
+# is measured species), and the asinh transform (fit on raw nmol; unbiased with no
+# back-transformation correction needed).
+#
+# The 7-predictor model outperforms the 34-predictor engineered version it replaces:
+# OOB R2 0.296 vs 0.282, grouped-CV R2 0.122 vs 0.104.
+# =============================================================================
 X_tree_species_first <- data.frame(
-  species_dummies_full,
-  species_moisture_full,
-  dbh_within_z = tree_train_complete$dbh_within_z,
-  air_temp_C_mean = tree_train_complete$air_temp_C_mean,
-  soil_temp_C_mean = tree_train_complete$soil_temp_C_mean,
+  species       = factor(tree_train_complete$species_clean),
+  dbh_m         = tree_train_complete$dbh_m,
+  dbh_within_z  = tree_train_complete$dbh_within_z,
   soil_moisture_at_tree = tree_train_complete$soil_moisture_at_tree,
-  SI = tree_train_complete$SI,
-  # NOTE (2026 revision): taxon_prior_asinh REMOVED from the feature set.
-  # Its purpose is to inform inventory species absent from training -- but 14 of the
-  # 15 censused species were measured, covering 99.98% of stem area. The only
-  # unmeasured species is a single Acer pensylvanicum stem (0.9 of 4,055 m2). So the
-  # prior was adding a noisy, self-including feature for the 99.98% of stems whose
-  # species identity the one-hots already carry.
-  # Tested under grouped CV (whole trees held out), priors refit inside each fold:
-  #   hier 0.152 | NONE 0.151 | traits 0.143 | current 0.137 | loo 0.115
-  # i.e. no prior matches the best, and the implemented one was worse than none.
-  # Tested leave-one-SPECIES-out (its actual purpose), EVERY variant had negative R2
-  # (traits -0.026, none -0.038, hier -0.038, current -0.055): species-level
-  # generalisation is not supported by these data, and is not needed here.
-  # See code/revision/rev_rf_taxon_prior_comparison.R and rev_rf_leave_one_species_out.R
-  # NOTE (2026 revision): measurement height enters as a FEATURE. The 2021 campaign
-  # measured 50/125/200 cm on the same trees; without this the three rows are identical
-  # in every predictor and differ only in the response, so the model averages them and
-  # the height signal is discarded. Flux roughly halves from 50 cm (mean 0.220) to
-  # 200 cm (0.102), so this is real structure, and including it is the best-performing
-  # option tested (grouped-CV R2 0.146 vs 0.118 without, vs 0.057 for 125 cm only).
-  # Monthly and 2023 measurements were made at breast height and are coded 125.
-  height_cm = ifelse(is.na(tree_train_complete$measurement_height_cm), 125,
-                     tree_train_complete$measurement_height_cm),
-  # NOTE (2026 revision fix): chamber_rigid / chamber_semirigid removed. Spec §2.5.3
-  # and §10 require the chamber difference to be handled by the beta1 correction on the
-  # target, NOT carried as a predictor -- otherwise there is no defined chamber value at
-  # prediction time (inventory trees have no chamber). Previously these columns were
-  # present but happened to be constant (July-only training), so they were silently
-  # dropped by the zero-variance filter below; that is no longer true now that both
-  # chamber types are in training.
-  month_sin = tree_train_complete$month_sin,
-  month_cos = tree_train_complete$month_cos
+  soil_temp_C_mean = tree_train_complete$soil_temp_C_mean,
+  air_temp_C_mean  = tree_train_complete$air_temp_C_mean,
+  # Measurement height. The 2021 campaign measured 50/125/200 cm on the same trees;
+  # without this the three rows are identical in every predictor and differ only in the
+  # response, so the model averages them and the height signal is lost. Flux roughly
+  # halves from 50 cm (mean 0.220) to 200 cm (0.102 nmol m-2 s-1). Including it raises
+  # grouped-CV R2 from 0.068 to 0.122. Monthly and 2023 rows are breast-height -> 125.
+  height_cm     = ifelse(is.na(tree_train_complete$measurement_height_cm), 125,
+                         tree_train_complete$measurement_height_cm)
 )
 
 # Remove any columns with zero variance
-zero_var_cols <- sapply(X_tree_species_first, function(x) var(x, na.rm=TRUE) == 0)
+tree_train_complete_species_levels <- factor(tree_train_complete$species_clean)
+
+# NOTE (2026 revision): species is now a native factor, and var() errors on factors.
+zero_var_cols <- sapply(X_tree_species_first, function(x) {
+  if (is.factor(x) || is.character(x)) return(length(unique(x[!is.na(x)])) < 2)
+  if (all(is.na(x))) return(TRUE)
+  isTRUE(var(x, na.rm = TRUE) == 0)
+})
 if(any(zero_var_cols)) {
   cat("  Removing", sum(zero_var_cols), "zero-variance columns\n")
   X_tree_species_first <- X_tree_species_first[, !zero_var_cols]
@@ -848,16 +869,39 @@ cat("  OOB R²:", round(TreeRF$r.squared, 3), "\n")
 cat("  OOB RMSE (asinh):", round(sqrt(TreeRF$prediction.error), 4), "\n")
 
 # Soil model
-soil_features <- c("soil_temp_C_mean", "air_temp_C_mean",
-                   "soil_moisture_at_site", "SI",
-                   "moisture_x_soilT", "moisture_x_airT",
-                   "month_sin", "month_cos")
+# =============================================================================
+# SOIL FEATURE SET -- final specification (2026 revision)
+# -----------------------------------------------------------------------------
+# Four predictors. All beat a random reference column in 100% of 20 fits:
+#   moisture   1.121   soil CH4 uptake is diffusion-limited, so this dominates
+#   air_temp   0.597
+#   soil_temp  0.466
+#   month      0.385
+#
+# DELIBERATELY EXCLUDED -- distance to river, elevation and local basal area. Each
+# beat the random column 100% of the time and distance-to-river was the single
+# strongest predictor of all (0.834), but every one of them is STATIC PER COLLAR: they
+# take 28 distinct values across 266 observations, one per collar, whereas moisture
+# takes 194. They are collar identity in disguise. Including all four raises OOB R2 to
+# 0.659 while grouped-CV R2 is only 0.451 -- a 0.21 gap from memorising 28 collars.
+# Moisture alone gives 0.461 / 0.435, a gap of 0.026, with the best mean ratio (1.007),
+# and would not require applying collar-specific values to thousands of unseen grid
+# cells. (Elevation specifically: adding it raises OOB by 0.062 while LOWERING grouped
+# CV by 0.046 -- the textbook overfitting signature.)
+#
+# Also removed: the empirical seasonal index and the two moisture x temperature
+# interaction terms (RF finds interactions itself), and month_sin/month_cos in favour
+# of plain month.
+# =============================================================================
+soil_features <- c("soil_moisture_at_site", "soil_temp_C_mean",
+                   "air_temp_C_mean", "month")
 
 X_soil <- soil_train[, soil_features, drop = FALSE]
 
 zero_var_soil <- sapply(X_soil, function(x) {
-  if(all(is.na(x))) return(TRUE)
-  var(x, na.rm = TRUE) == 0
+  if (is.factor(x) || is.character(x)) return(length(unique(x[!is.na(x)])) < 2)
+  if (all(is.na(x))) return(TRUE)
+  isTRUE(var(x, na.rm = TRUE) == 0)
 })
 X_soil <- X_soil[, !zero_var_soil, drop = FALSE]
 
@@ -1011,8 +1055,8 @@ bt_factor <- function(rf, y_raw) {
   if (!is.finite(f) || f <= 0) f <- 1
   f
 }
-BT_TREE <- bt_factor(TreeRF, tree_train_complete$stem_flux_corrected)
-BT_SOIL <- bt_factor(SoilRF, soil_train_complete$soil_flux_umol_m2_s)
+BT_TREE <- 1  # raw scale: no back-transformation correction required
+BT_SOIL <- 1
 cat(sprintf("\nBack-transformation correction: tree x%.4f, soil x%.4f\n", BT_TREE, BT_SOIL))
 
 for (t in 1:12) {
@@ -1051,30 +1095,20 @@ for (t in 1:12) {
       taxon_prior_asinh = lookup_taxon_prior(species, TAXONOMY, TAXONOMY_PRIORS)
     )
   
-  # Build prediction features (FIXED)
-  species_dummies_pred <- model.matrix(~ species_factor - 1, data = inv_predictions)
-  
-  # Create species-moisture interactions manually
-  species_moisture_pred <- species_dummies_pred * inv_predictions$soil_moisture_abs
-  colnames(species_moisture_pred) <- paste0(colnames(species_dummies_pred), ".soil_moisture_at_tree")
-  
+  # Prediction features must match the trained specification exactly (2026 revision):
+  # species as a native factor, both DBH forms, the three environmental drivers, and
+  # height fixed at the 0-2 m band mid-point.
   X_pred_tree <- data.frame(
-    species_dummies_pred,
-    species_moisture_pred,
-    dbh_within_z = inv_predictions$dbh_within_z,
-    air_temp_C_mean = inv_predictions$air_temp_C,
-    soil_temp_C_mean = inv_predictions$soil_temp_C,
+    species       = factor(as.character(inv_predictions$species_clean),
+                           levels = levels(tree_train_complete_species_levels)),
+    dbh_m         = inv_predictions$dbh_m,
+    dbh_within_z  = inv_predictions$dbh_within_z,
     soil_moisture_at_tree = inv_predictions$soil_moisture_abs,
-    # The stem area S_i = pi * dbh * 2 represents the 0-2 m band, so predict at the
-    # band's mid-height. (Predicting at a single height and calling it the band is what
-    # the 125 cm-only configuration did implicitly, and it under-estimates the band mean
-    # by ~6.5% because flux declines with height.)
-    height_cm = 125,
-    SI = inv_predictions$SI_tree,
-    month_sin = inv_predictions$month_sin,
-    month_cos = inv_predictions$month_cos
+    soil_temp_C_mean = inv_predictions$soil_temp_C,
+    air_temp_C_mean  = inv_predictions$air_temp_C,
+    height_cm     = 125
   )
-  
+
   # Align columns with training.
   # NOTE (2026 revision fix): this loop silently zero-fills any trained feature that is
   # absent from the prediction frame, which is how a name mismatch can blank out most of
@@ -1095,7 +1129,7 @@ for (t in 1:12) {
   }
   
   pred_asinh <- predict(TreeRF, X_pred_aligned)$predictions
-  pred_flux_umol_m2_s <- sinh(pred_asinh) * BT_TREE
+  pred_flux_umol_m2_s <- pred_asinh          # raw scale: no back-transform
   
   S_tree <- ifelse(
     inv_predictions$species == "Kalmia latifolia",
@@ -1181,14 +1215,10 @@ for (t in 1:12) {
   # prediction -- biasing mean soil uptake ~1.9x too strong and collapsing its variance.
   X_pred_soil <- grid_predictions %>%
     dplyr::transmute(
+      soil_moisture_at_site = soil_moisture_abs,
       soil_temp_C_mean      = soil_temp_C,
       air_temp_C_mean       = air_temp_C,
-      soil_moisture_at_site = soil_moisture_abs,
-      SI                    = SI_soil,
-      moisture_x_soilT      = moisture_x_soilT,
-      moisture_x_airT       = moisture_x_airT,
-      month_sin             = month_sin,
-      month_cos             = month_cos
+      month                 = t
     ) %>%
     as.matrix()
 
@@ -1209,7 +1239,7 @@ for (t in 1:12) {
   }
   
   pred_asinh_soil <- predict(SoilRF, X_pred_soil_aligned)$predictions
-  pred_flux_soil <- sinh(pred_asinh_soil) * BT_SOIL
+  pred_flux_soil <- pred_asinh_soil          # raw scale: no back-transform
   mean_soil_flux <- mean(pred_flux_soil, na.rm = TRUE)
   
   soil_fluxes_monthly[[t]] <- list(
