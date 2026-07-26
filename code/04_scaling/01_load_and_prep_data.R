@@ -876,6 +876,29 @@ if (!is.null(soil_data) && !is.null(plot_locations)) {
   SOIL_YEAR <- SOIL_YEAR %>%
     mutate(plot_num = as.integer(sub("-.*", "", plot_tag)))
   
+  # =========================================================================
+  # PER-COLLAR COORDINATES (2026 revision)
+  # -------------------------------------------------------------------------
+  # plots.csv holds a row per collar (Label = e.g. "WS-1-2") with its own lat/lon.
+  # These were being averaged to a single point per PLOT, so all 30 collars collapsed
+  # onto just two coordinate pairs. The moisture surface is sampled at (x, y), so
+  # every collar in a plot received an identical moisture value and the model could
+  # not distinguish an upland collar from a wetland one spatially at all.
+  # Match on the collar label first; the plot/letter averages remain as fallbacks.
+  # =========================================================================
+  collar_coords <- plot_locations %>%
+    mutate(collar_key = toupper(gsub("[^A-Za-z0-9]", "", Label))) %>%
+    group_by(collar_key) %>%
+    summarise(collar_lat = mean(Latitude, na.rm = TRUE),
+              collar_lon = mean(Longitude, na.rm = TRUE), .groups = "drop")
+
+  SOIL_YEAR <- SOIL_YEAR %>%
+    mutate(collar_key = toupper(gsub("[^A-Za-z0-9]", "", site_id))) %>%
+    left_join(collar_coords, by = "collar_key")
+  cat(sprintf("  Per-collar coordinates matched: %d of %d measurements (%d distinct positions)\n",
+              sum(!is.na(SOIL_YEAR$collar_lat)), nrow(SOIL_YEAR),
+              length(unique(paste(SOIL_YEAR$collar_lat, SOIL_YEAR$collar_lon)))))
+
   # Get plot-level coordinates
   plot_coords_soil <- plot_locations %>%
     group_by(Plot) %>%
@@ -901,8 +924,8 @@ if (!is.null(soil_data) && !is.null(plot_locations)) {
   SOIL_YEAR <- SOIL_YEAR %>%
     left_join(plot_coords_letter, by = "plot_letter") %>%
     mutate(
-      final_lat = coalesce(plot_lat, letter_lat),
-      final_lon = coalesce(plot_lon, letter_lon),
+      final_lat = coalesce(collar_lat, plot_lat, letter_lat),
+      final_lon = coalesce(collar_lon, plot_lon, letter_lon),
       x = final_lon,  # x = longitude
       y = final_lat   # y = latitude
     )
