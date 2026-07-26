@@ -724,6 +724,8 @@ if (!is.null(semirigid_moisture)) {
 # 11. PREPARE MONTHLY TREE DATA (SEMIRIGID)
 # =============================================================================
 
+ENV_MATCH_DAYS <- 3   # sensitivity: 1 day gives ~76% coverage, 3 days ~89%
+
 if (!is.null(semirigid_data)) {
   cat("Preparing semirigid tree data...\n")
   
@@ -779,8 +781,20 @@ if (!is.null(semirigid_data)) {
         soil_moisture_abs_original = if("soil_moisture_abs" %in% names(.)) soil_moisture_abs else NA_real_
       ) %>%
       # Join with moisture data allowing many-to-many
+      # NOTE (2026 revision): joins the COMPILED per-collar env archive (291 records,
+      # 22 dates) rather than soilmoisture_total.csv (103 records, plot-level, ends
+      # Feb 2021). Trees and soil collars were visited on adjacent days of the same
+      # campaign, so the closest-match logic below recovers most of them; monthly-tree
+      # soil temp/moisture coverage rises from 32% to ~76% at +/-1 day.
       left_join(
-        moisture_clean %>%
+        (if (!is.null(soil_env_collar) && nrow(soil_env_collar) > 0) {
+            soil_env_collar %>%
+              group_by(Date, plot_letter) %>%
+              summarise(soil_temp_C = mean(soil_temp_C, na.rm = TRUE),
+                        soil_moisture_abs = mean(soil_moisture_abs, na.rm = TRUE),
+                        .groups = "drop") %>%
+              mutate(across(c(soil_temp_C, soil_moisture_abs), ~ifelse(is.nan(.x), NA_real_, .x)))
+          } else moisture_clean) %>%
           mutate(moisture_date = as.Date(Date)) %>%
           select(moisture_date, plot_letter, soil_temp_C_moisture = soil_temp_C, 
                  soil_moisture_abs_moisture = soil_moisture_abs),
@@ -790,9 +804,10 @@ if (!is.null(semirigid_data)) {
       mutate(
         # Calculate date difference
         date_diff = abs(as.numeric(Date_only - moisture_date)),
-        # Only keep moisture within 7 days
-        soil_temp_C_matched = ifelse(date_diff <= 7, soil_temp_C_moisture, NA),
-        soil_moisture_abs_matched = ifelse(date_diff <= 7, soil_moisture_abs_moisture, NA)
+        # Same campaign visit. Trees and collars were measured 0-3 days apart; a
+        # wider window would borrow conditions from a different visit.
+        soil_temp_C_matched = ifelse(date_diff <= ENV_MATCH_DAYS, soil_temp_C_moisture, NA),
+        soil_moisture_abs_matched = ifelse(date_diff <= ENV_MATCH_DAYS, soil_moisture_abs_moisture, NA)
       ) %>%
       # Keep only the closest match per tree-date combination
       group_by(tree_id, Date) %>%
