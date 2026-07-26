@@ -820,7 +820,33 @@ if (!is.null(soil_data) && !is.null(plot_locations)) {
     mutate(air_temp_C = coalesce(air_temp_C_tower, Tcham)) %>%
     select(site_id, Date, month, year, plot_letter, plot_tag, soil_flux_umol_m2_s, air_temp_C) %>%
     filter(!is.na(soil_flux_umol_m2_s))
-  
+
+  # =========================================================================
+  # OUT-OF-STAND COLLARS (2026 revision)
+  # -------------------------------------------------------------------------
+  # The soil campaign spans a designed moisture gradient (U -> I -> WD -> WS). Two
+  # WS collars sit in OPEN WETLAND, not forest: WS-1-1 and WS-1-2 are the only
+  # collars with zero censused stems within 10 m (nearest tree 17.0 and 16.1 m;
+  # every other collar has 11-502). They are a different ecosystem, and they
+  # produce ALL five soil fluxes above 5 nmol m-2 s-1 (mean +3.9 and +12.6, max
+  # +63.1, vs <= +0.4 for every other collar).
+  #
+  # They are excluded from the STAND budget because the budget upscales to the
+  # censused forest, which is also what the tree side upscales to -- like footprints
+  # on both sides. This is a spatial criterion, not a statistical one: the other wet
+  # collars (WS-1-3, WS-2-1/2/3, all WD) sit inside the forest and are KEPT, since
+  # the plot genuinely contains wet patches we want the model to capture.
+  #
+  # This replaces the old MAD k=8 filter, which deleted four genuine wetland-margin
+  # emissions while retaining the one real artifact, making the sink ~2.7x too strong.
+  # =========================================================================
+  OUT_OF_STAND_COLLARS <- c("WS_1-1", "WS_1-2")
+  n_before_stand <- nrow(SOIL_YEAR)
+  SOIL_YEAR <- SOIL_YEAR %>% filter(!(site_id %in% OUT_OF_STAND_COLLARS))
+  cat(sprintf("  Out-of-stand collars removed: %s (%d of %d measurements)\n",
+              paste(OUT_OF_STAND_COLLARS, collapse = ", "),
+              n_before_stand - nrow(SOIL_YEAR), n_before_stand))
+
   # Add moisture data if available
   if (nrow(moisture_clean) > 0) {
     SOIL_YEAR <- SOIL_YEAR %>%
