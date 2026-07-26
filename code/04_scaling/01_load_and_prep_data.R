@@ -46,6 +46,10 @@ paths <- list(
   # Master per-collar soil temperature + VWC campaign (Date, Site, Plot, Subplot).
   # Resolves to the individual collar, unlike soilmoisture_total.csv which only
   # resolves to the plot, and covers 197 of 288 soil flux records vs 104.
+  # Compiled by code/revision/rev_compile_soil_env.R from every per-date iPad sheet
+  # PLUS the master workbook: 97% coverage of soil flux records (279/288) with
+  # genuinely measured per-collar temperature and VWC, vs 39% before.
+  soil_env_collar_csv = "../../data/processed/environmental/soil_env_by_collar.csv",
   soil_env_master = "../../data/raw/environmental/Soil_temp_moisture_2020.xlsx",
   moisture_december = "../../data/raw/inventory/spatial_data/soil_moisture_20201216.csv",
   river = "../../data/raw/inventory/spatial_data/River.xlsx",
@@ -669,7 +673,15 @@ cat("Preparing moisture calibration data...\n")
 # not run; those keep the monthly-mean fallback.
 # =============================================================================
 soil_env_collar <- NULL
-if (!is.null(paths$soil_env_master) && file.exists(paths$soil_env_master)) {
+if (!is.null(paths$soil_env_collar_csv) && file.exists(paths$soil_env_collar_csv)) {
+  soil_env_collar <- read.csv(paths$soil_env_collar_csv, stringsAsFactors = FALSE) %>%
+    mutate(Date = as.Date(Date),
+           soil_moisture_abs = suppressWarnings(as.numeric(soil_moisture_pct)) / 100) %>%
+    filter(!is.na(Date), !is.na(plot_letter)) %>%
+    select(Date, plot_letter, plot_tag, soil_temp_C, soil_moisture_abs)
+  cat("\u2713 Per-collar soil env (compiled):", nrow(soil_env_collar), "records on",
+      length(unique(soil_env_collar$Date)), "dates\n")
+} else if (!is.null(paths$soil_env_master) && file.exists(paths$soil_env_master)) {
   suppressMessages(library(readxl))
   .env <- read_excel(paths$soil_env_master, sheet = 1)
   names(.env) <- make.names(names(.env))
