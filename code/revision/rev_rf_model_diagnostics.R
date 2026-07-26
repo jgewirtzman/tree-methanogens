@@ -74,7 +74,10 @@ summary_rows <- list()
 
 for (nm in names(MODELS)) {
   m <- MODELS[[nm]]
-  ok <- is.finite(m$y) & complete.cases(m$X)
+  # NOTE: do NOT drop rows with missing predictors here. ranger trains on them
+  # (splitting on observed values), so filtering them out would report metrics on a
+  # cleaner subset than the model actually saw -- flattering the score.
+  ok <- is.finite(m$y) & is.finite(m$rf$predictions)
   X <- m$X[ok, , drop = FALSE]; y <- m$y[ok]
   oob <- sinh(m$rf$predictions)[ok]
 

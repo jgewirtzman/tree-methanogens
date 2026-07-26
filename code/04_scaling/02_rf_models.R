@@ -783,6 +783,15 @@ X_tree_species_first <- data.frame(
   soil_moisture_at_tree = tree_train_complete$soil_moisture_at_tree,
   SI = tree_train_complete$SI,
   taxon_prior_asinh = tree_train_complete$taxon_prior_asinh,
+  # NOTE (2026 revision): measurement height enters as a FEATURE. The 2021 campaign
+  # measured 50/125/200 cm on the same trees; without this the three rows are identical
+  # in every predictor and differ only in the response, so the model averages them and
+  # the height signal is discarded. Flux roughly halves from 50 cm (mean 0.220) to
+  # 200 cm (0.102), so this is real structure, and including it is the best-performing
+  # option tested (grouped-CV R2 0.146 vs 0.118 without, vs 0.057 for 125 cm only).
+  # Monthly and 2023 measurements were made at breast height and are coded 125.
+  height_cm = ifelse(is.na(tree_train_complete$measurement_height_cm), 125,
+                     tree_train_complete$measurement_height_cm),
   # NOTE (2026 revision fix): chamber_rigid / chamber_semirigid removed. Spec §2.5.3
   # and §10 require the chamber difference to be handled by the beta1 correction on the
   # target, NOT carried as a predictor -- otherwise there is no defined chamber value at
@@ -1012,6 +1021,11 @@ for (t in 1:12) {
     air_temp_C_mean = inv_predictions$air_temp_C,
     soil_temp_C_mean = inv_predictions$soil_temp_C,
     soil_moisture_at_tree = inv_predictions$soil_moisture_abs,
+    # The stem area S_i = pi * dbh * 2 represents the 0-2 m band, so predict at the
+    # band's mid-height. (Predicting at a single height and calling it the band is what
+    # the 125 cm-only configuration did implicitly, and it under-estimates the band mean
+    # by ~6.5% because flux declines with height.)
+    height_cm = 125,
     SI = inv_predictions$SI_tree,
     taxon_prior_asinh = inv_predictions$taxon_prior_asinh,
     month_sin = inv_predictions$month_sin,
