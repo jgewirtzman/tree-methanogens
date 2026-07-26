@@ -83,13 +83,18 @@ cat("  DBH range (cm):", round(range(INVENTORY$dbh_m * 100), 1), "\n")
 # UNIT CONVERSION: nmol TO μmol
 # =============================================================================
 
-cat("\n*** APPLYING UNIT CONVERSION: nmol to μmol (÷1000) ***\n")
+# NOTE (2026 revision): we now work in nmol m-2 s-1 END TO END, which is the unit the
+# paper reports in. Previously the pipeline divided by 1000 here to model in umol.
+# That mattered for more than bookkeeping: asinh() has a fixed knee at |x| ~ 1, so at
+# umol magnitudes (median ~2.6e-5) asinh(y) was the IDENTITY to 7 significant figures --
+# i.e. the "asinh transform" was doing nothing at all, and the model was being fit on
+# raw flux. Keeping nmol puts the data where asinh actually acts on the upper tail.
+#
+# WARNING: the columns are still NAMED *_umol_m2_s upstream but have always CONTAINED
+# nmol m-2 s-1. With this change the values are finally consistent with nmol.
+cat("\n*** UNITS: modelling in nmol m-2 s-1 (no conversion applied) ***\n")
 
-TREE_JULY$stem_flux_umol_m2_s <- TREE_JULY$stem_flux_umol_m2_s / 1000
-TREE_YEAR$stem_flux_umol_m2_s <- TREE_YEAR$stem_flux_umol_m2_s / 1000
-SOIL_YEAR$soil_flux_umol_m2_s <- SOIL_YEAR$soil_flux_umol_m2_s / 1000
-
-cat("Updated flux ranges (μmol m-2 s-1):\n")
+cat("Flux ranges (nmol m-2 s-1):\n")
 cat("  TREE_JULY: [", round(min(TREE_JULY$stem_flux_umol_m2_s, na.rm=T), 6), ",", 
     round(max(TREE_JULY$stem_flux_umol_m2_s, na.rm=T), 6), "]\n")
 cat("  TREE_YEAR: [", round(min(TREE_YEAR$stem_flux_umol_m2_s, na.rm=T), 6), ",", 
@@ -130,11 +135,15 @@ smart_impute <- function(df, feature_cols) {
             group_by(month) %>%
             summarise(med_val = median(!!sym(col), na.rm = TRUE), .groups = "drop")
           
-          for(m in unique(df$month)) {
-            month_idx <- df$month == m & is.na(df[[col]])
+          # NOTE (2026 revision): month can be NA for recovered deployments whose date
+          # could not be resolved; `df$month == m` then yields NA and any() errors.
+          for(m in unique(df$month[!is.na(df$month)])) {
+            month_idx <- !is.na(df$month) & df$month == m & is.na(df[[col]])
             if(any(month_idx)) {
-              month_med <- monthly_medians$med_val[monthly_medians$month == m]
-              if(!is.na(month_med)) {
+              # NOTE (2026 revision): guard against duplicate/NA month keys returning a
+              # vector here, which made the if() condition length > 1.
+              month_med <- monthly_medians$med_val[which(monthly_medians$month == m)][1]
+              if(length(month_med) == 1 && !is.na(month_med)) {
                 df_imputed[[col]][month_idx] <- month_med
               }
             }
@@ -280,17 +289,14 @@ tree_combined <- tree_combined %>%
 tree_combined <- smart_impute(tree_combined, 
                               c("air_temp_C", "soil_temp_C", "soil_moisture_abs", "dbh_m"))
 
-# Outlier removal for trees
+# NOTE (2026 revision): the 1st/99th-percentile trim on asinh(flux) has been REMOVED.
+# It deleted the largest stem emissions -- the hotspots this study documents -- and cost
+# 33% of the mean tree flux, biasing the budget low. Chamber artifacts are now screened
+# mechanistically at load time (C0 > 5000 ppb; see 01_load_and_prep_data.R), which flags
+# no tree deployments at all: max tree C0 is 4,980 / 2,156 / 2,432 ppb by campaign.
 tree_combined$z <- asinh(tree_combined$stem_flux_umol_m2_s)
-tree_percentiles <- quantile(tree_combined$z, probs = c(0.01, 0.99), na.rm = TRUE)
-outlier_mask_tree <- tree_combined$z >= tree_percentiles[1] & 
-  tree_combined$z <= tree_percentiles[2]
-n_outliers_tree <- sum(!outlier_mask_tree)
-
-cat("  Removing", n_outliers_tree, "tree flux outliers (", 
-    round(100*n_outliers_tree/nrow(tree_combined), 1), "%)\n")
-
-tree_combined <- tree_combined[outlier_mask_tree, ]
+n_outliers_tree <- 0
+cat("  Tree flux outlier trimming disabled (chamber-integrity screen applied upstream)\n")
 
 # =============================================================================
 # CHAMBER CALIBRATION (spec §2.5)
@@ -381,9 +387,15 @@ remove_outliers_mad <- function(x, k = 8) {
 SOIL_YEAR <- smart_impute(SOIL_YEAR, 
                           c("air_temp_C", "soil_temp_C", "soil_moisture_abs"))
 
+# NOTE (2026 revision): MAD k=8 outlier removal has been DISABLED. It deleted four
+# genuine wetland-margin emissions (11.6, 25.7, 51.3, 63.1 nmol m-2 s-1 -- all with
+# normal chamber C0, from the plots adjacent to the wetland) while RETAINING the one
+# real artifact (-176.1 nmol m-2 s-1, C0 = 49,049 ppb). Net effect: the soil sink came
+# out ~2.7x too strong. Artifacts are now screened on chamber integrity upstream.
 SOIL_YEAR$z_soil <- asinh(SOIL_YEAR$soil_flux_umol_m2_s)
-outlier_mask_soil <- remove_outliers_mad(SOIL_YEAR$z_soil, k = 8)
-n_outliers_soil <- sum(!outlier_mask_soil)
+outlier_mask_soil <- rep(TRUE, nrow(SOIL_YEAR))
+n_outliers_soil <- 0
+cat("  Soil MAD outlier removal disabled (chamber-integrity screen applied upstream)\n")
 
 cat("  Removing", n_outliers_soil, "soil flux outliers (", 
     round(100*n_outliers_soil/nrow(SOIL_YEAR), 1), "%)\n")
@@ -1150,9 +1162,11 @@ monthly_results <- monthly_results %>%
 
 monthly_results <- monthly_results %>%
   mutate(
-    Phi_tree_mg_m2_d = Phi_tree_umol_m2_s * 86400 * 16 * 1e-3,
-    Phi_soil_mg_m2_d = Phi_soil_umol_m2_s * 86400 * 16 * 1e-3,
-    Phi_plot_mg_m2_d = Phi_plot_umol_m2_s * 86400 * 16 * 1e-3
+    # nmol m-2 s-1 -> mg CH4 m-2 d-1 : x 86400 s/d x 16 g/mol x 1e-6 mg/(nmol*g/mol)
+    # (1 nmol CH4 = 16 ng = 1.6e-5 mg). Was 1e-3 when the model ran in umol.
+    Phi_tree_mg_m2_d = Phi_tree_umol_m2_s * 86400 * 16 * 1e-6,
+    Phi_soil_mg_m2_d = Phi_soil_umol_m2_s * 86400 * 16 * 1e-6,
+    Phi_plot_mg_m2_d = Phi_plot_umol_m2_s * 86400 * 16 * 1e-6
   )
 
 print(monthly_results)
@@ -1557,258 +1571,11 @@ cat("\n✓ Plot updates complete - all units now in nmol m⁻² s⁻¹\n")
 
 
 
-# =============================================================================
-# SECTION 11: QUALITY CONTROL PLOTS FOR SPECIES-FIRST WORKFLOW
-# =============================================================================
-
-cat("\nGenerating quality control plots...\n")
-
-# Need to ensure tree_train has predictions for plotting
-# Since we used tree_train_complete for training, we need to align predictions
-tree_train_complete$pred_asinh <- TreeRF$predictions
-tree_train_complete$pred_flux <- sinh(tree_train_complete$pred_asinh)
-
-# QC1: Chamber type comparison
-qc1_data <- tree_train_complete %>%
-  mutate(
-    chamber = ifelse(chamber_rigid == 1, "rigid", "semirigid"),
-    flux_original = sinh(y_asinh)
-  )
-
-p1 <- ggplot(qc1_data, aes(x = chamber, y = flux_original)) +
-  geom_boxplot(aes(fill = chamber)) +
-  scale_y_continuous(trans = scales::pseudo_log_trans(base = 10)) +
-  labs(title = "Flux Distribution by Chamber Type",
-       subtitle = "Chamber type included as RF predictor",
-       x = "Chamber Type",
-       y = "Flux (μmol m-2 s-1, pseudo-log scale)") +
-  theme_minimal()
-
-ggsave("../../outputs/figures/QC_CHAMBER_COMPARISON.png", p1, width = 8, height = 6)
-
-# QC1b: Outlier diagnostics
-outlier_summary <- tibble(
-  dataset = c("Tree Fluxes", "Soil Fluxes"),
-  n_outliers = c(n_outliers_tree, n_outliers_soil),
-  pct_outliers = c(100*n_outliers_tree/(n_outliers_tree + nrow(tree_combined)),
-                   100*n_outliers_soil/(n_outliers_soil + nrow(SOIL_YEAR))),
-  method = c("1% tails", "MAD (k=8)")
-)
-
-p1b <- ggplot(outlier_summary, aes(x = dataset, y = pct_outliers)) +
-  geom_col(fill = "coral") +
-  geom_text(aes(label = paste0(round(pct_outliers, 1), "%\n(n=", n_outliers, ")")), 
-            vjust = -0.5) +
-  labs(title = "Outlier Removal Summary",
-       subtitle = "Outliers detected on asinh-transformed scale",
-       x = "", y = "Percent of Data Removed") +
-  ylim(0, max(outlier_summary$pct_outliers) * 1.2) +
-  theme_minimal()
-
-ggsave("../../outputs/figures/QC_OUTLIERS.png", p1b, width = 6, height = 6)
-
-# QC2: Predictions vs observations - Trees (μmol)
-tree_train_complete$chamber <- ifelse(tree_train_complete$chamber_rigid == 1, "rigid", "semirigid")
-
-p2 <- ggplot(tree_train_complete, aes(x = stem_flux_corrected, y = pred_flux, 
-                                      color = chamber)) +
-  geom_point(alpha = 0.5) +
-  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
-  scale_x_continuous(trans = scales::pseudo_log_trans(base = 10)) +
-  scale_y_continuous(trans = scales::pseudo_log_trans(base = 10)) +
-  labs(title = "Tree Predictions vs Observations (Species-First Model)",
-       subtitle = paste("R² =", round(TreeRF$r.squared, 3), "- With deconfounded DBH"),
-       x = "Observed Flux (μmol m-2 s-1)",
-       y = "Predicted Flux (μmol m-2 s-1)",
-       color = "Chamber Type") +
-  scale_color_manual(values = c("rigid" = "blue", "semirigid" = "red")) +
-  theme_minimal()
-
-ggsave("../../outputs/figures/QC_PRED_VS_OBS_TREE.png", p2, width = 8, height = 6)
-
-# QC2b: Predictions vs observations - Soil
-soil_train_complete$pred_asinh <- SoilRF$predictions
-soil_train_complete$pred_flux <- sinh(soil_train_complete$pred_asinh)
-
-p2b <- ggplot(soil_train[complete_rows_soil,], aes(x = soil_flux_umol_m2_s, y = pred_flux)) +
-  geom_point(alpha = 0.5, color = "darkgreen") +
-  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
-  scale_x_continuous(trans = scales::pseudo_log_trans(base = 10)) +
-  scale_y_continuous(trans = scales::pseudo_log_trans(base = 10)) +
-  labs(title = "Soil Predictions vs Observations",
-       subtitle = paste("R² =", round(SoilRF$r.squared, 3), "- With month as cyclic feature"),
-       x = "Observed Flux (μmol m-2 s-1)",
-       y = "Predicted Flux (μmol m-2 s-1)") +
-  theme_minimal()
-
-ggsave("../../outputs/figures/QC_PRED_VS_OBS_SOIL.png", p2b, width = 8, height = 6)
-
-# QC3: DBH deconfounding visualization
-p3 <- ggplot(tree_train_complete, aes(x = dbh_m, y = dbh_within_z, color = species_clean)) +
-  geom_point(alpha = 0.6) +
-  geom_hline(yintercept = 0, linetype = "dashed") +
-  labs(title = "DBH Deconfounding: Raw vs Within-Species Standardized",
-       subtitle = "Within-species z-scores remove between-species size differences",
-       x = "Raw DBH (m)",
-       y = "Within-Species DBH (z-score)",
-       color = "Species") +
-  theme_minimal() +
-  theme(legend.position = "right")
-
-ggsave("../../outputs/figures/QC_DBH_DECONFOUNDING.png", p3, width = 10, height = 6)
-
-# QC4: Moisture calibration R² by month
-p4 <- ggplot(MOISTURE_AFFINE_TABLE, aes(x = month, y = R2_t)) +
-  geom_col(fill = "steelblue") +
-  geom_text(aes(label = ifelse(!is.na(R2_t), round(R2_t, 2), "NA")), vjust = -0.5) +
-  scale_x_continuous(breaks = 1:12) +
-  labs(title = "Moisture Calibration Quality by Month",
-       x = "Month", y = "R²") +
-  ylim(0, 1) +
-  theme_minimal()
-
-ggsave("../../outputs/figures/QC_MOISTURE_CALIB.png", p4, width = 8, height = 6)
-
-# QC5: Feature importance
-tree_imp_raw <- importance(TreeRF)
-tree_importance <- data.frame(
-  feature = names(tree_imp_raw),
-  Importance = as.numeric(tree_imp_raw)
-) %>%
-  arrange(desc(Importance)) %>%
-  head(20)
-
-# Clean up feature names for display
-tree_importance$feature_clean <- gsub("species_factor", "Species: ", tree_importance$feature)
-tree_importance$feature_clean <- gsub("\\.soil_moisture_at_tree", " × Moisture", tree_importance$feature_clean)
-
-p5a <- ggplot(tree_importance, aes(x = reorder(feature_clean, Importance), y = Importance)) +
-  geom_col(fill = "darkblue") +
-  coord_flip() +
-  labs(title = "Tree Model - Top 20 Feature Importances (Species-First)",
-       subtitle = "With deconfounded DBH and species×moisture interactions",
-       x = "Feature", y = "Importance") +
-  theme_minimal()
-
-ggsave("../../outputs/figures/QC_TREE_IMPORTANCE.png", p5a, width = 10, height = 8)
-
-# Soil importance
-soil_imp_raw <- importance(SoilRF)
-soil_importance <- data.frame(
-  feature = names(soil_imp_raw),
-  Importance = as.numeric(soil_imp_raw)
-) %>%
-  arrange(desc(Importance))
-
-p5b <- ggplot(soil_importance, aes(x = reorder(feature, Importance), y = Importance)) +
-  geom_col(fill = "darkgreen") +
-  coord_flip() +
-  labs(title = "Soil Model - Feature Importances",
-       subtitle = "With month as cyclic feature",
-       x = "Feature", y = "Importance") +
-  theme_minimal()
-
-ggsave("../../outputs/figures/QC_SOIL_IMPORTANCE.png", p5b, width = 10, height = 6)
 
 # =============================================================================
-# NMOL UNIT PLOTS
+# NOTE (2026 revision): a verbatim duplicate of the QC-plot section used to follow
+# here. It re-ran the same plots against stale frames, errored, and aborted the
+# script before its final messages. The canonical QC block is above (Section 10).
 # =============================================================================
 
-cat("\nGenerating plots with nmol units...\n")
-
-# Convert to nmol for tree plots
-tree_train_complete$pred_flux_nmol <- tree_train_complete$pred_flux * 1000
-tree_train_complete$obs_flux_nmol <- tree_train_complete$stem_flux_corrected * 1000
-
-p2_nmol <- ggplot(tree_train_complete, aes(x = obs_flux_nmol, y = pred_flux_nmol, 
-                                           color = chamber)) +
-  geom_point(alpha = 0.5) +
-  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
-  scale_x_continuous(trans = scales::pseudo_log_trans(base = 10)) +
-  scale_y_continuous(trans = scales::pseudo_log_trans(base = 10)) +
-  labs(title = "Tree Predictions vs Observations (Species-First Model)",
-       subtitle = paste("R² =", round(TreeRF$r.squared, 3), "- With deconfounded DBH"),
-       x = expression(paste("Observed Flux (nmol m"^-2, " s"^-1, ")")),
-       y = expression(paste("Predicted Flux (nmol m"^-2, " s"^-1, ")")),
-       color = "Chamber Type") +
-  scale_color_manual(values = c("rigid" = "blue", "semirigid" = "red")) +
-  theme_minimal() +
-  theme(
-    axis.title.x = element_text(size = 12),
-    axis.title.y = element_text(size = 12)
-  )
-
-ggsave("../../outputs/figures/QC_PRED_VS_OBS_TREE_nmol.png", p2_nmol, width = 8, height = 6)
-
-# Convert to nmol for soil plots
-soil_train_subset <- soil_train[complete_rows_soil,]
-soil_train_subset$pred_flux_nmol <- soil_train_subset$pred_flux * 1000
-soil_train_subset$obs_flux_nmol <- soil_train_subset$soil_flux_umol_m2_s * 1000
-
-p2b_nmol <- ggplot(soil_train_subset, aes(x = obs_flux_nmol, y = pred_flux_nmol)) +
-  geom_point(alpha = 0.5, color = "darkgreen") +
-  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
-  scale_x_continuous(trans = scales::pseudo_log_trans(base = 10)) +
-  scale_y_continuous(trans = scales::pseudo_log_trans(base = 10)) +
-  labs(title = "Soil Predictions vs Observations",
-       subtitle = paste("R² =", round(SoilRF$r.squared, 3)),
-       x = expression(paste("Observed Flux (nmol m"^-2, " s"^-1, ")")),
-       y = expression(paste("Predicted Flux (nmol m"^-2, " s"^-1, ")"))) +
-  theme_minimal() +
-  theme(
-    axis.title.x = element_text(size = 12),
-    axis.title.y = element_text(size = 12)
-  )
-
-ggsave("../../outputs/figures/QC_PRED_VS_OBS_SOIL_nmol.png", p2b_nmol, width = 8, height = 6)
-
-# Combined plot
-combined_data <- bind_rows(
-  tree_train_complete %>% 
-    dplyr::select(obs_flux_nmol, pred_flux_nmol) %>%
-    mutate(type = "Trees"),
-  soil_train_subset %>%
-    dplyr::select(obs_flux_nmol, pred_flux_nmol) %>%
-    mutate(type = "Soil")
-)
-
-p_combined <- ggplot(combined_data, aes(x = obs_flux_nmol, y = pred_flux_nmol, 
-                                        color = type)) +
-  geom_point(alpha = 0.4, size = 1.5) +
-  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "gray40") +
-  scale_x_continuous(trans = scales::pseudo_log_trans(base = 10)) +
-  scale_y_continuous(trans = scales::pseudo_log_trans(base = 10)) +
-  scale_color_manual(values = c("Trees" = "forestgreen", "Soil" = "brown")) +
-  labs(title = "Random Forest Predictions vs Observations (Species-First)",
-       subtitle = "Tree and soil CH₄ fluxes with deconfounded DBH",
-       x = expression(paste("Observed Flux (nmol m"^-2, " s"^-1, ")")),
-       y = expression(paste("Predicted Flux (nmol m"^-2, " s"^-1, ")")),
-       color = "Source") +
-  theme_minimal() +
-  theme(
-    axis.title.x = element_text(size = 12),
-    axis.title.y = element_text(size = 12),
-    legend.position = c(0.15, 0.85),
-    legend.background = element_rect(fill = "white", alpha = 0.8, color = NA)
-  )
-
-ggsave("../../outputs/figures/QC_PRED_VS_OBS_COMBINED_nmol.png", p_combined, width = 8, height = 6)
-
-# Print summary statistics
-cat("\n=== FLUX RANGES IN NMOL UNITS ===\n")
-cat("\nTree fluxes (nmol m⁻² s⁻¹):\n")
-cat("  Observed range:", round(range(tree_train_complete$obs_flux_nmol, na.rm = TRUE), 3), "\n")
-cat("  Predicted range:", round(range(tree_train_complete$pred_flux_nmol, na.rm = TRUE), 3), "\n")
-cat("  Mean observed:", round(mean(tree_train_complete$obs_flux_nmol, na.rm = TRUE), 3), "\n")
-cat("  Mean predicted:", round(mean(tree_train_complete$pred_flux_nmol, na.rm = TRUE), 3), "\n")
-
-cat("\nSoil fluxes (nmol m⁻² s⁻¹):\n")
-cat("  Observed range:", round(range(soil_train_subset$obs_flux_nmol, na.rm = TRUE), 3), "\n")
-cat("  Predicted range:", round(range(soil_train_subset$pred_flux_nmol, na.rm = TRUE), 3), "\n")
-cat("  Mean observed:", round(mean(soil_train_subset$obs_flux_nmol, na.rm = TRUE), 3), "\n")
-cat("  Mean predicted:", round(mean(soil_train_subset$pred_flux_nmol, na.rm = TRUE), 3), "\n")
-cat("  % negative (uptake):", round(100 * mean(soil_train_subset$obs_flux_nmol < 0, na.rm = TRUE), 1), "%\n")
-
-cat("\n✓ Quality control plots saved\n")
-
-## (Training data already saved earlier, after model fitting)
+cat("\n=== 02_rf_models.R COMPLETE ===\n")
