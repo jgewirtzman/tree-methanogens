@@ -60,16 +60,23 @@ cat(sprintf("read canonical: soil %.2f | tree measured %.2f | scenario %.1f (%.1
             soil_ann, tree_meas, tree_scen, tree_lo, tree_hi, tree_grid_lo, tree_grid_hi))
 
 # shared map extent so a & b align exactly
-xl <- range(c(soil_map$x, tree_pts$x)); yl <- range(c(soil_map$y, tree_pts$y))
-# lat/long graticule labels (coords are decimal degrees; lon W, lat N)
-deg_lon <- function(x) paste0(formatC(abs(x), format = "f", digits = 3), " W")
-deg_lat <- function(y) paste0(formatC(y,      format = "f", digits = 3), " N")
+# MAPPED IN PLOT-LOCAL METRES, not lon/lat. The moisture grid is regular in PX/PY
+# but the plot is rotated ~10 degrees from north, so in lon/lat its cells are not
+# axis-aligned: geom_raster cannot draw them at all, and geom_tile leaves ragged
+# overhangs that made the staircase boundary look like detached chunks. In PX/PY
+# the grid is axis-aligned, the rectilinear stand boundary renders exactly, and
+# the axes read directly in metres over a 200 m plot -- more useful than a lon/lat
+# graticule quoted to three decimals. North is drawn rotated by the plot's own
+# rotation angle instead.
+xl <- c(0, PLOT_SIDE_M); yl <- c(0, PLOT_SIDE_M)
 map_scales <- list(
-  scale_x_continuous(breaks = scales::breaks_pretty(3), labels = deg_lon),
-  scale_y_continuous(breaks = scales::breaks_pretty(3), labels = deg_lat))
+  scale_x_continuous(breaks = seq(0, 200, 50), expand = c(0, 0)),
+  scale_y_continuous(breaks = seq(0, 200, 50), expand = c(0, 0)))
+STAND <- stand_ring_local()
 th_map <- theme_bw(base_size = 9) +
   theme(plot.title = element_text(size = 9, face = "bold"),
-        axis.text = element_text(size = 5.5, color = "grey45"), axis.title = element_blank(),
+        axis.text = element_text(size = 6, color = "grey45"),
+        axis.title = element_text(size = 6.5, color = "grey35"),
         panel.grid.major = element_line(color = "grey88", linewidth = 0.25),
         panel.grid.minor = element_blank(),
         panel.border = element_rect(color = "grey40", fill = NA, linewidth = 0.4),
@@ -81,9 +88,8 @@ th_map <- theme_bw(base_size = 9) +
 # geom_TILE, not geom_raster: the grid is regular in plot-local metres but the
 # plot is rotated ~10 degrees from north, so in lon/lat the cells are not
 # axis-aligned and geom_raster cannot represent them.
-CELL_DEG_X <- 2/(111320*cos(mean(soil_map$y)*pi/180)); CELL_DEG_Y <- 2/111132
-pa <- ggplot(soil_map, aes(x, y, fill = mean_flux_nmol)) +
-  geom_tile(width = CELL_DEG_X*1.6, height = CELL_DEG_Y*1.6) +
+pa <- ggplot(soil_map, aes(PX, PY, fill = mean_flux_nmol)) +
+  geom_raster() +
   # DIVERGING, centred on zero. The previous scale ran from the minimum to 0, so
   # every cell with a positive flux fell outside it and rendered as grey missing
   # data -- which silently erased the wet zones that are net CH4 SOURCES. They are
@@ -94,8 +100,10 @@ pa <- ggplot(soil_map, aes(x, y, fill = mean_flux_nmol)) +
                       name = expression("Soil CH"[4]*"  (nmol m"^-2*" s"^-1*", per m"^2*" ground)"),
                       limits = max(abs(soil_map$mean_flux_nmol))*c(-1, 1),
                       guide = guide_colorbar(title.position = "top")) +
-  map_scales +
-  coord_quickmap(xlim = c(xl[1] - 0.05*diff(xl), xl[2] + 0.05*diff(xl)), ylim = c(yl[1], yl[2] + 0.10*diff(yl)), expand = FALSE) + th_map  # ~10% wider + top strip
+  map_scales + labs(x = "metres", y = "metres") +
+  geom_path(data = STAND, aes(PX, PY), inherit.aes = FALSE,
+            colour = "grey25", linewidth = 0.45) +
+  coord_equal(xlim = c(-6, 206), ylim = c(-6, 224), expand = FALSE) + th_map
 
 # ---- (b) tree map (source = red; per m2 WOODY SURFACE; quantile-spread color) -
 tv <- tree_pts$flux_nmol_m2_s
@@ -104,32 +112,35 @@ tv <- tree_pts$flux_nmol_m2_s
 # (30% of stems sit within 1% of one value), so two of the five colour stops
 # landed 1% apart and the ramp jumped from pale to mid-red at the median. The map
 # read as uniformly hot when most stems sit at the low-middle of the range.
-pb <- ggplot(tree_pts %>% arrange(flux_nmol_m2_s), aes(x, y, color = flux_nmol_m2_s, size = dbh_m)) +
+pb <- ggplot(tree_pts %>% arrange(flux_nmol_m2_s), aes(PX, PY, color = flux_nmol_m2_s, size = dbh_m)) +
   geom_point(alpha = 0.9) +
   scale_color_gradientn(colours = REDS, name = expression("Tree CH"[4]*"  (nmol m"^-2*" s"^-1*", per m"^2*" woody surface, 0-2 m band mean)"),
                         limits = c(0, max(tv)),
                         guide = guide_colorbar(title.position = "top")) +
   scale_size_continuous(range = c(0.15, 1.9), guide = "none") +
-  map_scales +
-  coord_quickmap(xlim = c(xl[1] - 0.05*diff(xl), xl[2] + 0.05*diff(xl)), ylim = c(yl[1], yl[2] + 0.10*diff(yl)), expand = FALSE) + th_map  # ~10% wider + top strip
+  map_scales + labs(x = "metres", y = "metres") +
+  geom_path(data = STAND, aes(PX, PY), inherit.aes = FALSE,
+            colour = "grey25", linewidth = 0.45) +
+  coord_equal(xlim = c(-6, 206), ylim = c(-6, 224), expand = FALSE) + th_map
 
-# ---- add scale bar (50 m) + traditional north arrow to both maps -------------
-m_per_deg_lon <- 111320 * cos(mean(yl) * pi/180)
-sb <- 50 / m_per_deg_lon                                  # 50 m in degrees lon
-dx <- diff(xl); dy <- diff(yl)
+# ---- north arrow, rotated by the plot's own rotation ------------------------
+# The axes are metres, so no scale bar is needed. The plot is rotated from north,
+# so the needle is drawn at that angle rather than pointing up the page.
+.rot <- local({ e <- new.env()
+  load("data/processed/integrated/rf_workflow_input_data_with_2023.RData", envir = e)
+  e$rf_workflow_data$rotation_angle })
 add_ctx <- function(p) {
-  # scale bar: bottom-left corner (white gap)
-  x0 <- xl[1] + 0.05*dx; y0 <- yl[1] + 0.04*dy
-  # traditional two-tone compass needle, in the white header strip ABOVE the raster
-  ax <- xl[2] - 0.08*dx; apex <- yl[2] + 0.060*dy; base <- yl[2] - 0.023*dy; w <- 0.022*dx  # full-size needle, dropped low
-  left  <- data.frame(x = c(ax, ax - w, ax),            y = c(apex, base, base + 0.028*dy))
-  right <- data.frame(x = c(ax, ax + w, ax),            y = c(apex, base, base + 0.028*dy))
+  cx <- 186; cy <- 214; L <- 11; w <- 4.2      # needle centre and size, in metres
+  rr <- function(dx, dy) c(cx + dx*cos(-.rot) - dy*sin(-.rot),
+                           cy + dx*sin(-.rot) + dy*cos(-.rot))
+  tip <- rr(0, L); base <- rr(0, -L); lw <- rr(-w, -L*0.35); rw <- rr(w, -L*0.35)
   p +
-    annotate("segment", x = x0, xend = x0 + sb, y = y0, yend = y0, linewidth = 1, color = "grey10") +
-    annotate("text", x = x0 + sb/2, y = y0, label = "50 m", vjust = -0.7, size = 2.3, color = "grey10") +
-    annotate("polygon", x = left$x,  y = left$y,  fill = "grey10", color = "grey10", linewidth = 0.2) +
-    annotate("polygon", x = right$x, y = right$y, fill = "white",  color = "grey10", linewidth = 0.2) +
-    annotate("text", x = ax, y = apex, label = "N", vjust = -0.2, size = 2.6, fontface = "bold", color = "grey10")
+    annotate("polygon", x = c(tip[1], lw[1], base[1]), y = c(tip[2], lw[2], base[2]),
+             fill = "grey15", colour = "grey15", linewidth = 0.2) +
+    annotate("polygon", x = c(tip[1], rw[1], base[1]), y = c(tip[2], rw[2], base[2]),
+             fill = "white", colour = "grey15", linewidth = 0.2) +
+    annotate("text", x = rr(0, L*1.5)[1], y = rr(0, L*1.5)[2], label = "N",
+             size = 2.6, fontface = "bold", colour = "grey15")
 }
 pa <- add_ctx(pa); pb <- add_ctx(pb)
 
