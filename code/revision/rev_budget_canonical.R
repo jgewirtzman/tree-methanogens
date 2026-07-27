@@ -76,7 +76,8 @@ soil_monthly <- SOM %>% group_by(month) %>%
                 summarise(soil_nmol_m2_s = mean(flux_nmol_m2_s), .groups = "drop")
 M <- data.frame(month = 1:12) %>%
   left_join(TRM, "month") %>% left_join(soil_monthly, "month") %>%
-  mutate(tree_mg_m2_d = tree_nmol_m2_s*SEC_PER_DAY*NMOL_TO_MG,
+  mutate(tree_bh_nmol_m2_s = tree_bh_nmol_m2_s,
+         tree_mg_m2_d = tree_nmol_m2_s*SEC_PER_DAY*NMOL_TO_MG,
          soil_mg_m2_d = soil_nmol_m2_s*SEC_PER_DAY*NMOL_TO_MG,
          plot_mg_m2_d = tree_mg_m2_d + soil_mg_m2_d)
 stopifnot(all(is.finite(M$tree_nmol_m2_s)), all(is.finite(M$soil_nmol_m2_s)))

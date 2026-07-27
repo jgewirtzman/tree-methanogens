@@ -78,9 +78,21 @@ th_map <- theme_bw(base_size = 9) +
         legend.text = element_text(size = 6))
 
 # ---- (a) soil map (sink = blue; per m2 GROUND) -------------------------------
-pa <- ggplot(soil_map, aes(x, y, fill = mean_flux_nmol)) + geom_raster(interpolate = TRUE) +
-  scale_fill_gradientn(colours = rev(BLUES), name = expression("Soil CH"[4]*"  (nmol m"^-2*" s"^-1*", per m"^2*" ground)"),
-                      limits = c(min(soil_map$mean_flux_nmol), 0),
+# geom_TILE, not geom_raster: the grid is regular in plot-local metres but the
+# plot is rotated ~10 degrees from north, so in lon/lat the cells are not
+# axis-aligned and geom_raster cannot represent them.
+CELL_DEG_X <- 2/(111320*cos(mean(soil_map$y)*pi/180)); CELL_DEG_Y <- 2/111132
+pa <- ggplot(soil_map, aes(x, y, fill = mean_flux_nmol)) +
+  geom_tile(width = CELL_DEG_X*1.6, height = CELL_DEG_Y*1.6) +
+  # DIVERGING, centred on zero. The previous scale ran from the minimum to 0, so
+  # every cell with a positive flux fell outside it and rendered as grey missing
+  # data -- which silently erased the wet zones that are net CH4 SOURCES. They are
+  # 17.5% of the stand and reach +0.67 nmol m-2 s-1, and they sit where the soil is
+  # wettest (mean VWC 45.9 against 14.1 in the sink cells). Showing them also makes
+  # the panel consistent with this figure's own convention: sink cool, source warm.
+  scale_fill_gradientn(colours = c(rev(BLUES), REDS[-1]),
+                      name = expression("Soil CH"[4]*"  (nmol m"^-2*" s"^-1*", per m"^2*" ground)"),
+                      limits = max(abs(soil_map$mean_flux_nmol))*c(-1, 1),
                       guide = guide_colorbar(title.position = "top")) +
   map_scales +
   coord_quickmap(xlim = c(xl[1] - 0.05*diff(xl), xl[2] + 0.05*diff(xl)), ylim = c(yl[1], yl[2] + 0.10*diff(yl)), expand = FALSE) + th_map  # ~10% wider + top strip
@@ -125,22 +137,31 @@ pa <- add_ctx(pa); pb <- add_ctx(pb)
 # Reads the canonical monthly series, which uses the height-integrated 0-2 m band for
 # the tree term. MONTHLY_FLUXES.csv carries the superseded single-value tree scaling.
 CM <- read.csv("outputs/revision/canonical_monthly.csv", stringsAsFactors = FALSE)
+# The tree series is MEAN FLUX AT BREAST HEIGHT, per m2 of woody surface -- a
+# measured quantity, directly comparable to the map in panel (b). It used to be
+# the 0-2 m band's contribution per m2 of GROUND, which exists only because we
+# summed stem area and divided by plot area; placed beside soil it invited a
+# like-for-like reading when it is diluted by that denominator. Per-ground-area
+# belongs in the budget panel, and that is where it now lives exclusively.
 mon <- CM %>%
-  transmute(month, Soil = soil_nmol_m2_s, Tree = tree_nmol_m2_s) %>%
-  pivot_longer(c(Soil, Tree), names_to = "src", values_to = "nmol") %>%
-  mutate(src = factor(src, levels = c("Soil","Tree")))
+  transmute(month,
+            `Soil\n(per sq.m ground)` = soil_nmol_m2_s,
+            `Tree at 1.3 m\n(per sq.m bark)` = tree_bh_nmol_m2_s) %>%
+  pivot_longer(-month, names_to = "src", values_to = "nmol") %>%
+  mutate(src = factor(src, levels = c("Soil\n(per sq.m ground)",
+                                      "Tree at 1.3 m\n(per sq.m bark)")))
 pc <- ggplot(mon, aes(month, nmol, colour = src)) +
   geom_hline(yintercept = 0, color = "grey60", linewidth = 0.3) +
   geom_line(linewidth = 0.6) +
   geom_point(size = 1.8) +
   facet_wrap(~src, ncol = 1, scales = "free_y", strip.position = "right") +
-  scale_colour_manual(values = c(Soil = SINK, Tree = SRC), guide = "none") +
+  scale_colour_manual(values = setNames(c(SINK, SRC), levels(mon$src)), guide = "none") +
   scale_x_continuous(breaks = 1:12, labels = month.abb) +
-  labs(x = NULL, y = expression("CH"[4]*" flux (nmol m"^-2*" s"^-1*", per m"^2*" ground)")) +
+  labs(x = NULL, y = expression("CH"[4]*" flux (nmol m"^-2*" s"^-1*")")) +
   theme_bw(base_size = 9) +
   theme(axis.text.x = element_text(size = 6.5),
         strip.background = element_rect(fill = "white", color = NA),
-        strip.text = element_text(size = 8.5, color = "black"),
+        strip.text = element_text(size = 7, color = "black"),
         panel.grid.minor = element_blank())
 
 # ---- (d) net budget waterfall (mg m-2 yr-1) ----------------------------------

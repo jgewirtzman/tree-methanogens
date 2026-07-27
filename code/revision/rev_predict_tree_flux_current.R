@@ -185,9 +185,25 @@ write.csv(OUT, "outputs/tables/tree_flux_predictions.csv", row.names = FALSE)
 # the soil monthly series and the only place it is computed -- Figure 9 and the
 # canonical budget both read it rather than re-deriving it.
 keep <- OUT$in_stand
+# Two monthly series, because they answer different questions:
+#   tree_nmol_m2_s  the 0-2 m band's contribution per m2 of GROUND -- a budget
+#                   quantity, only meaningful once summed and divided by plot area
+#   tree_bh_nmol_m2_s  the area-weighted mean flux at BREAST HEIGHT, per m2 of
+#                   WOODY SURFACE -- a measured quantity, directly comparable to
+#                   the map panel and to any other stem-flux study
+# Figure 9's seasonal panel uses the second: a per-ground-area tree series exists
+# only because we summed stem area and divided by plot area, and putting it beside
+# soil invites reading it as like-for-like when it is diluted by that denominator.
+BH_CM <- 130                                   # breast height, 1.3 m
+k_bh <- findInterval(BH_CM, edges, rightmost.closed = TRUE)
+bh <- F[, k_bh, ] * INV$cal                    # stems x months, calibrated
+w  <- INV$A_stem_m2[keep]
 tree_monthly <- data.frame(
   month = 1:12,
-  tree_nmol_m2_s = colSums(band[keep, ] * INV$A_stem_m2[keep]) / STAND_AREA_M2)
+  tree_nmol_m2_s    = colSums(band[keep, ] * INV$A_stem_m2[keep]) / STAND_AREA_M2,
+  tree_bh_nmol_m2_s = colSums(bh[keep, ] * w) / sum(w))
+cat(sprintf("breast height falls in interval %d [%d, %d) cm; mean flux there %.4f nmol m-2 s-1\n",
+            k_bh, edges[k_bh], edges[k_bh+1], mean(tree_monthly$tree_bh_nmol_m2_s)))
 write.csv(tree_monthly, "outputs/tables/tree_monthly_stand.csv", row.names = FALSE)
 
 CONV <- 86400 * 365.25 * 16e-6
