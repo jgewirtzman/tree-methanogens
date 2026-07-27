@@ -657,36 +657,58 @@ build_features_tree <- function(df, drivers, Mhat_fn, SI_table, taxonomy, taxon_
   df$taxon_prior_asinh <- as.numeric(df$taxon_prior_asinh)
   
   # ---------------------------------------------------------------------------
-  # SPECIES LEVELS. Every IDENTIFIED species we measured gets its own level; only
-  # unidentified material, and inventory species we never measured, fall through
-  # to SPECIES_OTHER.
+  # SPECIES LEVELS: a taxonomic ladder -- own level, else genus, else pooled.
   #
-  # This threshold used to be >= 10 measurements, which sent six genuinely
-  # measured species into the pooled bucket and then applied that bucket's mean
-  # to every inventory stem of those species. The effect was not small. Kalmia
-  # latifolia has 3 measurements of its own averaging 0.0350 nmol m-2 s-1, but
-  # the bucket it was assigned to averages 0.0941 because Carya ovata (0.2583)
-  # and Quercus velutina (0.1139) dominate its 19 records -- so 1,898 mountain
-  # laurel stems, the densest thing in the understory, were predicted at nearly
-  # three times their own measured flux, and showed up as the reddest patches on
-  # the Figure 9 map. Quercus velutina is the felled black oak: measured at seven
-  # heights, and still treated as an unmeasured species.
+  # A species with >= 10 records gets its own level. Below that, it falls back to
+  # its GENUS if that genus is measured, and only otherwise to SPECIES_OTHER.
   #
-  # Levels with very few records are weakly constrained, and that is accepted
-  # deliberately: min.node.size = 5 stops the forest isolating a 1-3 record level
-  # in its own leaf, so such a level is averaged with neighbouring data rather
-  # than fitted to its own points. A thin estimate from the right species beats a
-  # confident one from the wrong genus. Leave-one-species-out shows no scheme --
-  # pooled, genus fallback, or species-free -- predicts an UNMEASURED species at
-  # better than negative R2, which is why nothing more elaborate is attempted
-  # here; see rev_rf_species_fallback_loso.R.
+  # This is a bias-variance choice and it was settled by repeated 5-fold CV over
+  # observations, with the rare-species rows scored separately because an overall
+  # RMSE is dominated by the abundant species and will always favour pooling
+  # (rev_rf_species_pooling.R):
+  #
+  #   scheme               RMSE all   RMSE rare   bias rare   ratio rare
+  #   genus_then_pool       0.3110      0.1218      0.0245       1.23
+  #   lump10 (old)          0.3110      0.1482      0.0414       1.39
+  #   all_species           0.3111      0.1487      0.0374       1.35
+  #   all_species node=2    0.3112      0.1502      0.0353       1.33
+  #   shrunk offset (EB)    0.3118      0.1510      0.0395       1.37
+  #
+  # The ladder wins on rare-species RMSE (18% better than lumping), on rare-species
+  # BIAS (41% less), and ties for best overall -- so it costs nothing on the
+  # abundant species. Every scheme over-predicts rare species, and the ladder
+  # over-predicts least, which is also the conservative direction here.
+  #
+  # Giving every measured species its own level was tried and is NOT better: three
+  # records cannot reshape an 800-tree forest, and shrinking min.node.size to 2 to
+  # let them try made it worse. Empirical-Bayes shrinkage of a species offset
+  # toward genus toward the grand mean -- effectively the old taxon prior -- was
+  # the worst of the five.
+  #
+  # What the ladder fixes: Kalmia latifolia has 3 records averaging 0.0350 nmol
+  # m-2 s-1 and is the only Kalmia here, so it forms its own genus level instead
+  # of joining a bucket averaging 0.0941 that is dominated by Carya ovata (0.2583)
+  # and Quercus velutina (0.1139). That bucket was being applied to 1,898 mountain
+  # laurel stems. Quercus velutina -- the felled black oak, measured at seven
+  # heights -- now joins Quercus rather than being treated as unmeasured.
+  #
+  # For a species with NO records nothing works: leave-one-species-out gives
+  # negative R2 for every scheme (rev_rf_species_fallback_loso.R). That is a
+  # stated limitation, not something to engineer around.
   # ---------------------------------------------------------------------------
   sp_raw <- as.character(df$species)
-  unidentified <- is.na(sp_raw) | grepl("^unknown", sp_raw, ignore.case = TRUE) |
-                  !grepl(" ", trimws(sp_raw))          # needs a binomial to count
-  df$species_clean <- ifelse(unidentified, "SPECIES_OTHER", sp_raw)
-  cat(sprintf("  Species levels: %d measured species + SPECIES_OTHER (%d unidentified records)\n",
-              length(setdiff(unique(df$species_clean), "SPECIES_OTHER")), sum(unidentified)))
+  unident <- is.na(sp_raw) | grepl("^unknown", sp_raw, ignore.case = TRUE) |
+             !grepl(" ", trimws(sp_raw))
+  sp_raw[unident] <- "SPECIES_OTHER"
+  gen <- ifelse(unident, "SPECIES_OTHER", sub(" .*", "", sp_raw))
+  cnt <- table(sp_raw); big <- names(cnt)[cnt >= 10]
+  gen_seen <- unique(gen[!unident])
+  df$species_clean <- ifelse(sp_raw %in% big, sp_raw,
+                        ifelse(gen %in% gen_seen & !unident, paste0("GEN_", gen),
+                               "SPECIES_OTHER"))
+  cat(sprintf("  Species levels: %d own + %d genus + SPECIES_OTHER (%d unidentified)\n",
+              sum(!grepl("^GEN_|SPECIES_OTHER", unique(df$species_clean))),
+              sum(grepl("^GEN_", unique(df$species_clean))), sum(unident)))
 
   # CRITICAL: Within-species DBH standardization
   df$dbh_within_z <- ave(
