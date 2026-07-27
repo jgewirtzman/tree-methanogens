@@ -48,6 +48,7 @@ for (f in CORE) run(f, fatal = TRUE)
 SUPPORT <- c(
   "code/revision/rev_wb_reference_et.R",
   "code/revision/rev_moisture_climatology.R",
+  "code/revision/rev_moisture_interpolation.R",
   "code/revision/rev_qc_c0_screen.R",
   "code/revision/rev_mdf_FINAL_precision_and_detection.R",
   "code/revision/rev_surface_area_model.R",
