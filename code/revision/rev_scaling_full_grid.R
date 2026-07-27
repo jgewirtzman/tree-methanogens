@@ -237,30 +237,52 @@ write.csv(R, file.path(outdir,"scaling_full_grid.csv"), row.names=FALSE)
 cat(sprintf("\n=== FULL GRID: %d combinations ===\n", nrow(R)))
 cat(sprintf("  %d WAI x %d bole x %d branch x %d flux forms\n\n",
             length(WAIS), length(BOLE), length(BRANCH), length(FORMS)))
-cat(sprintf("  whole-surface total   %8.1f  to %8.1f  mg CH4 m-2 yr-1  (%.1f-fold)\n",
-            min(R$total_mg), max(R$total_mg), max(R$total_mg)/min(R$total_mg)))
-cat(sprintf("  measured band only    %8.2f  to %8.2f\n", min(R$measured_mg), max(R$measured_mg)))
-cat(sprintf("  extrapolated share    %8.1f%% to %8.1f%%\n",
-            min(R$pct_extrapolated), max(R$pct_extrapolated)))
-cat(sprintf("  as %% of soil uptake   %8.1f%% to %8.1f%%\n", min(R$pct_of_soil), max(R$pct_of_soil)))
-cat(sprintf("  net budget            %8.1f  to %8.1f   -- SINK in %d of %d\n",
-            min(R$net_mg), max(R$net_mg), sum(R$net_mg<0), nrow(R)))
-cat(sprintf("  median total          %8.1f   IQR %.1f - %.1f\n", median(R$total_mg),
-            quantile(R$total_mg,.25), quantile(R$total_mg,.75)))
 
-cat("\n--- variance attribution: which assumption moves the answer most? ---\n")
-for (v in c("WAI","bole","branch","flux")) {
-  g <- R %>% group_by(.data[[v]]) %>% summarise(m=median(total_mg),.groups="drop")
-  cat(sprintf("  %-8s median total ranges %7.1f to %7.1f   (%.2fx)\n",
-              v, min(g$m), max(g$m), max(g$m)/min(g$m)))
-}
+# The grid now spans zero, because linear_bounded_median lets flux decline through
+# zero into uptake aloft. Fold-changes and shares of a total are undefined across a
+# sign change, so ranges are reported as intervals and spreads in mg, never as
+# ratios. The uptake form is also reported separately: it is CONTRADICTED by the
+# only direct evidence above 2 m (all four climbed-tree measurements there are
+# positive, each larger in magnitude than the sink it assumes), so it bounds what
+# the data cannot exclude rather than describing a likely outcome.
+CONTRA <- "linear_bounded_median"
+Rp <- R[R$flux != CONTRA, ]
+rng <- function(v) sprintf("%.1f to %.1f", min(v), max(v))
+cat(sprintf("  whole-surface total, all %d      %s mg CH4 m-2 yr-1\n", nrow(R), rng(R$total_mg)))
+cat(sprintf("  excluding the uptake form (%d)   %s\n", nrow(Rp), rng(Rp$total_mg)))
+cat(sprintf("  measured band (invariant)        %.2f\n", unique(round(R$measured_mg,2))[1]))
+cat(sprintf("  as %% of soil uptake, all         %s%%\n", rng(R$pct_of_soil)))
+cat(sprintf("    excluding the uptake form      %s%%\n", rng(Rp$pct_of_soil)))
+# share of the total that is extrapolated is only interpretable where the total is
+# positive and larger than the measured band
+ok <- R$total_mg > R$measured_mg
+cat(sprintf("  extrapolated share (%d of %d combinations where it is defined)  %s%%\n",
+            sum(ok), nrow(R), rng(R$pct_extrapolated[ok])))
+cat(sprintf("  net budget                       %s   -- SINK in %d of %d\n",
+            rng(R$net_mg), sum(R$net_mg < 0), nrow(R)))
+cat(sprintf("  median total %.1f (IQR %.1f-%.1f); excluding uptake form %.1f (IQR %.1f-%.1f)\n",
+            median(R$total_mg), quantile(R$total_mg,.25), quantile(R$total_mg,.75),
+            median(Rp$total_mg), quantile(Rp$total_mg,.25), quantile(Rp$total_mg,.75)))
+
+cat("\n--- which assumption moves the answer most? ---\n")
+cat("    spread = max - min of the median total across that assumption's levels,\n")
+cat("    in mg CH4 m-2 yr-1. A ratio would be undefined across the sign change.\n")
+att <- lapply(c("WAI","bole","branch","flux"), function(v) {
+  g <- R %>% group_by(.data[[v]]) %>% summarise(m = median(total_mg), .groups = "drop")
+  data.frame(assumption = v, levels = nrow(g), lo = min(g$m), hi = max(g$m),
+             spread = max(g$m) - min(g$m))
+}) %>% bind_rows() %>% arrange(-spread)
+for (i in seq_len(nrow(att))) cat(sprintf("  %-8s (%d levels)  median total %7.1f to %7.1f   spread %6.1f\n",
+  att$assumption[i], att$levels[i], att$lo[i], att$hi[i], att$spread[i]))
+cat(sprintf("\n  the flux form dominates the geometry by %.1fx (%.1f vs %.1f mg)\n",
+            att$spread[1]/att$spread[2], att$spread[1], att$spread[2]))
 
 cat("\n--- headline candidate: constant flux, by WAI ---\n")
 hc <- R %>% filter(flux=="constant") %>% group_by(WAI) %>%
   summarise(total=mean(total_mg), measured=mean(measured_mg),
             pct_extrap=mean(pct_extrapolated), pct_soil=mean(pct_of_soil), .groups="drop")
 print(as.data.frame(hc), row.names=FALSE, digits=4)
-cat("\n  (constant flux is identical across all 12 area shapes -- the vertical\n   distribution cancels algebraically, so only WAI matters in this row)\n")
+cat("\n  (constant flux is identical across all 8 area shapes -- the vertical\n   distribution cancels algebraically, so only WAI matters in this row)\n")
 
 # --- figure -------------------------------------------------------------------
 R$flux <- factor(R$flux, levels=c("constant","asymptote50","power","rf_learned",
