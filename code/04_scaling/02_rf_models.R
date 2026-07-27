@@ -656,10 +656,38 @@ build_features_tree <- function(df, drivers, Mhat_fn, SI_table, taxonomy, taxon_
   }
   df$taxon_prior_asinh <- as.numeric(df$taxon_prior_asinh)
   
-  species_counts <- table(df$species)
-  df$species_clean <- ifelse(species_counts[df$species] >= 10, 
-                             df$species, "SPECIES_OTHER")
-  
+  # ---------------------------------------------------------------------------
+  # SPECIES LEVELS. Every IDENTIFIED species we measured gets its own level; only
+  # unidentified material, and inventory species we never measured, fall through
+  # to SPECIES_OTHER.
+  #
+  # This threshold used to be >= 10 measurements, which sent six genuinely
+  # measured species into the pooled bucket and then applied that bucket's mean
+  # to every inventory stem of those species. The effect was not small. Kalmia
+  # latifolia has 3 measurements of its own averaging 0.0350 nmol m-2 s-1, but
+  # the bucket it was assigned to averages 0.0941 because Carya ovata (0.2583)
+  # and Quercus velutina (0.1139) dominate its 19 records -- so 1,898 mountain
+  # laurel stems, the densest thing in the understory, were predicted at nearly
+  # three times their own measured flux, and showed up as the reddest patches on
+  # the Figure 9 map. Quercus velutina is the felled black oak: measured at seven
+  # heights, and still treated as an unmeasured species.
+  #
+  # Levels with very few records are weakly constrained, and that is accepted
+  # deliberately: min.node.size = 5 stops the forest isolating a 1-3 record level
+  # in its own leaf, so such a level is averaged with neighbouring data rather
+  # than fitted to its own points. A thin estimate from the right species beats a
+  # confident one from the wrong genus. Leave-one-species-out shows no scheme --
+  # pooled, genus fallback, or species-free -- predicts an UNMEASURED species at
+  # better than negative R2, which is why nothing more elaborate is attempted
+  # here; see rev_rf_species_fallback_loso.R.
+  # ---------------------------------------------------------------------------
+  sp_raw <- as.character(df$species)
+  unidentified <- is.na(sp_raw) | grepl("^unknown", sp_raw, ignore.case = TRUE) |
+                  !grepl(" ", trimws(sp_raw))          # needs a binomial to count
+  df$species_clean <- ifelse(unidentified, "SPECIES_OTHER", sp_raw)
+  cat(sprintf("  Species levels: %d measured species + SPECIES_OTHER (%d unidentified records)\n",
+              length(setdiff(unique(df$species_clean), "SPECIES_OTHER")), sum(unidentified)))
+
   # CRITICAL: Within-species DBH standardization
   df$dbh_within_z <- ave(
     df$dbh_m, 
