@@ -8,20 +8,30 @@
 # its own larger, ragged extent, so the two terms of the budget described
 # different ground.
 #
-# THE STAND IS NOT THE FULL SQUARE, AND THE GAP IS NOT A RECTANGLE.
-# The census covers the 200 x 200 m ForestGEO plot minus an unsurveyed region in
-# the bottom-right corner. On a 10 m grid that region is a STAIRCASE of 26 cells
-# (2,600 m2), contiguous and reaching the plot edge -- not the single block an
-# earlier version of this file assumed, which both over-cut (it removed occupied
-# ground at PY 20-30) and under-cut (it missed PX 140-160 at PY 0-20).
+# THE STAND IS NOT THE FULL SQUARE. The census is organised in 20 m quadrats, and
+# SEVEN OF THE 100 WERE NEVER CENSUSED -- they appear nowhere in the raw census
+# tables. The stand is the 93 that were:
 #
-# The region is derived, not drawn: take located stems, bin to 10 m, and
-# flood-fill empty cells from the bottom-right corner. That distinguishes the
-# unsurveyed block from the 13 ISOLATED empty cells elsewhere in the plot, which
-# are ordinary forest gaps and stay in the stand. rev_inventory_build.R re-derives
-# it from the data each run and warns if it no longer matches the constant below.
+#     quadrat (row, col, 0-indexed)   PX        PY
+#     q7  q8  q9                      140-200    0- 20
+#     q108 q109                       160-200   20- 40
+#     q208 q209                       160-200   40- 60
 #
-# Esri World Imagery shows continuous closed canopy over the region, so it is
+# giving a monotonic rectilinear staircase, 2,800 m2 excluded, stand 37,200 m2.
+#
+# THIS IS THE SURVEY DESIGN, NOT AN INFERENCE. An earlier version of this file
+# derived the gap by flood-filling empty 10 m cells from the bottom-right corner.
+# That was the wrong basis twice over: it produced a non-monotonic boundary with a
+# re-entrant step (an artifact of one 10 m cell that happened to hold two stems),
+# and in principle it could not distinguish a quadrat that was never walked from
+# one that was walked and found empty. Masking on the quadrat identifiers answers
+# that question directly.
+#
+# Three located stems fall inside the seven uncensused quadrats (one in q7, two in
+# q108) and are excluded with them. They are almost certainly stems recorded from
+# an adjoining quadrat, or carrying a few metres of coordinate error.
+#
+# Esri World Imagery shows continuous closed canopy over the block, so it is
 # unsurveyed forest, not absent forest: the stem census is deficient there but
 # soil flux genuinely applies. We exclude it from BOTH terms rather than pretend
 # either is complete over it, and the stand is defined as the censused ground.
@@ -39,16 +49,26 @@
 # ==============================================================================
 
 PLOT_SIDE_M <- 200
-GAP_CELL_M  <- 10          # resolution at which the unsurveyed region is defined
+GAP_CELL_M  <- 20          # ForestGEO quadrat size; the census's own survey unit
 
-# Per 10 m PY band, the PX at which the unsurveyed region begins; NA = fully
-# censused. Index i covers PY [(i-1)*10, i*10). Derived by flood-fill; see header.
-# The step back out at PY 20-30 (170 rather than 160) is real: the cell
-# PX 160-170 there holds two stems, so it was surveyed.
-GAP_PX_MIN_BY_PY <- c(140, 150, 170, 160, 160, 160,
-                      rep(NA_real_, PLOT_SIDE_M/GAP_CELL_M - 6))
+# The seven quadrats absent from the raw census, as codes row*100 + col with row
+# and col 0-indexed from the plot origin. Verified against the raw tables on every
+# run by rev_inventory_build.R.
+UNCENSUSED_QUADRATS <- c(7, 8, 9, 108, 109, 208, 209)
 
-#' PX at which the gap starts for the band containing PY; Inf where none.
+# Per 20 m PY band, the PX at which uncensused ground begins; NA = fully censused.
+# Derived from UNCENSUSED_QUADRATS so the two cannot disagree.
+GAP_PX_MIN_BY_PY <- local({
+  v <- rep(NA_real_, PLOT_SIDE_M/GAP_CELL_M)
+  for (q in UNCENSUSED_QUADRATS) {
+    r <- q %/% 100; cc <- q %% 100
+    v[r + 1] <- min(v[r + 1], cc*GAP_CELL_M, na.rm = TRUE)
+  }
+  v
+})
+
+#' PX at which uncensused ground starts for the 20 m band containing PY; Inf where
+#' the whole band was censused.
 .gap_px <- function(PY) {
   i <- pmin(pmax(floor(PY/GAP_CELL_M) + 1, 1), length(GAP_PX_MIN_BY_PY))
   v <- GAP_PX_MIN_BY_PY[i]
@@ -56,9 +76,8 @@ GAP_PX_MIN_BY_PY <- c(140, 150, 170, 160, 160, 160,
 }
 
 PLOT_AREA_M2 <- PLOT_SIDE_M^2                                        # 40,000 nominal
-GAP_AREA_M2  <- sum(ifelse(is.na(GAP_PX_MIN_BY_PY), 0,
-                           PLOT_SIDE_M - GAP_PX_MIN_BY_PY) * GAP_CELL_M)  # 2,600
-STAND_AREA_M2 <- PLOT_AREA_M2 - GAP_AREA_M2                          # 37,400 = 3.74 ha
+GAP_AREA_M2  <- length(UNCENSUSED_QUADRATS) * GAP_CELL_M^2           # 2,800
+STAND_AREA_M2 <- PLOT_AREA_M2 - GAP_AREA_M2                          # 37,200 = 3.72 ha
 
 # --- membership ---------------------------------------------------------------
 #' Inside the unsurveyed staircase. Uses >= on PX so a stem recorded exactly on a
@@ -139,8 +158,8 @@ local({
 })
 
 if (identical(environment(), globalenv()) && !interactive()) {
-  cat(sprintf("stand geometry: %d x %d m minus a %d-cell staircase gap\n",
-              PLOT_SIDE_M, PLOT_SIDE_M, GAP_AREA_M2/GAP_CELL_M^2))
+  cat(sprintf("stand geometry: %d x %d m minus %d uncensused %d m quadrats\n",
+              PLOT_SIDE_M, PLOT_SIDE_M, length(UNCENSUSED_QUADRATS), GAP_CELL_M))
   cat(sprintf("  nominal %d m2 | gap %d m2 | STAND %d m2 = %.2f ha\n",
               PLOT_AREA_M2, GAP_AREA_M2, STAND_AREA_M2, STAND_AREA_M2/1e4))
 }

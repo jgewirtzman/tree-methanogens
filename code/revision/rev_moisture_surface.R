@@ -55,7 +55,14 @@ inside <- in_square(D$PX, D$PY)
 cat(sprintf("survey points inside the 200 m square: %d of %d\n", sum(inside), nrow(D)))
 
 # --- fit and predict on the stand grid ---------------------------------------
+# FIT ON EVERY SURVEY POINT, CLIP AFTERWARDS. The spline is fitted to all 71
+# points, including the 13 that lie outside the 200 m square: they carry real
+# information about the gradient near the boundary, and dropping them first would
+# leave the edge of the surface extrapolating from nothing. Only the PREDICTION
+# is restricted to censused ground.
 fit <- suppressWarnings(Tps(cbind(D$PX, D$PY), D$vwc))
+cat(sprintf("spline fitted on all %d survey points (%d of them outside the square)\n",
+            nrow(D), sum(!in_square(D$PX, D$PY))))
 half <- CELL_M/2
 G <- expand.grid(PX = seq(half, PLOT_SIDE_M - half, by = CELL_M),
                  PY = seq(half, PLOT_SIDE_M - half, by = CELL_M))
