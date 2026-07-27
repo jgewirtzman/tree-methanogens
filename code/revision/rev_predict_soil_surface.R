@@ -29,11 +29,14 @@
 #   outer margin has weaker uptake than the plot interior; including it was
 #   diluting the sink.
 #
-# GRID. The existing surface grid is reused verbatim (its x/y and its VWC), so
-#   the map's shape and resolution are unchanged and only the model and the clip
-#   differ. Moisture on that grid is VWC in PERCENT; the affine table converts it
-#   to the fraction the model was trained on. Note the raster in the workflow
-#   RData is on a different scale (already a fraction) -- do not mix them.
+# GRID. A regular 2 m plot-local grid over the censused stand, built by
+#   rev_moisture_surface.R with a thin-plate spline over the 71 December survey
+#   points. This replaces an akima linear interpolation, which fitted flat
+#   triangles between points -- the planar facets and creases visible in the old
+#   Figure 9 soil panel -- and which was undefined outside the convex hull,
+#   leaving 29% of the plot unfillable. See rev_moisture_interpolation.R for the
+#   seven-method comparison; note that akima spline, the obvious alternative, was
+#   the worst method tested.
 #
 # Output: outputs/tables/soil_surface_monthly.csv  (cell x month)
 #         outputs/tables/soil_surface_annual.csv   (cell, annual mean)
@@ -48,17 +51,13 @@ load("data/processed/integrated/rf_workflow_input_data_with_2023.RData")
 DR  <- rf_workflow_data$PLACEHOLDER_DRIVERS
 AFF <- read.csv("outputs/tables/MOISTURE_AFFINE_TABLE.csv")
 
-GRIDFILE <- "outputs/tables/soil_flux_extended_annual.csv"
-if (!file.exists(GRIDFILE)) stop("missing ", GRIDFILE, " (soil surface grid)")
-G <- read.csv(GRIDFILE, stringsAsFactors = FALSE)
-
-# ---- put the grid in plot-local metres and clip to censused ground -----------
-tr <- geo_transforms()
-p <- tr$inv(G$y, G$x); G$PX <- p$PX; G$PY <- p$PY
-G$in_stand <- in_stand(G$PX, G$PY)
-cat(sprintf("grid cells %d | inside 200 m square %d | IN STAND %d (%.1f%% kept)\n",
-            nrow(G), sum(in_square(G$PX, G$PY)), sum(G$in_stand), 100*mean(G$in_stand)))
-S <- G[G$in_stand, ]
+GRIDFILE <- "outputs/tables/moisture_surface_grid.csv"
+if (!file.exists(GRIDFILE))
+  stop("missing ", GRIDFILE, " -- run code/revision/rev_moisture_surface.R first")
+S <- read.csv(GRIDFILE, stringsAsFactors = FALSE)
+stopifnot(all(in_stand(S$PX, S$PY)))
+cat(sprintf("moisture grid: %d cells on censused ground (%.2f ha)\n",
+            nrow(S), nrow(S)*4/1e4))
 
 # ---- monthly drivers ---------------------------------------------------------
 fl <- function(v, mo) approx(mo[is.finite(v)], v[is.finite(v)], xout = mo, rule = 2)$y
@@ -89,7 +88,7 @@ if (!file.exists(CLIMFILE))
   stop("missing ", CLIMFILE, " -- run code/revision/rev_moisture_climatology.R first")
 CLIM <- read.csv(CLIMFILE, stringsAsFactors = FALSE)
 stopifnot(nrow(CLIM) == 12, all(is.finite(CLIM$moisture)))
-shape <- S$mean_moisture / mean(S$mean_moisture)     # relative pattern, mean 1
+shape <- S$vwc_rel                                    # already mean 1 over the stand
 cat(sprintf("moisture: fixed pattern (rel. range %.2f-%.2f) x monthly level %.3f-%.3f\n",
             min(shape), max(shape), min(CLIM$moisture), max(CLIM$moisture)))
 
@@ -125,29 +124,16 @@ cat(sprintf("annual  %.2f mg CH4 m-2 yr-1   (%.4f nmol m-2 s-1)\n",
             soil_annual_mg, mean(A$flux_nmol_m2_s)))
 print(as.data.frame(mon %>% mutate(soil_nmol_m2_s = round(soil_nmol_m2_s, 4))))
 
-cat("\n-- domain sensitivity, for the record --\n")
-dom <- function(sel, lab) {
-  gg <- G[sel, ]
-  mm <- sapply(1:12, function(m) {
-    sh <- gg$mean_moisture / mean(gg$mean_moisture)
-    mean(predict(SoilRF, data.frame(
-      soil_moisture_at_site = sh * CLIM$moisture[CLIM$mo == m],
-      soil_temp_C_mean = DR$soil_temp_C_mean[DR$month == m][1],
-      air_temp_C_mean  = DR$air_temp_C_mean[DR$month == m][1],
-      month = m), num.threads = 1)$predictions)
-  })
-  cat(sprintf("  %-34s %6d cells  %9.2f mg m-2 yr-1\n", lab, nrow(gg),
-              mean(mm)*SEC_YR*NMOL_TO_MG))
-}
-dom(rep(TRUE, nrow(G)), "whole surface (old behaviour)")
-dom(in_square(G$PX, G$PY), "200 x 200 m square")
-dom(G$in_stand, "censused stand (used)")
+# Domain sensitivity is no longer informative: the pattern is normalised to mean
+# 1 over the stand and the level is imposed by the climatology, so the soil mean
+# is set by construction rather than emerging from the choice of domain. Clipping
+# still governs the map and the tree term.
 
 con <- file("outputs/revision/soil_surface_summary.txt", "w")
 cat(sprintf("SOIL SURFACE (rev_predict_soil_surface.R)\nbuilt %s\n\n",
             format(Sys.time(), "%Y-%m-%d %H:%M:%S")), file = con)
-cat(sprintf("grid cells kept (in stand): %d of %d\nstand area: %d m2 (%.2f ha)\n",
-            nrow(S), nrow(G), STAND_AREA_M2, STAND_AREA_M2/1e4), file = con)
+cat(sprintf("grid cells (in stand): %d\nstand area: %d m2 (%.2f ha)\n",
+            nrow(S), STAND_AREA_M2, STAND_AREA_M2/1e4), file = con)
 cat(sprintf("annual soil flux: %.3f mg CH4 m-2 yr-1 (%.5f nmol m-2 s-1)\n",
             soil_annual_mg, mean(A$flux_nmol_m2_s)), file = con)
 cat("\nmonthly (nmol m-2 s-1):\n", file = con)
