@@ -23,9 +23,18 @@ BLUES <- c("#f7f7f7","#d1e5f0","#92c5de","#4393c3","#2166ac")  # ~0 -> deep upta
 REDS  <- c("#f7f7f7","#fddbc7","#f4a582","#d6604d","#b2182b")  # ~0 -> deep emission (source)
 SINK <- "#2166ac"; SRC <- "#b2182b"; SRC_LT <- "#f4a582"; NETC <- "grey40"
 
-soil_map <- read.csv("outputs/tables/soil_flux_extended_annual.csv")   # x,y,mean_flux_nmol
-tree_pts <- read.csv("outputs/tables/tree_flux_predictions.csv")       # x,y,dbh_m,flux_nmol_m2_s
-mf       <- read.csv("outputs/tables/MONTHLY_FLUXES.csv")
+# ---- inputs ------------------------------------------------------------------
+# ALL FOUR PANELS NOW DRAW ON THE SAME SOURCES. Previously the map panel drew the
+# interpolated soil surface while the seasonal and budget panels took soil from
+# MONTHLY_FLUXES.csv -- two independent estimates of one quantity, 4.7% apart --
+# and the budget panel stacked a 5.41 mg measured band (canonical) under an 85 mg
+# whole-surface bar built on a 5.79 mg band (grid). Soil is the interpolated
+# surface everywhere (decision 2026-07-27); the tree term is the canonical band.
+source("code/revision/rev_geometry.R")
+soil_map <- read.csv("outputs/tables/soil_surface_annual.csv")     # clipped to the stand
+tree_pts <- read.csv("outputs/tables/tree_flux_predictions.csv")
+tree_pts <- tree_pts[tree_pts$in_stand & tree_pts$located, ]       # mappable subset
+soil_map$mean_flux_nmol <- soil_map$flux_nmol_m2_s
 
 # ---- budget numbers: READ, never hardcoded ----------------------------------
 # All values come from rev_budget_canonical.R, which computes them from the locked
@@ -78,10 +87,15 @@ pa <- ggplot(soil_map, aes(x, y, fill = mean_flux_nmol)) + geom_raster(interpola
 
 # ---- (b) tree map (source = red; per m2 WOODY SURFACE; quantile-spread color) -
 tv <- tree_pts$flux_nmol_m2_s
+# LINEAR colour scale. This was previously rescaled to equal quantiles of the
+# prediction distribution, which is pathological here: RF predictions are clumped
+# (30% of stems sit within 1% of one value), so two of the five colour stops
+# landed 1% apart and the ramp jumped from pale to mid-red at the median. The map
+# read as uniformly hot when most stems sit at the low-middle of the range.
 pb <- ggplot(tree_pts %>% arrange(flux_nmol_m2_s), aes(x, y, color = flux_nmol_m2_s, size = dbh_m)) +
   geom_point(alpha = 0.9) +
-  scale_color_gradientn(colours = REDS, name = expression("Tree CH"[4]*"  (nmol m"^-2*" s"^-1*", per m"^2*" woody surface)"),
-                        values = scales::rescale(quantile(tv, probs = seq(0, 1, length.out = length(REDS)))),
+  scale_color_gradientn(colours = REDS, name = expression("Tree CH"[4]*"  (nmol m"^-2*" s"^-1*", per m"^2*" woody surface, 0-2 m band mean)"),
+                        limits = c(0, max(tv)),
                         guide = guide_colorbar(title.position = "top")) +
   scale_size_continuous(range = c(0.15, 1.9), guide = "none") +
   map_scales +
@@ -176,15 +190,18 @@ pd <- ggplot(wf) +
            vjust = 1.5, size = 2.9) +
   annotate("text", x = 2, y = soil_ann + tree_meas, label = sprintf("+%.1f", tree_meas),
            vjust = -0.8, size = 2.9) +
-  annotate("text", x = 3, y = soil_ann + tree_scen, label = sprintf("+%.0f", tree_scen),
+  # total, not an increment: this bar INCLUDES the measured band drawn at x = 2
+  annotate("text", x = 3, y = soil_ann + tree_scen, label = sprintf("%.0f total", tree_scen),
            vjust = -0.8, size = 2.9) +
   annotate("text", x = 4, y = soil_ann + tree_scen, label = sprintf("%.0f", soil_ann + tree_scen),
            vjust = 1.5, size = 2.9) +
   # bounding range on the scenario bar (WAI 1.50 - 3.07, constant flux)
   annotate("linerange", x = 3, ymin = soil_ann + tree_lo, ymax = soil_ann + tree_hi,
            colour = "grey25", linewidth = 0.5) +
-  annotate("text", x = 3.46, y = soil_ann + (tree_lo + tree_hi)/2,
-           label = sprintf("%.0f-%.0f", tree_lo, tree_hi), size = 2.3, colour = "grey25", hjust = 0) +
+  # range sits BELOW the scenario bar: at x = 3.46 it overprinted the net-budget bar
+  annotate("text", x = 3, y = soil_ann + tree_lo,
+           label = sprintf("WAI range %.0f-%.0f", tree_lo, tree_hi),
+           size = 2.2, colour = "grey25", vjust = 1.9) +
   labs(x = NULL, y = expression("CH"[4]*" (mg m"^-2*" yr"^-1*", per m"^2*" ground)")) +
   theme_bw(base_size = 9) +
   theme(axis.text.x = element_text(size = 7.5), panel.grid.minor = element_blank())
@@ -196,7 +213,7 @@ ggsave(file.path(out, "fig_budget_maps.png"), fig, width = 10.5, height = 9, dpi
 cat("Wrote fig_budget_maps.png\n")
 cat(sprintf("Soil %.1f | tree measured %.2f (%.2f%% of soil) | tree scenario %.1f (%.1f%%, %.0f%% extrapolated)\n",
             soil_ann, tree_meas, off(tree_meas), tree_scen, off(tree_scen), pct_extrapolated))
-cat(sprintf("Constant-flux WAI bounds %.1f-%.1f | full 216-combination range %.1f-%.1f\n",
-            tree_lo, tree_hi, tree_grid_lo, tree_grid_hi))
+cat(sprintf("Constant-flux WAI bounds %.1f-%.1f | full %d-combination range %.1f-%.1f\n",
+            tree_lo, tree_hi, nrow(GR), tree_grid_lo, tree_grid_hi))
 cat(sprintf("Net budget %.0f (measured only) to %.0f (scenario) mg CH4 m-2 yr-1 -- sink throughout\n",
             soil_ann+tree_meas, soil_ann+tree_scen))

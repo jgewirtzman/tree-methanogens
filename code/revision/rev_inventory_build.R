@@ -111,6 +111,35 @@ INV <- INV %>% mutate(
 
 stopifnot(max(INV$dbh_cm) <= MAX_DBH_CM, all(INV$dbh_m > 0))
 
+# ---- verify the unsurveyed region against the data it was derived from -------
+# GAP_PX_MIN_BY_PY in rev_geometry.R is a constant so the geometry is stable and
+# auditable, but it must keep matching the inventory. Re-derive it here by the
+# same flood-fill and warn on any drift.
+local({
+  K <- PLOT_SIDE_M/GAP_CELL_M
+  L <- INV[INV$located & in_square(INV$PX, INV$PY), ]
+  cx <- pmin(floor(L$PX/GAP_CELL_M) + 1, K); cy <- pmin(floor(L$PY/GAP_CELL_M) + 1, K)
+  M <- matrix(0L, K, K); for (i in seq_along(cx)) M[cx[i], cy[i]] <- M[cx[i], cy[i]] + 1L
+  empty <- M == 0L; seen <- matrix(FALSE, K, K); st <- list(c(K, 1L))
+  if (!empty[K, 1L]) { warning("bottom-right corner cell is no longer empty"); return(invisible()) }
+  while (length(st)) {
+    p <- st[[length(st)]]; st[[length(st)]] <- NULL; x <- p[1]; y <- p[2]
+    if (x < 1 || x > K || y < 1 || y > K) next
+    if (seen[x, y] || !empty[x, y]) next
+    seen[x, y] <- TRUE
+    st <- c(st, list(c(x+1L,y), c(x-1L,y), c(x,y+1L), c(x,y-1L)))
+  }
+  got <- vapply(seq_len(K), function(y)
+    if (any(seen[, y])) (min(which(seen[, y])) - 1) * GAP_CELL_M else NA_real_, numeric(1))
+  cat(sprintf("\n-- unsurveyed region --\n  %d contiguous empty cells = %d m2; %d isolated empty cells elsewhere (forest gaps, retained)\n",
+              sum(seen), sum(seen)*GAP_CELL_M^2, sum(empty) - sum(seen)))
+  if (!isTRUE(all.equal(got, GAP_PX_MIN_BY_PY, check.attributes = FALSE))) {
+    warning("unsurveyed region has drifted from GAP_PX_MIN_BY_PY in rev_geometry.R")
+    cat("  DERIVED : ", paste(ifelse(is.na(got), "NA", got), collapse = ", "), "\n")
+    cat("  CONSTANT: ", paste(ifelse(is.na(GAP_PX_MIN_BY_PY), "NA", GAP_PX_MIN_BY_PY), collapse = ", "), "\n")
+  } else cat("  matches GAP_PX_MIN_BY_PY in rev_geometry.R\n")
+})
+
 # ---- report ------------------------------------------------------------------
 cat("================ INVENTORY REBUILD ================\n")
 cat(sprintf("stem records: %d   (fg19 %d, bytag %d)\n", nrow(INV),

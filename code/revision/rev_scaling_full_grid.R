@@ -57,22 +57,40 @@
 suppressMessages({library(ranger);library(dplyr);library(ggplot2);library(tidyr);library(patchwork)})
 set.seed(42)
 outdir <- "outputs/revision"; dir.create(outdir, showWarnings=FALSE, recursive=TRUE)
+source("code/revision/rev_geometry.R")
 load("outputs/models/RF_MODELS.RData"); load("outputs/models/TRAINING_DATA.RData")
 load("data/processed/integrated/rf_workflow_input_data_with_2023.RData")
-INV <- rf_workflow_data$PLACEHOLDER_INVENTORY; DR <- rf_workflow_data$PLACEHOLDER_DRIVERS
+DR <- rf_workflow_data$PLACEHOLDER_DRIVERS
 d <- tree_train_complete; trained <- sort(unique(as.character(d$species_clean)))
-A_PLOT <- 200*200; CONV <- 86400*365.25*16e-6; SOIL_ANN <- -543.88
+CONV <- 86400*365.25*16e-6
 
-fx <- function(dd,s){dd<-ifelse(!is.na(dd)&dd>3,dd/100,dd)
- dd<-ifelse(grepl("Betula",s)&!is.na(dd)&dd*100>200,dd/10,dd)
- dd<-ifelse(s=="Pinus strobus"&!is.na(dd)&dd*100>230,dd/10,dd)
- ifelse(s=="Kalmia latifolia"&!is.na(dd)&dd*100>100,dd/100,
- ifelse(s=="Kalmia latifolia"&!is.na(dd)&dd*100>10,dd/10,dd))}
-INV$dbh <- fx(INV$dbh_m,INV$species); INV <- INV[is.finite(INV$dbh)&INV$dbh>0,]
+# Inputs are the canonical products, not re-derivations. The measured band and the
+# soil term were previously recomputed here and drifted from the budget: the grid
+# reported a 5.7874 mg band while canonical_budget.csv said 5.41, and Figure 9
+# stacked one on the other in a single waterfall. The soil term was the hardcoded
+# constant -543.88. Both are now read.
+need <- c(inv="outputs/tables/inventory_stems.csv",
+          tree="outputs/tables/tree_flux_predictions.csv",
+          bud="outputs/revision/canonical_budget.csv")
+miss <- need[!file.exists(need)]
+if (length(miss)) stop("missing inputs:\n  ", paste(miss, collapse="\n  "),
+  "\nrun rev_inventory_build.R, rev_predict_tree_flux_current.R, rev_predict_soil_surface.R, rev_budget_canonical.R first")
+B   <- read.csv(need[["bud"]], stringsAsFactors=FALSE)
+val <- function(q){v <- B$value[B$quantity==q]; if(!length(v)) stop("canonical_budget.csv lacks ",q); v}
+SOIL_ANN  <- val("soil_mg_m2_yr")
+MEAS_BAND <- val("tree_measured_mg_m2_yr")   # invariant across the grid, by construction
+A_PLOT    <- STAND_AREA_M2                   # censused ground, not the nominal square
+
+TRP <- read.csv(need[["tree"]], stringsAsFactors=FALSE)
+INV <- read.csv(need[["inv"]],  stringsAsFactors=FALSE)
+INV <- INV[INV$in_stand, ]; TRP <- TRP[TRP$in_stand, ]
+stopifnot(nrow(INV)==nrow(TRP))
+INV$dbh <- INV$dbh_m                          # already unit-checked and typo-repaired
+INV$A_band_m2 <- TRP$A_stem_m2                # measured-band area, Kalmia at 0.75 m
 INV <- INV %>% group_by(species) %>%
   mutate(dbh_within_z=if(n()>1&&sd(dbh,na.rm=TRUE)>0) as.numeric(scale(dbh)) else 0) %>%
   ungroup() %>% as.data.frame()
-INV$sp <- ifelse(INV$species %in% trained, INV$species, "SPECIES_OTHER")
+INV$sp <- ifelse(!is.na(INV$species) & INV$species %in% trained, INV$species, "SPECIES_OTHER")
 GY <- c("Pinus strobus","Tsuga canadensis")
 DA <- quantile(INV$dbh[INV$dbh>0.10],.95,na.rm=TRUE)
 INV$H <- 1.37 + ifelse(INV$species %in% GY,(25-1.37)/DA^0.60,(25-1.37)/DA^0.53) *
@@ -85,16 +103,30 @@ sm <- soil_train_complete %>% group_by(month) %>% summarise(ms=mean(soil_moistur
 DR <- DR %>% left_join(mm,"month") %>% left_join(sm,"month") %>% mutate(m=ifelse(is.finite(m),m,ms))
 fl <- function(v,mo) approx(mo[is.finite(v)],v[is.finite(v)],xout=mo,rule=2)$y
 DR$m <- fl(DR$m,DR$month); DR$soil_temp_C_mean <- fl(DR$soil_temp_C_mean,DR$month)
-HG <- seq(50,200,by=12.5); zh <- HG/100
-cat(sprintf("predicting %d stems x %d heights x 12 months ...\n", n, length(HG)))
-P <- array(NA_real_,c(n,length(HG),12))
-for (mo in 1:12) for (j in seq_along(HG))
-  P[,j,mo] <- predict(TreeRF, data.frame(species=factor(INV$sp,levels=trained),
-    dbh_m=INV$dbh, dbh_within_z=INV$dbh_within_z, soil_moisture_at_tree=DR$m[mo],
+# The RF is a STEP function in height: trained at 50/125/200 cm only, so it takes
+# 3-4 distinct values across the band and the transitions sit at shared thresholds.
+# Detect them, then evaluate once per interval -- exact, and ~40x fewer model calls
+# than the 12.5 cm grid this used before (which also landed mid-step).
+pred_at <- function(h, mo, idx=seq_len(n)) predict(TreeRF, data.frame(
+    species=factor(INV$sp[idx],levels=trained), dbh_m=INV$dbh[idx],
+    dbh_within_z=INV$dbh_within_z[idx], soil_moisture_at_tree=DR$m[mo],
     soil_temp_C_mean=DR$soil_temp_C_mean[mo], air_temp_C_mean=DR$air_temp_C_mean[mo],
-    height_cm=HG[j]), num.threads=1)$predictions
-PROF <- apply(P,c(1,2),mean); f2 <- PROF[,length(HG)]
-rf_slope <- as.numeric(apply(PROF,1,function(f){
+    height_cm=h), num.threads=1)$predictions
+samp <- sample(n, min(400,n)); Hs <- 50:200
+Ps <- vapply(Hs, function(h) pred_at(h,7,samp), numeric(length(samp)))
+brk <- Hs[-1][colSums(abs(Ps[,-1,drop=FALSE]-Ps[,-ncol(Ps),drop=FALSE]))>0]
+edges <- c(50, brk, 201); K <- length(edges)-1
+cat(sprintf("height steps at %s cm -> %d intervals; %d stems x %d x 12 model calls\n",
+            paste(brk,collapse=", "), K, n, K))
+FI <- array(NA_real_,c(n,K,12))
+for (mo in 1:12) for (k in seq_len(K)) FI[,k,mo] <- pred_at(edges[k], mo)
+PROFI <- apply(FI,c(1,2),mean)              # n x K, annual mean per interval
+zh <- (head(edges,-1) + pmin(tail(edges,-1),201) - 1)/2/100   # interval midpoints, m
+f2 <- PROFI[,K]                             # 2 m anchor for the above-band forms
+#' Step lookup: the model's value at height z (metres), constant within an interval.
+prof_at <- function(i, zm) PROFI[i, findInterval(pmin(pmax(zm*100,50),200), edges,
+                                                 rightmost.closed=TRUE)]
+rf_slope <- as.numeric(apply(PROFI,1,function(f){
   if(any(!is.finite(f))||all(f<=0)||sd(f)==0) return(0)
   as.numeric(coef(lm(log(pmax(f,1e-9))~zh))[2])}))
 
@@ -146,7 +178,7 @@ above <- Z > 2
 # per-tree flux inside the band, floored below 0.5 m
 Zb <- pmin(pmax(Z,0.5),2)
 Fband <- matrix(NA_real_, n, NU)
-for (i in seq_len(n)) Fband[i,] <- approx(zh, PROF[i,], xout=Zb[i,], rule=2)$y
+for (i in seq_len(n)) Fband[i,] <- prof_at(i, Zb[i,])
 
 # Shape ratios relative to each stem's own 2 m flux. linear_unfloored is the only form
 # permitted to go negative, representing a decline that continues through zero into net
@@ -182,13 +214,14 @@ for (bn in names(BOLE)) for (rn in names(BRANCH)) {
   # literature WAI is adopted; it is held fixed and spread uniformly over the band
   # (a 2 m cylinder, taper negligible). Only the area ABOVE 2 m absorbs the WAI choice.
   nb <- rowSums(!above)
-  Aband <- (!above) * (pi*INV$dbh*2) / pmax(nb,1)
+  Aband <- (!above) * INV$A_band_m2 / pmax(nb,1)
   shp_ab <- Ashape*above; shp_ab <- shp_ab/pmax(rowSums(shp_ab),1e-12)
   for (wn in names(WAIS)) {
-    A_above_tot <- WAIS[wn]*A_PLOT - sum(pi*INV$dbh*2)
+    A_above_tot <- WAIS[wn]*A_PLOT - sum(INV$A_band_m2)
     w_tree <- pi*INV$dbh*INV$H/2; w_tree <- w_tree/sum(w_tree)
     Aslab <- Aband + shp_ab * (w_tree * A_above_tot)
-    meas <- sum(Fband[!above]*Aslab[!above])/A_PLOT*CONV
+    # the measured band is the canonical value, not a re-derivation (see header)
+    meas <- MEAS_BAND
     for (fm in FORMS) {
       extr <- sum((f2*Rmat[[fm]])[above]*Aslab[above])/A_PLOT*CONV
       res[[length(res)+1]] <- data.frame(WAI=wn, bole=bn, branch=rn, flux=fm,

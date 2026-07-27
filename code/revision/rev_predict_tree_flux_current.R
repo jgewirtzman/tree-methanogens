@@ -126,9 +126,13 @@ for (mo in 1:12) {
 # the 2 m anchor for the above-band scenarios: the interval containing H_HI
 flux_2m <- rowMeans(F[, K, ])
 
+# lon/lat alongside PX/PY, so map panels need no transform of their own
+ll <- geo_transforms()$fwd(INV$PX, INV$PY)
 OUT <- data.frame(
   source = INV$source, tag = INV$tag, species = INV$species, species_model = INV$sp,
-  dbh_m = INV$dbh_m, PX = INV$PX, PY = INV$PY, located = INV$located,
+  dbh_m = INV$dbh_m, PX = INV$PX, PY = INV$PY,
+  x = ifelse(INV$located, ll$lon, NA_real_), y = ifelse(INV$located, ll$lat, NA_real_),
+  located = INV$located,
   in_stand = INV$in_stand, band_m = INV$band_m, A_stem_m2 = INV$A_stem_m2,
   flux_band_nmol_m2_s = rowMeans(band),
   flux_2m_nmol_m2_s   = flux_2m)
