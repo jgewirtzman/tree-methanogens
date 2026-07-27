@@ -55,7 +55,7 @@ SUPPORT <- c(
   "code/revision/rev_area_distribution_scenarios.R",
   "code/revision/rev_height_form_crossvalidation.R",
   "code/revision/rev_rf_model_diagnostics.R",
-  "code/revision/rev_rf_leave_one_species_out.R",
+  "code/revision/rev_rf_species_fallback_loso.R",
   "code/revision/rev_rf_height_extrapolation.R",
   "code/revision/rev_scaling_assumptions_audit.R")
 SUPPORT <- SUPPORT[file.exists(SUPPORT)]
