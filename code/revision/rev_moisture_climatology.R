@@ -44,9 +44,25 @@
 #
 #    A large store is what carries seasonal recharge: autumn rain accumulates
 #    through a winter when ET is near zero and the profile peaks in early spring.
-#    A five-day memory cannot produce that lag. Above ~400 mm the store never
-#    saturates, so the result is insensitive to Smax and the model is effectively
-#    cumulative P - ET floored at zero.
+#    A five-day memory cannot produce that lag.
+#
+#    WHAT THE STORE IS. A one-line running balance in millimetres of water:
+#        S_t = clamp( S_{t-1} + rain_t - ET_t , 0 , Smax )
+#    started at Smax/2 and stepped daily. It is not soil moisture; it is a
+#    catchment-style water store whose seasonal swing is regressed onto the
+#    de-confounded plot moisture, so the regression sets both the units and the
+#    absolute level. Rainfall averages 1105 mm yr-1 against 694 mm of reference
+#    ET, a surplus of +410 mm yr-1, so the store refills every winter.
+#
+#    Smax therefore acts as FIELD CAPACITY, not as a free parameter: the store
+#    sits at the ceiling through winter and spring (10% of all days, 5% of days
+#    in the campaign window) and the seasonal signal is the summer drawdown --
+#    to 105 mm in 2020 and 25 mm in 2022, against 225-285 mm in the wetter 2019
+#    and 2021. Raising Smax above ~300 mm therefore changes only the winter
+#    plateau, which the transfer function is flat across; the Jun-Sep
+#    climatology is identical (0.2443) for every Smax from 300 to 1200 mm and
+#    the drought correction stays at +0.031. That insensitivity is the reason
+#    for choosing 400 rather than tuning it.
 #
 # 3. SCALE THE SPATIAL FIELD TO THE MONTHLY LEVEL. The relative spatial pattern
 #    is taken as fixed in time and comes from the dense December transect, NOT
