@@ -2,47 +2,49 @@
 # ==============================================================================
 # rev_model_family_comparison.R
 # ------------------------------------------------------------------------------
-# Is a random forest the right model for a STAND BUDGET?
+# What model family is right for a stand BUDGET, as opposed to for predicting an
+# individual stem?
 #
-# THE PROBLEM. A regression forest minimises squared error, and the minimiser of
-# squared error shrinks predictions toward the conditional mean. That is correct
-# behaviour for prediction and wrong behaviour for a SUM: the audit in
-# rev_rf_species_bias_audit.R found low-flux species over-predicted (Tsuga 1.43x,
-# Pinus strobus 1.44x) and high-flux species under-predicted (Betula
-# alleghaniensis 0.83x, Fraxinus 0.79x). Because the two over-predicted conifers
-# carry 54% of the band area, the stand tree term comes out 23% high.
+# THE REQUIREMENT IS UNUSUAL. The model is fitted to ~1000 chamber measurements
+# and then applied to ~8000 inventory stems at combinations of species, diameter,
+# height, moisture and temperature that are mostly NOT represented in the
+# training data -- and the quantity of interest is the SUM. So the model must
+#   (a) capture whatever nonlinearity and interaction the data contain, and
+#   (b) be unbiased in the mean over a population it was not fitted to.
+# Those pull in opposite directions and most families give up one for the other.
 #
-# WHY A LINEAR MODEL MIGHT BE BETTER HERE, and it is a structural argument rather
-# than an empirical hope: least squares with species as a factor forces the fitted
-# mean to equal the observed mean WITHIN EACH LEVEL. The residuals sum to zero by
-# construction, per species. That is precisely the property the budget needs and
-# the one the forest cannot provide. The price is that a linear model cannot
-# represent interactions or thresholds the forest finds, so it may predict
-# individual stems worse.
+# WHY THE FOREST FAILS (b). Squared-error minimisation shrinks predictions toward
+# the conditional mean, so low-flux species are over-predicted and high-flux ones
+# under-predicted. Because Tsuga and Pinus strobus are both low-flux and carry
+# 54% of the band area, the stand sum comes out ~20% high.
 #
-# So the two model families are being asked for different things, and this script
-# scores both on both:
-#   RMSE / R2        can it predict an individual measurement
-#   per-species bias can it get each species' MEAN right
-#   stand budget     what it does to the number in the paper
+# WHY A SCALAR PER-SPECIES CORRECTION IS NOT ENOUGH, which is the objection this
+# version exists to test. Such a factor is estimated at the covariate
+# distribution of the MEASUREMENTS and then applied to inventory stems that are
+# systematically smaller, span all twelve months, and sit across the full
+# moisture range. If the bias varies across covariate space, a single scalar per
+# species transports it incorrectly. So this script also reports bias WITHIN
+# quartiles of diameter, moisture and predicted flux -- if a correction is
+# adequate its residual bias should be flat across all three.
 #
-# Candidates:
-#   rf              the locked random forest
-#   rf_calibrated   the forest with a per-species multiplicative correction fitted
-#                   on the training fold only (so the correction is itself CV'd)
-#   lm              least squares, species factor + environment, no interactions
-#   lm_log          least squares on log(flux - min + eps), back-transformed with
-#                   a smearing estimator (Duan) rather than naive exponentiation
-#   lmm             mixed model, random species intercept -- partial pooling
+# CANDIDATES
+#   rf                  the locked forest, uncorrected
+#   rf_cal_species      per-species multiplicative factor (training fold only)
+#   rf_cal_linear       calibration on the PREDICTION, obs ~ a + b*pred, inverted;
+#                       corrects shrinkage wherever it occurs rather than per taxon
+#   rf_cal_isotonic     monotone nonparametric version of the same idea
+#   gam                 mgcv, thin-plate smooths on the continuous predictors plus
+#                       a species factor; penalised least squares, so residuals
+#                       sum to ~zero and it is mean-unbiased LIKE lm, but it can
+#                       still bend
+#   lm                  least squares, the unbiased-but-blind baseline
 #
 # Output: outputs/revision/model_family_comparison.csv / .txt
 # ==============================================================================
-suppressPackageStartupMessages({library(dplyr); library(ranger)})
-HAVE_LME4 <- requireNamespace("lme4", quietly = TRUE)
+suppressPackageStartupMessages({library(dplyr); library(ranger); library(mgcv)})
 set.seed(42)
 load("outputs/models/TRAINING_DATA.RData")
 source("code/revision/rev_geometry.R")
-CONV <- 86400 * 365.25 * 16e-6
 
 X0 <- as.data.frame(X_tree)
 PREDS <- setdiff(names(X0), "species")
@@ -51,52 +53,56 @@ stopifnot(nrow(X0) == nrow(d))
 keep <- is.finite(d$stem_flux_corrected) & complete.cases(X0[, PREDS, drop = FALSE])
 X0 <- X0[keep, , drop = FALSE]; d <- d[keep, ]
 y <- d$stem_flux_corrected
-sp <- as.character(X0$species)
-X0$species <- factor(sp)
-cat(sprintf("rows %d | species levels %d | y: mean %.4f median %.4f max %.2f\n\n",
-            nrow(X0), nlevels(X0$species), mean(y), median(y), max(y)))
+sp <- as.character(X0$species); X0$species <- factor(sp)
+cat(sprintf("rows %d | species levels %d\n\n", nrow(X0), nlevels(X0$species)))
+
+rf_fit <- function(tr) ranger(x = X0[tr, , drop = FALSE], y = y[tr], num.trees = 800,
+  min.node.size = 5, mtry = max(1, floor(sqrt(ncol(X0)))), num.threads = 1,
+  seed = 42, keep.inbag = FALSE)
 
 FIT <- list(
-  rf = function(tr, te) {
-    m <- ranger(x = X0[tr, , drop = FALSE], y = y[tr], num.trees = 800,
-                min.node.size = 5, mtry = max(1, floor(sqrt(ncol(X0)))),
-                num.threads = 1, seed = 42)
-    predict(m, X0[te, , drop = FALSE])$predictions
-  },
-  rf_calibrated = function(tr, te) {
-    m <- ranger(x = X0[tr, , drop = FALSE], y = y[tr], num.trees = 800,
-                min.node.size = 5, mtry = max(1, floor(sqrt(ncol(X0)))),
-                num.threads = 1, seed = 42)
-    # per-species ratio from OOB predictions on the TRAINING fold only
-    cal <- data.frame(s = sp[tr], o = y[tr], p = m$predictions) %>%
-      group_by(s) %>% summarise(r = ifelse(mean(p) > 0, mean(o)/mean(p), 1), .groups = "drop")
+  rf = function(tr, te) predict(rf_fit(tr), X0[te, , drop = FALSE])$predictions,
+
+  rf_cal_species = function(tr, te) {
+    m <- rf_fit(tr)
+    cal <- data.frame(s = sp[tr], o = y[tr], p = m$predictions) %>% group_by(s) %>%
+      summarise(r = ifelse(mean(p) > 0, mean(o)/mean(p), 1), .groups = "drop")
     cm <- setNames(cal$r, cal$s)
     p <- predict(m, X0[te, , drop = FALSE])$predictions
-    f <- ifelse(is.na(cm[sp[te]]), 1, cm[sp[te]])
-    p * pmax(pmin(as.numeric(f), 5), 0.2)      # guard against wild ratios on n=1 levels
+    p * pmax(pmin(as.numeric(ifelse(is.na(cm[sp[te]]), 1, cm[sp[te]])), 5), 0.2)
   },
-  lm = function(tr, te) {
-    fo <- as.formula(paste("y ~ species +", paste(PREDS, collapse = " + ")))
-    m <- lm(fo, data = cbind(X0[tr, , drop = FALSE], y = y[tr]))
+
+  rf_cal_linear = function(tr, te) {
+    m <- rf_fit(tr)
+    cf <- coef(lm(o ~ p, data = data.frame(o = y[tr], p = m$predictions)))
+    as.numeric(cf[1] + cf[2] * predict(m, X0[te, , drop = FALSE])$predictions)
+  },
+
+  rf_cal_isotonic = function(tr, te) {
+    m <- rf_fit(tr)
+    o <- order(m$predictions)
+    ir <- isoreg(m$predictions[o], y[tr][o])
+    fk <- approxfun(ir$x, ir$yf, rule = 2)
+    as.numeric(fk(predict(m, X0[te, , drop = FALSE])$predictions))
+  },
+
+  gam = function(tr, te) {
+    cn <- PREDS[sapply(X0[, PREDS, drop = FALSE], function(z) length(unique(z)) > 9)]
+    fo <- as.formula(paste("y ~ species +",
+      paste(c(sprintf("s(%s, k=5)", cn), setdiff(PREDS, cn)), collapse = " + ")))
+    m <- try(gam(fo, data = cbind(X0[tr, , drop = FALSE], y = y[tr]), method = "REML"), silent = TRUE)
+    if (inherits(m, "try-error")) return(rep(NA_real_, length(te)))
     as.numeric(predict(m, newdata = X0[te, , drop = FALSE]))
   },
-  lm_log = function(tr, te) {
-    sh <- abs(min(y[tr])) + 0.01
-    yl <- log(y[tr] + sh)
-    fo <- as.formula(paste("yl ~ species +", paste(PREDS, collapse = " + ")))
-    m <- lm(fo, data = cbind(X0[tr, , drop = FALSE], yl = yl))
-    r <- residuals(m); smear <- mean(exp(r))          # Duan smearing, not exp(fit)
-    as.numeric(exp(predict(m, newdata = X0[te, , drop = FALSE])) * smear - sh)
+
+  lm = function(tr, te) {
+    fo <- as.formula(paste("y ~ species +", paste(PREDS, collapse = " + ")))
+    as.numeric(predict(lm(fo, data = cbind(X0[tr, , drop = FALSE], y = y[tr])),
+                       newdata = X0[te, , drop = FALSE]))
   })
-if (HAVE_LME4) FIT$lmm <- function(tr, te) {
-  fo <- as.formula(paste("y ~", paste(PREDS, collapse = " + "), "+ (1|species)"))
-  m <- suppressMessages(lme4::lmer(fo, data = cbind(X0[tr, , drop = FALSE], y = y[tr])))
-  as.numeric(predict(m, newdata = X0[te, , drop = FALSE], allow.new.levels = TRUE))
-}
 
 K <- 5; REP <- 3
-PRED <- lapply(names(FIT), function(z) matrix(NA_real_, nrow(X0), REP))
-names(PRED) <- names(FIT)
+PRED <- setNames(lapply(names(FIT), function(z) matrix(NA_real_, nrow(X0), REP)), names(FIT))
 for (rep in seq_len(REP)) {
   set.seed(200 + rep)
   fold <- ave(seq_len(nrow(X0)), sp, FUN = function(i) sample(rep_len(1:K, length(i))))
@@ -109,37 +115,41 @@ for (rep in seq_len(REP)) {
 }
 
 TP <- read.csv("outputs/tables/tree_flux_predictions.csv", stringsAsFactors = FALSE)
-TP <- TP[TP$in_stand, ]
-area_by_sp <- TP %>% group_by(species) %>%
+area_by_sp <- TP[TP$in_stand, ] %>% group_by(species) %>%
   summarise(A = sum(A_stem_m2), .groups = "drop")
 
-rows <- lapply(names(FIT), function(nm) {
+qb <- function(v, n = 4) cut(v, unique(quantile(v, seq(0, 1, length.out = n + 1))),
+                             include.lowest = TRUE, labels = FALSE)
+q_dbh <- qb(X0$dbh_m); q_moi <- qb(X0$soil_moisture_at_tree)
+
+summ <- bind_rows(lapply(names(FIT), function(nm) {
   p <- rowMeans(PRED[[nm]], na.rm = TRUE); ok <- is.finite(p)
   bysp <- data.frame(s = sp[ok], o = y[ok], p = p[ok]) %>% group_by(s) %>%
-    summarise(obs = mean(o), pred = mean(p), n = dplyr::n(), .groups = "drop") %>%
-    mutate(ratio = pred/obs)
-  # area-weighted bias: how wrong is the SUM this model would give
-  w <- bysp %>% left_join(area_by_sp, by = c("s" = "species")) %>%
-       filter(is.finite(A))
-  data.frame(model = nm, n = sum(ok),
-    rmse = sqrt(mean((y[ok]-p[ok])^2)),
-    r2   = 1 - sum((y[ok]-p[ok])^2)/sum((y[ok]-mean(y[ok]))^2),
-    mean_abs_sp_bias = mean(abs(bysp$pred - bysp$obs)),
-    max_abs_sp_ratio_dev = max(abs(log(pmax(bysp$ratio, 1e-6)))),
-    area_wtd_ratio = sum(w$pred*w$A)/sum(w$obs*w$A))
-})
-R <- bind_rows(rows) %>% arrange(abs(area_wtd_ratio - 1))
+    summarise(obs = mean(o), pred = mean(p), .groups = "drop")
+  w <- bysp %>% left_join(area_by_sp, by = c("s" = "species")) %>% filter(is.finite(A))
+  q_pred <- qb(p[ok])
+  rq <- function(g) { r <- tapply(seq_along(p[ok]), g, function(i)
+                        mean(p[ok][i])/mean(y[ok][i])); max(abs(log(pmax(r, 1e-6)))) }
+  data.frame(model = nm, rmse = sqrt(mean((y[ok]-p[ok])^2)),
+    r2 = 1 - sum((y[ok]-p[ok])^2)/sum((y[ok]-mean(y[ok]))^2),
+    area_wtd_ratio = sum(w$pred*w$A)/sum(w$obs*w$A),
+    maxdev_by_dbh = rq(q_dbh[ok]), maxdev_by_moist = rq(q_moi[ok]),
+    maxdev_by_pred = rq(q_pred))
+}))
+R <- summ %>% arrange(abs(area_wtd_ratio - 1))
 cat("\n=== MODEL FAMILY COMPARISON (repeated 5-fold CV) ===\n")
-cat("area_wtd_ratio is the one that matters for a budget: 1.00 = unbiased sum\n\n")
+cat("area_wtd_ratio: 1.00 = unbiased SUM.  maxdev_*: worst |log ratio| across\n")
+cat("quartiles of that variable -- 0 means the correction transports correctly.\n\n")
 print(as.data.frame(R %>% mutate(across(where(is.numeric), ~round(.x, 4)))), row.names = FALSE)
 
-cat("\n=== per-species mean ratio (pred/obs), by model ===\n")
-tab <- bind_rows(lapply(names(FIT), function(nm) {
+cat("\n=== residual bias by quartile (pred/obs), the transportability test ===\n")
+for (nm in c("rf", "rf_cal_species", "rf_cal_linear", "rf_cal_isotonic", "gam")) {
   p <- rowMeans(PRED[[nm]], na.rm = TRUE); ok <- is.finite(p)
-  data.frame(s = sp[ok], o = y[ok], p = p[ok], model = nm) }))
-wide <- tab %>% group_by(model, s) %>% summarise(r = mean(p)/mean(o), n = dplyr::n(), .groups = "drop") %>%
-  tidyr::pivot_wider(names_from = model, values_from = r)
-print(as.data.frame(wide %>% arrange(-n) %>% mutate(across(where(is.numeric), ~round(.x, 2)))), row.names = FALSE)
+  rr <- function(g) round(tapply(seq_along(p[ok]), g, function(i)
+          mean(p[ok][i])/mean(y[ok][i])), 2)
+  cat(sprintf("  %-16s dbh Q1-Q4 %s | moisture Q1-Q4 %s\n", nm,
+              paste(rr(q_dbh[ok]), collapse = " "), paste(rr(q_moi[ok]), collapse = " ")))
+}
 
 dir.create("outputs/revision", showWarnings = FALSE, recursive = TRUE)
 write.csv(R, "outputs/revision/model_family_comparison.csv", row.names = FALSE)
