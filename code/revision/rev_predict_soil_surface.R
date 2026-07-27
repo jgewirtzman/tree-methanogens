@@ -60,23 +60,44 @@ cat(sprintf("grid cells %d | inside 200 m square %d | IN STAND %d (%.1f%% kept)\
             nrow(G), sum(in_square(G$PX, G$PY)), sum(G$in_stand), 100*mean(G$in_stand)))
 S <- G[G$in_stand, ]
 
-# ---- monthly drivers and moisture affine, both gap-filled --------------------
-# Month 1 has no moisture calibration (n_points = 0), so alpha/beta are
-# interpolated across the month axis rather than dropping January from the year.
+# ---- monthly drivers ---------------------------------------------------------
 fl <- function(v, mo) approx(mo[is.finite(v)], v[is.finite(v)], xout = mo, rule = 2)$y
-AFF <- AFF %>% arrange(month) %>%
-  mutate(alpha_t = fl(alpha_t, month), beta_t = fl(beta_t, month))
 DR <- DR %>% arrange(month) %>%
   mutate(soil_temp_C_mean = fl(soil_temp_C_mean, month),
          air_temp_C_mean  = fl(air_temp_C_mean, month))
-stopifnot(all(is.finite(AFF$alpha_t)), all(is.finite(AFF$beta_t)))
+
+# ---- monthly moisture: fixed spatial pattern x multi-year monthly level -------
+# The plot-wide monthly LEVEL now comes from rev_moisture_climatology.R, which
+# averages 2019-2022 rather than tying the seasonal cycle to the single campaign
+# year -- a year that had the second-driest Jun-Sep in the record (210 mm against
+# 437 mm in 2021). Since the SoilRF learned a moisture x temperature interaction,
+# driving it from that one year baked a drought into every month.
+#
+# The PATTERN still comes from the dense December transect and is treated as
+# fixed in time; only its level moves. Scaling is multiplicative, which preserves
+# relative wetness and makes the surface match the target mean by construction.
+# The 28 soil collars are deliberately NOT used to build the pattern: they span
+# PY 32-148 of 200 m, the median plot cell is 31 m from the nearest, and only 29%
+# of the plot is within 20 m of one. They set the level (through the climatology's
+# de-confounding step), not the shape.
+#
+# This replaces a per-month affine rescaling whose alpha and beta were fitted
+# separately per month on 3-28 observations at R2 = 0.02-0.31, and which was not a
+# climatology at all: it jumped from 0.113 in November to 0.355 in December.
+CLIMFILE <- "outputs/tables/moisture_climatology_monthly.csv"
+if (!file.exists(CLIMFILE))
+  stop("missing ", CLIMFILE, " -- run code/revision/rev_moisture_climatology.R first")
+CLIM <- read.csv(CLIMFILE, stringsAsFactors = FALSE)
+stopifnot(nrow(CLIM) == 12, all(is.finite(CLIM$moisture)))
+shape <- S$mean_moisture / mean(S$mean_moisture)     # relative pattern, mean 1
+cat(sprintf("moisture: fixed pattern (rel. range %.2f-%.2f) x monthly level %.3f-%.3f\n",
+            min(shape), max(shape), min(CLIM$moisture), max(CLIM$moisture)))
 
 # ---- predict per cell per month ---------------------------------------------
 NMOL_TO_MG <- 16e-6; SEC_YR <- 86400 * 365.25
 out <- vector("list", 12)
 for (m in 1:12) {
-  a <- AFF$alpha_t[AFF$month == m]; b <- AFF$beta_t[AFF$month == m]
-  moist <- a + b * (S$mean_moisture / 100)          # VWC% -> fraction, then affine
+  moist <- shape * CLIM$moisture[CLIM$mo == m]      # pattern x this month's level
   nd <- data.frame(soil_moisture_at_site = moist,
                    soil_temp_C_mean = DR$soil_temp_C_mean[DR$month == m][1],
                    air_temp_C_mean  = DR$air_temp_C_mean[DR$month == m][1],
@@ -108,9 +129,9 @@ cat("\n-- domain sensitivity, for the record --\n")
 dom <- function(sel, lab) {
   gg <- G[sel, ]
   mm <- sapply(1:12, function(m) {
-    a <- AFF$alpha_t[AFF$month == m]; b <- AFF$beta_t[AFF$month == m]
+    sh <- gg$mean_moisture / mean(gg$mean_moisture)
     mean(predict(SoilRF, data.frame(
-      soil_moisture_at_site = a + b*(gg$mean_moisture/100),
+      soil_moisture_at_site = sh * CLIM$moisture[CLIM$mo == m],
       soil_temp_C_mean = DR$soil_temp_C_mean[DR$month == m][1],
       air_temp_C_mean  = DR$air_temp_C_mean[DR$month == m][1],
       month = m), num.threads = 1)$predictions)

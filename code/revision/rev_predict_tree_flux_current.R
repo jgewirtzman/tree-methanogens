@@ -126,6 +126,47 @@ for (mo in 1:12) {
 # the 2 m anchor for the above-band scenarios: the interval containing H_HI
 flux_2m <- rowMeans(F[, K, ])
 
+# --- per-species calibration --------------------------------------------------
+# A regression forest minimises squared error, and that shrinks predictions toward
+# the conditional mean: low-flux species come out high and high-flux species low.
+# Correct for prediction, wrong for a SUM. Tsuga and Pinus strobus are both
+# low-flux and carry 54% of the band area between them, so uncorrected the stand
+# tree term is ~20% high (area-weighted ratio 1.205 under cross-validation).
+#
+# The correction is the ratio of observed to OUT-OF-BAG predicted mean, per
+# species level. Using OOB predictions rather than fitted ones is what keeps this
+# from being circular. Under repeated 5-fold CV, where the correction is refitted
+# on each training fold, it takes the area-weighted sum ratio from 1.205 to 0.992
+# while retaining 91% of the forest's skill (R2 0.210 vs 0.230).
+#
+# It also transports: residual bias across diameter quartiles falls to 0.131 from
+# the forest's 0.158, and across moisture quartiles to 0.090 from 0.212. That
+# matters because the correction is estimated at the covariate distribution of the
+# MEASUREMENTS and applied to inventory stems that are smaller and span all twelve
+# months. Calibrating on the predicted value instead -- linear or isotonic -- does
+# NOT work (sum ratio 1.11-1.13), because the shrinkage is structured by species
+# rather than by predicted magnitude. See rev_model_family_comparison.R.
+CAL_LO <- 0.2; CAL_HI <- 5      # guard: levels with 1-3 records can give wild ratios
+cal <- data.frame(sp = as.character(d$species_clean),
+                  obs = d$stem_flux_corrected, oob = TreeRF$predictions) %>%
+  filter(is.finite(obs), is.finite(oob)) %>%
+  group_by(sp) %>%
+  summarise(n = dplyr::n(), obs_mean = mean(obs), oob_mean = mean(oob),
+            ratio = ifelse(oob_mean > 0, obs_mean/oob_mean, 1), .groups = "drop") %>%
+  mutate(ratio_used = pmax(pmin(ratio, CAL_HI), CAL_LO))
+cmap <- setNames(cal$ratio_used, cal$sp)
+INV$cal <- as.numeric(ifelse(is.na(cmap[INV$sp]), 1, cmap[INV$sp]))
+cat("\nper-species calibration (observed / out-of-bag predicted):\n")
+print(as.data.frame(cal %>% arrange(ratio) %>%
+      transmute(sp, n, obs_mean = round(obs_mean,4), oob_mean = round(oob_mean,4),
+                ratio = round(ratio,3), used = round(ratio_used,3))), row.names = FALSE)
+cat(sprintf("  clamped to [%.1f, %.1f]: %d level(s) affected\n",
+            CAL_LO, CAL_HI, sum(abs(cal$ratio - cal$ratio_used) > 1e-9)))
+
+band_uncal <- band
+band    <- band    * INV$cal
+flux_2m <- flux_2m * INV$cal
+
 # lon/lat alongside PX/PY, so map panels need no transform of their own
 ll <- geo_transforms()$fwd(INV$PX, INV$PY)
 OUT <- data.frame(
@@ -155,7 +196,11 @@ cat(sprintf("
   stems written  %d  (budget set in_stand = %d)
   band flux      median %.4f   range %.4f - %.4f nmol m-2 s-1
   band budget    %.3f mg CH4 m-2 yr-1  over %.2f ha of censused ground
+  uncalibrated   %.3f mg CH4 m-2 yr-1  (%+.1f%% before per-species calibration)
 ",
   nrow(OUT), nrow(S), median(OUT$flux_band_nmol_m2_s),
   min(OUT$flux_band_nmol_m2_s), max(OUT$flux_band_nmol_m2_s),
-  sum(S$flux_band_nmol_m2_s * S$A_stem_m2)/STAND_AREA_M2 * CONV, STAND_AREA_M2/1e4))
+  sum(S$flux_band_nmol_m2_s * S$A_stem_m2)/STAND_AREA_M2 * CONV, STAND_AREA_M2/1e4,
+  sum(rowMeans(band_uncal)[keep] * INV$A_stem_m2[keep])/STAND_AREA_M2 * CONV,
+  100*(sum(rowMeans(band_uncal)[keep]*INV$A_stem_m2[keep]) /
+       sum(rowMeans(band)[keep]*INV$A_stem_m2[keep]) - 1)))
