@@ -27,10 +27,28 @@ soil_map <- read.csv("outputs/tables/soil_flux_extended_annual.csv")   # x,y,mea
 tree_pts <- read.csv("outputs/tables/tree_flux_predictions.csv")       # x,y,dbh_m,flux_nmol_m2_s
 mf       <- read.csv("outputs/tables/MONTHLY_FLUXES.csv")
 
-# budget numbers (manuscript-consistent), mg m-2 yr-1
-soil_ann <- -904.30; tree_meas <- 1.25; tree_scen <- 114
+# ---- budget numbers: READ, never hardcoded ----------------------------------
+# All values come from rev_budget_canonical.R, which computes them from the locked
+# models and the inventory. Run that script first if any input has changed.
+B <- read.csv("outputs/revision/canonical_budget.csv", stringsAsFactors = FALSE)
+val <- function(q) { v <- B$value[B$quantity == q]
+  if (!length(v)) stop("canonical_budget.csv is missing: ", q); v }
+soil_ann  <- val("soil_mg_m2_yr")
+tree_meas <- val("tree_measured_mg_m2_yr")
+
+# whole-woody-surface scenarios, from the sensitivity grid
+GR <- read.csv("outputs/revision/scaling_full_grid.csv", stringsAsFactors = FALSE)
+CF <- GR[GR$flux == "constant", ]
+tree_scen <- median(CF$total_mg[grepl("2.11", CF$WAI)])   # bottom-up WAI for this stand
+tree_lo   <- min(CF$total_mg); tree_hi <- max(CF$total_mg)
+tree_grid_lo <- min(GR$total_mg); tree_grid_hi <- max(GR$total_mg)
+pct_extrapolated <- median(CF$pct_extrapolated[grepl("2.11", CF$WAI)])
+
 off <- function(x) 100 * abs(x)/abs(soil_ann)
-rf_tree_r2 <- 0.15; rf_soil_r2 <- 0.28; n_trees <- nrow(tree_pts)
+rf_tree_r2 <- val("tree_r2_oob"); rf_soil_r2 <- val("soil_r2_oob")
+n_trees <- nrow(tree_pts)
+cat(sprintf("read canonical: soil %.2f | tree measured %.2f | scenario %.1f (%.1f-%.1f) | grid %.1f-%.1f\n",
+            soil_ann, tree_meas, tree_scen, tree_lo, tree_hi, tree_grid_lo, tree_grid_hi))
 
 # shared map extent so a & b align exactly
 xl <- range(c(soil_map$x, tree_pts$x)); yl <- range(c(soil_map$y, tree_pts$y))
@@ -89,22 +107,24 @@ add_ctx <- function(p) {
 }
 pa <- add_ctx(pa); pb <- add_ctx(pb)
 
-# ---- (c) seasonal (4 seasons): soil (blue) + tree (red), faceted own scales ---
-seas_of <- function(m) c("Winter","Winter","Spring","Spring","Spring","Summer","Summer","Summer",
-                         "Fall","Fall","Fall","Winter")[m]
-seas <- mf %>% mutate(season = factor(seas_of(month), levels = c("Winter","Spring","Summer","Fall"))) %>%
-  group_by(season) %>%
-  summarise(Soil = mean(Phi_soil_umol_m2_s)*1000, Tree = mean(Phi_tree_umol_m2_s)*1000, .groups="drop") %>%
+# ---- (c) MONTHLY series: soil (blue) + tree (red), points joined by lines --------
+# Reads the canonical monthly series, which uses the height-integrated 0-2 m band for
+# the tree term. MONTHLY_FLUXES.csv carries the superseded single-value tree scaling.
+CM <- read.csv("outputs/revision/canonical_monthly.csv", stringsAsFactors = FALSE)
+mon <- CM %>%
+  transmute(month, Soil = soil_nmol_m2_s, Tree = tree_nmol_m2_s) %>%
   pivot_longer(c(Soil, Tree), names_to = "src", values_to = "nmol") %>%
   mutate(src = factor(src, levels = c("Soil","Tree")))
-pc <- ggplot(seas, aes(season, nmol, fill = src)) +
-  geom_col(width = 0.7) +
+pc <- ggplot(mon, aes(month, nmol, colour = src)) +
   geom_hline(yintercept = 0, color = "grey60", linewidth = 0.3) +
+  geom_line(linewidth = 0.6) +
+  geom_point(size = 1.8) +
   facet_wrap(~src, ncol = 1, scales = "free_y", strip.position = "right") +
-  scale_fill_manual(values = c(Soil = SINK, Tree = SRC), guide = "none") +
+  scale_colour_manual(values = c(Soil = SINK, Tree = SRC), guide = "none") +
+  scale_x_continuous(breaks = 1:12, labels = month.abb) +
   labs(x = NULL, y = expression("CH"[4]*" flux (nmol m"^-2*" s"^-1*", per m"^2*" ground)")) +
   theme_bw(base_size = 9) +
-  theme(axis.text.x = element_text(size = 8),
+  theme(axis.text.x = element_text(size = 6.5),
         strip.background = element_rect(fill = "white", color = NA),
         strip.text = element_text(size = 8.5, color = "black"),
         panel.grid.minor = element_blank())
@@ -151,10 +171,20 @@ pd <- ggplot(wf) +
   geom_hline(yintercept = 0, color = "grey60") +
   scale_fill_manual(values = c(sink = SINK, src = SRC, src_lt = SRC_LT, net = NETC), guide = "none") +
   scale_x_continuous(breaks = 1:5, labels = c(levels(wf$step), "Foliage\n(unknown)"), limits = c(0.4, 5.6)) +
-  annotate("text", x = 1, y = soil_ann,             label = "-904", vjust = 1.5, size = 2.9) +
-  annotate("text", x = 2, y = soil_ann + tree_meas, label = "+1.3", vjust = -0.8, size = 2.9) +
-  annotate("text", x = 3, y = soil_ann + tree_scen, label = "+113", vjust = -0.8, size = 2.9) +
-  annotate("text", x = 4, y = soil_ann + tree_scen, label = "-790", vjust = 1.5, size = 2.9) +
+  # labels computed from the variables above -- never hardcode, they drift
+  annotate("text", x = 1, y = soil_ann,             label = sprintf("%.0f", soil_ann),
+           vjust = 1.5, size = 2.9) +
+  annotate("text", x = 2, y = soil_ann + tree_meas, label = sprintf("+%.1f", tree_meas),
+           vjust = -0.8, size = 2.9) +
+  annotate("text", x = 3, y = soil_ann + tree_scen, label = sprintf("+%.0f", tree_scen),
+           vjust = -0.8, size = 2.9) +
+  annotate("text", x = 4, y = soil_ann + tree_scen, label = sprintf("%.0f", soil_ann + tree_scen),
+           vjust = 1.5, size = 2.9) +
+  # bounding range on the scenario bar (WAI 1.50 - 3.07, constant flux)
+  annotate("linerange", x = 3, ymin = soil_ann + tree_lo, ymax = soil_ann + tree_hi,
+           colour = "grey25", linewidth = 0.5) +
+  annotate("text", x = 3.46, y = soil_ann + (tree_lo + tree_hi)/2,
+           label = sprintf("%.0f-%.0f", tree_lo, tree_hi), size = 2.3, colour = "grey25", hjust = 0) +
   labs(x = NULL, y = expression("CH"[4]*" (mg m"^-2*" yr"^-1*", per m"^2*" ground)")) +
   theme_bw(base_size = 9) +
   theme(axis.text.x = element_text(size = 7.5), panel.grid.minor = element_blank())
@@ -164,5 +194,9 @@ fig <- (pa | pb) / (pc | pd) + plot_layout(heights = c(1.05, 1)) +
   plot_annotation(tag_levels = 'a', tag_prefix = "(", tag_suffix = ")") & theme(plot.tag = element_text(face = "bold", size = 13))
 ggsave(file.path(out, "fig_budget_maps.png"), fig, width = 10.5, height = 9, dpi = 300, bg = "white")
 cat("Wrote fig_budget_maps.png\n")
-cat(sprintf("Soil %.0f | tree measured %.2f (%.2f%%) | tree scenario %d (~%.0f%%) | net -903 to %.0f mg/m2/yr\n",
-            soil_ann, tree_meas, off(tree_meas), tree_scen, off(tree_scen), soil_ann+tree_scen))
+cat(sprintf("Soil %.1f | tree measured %.2f (%.2f%% of soil) | tree scenario %.1f (%.1f%%, %.0f%% extrapolated)\n",
+            soil_ann, tree_meas, off(tree_meas), tree_scen, off(tree_scen), pct_extrapolated))
+cat(sprintf("Constant-flux WAI bounds %.1f-%.1f | full 216-combination range %.1f-%.1f\n",
+            tree_lo, tree_hi, tree_grid_lo, tree_grid_hi))
+cat(sprintf("Net budget %.0f (measured only) to %.0f (scenario) mg CH4 m-2 yr-1 -- sink throughout\n",
+            soil_ann+tree_meas, soil_ann+tree_scen))
