@@ -94,39 +94,53 @@ pc <- ggplot(R, aes(WAI, flux, fill = total_mg)) +
              axis.text.x = element_text(angle = 55, hjust = 1, size = 5),
              axis.text.y = element_text(size = 6))
 
-# ---- d: leverage, first-order variance indices -------------------------------
-vt <- var(R$total_mg); gm <- mean(R$total_mg)
-S <- bind_rows(lapply(c("flux","WAI","branch","bole"), function(v) {
-  g <- R %>% group_by(.data[[v]]) %>% summarise(m = mean(total_mg), n = dplyr::n(), .groups = "drop")
-  data.frame(assumption = v,
-             S1 = sum(g$n * (g$m - gm)^2)/(nrow(R) - 1)/vt,
-             lo = min(g$m), hi = max(g$m), spread = max(g$m) - min(g$m))
+# ---- d: leverage as the range each assumption actually spans ------------------
+# A variance share was tried and rejected. On this grid the flux axis takes 89% of
+# the variance and everything else reads as 0-3%, which is arithmetically true and
+# substantively misleading: WAI is a multiplier that DOUBLES the answer, and "3%"
+# reads as "irrelevant". The problem is that a share of total variance is dominated
+# by whichever factor happens to have the widest range, so it cannot express what a
+# reader wants to know -- how much does THIS assumption move the answer.
+#
+# Instead: for each assumption, hold every other assumption fixed and take the
+# range it spans across its own levels. Doing that for every combination of the
+# others gives a DISTRIBUTION of ranges rather than one number, which also shows
+# how much each factor's leverage depends on the others (an interaction, made
+# visible instead of relegated to a residual).
+FACT <- c("flux","WAI","branch","bole")
+LEV <- bind_rows(lapply(FACT, function(v) {
+  others <- setdiff(FACT, v)
+  R %>% group_by(across(all_of(others))) %>%
+    summarise(range_mg = max(total_mg) - min(total_mg),
+              lo = min(total_mg), hi = max(total_mg), .groups = "drop") %>%
+    mutate(assumption = v, n_levels = nlevels(R[[v]]),
+           fold = ifelse(lo > 0, hi/lo, NA_real_))
 }))
-S$assumption <- factor(S$assumption, levels = S$assumption[order(S$S1)])
-inter <- 1 - sum(S$S1)
-# A variance share is a share of the WHOLE grid's spread, which the flux axis
-# dominates, so WAI's index understates what it does in practice: it is a
-# multiplier, and within any one flux form it moves the total by a factor of two.
-# Both readings are reported, because quoting only the 3% would be misleading.
-wai_within <- R %>% group_by(flux) %>%
-  summarise(lo = min(total_mg), hi = max(total_mg), .groups = "drop") %>%
-  mutate(fold = ifelse(lo > 0, hi/lo, NA_real_))
-wf <- wai_within$fold[wai_within$flux == "constant"]
-pd <- ggplot(S, aes(assumption, S1)) +
-  geom_col(fill = "#4393c3", width = 0.62) +
-  geom_text(aes(label = sprintf("%.0f%%    spread %.0f mg", 100*S1, spread)),
-            hjust = -0.05, size = 2.9) +
+LEVS <- LEV %>% group_by(assumption, n_levels) %>%
+  summarise(med = median(range_mg), q1 = quantile(range_mg, .25),
+            q3 = quantile(range_mg, .75), mn = min(range_mg), mx = max(range_mg),
+            med_fold = suppressWarnings(median(fold, na.rm = TRUE)), .groups = "drop") %>%
+  arrange(med)
+LEVS$assumption <- factor(LEVS$assumption, levels = LEVS$assumption)
+LEV$assumption  <- factor(LEV$assumption,  levels = levels(LEVS$assumption))
+
+pd <- ggplot(LEV, aes(assumption, range_mg)) +
+  geom_boxplot(width = 0.5, outlier.size = 0.7, fill = "#d1e5f0",
+               colour = "grey35", linewidth = 0.4) +
+  geom_text(data = LEVS, aes(assumption, mx,
+              label = sprintf("  median %.0f mg%s", med,
+                ifelse(is.na(med_fold), "", sprintf("   (%.1fx)", med_fold)))),
+            hjust = 0, size = 2.9) +
   coord_flip(clip = "off") +
-  scale_y_continuous(labels = scales::percent, limits = c(0, 1.15), expand = c(0, 0)) +
-  labs(title = "d   leverage: share of grid variance attributable to each assumption",
-       subtitle = sprintf("first-order indices on a complete factorial, so exact; interactions %.0f%%.\nA share of the WHOLE grid understates WAI: it is a multiplier, spanning %.1fx within the constant-flux row alone.",
-                          100*inter, wf),
-       x = NULL, y = "share of variance in the whole-surface total") +
+  scale_y_continuous(limits = c(0, max(LEV$range_mg)*1.55), expand = c(0, 0)) +
+  labs(title = "d   leverage: how far each assumption moves the answer",
+       subtitle = "range spanned by that assumption with all others held fixed, over every combination of the others;\nbox = IQR across those combinations. Fold change shown where the range stays positive.",
+       x = NULL, y = expression("range in whole-surface total (mg CH"[4]*" m"^-2*" yr"^-1*")")) +
   theme_minimal(base_size = 9) +
   theme(panel.grid.major.y = element_blank(),
         plot.title = element_text(face = "bold", size = 10),
         plot.subtitle = element_text(size = 7.4, colour = "grey30"),
-        plot.margin = margin(6, 74, 6, 6))
+        plot.margin = margin(6, 92, 6, 6))
 
 fig <- (pa | pb) / pc / pd + plot_layout(heights = c(1, 1.3, 0.72)) +
   plot_annotation(
@@ -138,18 +152,13 @@ fig <- (pa | pb) / pc / pd + plot_layout(heights = c(1, 1.3, 0.72)) +
 ggsave(file.path(outdir, "fig_scaling_heatmap.png"), fig,
        width = 11.5, height = 13.5, dpi = 200, bg = "white")
 
-cat(sprintf("=== LEVERAGE (first-order variance indices, %d combinations) ===\n", N_COMB))
-print(as.data.frame(S %>% arrange(-S1) %>%
-      transmute(assumption, share = sprintf("%.1f%%", 100*S1),
-                mean_lo = round(lo, 1), mean_hi = round(hi, 1),
-                spread_mg = round(spread, 1))), row.names = FALSE)
-cat(sprintf("  interactions: %.1f%%\n", 100*inter))
-cat("\n  NOTE: the variance share is a share of the whole grid, which the flux axis\n")
-cat("  dominates. WAI is a multiplier; within a single flux form it spans:\n")
-print(as.data.frame(wai_within %>%
-  transmute(flux, lo = round(lo,1), hi = round(hi,1),
-            fold = ifelse(is.na(fold), "-", sprintf("%.2fx", fold)))), row.names = FALSE)
-
+cat(sprintf("=== LEVERAGE: range spanned by each assumption, others held fixed (%d combinations) ===\n", N_COMB))
+print(as.data.frame(LEVS %>% arrange(-med) %>%
+      transmute(assumption, levels = n_levels,
+                median_range_mg = round(med,1), IQR = sprintf("%.1f-%.1f", q1, q3),
+                full_range = sprintf("%.1f-%.1f", mn, mx),
+                median_fold = ifelse(is.na(med_fold), "-", sprintf("%.2fx", med_fold)))),
+      row.names = FALSE)
 cat("\n=== branch placement, the axis (a) hides ===\n")
 print(as.data.frame(R %>% group_by(branch) %>%
   summarise(median_total = round(median(total_mg), 1),

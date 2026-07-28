@@ -40,7 +40,8 @@ CORE <- c(
   "code/revision/rev_predict_tree_flux_current.R", # -> tree_flux_predictions.csv, tree_monthly_stand.csv
   "code/revision/rev_predict_soil_surface.R",      # -> soil_surface_{monthly,annual}.csv
   "code/revision/rev_budget_canonical.R",          # -> canonical_{budget,monthly}.csv
-  "code/revision/rev_scaling_full_grid.R")         # -> scaling_full_grid.csv
+  "code/revision/rev_scaling_full_grid.R")
+# fig_scaling_profiles / heatmap read the grid exports and run in the figure block         # -> scaling_full_grid.csv
 cat(sprintf("\n== CORE CHAIN (%d steps, dependency-ordered) ==\n", length(CORE)))
 for (f in CORE) run(f, fatal = TRUE)
 

@@ -243,6 +243,59 @@ for (bn in names(BOLE)) for (rn in names(BRANCH)) {
 R <- bind_rows(res)
 write.csv(R, file.path(outdir,"scaling_full_grid.csv"), row.names=FALSE)
 
+# ---- export the SHAPES themselves, for rev_fig_scaling_profiles.R ------------
+# The profile figure must show exactly what this grid computed, so the curves are
+# written out here rather than re-derived from the same formulae elsewhere: a
+# second implementation is a second thing that can drift.
+ZB <- seq(0, 26, by = 0.25)                       # absolute-height bins, metres
+zmid <- head(ZB,-1) + diff(ZB)/2
+
+# flux shape ratios, relative to each stem's own 2 m value. All forms except
+# rf_learned_capped are the same function of height for every stem; that one is a
+# per-stem fitted slope, so its stand curve is the area-weighted mean over stems.
+fx_prof <- bind_rows(lapply(FORMS, function(fm) {
+  if (fm == "rf_learned_capped") {
+    r <- sapply(zmid, function(z) {
+      v <- pmin(exp(rf_slope*(z-2)), 1); sum(v*f2*INV$dbh)/sum(f2*INV$dbh) })
+  } else r <- shape_ratio(fm, zmid)
+  data.frame(flux = fm, z = zmid, ratio = as.numeric(r))
+}))
+write.csv(fx_prof, file.path(outdir,"scaling_flux_shapes.csv"), row.names=FALSE)
+
+# stand woody-area density against absolute height, per bole x branch x WAI
+ar_prof <- list()
+for (bn in names(BOLE)) for (rn in names(BRANCH)) {
+  wb <- BOLE[[bn]](u); wb <- wb/sum(wb)
+  wr <- BRANCH[[rn]](u); wr <- wr/sum(wr)
+  Ashape <- outer(rep(1,n), wb)*(1/4.35) + outer(rep(1,n), wr)*(3.35/4.35)
+  Ashape <- Ashape * (pi*INV$dbh*INV$H/2)
+  nb <- rowSums(!above); Aband <- (!above) * INV$A_band_m2 / pmax(nb,1)
+  shp_ab <- Ashape*above; shp_ab <- shp_ab/pmax(rowSums(shp_ab),1e-12)
+  for (wn in names(WAIS)) {
+    A_above_tot <- WAIS[wn]*A_PLOT - sum(INV$A_band_m2)
+    w_tree <- pi*INV$dbh*INV$H/2; w_tree <- w_tree/sum(w_tree)
+    Aslab <- Aband + shp_ab * (w_tree * A_above_tot)
+    k <- findInterval(as.vector(Z), ZB, rightmost.closed = TRUE)
+    ok <- k >= 1 & k <= length(zmid)
+    a <- tapply(as.vector(Aslab)[ok], k[ok], sum)
+    v <- rep(0, length(zmid)); v[as.integer(names(a))] <- as.numeric(a)
+    # ALSO the flux-weighted area, sum_i f2_i * Aslab_i(z). The plain area profile
+    # times a mean 2 m flux does NOT reproduce the grid, because stem area and stem
+    # flux are correlated across the inventory -- large stems are not average ones.
+    # Exporting this makes the profile figure integrate to exactly the grid cell.
+    fa <- tapply((as.vector(Aslab) * rep(f2, times = ncol(Aslab)))[ok], k[ok], sum)
+    w2 <- rep(0, length(zmid)); w2[as.integer(names(fa))] <- as.numeric(fa)
+    ar_prof[[length(ar_prof)+1]] <- data.frame(
+      bole = bn, branch = rn, WAI = wn, z = zmid,
+      area_m2 = v, area_m2_per_m = v/diff(ZB)[1],
+      fluxarea = w2, fluxarea_per_m = w2/diff(ZB)[1])
+  }
+}
+ar_prof <- bind_rows(ar_prof)
+write.csv(ar_prof, file.path(outdir,"scaling_area_profiles.csv"), row.names=FALSE)
+cat(sprintf("  exported shape profiles: %d flux rows, %d area rows (bins 0-%g m)\n",
+            nrow(fx_prof), nrow(ar_prof), max(ZB)))
+
 cat(sprintf("\n=== FULL GRID: %d combinations ===\n", nrow(R)))
 cat(sprintf("  %d WAI x %d bole x %d branch x %d flux forms\n\n",
             length(WAIS), length(BOLE), length(BRANCH), length(FORMS)))
