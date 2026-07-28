@@ -262,6 +262,34 @@ fx_prof <- bind_rows(lapply(FORMS, function(fm) {
 }))
 write.csv(fx_prof, file.path(outdir,"scaling_flux_shapes.csv"), row.names=FALSE)
 
+# RAW SHAPE KERNELS, before any application to the inventory. The stand profiles
+# below are the sum over thousands of stems of differing height, so trees drop out
+# of successive slabs and the curves acquire steps and bumps that belong to the
+# INVENTORY, not to the shapes. Exporting the kernels lets the profile figure show
+# the forms themselves, on a single tree, which is what a reader needs to
+# understand them.
+kern <- bind_rows(
+  bind_rows(lapply(names(BOLE), function(b) {
+    w <- BOLE[[b]](u); data.frame(part = "bole", shape = b, u = u, w = w/sum(w)) })),
+  bind_rows(lapply(names(BRANCH), function(b) {
+    w <- BRANCH[[b]](u); data.frame(part = "branch", shape = b, u = u, w = w/sum(w)) })))
+# W&W branch:stem 3.35, so the bole carries 1/4.35 of woody area and branches 3.35/4.35
+kern$part_fraction <- ifelse(kern$part == "bole", 1/4.35, 3.35/4.35)
+write.csv(kern, file.path(outdir,"scaling_shape_kernels.csv"), row.names=FALSE)
+
+# THE MEASURED BAND PROFILE, 0-2 m, as a ratio to each stem's own 2 m value. This
+# is what the model actually uses below 2 m -- the RF's own height response, a step
+# function with breakpoints where the forest splits -- and it is NOT one of the six
+# extrapolation forms. The profile figure needs it to show the full 0-26 m picture.
+zb <- seq(0, 2, by = 0.02)
+kk <- findInterval(pmin(pmax(zb*100, 50), 200), edges, rightmost.closed = TRUE)
+wgt <- INV$A_band_m2
+band_prof <- data.frame(z = zb,
+  ratio = sapply(kk, function(k) sum(PROFI[, k]*wgt)/sum(f2*wgt)))
+write.csv(band_prof, file.path(outdir,"scaling_band_profile.csv"), row.names=FALSE)
+cat(sprintf("  band profile 0-2 m: ratio %.2f at 0 m -> %.2f at 2 m (steps at %s cm)\n",
+            band_prof$ratio[1], tail(band_prof$ratio,1), paste(brk, collapse=", ")))
+
 # stand woody-area density against absolute height, per bole x branch x WAI
 ar_prof <- list()
 for (bn in names(BOLE)) for (rn in names(BRANCH)) {
