@@ -143,9 +143,18 @@ BOLE <- list(cone=function(u) pmax(1-u,0), paraboloid=function(u) sqrt(pmax(1-u,
 BRANCH <- list(uniform_all=function(u) rep(1,length(u)),
   uniform_top50=function(u) as.numeric(u>=.50), uniform_crown=function(u) as.numeric(u>=.60),
   gaussian_75=function(u) dnorm(u,.75,.15))
-WAIS <- c(`1.50 W&W Brookhaven`=1.50, `1.69 bottom-up low`=1.69,
-          `2.11 bottom-up mid / W&W climax`=2.11, `2.57 bottom-up high`=2.57,
-          `3.07 Gauci 2024`=3.07)
+# WAI SCENARIOS. The bottom-up value is OURS and is labelled as such. It must not
+# be presented as jointly supported by Whittaker & Woodwell's climax-forest value
+# of 2.0-2.2: our estimate is built FROM their taper correction and branch:stem
+# ratios applied to this inventory, so landing near their published figure is
+# partly circular and is corroboration only of the arithmetic, not of the value.
+# That belongs in the Discussion, not in a scenario label. The two literature
+# values bound the range from either side.
+WAIS <- c(`1.50 W&W Brookhaven (low bound)`=1.50,
+          `1.69 bottom-up, low`=1.69,
+          `2.11 bottom-up, this stand`=2.11,
+          `2.57 bottom-up, high`=2.57,
+          `3.07 Gauci 2024 (high bound)`=3.07)
 # NEGATIVE BOUND for the linear form, from the detected stem uptakes surviving Tier 1
 # QC (MDF at 90% confidence, precision per field period; n = 89).
 #
