@@ -188,9 +188,11 @@ pc1 <- ggplot(ONE2, aes(y = z)) +
        x = expression("woody area (m"^2*" per m)"), y = "height (m)") +
   th + theme(legend.position = "bottom", legend.title = element_text(size = 6),
              strip.text = element_text(size = 7))
+# lines, not filled ribbons: the fill in (c) already encodes area, so filling the
+# integral too reads as a second area when it is a rate per metre of height
 pc2 <- ggplot(ONE2, aes(y = z)) +
-  geom_ribbon(aes(xmin = 0, xmax = contrib, fill = form), alpha = 0.9) +
-  scale_fill_manual(values = setNames(rep(FLUX_PURPLE, length(C_FORMS)), C_FORMS)) +
+  geom_path(aes(x = contrib, colour = form), linewidth = 0.9) +
+  scale_colour_manual(values = setNames(rep(FLUX_PURPLE, length(C_FORMS)), C_FORMS)) +
   geom_hline(yintercept = BAND, colour = "grey25", linewidth = 0.3, linetype = "dashed") +
   facet_wrap(~form, nrow = 1) +
   scale_y_continuous(limits = c(0, 26), expand = c(0, 0)) +

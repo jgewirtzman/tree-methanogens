@@ -47,11 +47,21 @@ tree_meas <- val("tree_measured_mg_m2_yr")
 
 # whole-woody-surface scenarios, from the sensitivity grid
 GR <- read.csv("outputs/revision/scaling_full_grid.csv", stringsAsFactors = FALSE)
-CF <- GR[GR$flux == "constant", ]
-tree_scen <- median(CF$total_mg[grepl("2.11", CF$WAI)])   # bottom-up WAI for this stand
-tree_lo   <- min(CF$total_mg); tree_hi <- max(CF$total_mg)
+# THE SCENARIO BAR IS THE HEADLINE SCENARIO, and its error bar is the WHOLE grid.
+# It previously drew the constant-flux case at WAI 2.11 with a bar spanning only
+# the WAI axis (56-115), which understated the uncertainty badly: varying WAI is
+# the second-smallest of the four assumptions, and the flux form -- which the bar
+# held fixed -- moves the answer six times further. Showing that interval as "the"
+# uncertainty implied the geometry was the open question when it is not.
+HLF <- read.csv("outputs/revision/scaling_headline.csv", stringsAsFactors = FALSE)
+tree_scen <- HLF$total_mg
+# excluding the uptake form, which is contradicted by the climbed tree; the full
+# range including it is reported in the caption line below
+GRp <- GR[GR$flux != "linear_bounded_median", ]
+tree_lo <- min(GRp$total_mg); tree_hi <- max(GRp$total_mg)
 tree_grid_lo <- min(GR$total_mg); tree_grid_hi <- max(GR$total_mg)
-pct_extrapolated <- median(CF$pct_extrapolated[grepl("2.11", CF$WAI)])
+CF <- GR[GR$flux == "constant", ]
+pct_extrapolated <- HLF$pct_extrapolated
 
 off <- function(x) 100 * abs(x)/abs(soil_ann)
 rf_tree_r2 <- val("tree_r2_oob"); rf_soil_r2 <- val("soil_r2_oob")
@@ -232,7 +242,7 @@ pd <- ggplot(wf) +
            colour = "grey25", linewidth = 0.5) +
   # range sits BELOW the scenario bar: at x = 3.46 it overprinted the net-budget bar
   annotate("text", x = 3, y = soil_ann + tree_lo,
-           label = sprintf("WAI range %.0f-%.0f", tree_lo, tree_hi),
+           label = sprintf("grid %.0f-%.0f", tree_lo, tree_hi),
            size = 2.2, colour = "grey25", vjust = 1.9) +
   labs(x = NULL, y = expression("CH"[4]*" (mg m"^-2*" yr"^-1*", per m"^2*" ground)")) +
   theme_bw(base_size = 9) +
@@ -245,7 +255,10 @@ ggsave(file.path(out, "fig_budget_maps.png"), fig, width = 10.5, height = 9, dpi
 cat("Wrote fig_budget_maps.png\n")
 cat(sprintf("Soil %.1f | tree measured %.2f (%.2f%% of soil) | tree scenario %.1f (%.1f%%, %.0f%% extrapolated)\n",
             soil_ann, tree_meas, off(tree_meas), tree_scen, off(tree_scen), pct_extrapolated))
-cat(sprintf("Constant-flux WAI bounds %.1f-%.1f | full %d-combination range %.1f-%.1f\n",
-            tree_lo, tree_hi, nrow(GR), tree_grid_lo, tree_grid_hi))
+cat(sprintf("headline scenario: %s | %s | %s | %s\n", HLF$flux, HLF$WAI, HLF$branch, HLF$bole))
+cat(sprintf("bar %.1f, error bar %.1f-%.1f (%d combinations excluding the uptake form)\n",
+            tree_scen, tree_lo, tree_hi, nrow(GRp)))
+cat(sprintf("full %d-combination range including it: %.1f-%.1f\n",
+            nrow(GR), tree_grid_lo, tree_grid_hi))
 cat(sprintf("Net budget %.0f (measured only) to %.0f (scenario) mg CH4 m-2 yr-1 -- sink throughout\n",
             soil_ann+tree_meas, soil_ann+tree_scen))
