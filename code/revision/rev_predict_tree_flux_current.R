@@ -66,19 +66,61 @@ cat(sprintf("stems %d | in stand %d | located %d | trained species %d | SPECIES_
             nrow(INV), sum(INV$in_stand), sum(INV$located),
             sum(INV$sp != "SPECIES_OTHER"), sum(INV$sp == "SPECIES_OTHER")))
 
-# monthly drivers, gap-filled the same way as the canonical budget
-mm <- d %>% group_by(month) %>%
-      summarise(m = mean(soil_moisture_at_tree, na.rm = TRUE), .groups = "drop")
-sm <- soil_train_complete %>% group_by(month) %>%
-      summarise(ms = mean(soil_moisture_at_site, na.rm = TRUE), .groups = "drop")
-DR <- DR %>% left_join(mm, "month") %>% left_join(sm, "month") %>%
-      mutate(m = ifelse(is.finite(m), m, ms))
+# --- moisture: PER STEM, from the same surface and climatology as the soil term -
+# This used to be one plot-mean scalar applied to all 8,006 stems, built from raw
+# campaign monthly means of soil_moisture_at_tree. That was wrong twice over.
+#
+# (1) It disagreed with the soil term. rev_predict_soil_surface.R drives the soil
+#     flux with the December TPS pattern scaled by the 2019-2022 climatology, cell
+#     by cell. The tree term used a different moisture history entirely -- campaign
+#     means with 2.5x the seasonal amplitude (0.239 against 0.097), built from as
+#     few as ~20 measurements a month, with December having no tree measurements at
+#     all. Two terms plotted in one budget figure must share a moisture history.
+#
+# (2) A single scalar puts every stem on the same side of every split. The forest
+#     is a step function in moisture, and with one value per month the whole stand
+#     falls off the same cliff at once: at June temperatures, predicted flux jumps
+#     from 0.0562 to 0.1204 between moisture 0.27 and 0.28, and the climatology's
+#     June level is 0.279. That produced a spurious June maximum 1.6x July's --
+#     an artifact of which side of one threshold a single number happened to land.
+#
+# The stand has a moisture FIELD, not a value. Each stem now takes its local
+# relative wetness from the TPS surface (vwc_rel, mean 1 over the stand) and that
+# is scaled by the monthly climatology level, exactly as the soil grid is. The
+# 51 unlocated stems (0.6%) take vwc_rel = 1, the stand mean. Averaging over 8,006
+# stems spread across the field crosses many thresholds instead of one, so the
+# month-to-month curve reflects the climatology rather than a split location.
+GRIDFILE <- "outputs/tables/moisture_surface_grid.csv"
+CLIMFILE <- "outputs/tables/moisture_climatology_monthly.csv"
+for (f in c(GRIDFILE, CLIMFILE))
+  if (!file.exists(f)) stop("missing ", f,
+    " -- run rev_moisture_surface.R and rev_moisture_climatology.R first")
+S    <- read.csv(GRIDFILE, stringsAsFactors = FALSE)
+CLIM <- read.csv(CLIMFILE, stringsAsFactors = FALSE)
+stopifnot(nrow(CLIM) == 12, all(is.finite(CLIM$moisture)))
+
+# nearest grid cell for each stem; the surface is on a regular PX/PY lattice
+gx <- sort(unique(S$PX)); gy <- sort(unique(S$PY))
+snap <- function(v, g) g[pmax(1, pmin(length(g), round((v - g[1])/diff(g)[1]) + 1))]
+key  <- paste(S$PX, S$PY)
+idx  <- match(paste(snap(INV$PX, gx), snap(INV$PY, gy)), key)
+INV$vwc_rel <- ifelse(is.na(idx), 1, S$vwc_rel[idx])
+INV$vwc_rel[!INV$located | !is.finite(INV$vwc_rel)] <- 1
+cat(sprintf("per-stem moisture: %d of %d stems matched a surface cell (rel. %.2f-%.2f)\n",
+            sum(!is.na(idx) & INV$located), nrow(INV),
+            min(INV$vwc_rel), max(INV$vwc_rel)))
+
+# MOIST[stem, month] = local relative wetness x that month's plot-wide level
+MOIST <- outer(INV$vwc_rel, CLIM$moisture[order(CLIM$mo)])
+cat(sprintf("monthly stand-mean moisture %.3f-%.3f (climatology, 2019-2022)\n",
+            min(colMeans(MOIST)), max(colMeans(MOIST))))
+
 fl <- function(v, mo) approx(mo[is.finite(v)], v[is.finite(v)], xout = mo, rule = 2)$y
-DR$m <- fl(DR$m, DR$month); DR$soil_temp_C_mean <- fl(DR$soil_temp_C_mean, DR$month)
+DR$soil_temp_C_mean <- fl(DR$soil_temp_C_mean, DR$month)
 
 pred_at <- function(h, mo, idx = seq_len(nrow(INV))) predict(TreeRF, data.frame(
     species = factor(INV$sp[idx], levels = trained), dbh_m = INV$dbh_m[idx],
-    soil_moisture_at_tree = DR$m[mo],
+    soil_moisture_at_tree = MOIST[idx, mo],
     soil_temp_C_mean = DR$soil_temp_C_mean[mo],
     air_temp_C_mean = DR$air_temp_C_mean[mo],
     height_cm = h), num.threads = 1)$predictions
