@@ -62,8 +62,21 @@ cat(sprintf("moisture grid: %d cells on censused ground (%.2f ha)\n",
 # ---- monthly drivers ---------------------------------------------------------
 fl <- function(v, mo) approx(mo[is.finite(v)], v[is.finite(v)], xout = mo, rule = 2)$y
 DR <- DR %>% arrange(month) %>%
-  mutate(soil_temp_C_mean = fl(soil_temp_C_mean, month),
-         air_temp_C_mean  = fl(air_temp_C_mean, month))
+  mutate(air_temp_C_mean = fl(air_temp_C_mean, month))
+# --- soil temperature: multi-year climatology, not campaign means -------------
+# DRIVERS$soil_temp_C_mean is the mean of whenever somebody was in the field: 27
+# to 624 observations a month from as few as ONE visit, with January and March
+# absent entirely and linearly interpolated. rev_soil_temp_climatology.R replaces
+# it with a damped/lagged air-temperature model (21-day trailing mean, leave-one-
+# date-out CV R2 0.951, RMSE 1.13 C, damping slope 0.683) applied to the full
+# 2018-2023 tower record. Air temperature already came from that record.
+STFILE <- "outputs/tables/soil_temp_climatology_monthly.csv"
+if (!file.exists(STFILE))
+  stop("missing ", STFILE, " -- run code/revision/rev_soil_temp_climatology.R first")
+STCLIM <- read.csv(STFILE, stringsAsFactors = FALSE)
+stopifnot(nrow(STCLIM) == 12, all(is.finite(STCLIM$soil_temp_C)))
+DR$soil_temp_C_mean <- STCLIM$soil_temp_C[match(DR$month, STCLIM$mo)]
+
 
 # ---- monthly moisture: fixed spatial pattern x multi-year monthly level -------
 # The plot-wide monthly LEVEL now comes from rev_moisture_climatology.R, which

@@ -110,7 +110,14 @@ for (nm in names(MODELS)) {
          subtitle = "drop in OOB R² when the predictor is shuffled",
          x = NULL, y = "Δ OOB R²") + theme_minimal(base_size = 9)
 
-  pd <- bind_rows(lapply(top, function(v) partial_dep(m$rf, X, v)))
+  # Partial dependence is only defined on an ordered axis, so factors are skipped.
+  # `species` entered the top 6 once dbh_within_z was dropped (it is now the
+  # second-largest term in the tree model), and quantile() on a factor errors.
+  top_num <- top[vapply(top, function(v) is.numeric(X[[v]]), logical(1))]
+  if (length(top_num) < length(top))
+    cat(sprintf("  (partial dependence skips non-numeric predictor(s): %s)\n",
+                paste(setdiff(top, top_num), collapse = ", ")))
+  pd <- bind_rows(lapply(top_num, function(v) partial_dep(m$rf, X, v)))
   p_pd <- ggplot(pd, aes(value, yhat)) +
     geom_line(colour = "#B2182B", linewidth = 0.7) +
     facet_wrap(~ variable, scales = "free_x", ncol = 3) +

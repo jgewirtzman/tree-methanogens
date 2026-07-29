@@ -35,8 +35,17 @@ run("code/generate_all_figures.R")
 # --- 1) CORE CHAIN: each step consumes the previous one's output -------------
 # inventory -> per-stem tree flux -> soil surface -> budget -> scaling grid.
 # Fatal, because everything downstream reads what these write.
+# The DRIVER builders come first. They used to sit in SUPPORT, which runs AFTER
+# this block, so the chain only worked because their outputs were already on disk
+# from a previous run -- a clean checkout would have stopped at the first
+# prediction script. Both prediction scripts now read the same two climatologies
+# and the same moisture surface, so those have to be built before either runs.
 CORE <- c(
   "code/revision/rev_inventory_build.R",           # raw -> inventory_stems.csv
+  "code/revision/rev_wb_reference_et.R",           # -> water balance (climatology input)
+  "code/revision/rev_moisture_climatology.R",      # -> moisture_climatology_monthly.csv
+  "code/revision/rev_soil_temp_climatology.R",     # -> soil_temp_climatology_monthly.csv
+  "code/revision/rev_moisture_surface.R",          # -> moisture_surface_grid.csv
   "code/revision/rev_predict_tree_flux_current.R", # -> tree_flux_predictions.csv, tree_monthly_stand.csv
   "code/revision/rev_predict_soil_surface.R",      # -> soil_surface_{monthly,annual}.csv
   "code/revision/rev_budget_canonical.R",          # -> canonical_{budget,monthly}.csv
@@ -47,9 +56,6 @@ for (f in CORE) run(f, fatal = TRUE)
 
 # --- 2) supporting analyses (produce CSV/TXT that figures and prose cite) ----
 SUPPORT <- c(
-  "code/revision/rev_wb_reference_et.R",
-  "code/revision/rev_moisture_climatology.R",
-  "code/revision/rev_moisture_surface.R",
   "code/revision/rev_moisture_elevation_check.R",
   "code/revision/rev_moisture_interpolation.R",
   "code/revision/rev_qc_c0_screen.R",

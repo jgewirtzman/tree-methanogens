@@ -49,42 +49,79 @@ nice <- c(soil_moisture_at_tree = "soil moisture", soil_moisture_at_site = "soil
           soil_temp_C_mean = "soil temperature", air_temp_C_mean = "air temperature",
           month = "month")
 
-# Refit with permutation importance. The stored models were fit with
-# importance = "impurity", and ranger cannot recompute importance after the fact.
-# Importance mode does not affect tree building, so this refit is the SAME
-# forest: with the same seed and hyperparameters its OOB predictions match the
-# stored ones exactly (max |difference| = 0, OOB R2 0.2545 either way).
-refit <- function(X, y) ranger(x = X, y = y, num.trees = 800, min.node.size = 5,
-  mtry = max(1, floor(sqrt(ncol(X)))), importance = "permutation",
-  num.threads = 1, seed = 42)
-Xt <- as.data.frame(X_tree); yt <- tree_train_complete$stem_flux_corrected
-kt <- is.finite(yt)
-Xs <- as.data.frame(X_soil); ys <- soil_train_complete$y_asinh[seq_len(nrow(Xs))]
-ks <- is.finite(ys)
-TreePerm <- refit(Xt[kt,,drop=FALSE], yt[kt])
-SoilPerm <- refit(Xs[ks,,drop=FALSE], ys[ks])
+# GROUPED permutation importance, measured on held-out data.
+#
+# Ordinary permutation importance is not readable when predictors are collinear:
+# shuffling one leaves the other as a proxy, so both look unimportant. Soil and
+# air temperature correlate at r = 0.97 here, which splits one physical driver
+# across two mutually-suppressed bars. They are therefore shuffled TOGETHER with
+# one shared permutation, which keeps the group's joint structure intact and asks
+# the only question that has an answer: how much does the model rely on
+# temperature at all.
+#
+# Measured out-of-sample rather than in-sample -- fit on 70%, permute and score
+# on the remaining 30% -- so baseline and permuted error are on the same footing.
+# (An earlier version of this compared an OOB baseline against in-sample permuted
+# predictions, which produced negative importances.)
+GROUPS <- list(
+  TreeRF = list(species = "species", diameter = "dbh_m",
+                `soil moisture` = "soil_moisture_at_tree",
+                temperature = c("soil_temp_C_mean", "air_temp_C_mean"),
+                `measurement height` = "height_cm"),
+  SoilRF = list(`soil moisture` = "soil_moisture_at_site",
+                temperature = c("soil_temp_C_mean", "air_temp_C_mean"),
+                month = "month"))
 
-imp <- function(m, lab) {
-  v <- pmax(m$variable.importance, 0)
-  data.frame(model = lab, var = names(v), imp = as.numeric(v)) %>%
-    mutate(share = imp/sum(imp), label = ifelse(is.na(nice[var]), var, nice[var]))
+gimp <- function(X, y, groups, lab, nsplit = 10, nrep = 20) {
+  k <- is.finite(y) & complete.cases(X); X <- X[k,,drop=FALSE]; y <- y[k]
+  R <- replicate(nsplit, {
+    tr <- sample(nrow(X), floor(0.7*nrow(X)))
+    m  <- ranger(x = X[tr,,drop=FALSE], y = y[tr], num.trees = 800, min.node.size = 5,
+                 mtry = max(1, floor(sqrt(ncol(X)))), num.threads = 1)
+    Xh <- X[-tr,,drop=FALSE]; yh <- y[-tr]
+    base <- mean((yh - predict(m, Xh, num.threads = 1)$predictions)^2)
+    sapply(groups, function(g) mean(replicate(nrep, {
+      Xp <- Xh; i <- sample(nrow(Xp))
+      for (v in g) Xp[[v]] <- Xp[[v]][i]        # ONE shared permutation per group
+      mean((yh - predict(m, Xp, num.threads = 1)$predictions)^2) - base
+    })))
+  })
+  mu <- pmax(rowMeans(R), 0)
+  data.frame(model = lab, label = names(groups), imp = as.numeric(mu),
+             se = apply(R, 1, sd)/sqrt(nsplit)) %>%
+    mutate(share = imp/sum(imp), share_se = se/sum(imp))
 }
+Xt <- as.data.frame(X_tree); yt <- tree_train_complete$stem_flux_corrected
+Xs <- as.data.frame(X_soil); ys <- soil_train_complete$y_asinh[seq_len(nrow(Xs))]
+IMP_T <- gimp(Xt, yt, GROUPS$TreeRF, "TreeRF")
+IMP_S <- gimp(Xs, ys, GROUPS$SoilRF, "SoilRF")
+TreePerm <- TreeRF; SoilPerm <- SoilRF
 # "soil moisture" appears in both models, so a single shared factor cannot order
 # both facets. Pad the SoilRF labels with a trailing space to make them distinct,
 # then order the combined levels by model and share.
-IMP <- bind_rows(imp(TreePerm, "TreeRF"), imp(SoilPerm, "SoilRF")) %>%
+IMP <- bind_rows(IMP_T, IMP_S) %>%
   mutate(label = ifelse(model == "SoilRF", paste0(label, " "), label)) %>%
   arrange(model, share)
 IMP$label <- factor(IMP$label, levels = IMP$label)
 
+# Error bars are +/-1 SE over the 10 train/test splits. They are on the panel
+# because the ranking is NOT stable: the same forest scored by ranger's OOB
+# permutation instead of this held-out one moves soil moisture from 36% to 28%
+# and temperature from 11% to 28%. Grouping is a small correction by comparison
+# (temperature 7.8% -> 11.0%, no reordering); the estimator is what moves things.
+# The panel therefore supports "no single predictor dominates, and species and
+# moisture are both major terms" -- not a precise ordering.
 pa <- ggplot(IMP, aes(share, label, fill = model)) +
   geom_col(width = 0.68, show.legend = FALSE) +
-  geom_text(aes(label = sprintf("%.0f%%", 100*share)), hjust = -0.15, size = 2.9) +
+  geom_errorbarh(aes(xmin = pmax(0, share - share_se), xmax = share + share_se),
+                 height = 0.22, linewidth = 0.35, colour = "grey25") +
+  geom_text(aes(x = share + share_se, label = sprintf("%.0f%%", 100*share)),
+            hjust = -0.3, size = 2.9) +
   facet_wrap(~model, scales = "free_y", ncol = 1) +
   scale_fill_manual(values = c(TreeRF = FLUX_PURPLE, SoilRF = "#2166ac")) +
   scale_x_continuous(labels = scales::percent, limits = c(0, 1.16), expand = c(0, 0)) +
   labs(title = "a   what each model relies on", x = "share of total importance", y = NULL,
-       subtitle = "permutation importance (incMSE), normalised within model") +
+       subtitle = "grouped permutation importance, held-out (+/-1 SE);\nsoil and air temperature pooled (r = 0.97)") +
   theme_bw(base_size = 9) +
   theme(panel.grid.major.y = element_blank(), strip.text = element_text(face = "bold", size = 8),
         plot.title = element_text(face = "bold", size = 10),
@@ -143,7 +180,7 @@ fig <- (pa | pb | pc) + plot_layout(widths = c(1, 0.95, 0.85)) +
   plot_annotation(theme = theme(plot.margin = margin(4, 4, 4, 4)))
 ggsave(file.path(outdir, "fig_model_findings.png"), fig, width = 11, height = 5.2, dpi = 200, bg = "white")
 
-cat("=== permutation importance (incMSE), share within model ===\n")
+cat("=== grouped permutation importance (held-out), share within model ===\n")
 cat("=== TreeRF ===\n")
 print(as.data.frame(IMP %>% filter(model == "TreeRF") %>% arrange(-share) %>%
       transmute(predictor = label, share = sprintf("%.1f%%", 100*share))), row.names = FALSE)
