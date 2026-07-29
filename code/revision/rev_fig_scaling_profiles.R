@@ -62,21 +62,48 @@ th <- theme_bw(base_size = 9) +
 bandrect <- annotate("rect", xmin = -Inf, xmax = Inf, ymin = 0, ymax = BAND,
                      fill = "grey85", alpha = 0.6)
 
-# ---- a: measured band below 2 m + the six forms above ------------------------
+# ---- a: the six forms above 2 m ----------------------------------------------
+# rf_learned_capped is drawn as its area-weighted stand mean, and that is a
+# summary of 8,006 DIFFERENT curves: the form fits a log-linear slope to each
+# stem's own RF profile. It is not the same as constant -- median slope -0.607,
+# so half the stems fall essentially to zero by 25 m -- but 2.3% have a slightly
+# positive fitted slope and are held at 1.0 by the cap, which is what lifts the
+# aggregate curve away from zero aloft. Every other form is one function of height
+# applied to all stems.
 FXa <- FX %>% filter(z >= BAND)
-pa <- ggplot() + bandrect +
+pa <- ggplot() +
   geom_vline(xintercept = 1, colour = "grey70", linewidth = 0.3, linetype = "dashed") +
   geom_path(data = FXa, aes(ratio, z, colour = flux), linewidth = 0.75) +
-  geom_path(data = BP, aes(ratio, z), colour = "grey10", linewidth = 1.2) +
-  annotate("text", x = 1.62, y = 1.1, label = "measured\n(RF profile)", size = 2.3,
-           colour = "grey10", lineheight = 0.9) +
   scale_colour_manual(values = COLF, breaks = FO) +
-  scale_y_continuous(limits = c(0, 26), expand = c(0, 0)) +
-  labs(title = "a   flux with height", y = "height (m)",
+  scale_y_continuous(limits = c(BAND, 26), expand = c(0, 0)) +
+  labs(title = "a   the six extrapolation forms, above 2 m", y = "height (m)",
        x = "flux relative to that stem's 2 m value",
-       subtitle = "black = the model's own measured profile below 2 m; coloured = the six extrapolations above") +
-  th + theme(legend.position = c(0.70, 0.70),
+       subtitle = "rf_learned_capped is a per-stem slope shown as its stand mean; the rest are single functions") +
+  th + theme(legend.position = c(0.70, 0.68),
              legend.background = element_rect(fill = alpha("white", 0.85), colour = NA))
+
+# ---- a2: the MEASURED band, per species and pooled ---------------------------
+# The pooled curve is what the budget uses but it describes no individual species:
+# the rise from 2 m down to the stem base runs 1.6x in Quercus rubra to 3.5x in
+# Pinus strobus. Showing only the aggregate would present a stand-level average as
+# if it were a biological profile. The SHAPE, though, is common to every species --
+# a step up near the base and a shallow dip between 88 and 163 cm, which is the RF
+# resolving three training heights and not a species-mixing artifact.
+BPsp <- BP %>% filter(series != "all stems (area-weighted)")
+BPag <- BP %>% filter(series == "all stems (area-weighted)")
+pa2 <- ggplot() +
+  geom_vline(xintercept = 1, colour = "grey70", linewidth = 0.3, linetype = "dashed") +
+  geom_path(data = BPsp, aes(ratio, z, colour = series), linewidth = 0.6) +
+  geom_path(data = BPag, aes(ratio, z), colour = "grey10", linewidth = 1.3) +
+  annotate("text", x = max(BP$ratio)*0.97, y = 1.72, hjust = 1,
+           label = "black = all stems, area-weighted", size = 2.3, colour = "grey10") +
+  scale_colour_brewer(palette = "Dark2") +
+  scale_y_continuous(limits = c(0, BAND), expand = c(0, 0)) +
+  labs(title = "a2   the measured band, 0-2 m", y = "height (m)",
+       x = "flux relative to that stem's 2 m value",
+       subtitle = "the model's own height response, per species and pooled -- not one of the six forms") +
+  th + theme(legend.position = "right", legend.text = element_text(size = 5.8),
+             legend.key.size = unit(0.28, "cm"))
 
 # ---- one canopy-height tree, built from the raw kernels ----------------------
 NU <- length(unique(KN$u)); dz <- H_TREE/NU
@@ -114,7 +141,7 @@ C_FORMS <- c("constant", "power")
 fl_at <- function(z, form) {
   fx <- FX[FX$flux == form, ]
   ifelse(z <= BAND,
-         approx(BP$z, BP$ratio, xout = pmin(z, BAND), rule = 2)$y,
+         approx(BPag$z, BPag$ratio, xout = pmin(z, BAND), rule = 2)$y,
          approx(fx$z, fx$ratio, xout = z, rule = 2)$y)
 }
 ONE <- TREE %>% filter(bole == REP_BOLE, branch == REP_BRANCH) %>%
@@ -165,7 +192,7 @@ pd <- ggplot(P, aes(y = z)) +
   th + theme(legend.position = c(0.64, 0.60),
              legend.background = element_rect(fill = alpha("white", 0.85), colour = NA))
 
-fig <- (pa | pb) / (pc | pd) + plot_layout(widths = c(1, 1.2)) +
+fig <- (pa | pa2) / pb / (pc | pd) + plot_layout(heights = c(0.85, 1.05, 1)) +
   plot_annotation(
     title = "What the upscaling assumptions look like",
     subtitle = sprintf("(a)-(c) one canopy-height tree, so the shapes are legible; (d) the inventory sum from the %d-combination grid",
@@ -177,7 +204,11 @@ ggsave(file.path(outdir, "fig_scaling_profiles.png"), fig,
 
 cat(sprintf("one tree: H %d m, DBH %.3f m, conic stem surface %.1f m2\n", H_TREE, D_TREE, CONIC))
 cat(sprintf("  area split bole %.2f : branch %.2f (W&W branch:stem 3.35)\n", 1/4.35, 3.35/4.35))
-cat(sprintf("measured band: flux is %.2fx the 2 m value at the stem base\n", BP$ratio[1]))
+cat(sprintf("measured band, pooled: %.2fx the 2 m value at the stem base\n", BPag$ratio[1]))
+cat("  per species at the base:\n")
+print(as.data.frame(BPsp %>% group_by(series) %>% slice_min(z, n = 1) %>%
+      transmute(species = series, base_ratio = round(ratio, 2)) %>% arrange(-base_ratio)),
+      row.names = FALSE)
 cat(sprintf("inventory sum, representative cell: %.1f mg (grid %.1f, residual %+.1f%% from binning)\n",
             tot, gv, 100*(tot-gv)/gv))
 cat("\nwritten: outputs/revision/fig_scaling_profiles.png\n")

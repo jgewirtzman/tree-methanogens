@@ -140,8 +140,15 @@ b_lin <- as.numeric(coef(lm(fbar~hq)))
 # cylinder dropped: real stems taper, and W&W show true stems lie BETWEEN the conic
 # and parabolic forms, so those two bracket reality.
 BOLE <- list(cone=function(u) pmax(1-u,0), paraboloid=function(u) sqrt(pmax(1-u,0)))
+# BRANCH PLACEMENT. None of these is empirically supported here; they bracket
+# plausible crown geometries. gaussian_50 was added after the profile figure made
+# the set's shape visible: uniform_crown puts every branch above 0.60H with a hard
+# cutoff and nothing below, which no real crown does, and without a second Gaussian
+# the smooth options were represented only by one centred high at 0.75H. The pair
+# of Gaussians now brackets a deep crown and a shallow one.
 BRANCH <- list(uniform_all=function(u) rep(1,length(u)),
   uniform_top50=function(u) as.numeric(u>=.50), uniform_crown=function(u) as.numeric(u>=.60),
+  gaussian_50=function(u) dnorm(u,.50,.18),
   gaussian_75=function(u) dnorm(u,.75,.15))
 # WAI SCENARIOS. The bottom-up value is OURS and is labelled as such. It must not
 # be presented as jointly supported by Whittaker & Woodwell's climax-forest value
@@ -284,11 +291,26 @@ write.csv(kern, file.path(outdir,"scaling_shape_kernels.csv"), row.names=FALSE)
 zb <- seq(0, 2, by = 0.02)
 kk <- findInterval(pmin(pmax(zb*100, 50), 200), edges, rightmost.closed = TRUE)
 wgt <- INV$A_band_m2
-band_prof <- data.frame(z = zb,
+band_prof <- data.frame(series = "all stems (area-weighted)", z = zb,
   ratio = sapply(kk, function(k) sum(PROFI[, k]*wgt)/sum(f2*wgt)))
+# ALSO per species. The aggregate is what the budget uses, but it describes no
+# individual species: the decline from 50 cm to 2 m runs from 1.6x in Quercus
+# rubra to 3.5x in Pinus strobus. Reporting only the pooled curve would present a
+# stand-level average as if it were a biological profile.
+sp_big <- names(sort(table(INV$sp), decreasing = TRUE))
+sp_big <- sp_big[sp_big != "SPECIES_OTHER"][1:6]
+band_sp <- bind_rows(lapply(sp_big, function(sp) {
+  i <- INV$sp == sp
+  v <- colMeans(PROFI[i, , drop = FALSE]); f2i <- mean(f2[i])
+  data.frame(series = sp, z = zb, ratio = sapply(kk, function(k) v[k]/f2i)) }))
+band_prof <- bind_rows(band_prof, band_sp)
 write.csv(band_prof, file.path(outdir,"scaling_band_profile.csv"), row.names=FALSE)
-cat(sprintf("  band profile 0-2 m: ratio %.2f at 0 m -> %.2f at 2 m (steps at %s cm)\n",
-            band_prof$ratio[1], tail(band_prof$ratio,1), paste(brk, collapse=", ")))
+ag <- band_prof[band_prof$series == "all stems (area-weighted)", ]
+cat(sprintf("  band profile 0-2 m: aggregate %.2f at base -> 1.00 at 2 m (steps at %s cm)\n",
+            ag$ratio[1], paste(brk, collapse=", ")))
+cat(sprintf("  per species at the stem base: %s\n", paste(sprintf("%s %.2f",
+      sub(" .*","",sp_big), sapply(sp_big, function(sp)
+        band_sp$ratio[band_sp$series==sp][1])), collapse="  ")))
 
 # stand woody-area density against absolute height, per bole x branch x WAI
 ar_prof <- list()
