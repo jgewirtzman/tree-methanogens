@@ -406,13 +406,72 @@ merged_tree_data$tree_id <- gsub(" ", "", merged_tree_data$tree_id)
 cat("  Sample 2021 tree IDs (first 10):", paste(head(unique(merged_tree_data$tree_id), 10), collapse=", "), "\n")
 cat("  Sample inventory tree IDs (first 10):", paste(head(unique(INVENTORY$tree_id), 10), collapse=", "), "\n")
 
-base_date <- as.POSIXct("2021-07-28", tz = "UTC")
+# -----------------------------------------------------------------------------
+# REAL MEASUREMENT DATES (2026 revision). This was:
+#
+#     base_date <- as.POSIXct("2021-07-28", tz = "UTC")
+#
+# a single hardcoded date stamped onto every row of the 2021 campaign. The
+# campaign did not happen in a day: goflux_auxfile.csv -- this pipeline's OWN
+# product, written by code/01_flux_processing/static/01_prep_auxfile.R -- records
+# 461 measurements from 2021-07-19 13:45 to 2021-08-12 14:09 across 19 field days,
+# a median of 8 and at most 15 trees a day.
+#
+# The fabrication was not harmless. It labelled the whole campaign month = 7, and
+# 212 of those 461 measurements (46%) were made in AUGUST -- 68 of the 145 trees
+# that reach the model. Those rows were therefore joined to July's monthly air and
+# soil temperature drivers instead of August's. It also collapsed 19 field days
+# into one pseudo-day, which distorts anything built on date structure: the soil
+# temperature climatology fits on DATE MEANS, and a date-grouped cross-validation
+# would treat 150 trees as a single date.
+#
+# 2021-07-28 sits two days from the true median of 2021-07-30, which is presumably
+# why it went unnoticed.
+#
+# Every tree was measured on exactly one calendar day (verified: 0 of 156 trees
+# span more than one), so a per-tree date is unambiguous. Tree naming differs in
+# case and in the prime/apostrophe convention between the auxfile and the merged
+# dataset, so both sides go through one normaliser.
+# -----------------------------------------------------------------------------
+tree_key <- function(z) toupper(gsub("[^A-Za-z0-9]", "",
+                       gsub("prime", "P", gsub("'", "P", as.character(z)))))
+
+JULY_DATES <- local({
+  f <- "../../data/processed/flux/goflux_auxfile.csv"
+  if (!file.exists(f)) f <- "data/processed/flux/goflux_auxfile.csv"
+  if (!file.exists(f)) {
+    warning("goflux_auxfile.csv not found -- 2021 dates cannot be recovered")
+    return(NULL)
+  }
+  a <- read.csv(f, stringsAsFactors = FALSE)
+  a$dt <- as.POSIXct(a$start.time, format = "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+  a <- a[!is.na(a$dt), ]
+  # min() per tree: all measurements on a tree share a day, so this is that day
+  tapply(a$dt, tree_key(a$tree_id), min)
+})
+
+base_date <- as.POSIXct("2021-07-30", tz = "UTC")   # campaign median, fallback only
+
+# Per-tree real date, with a COUNTED fallback so a silent substitution cannot recur.
+july_unmatched <- new.env(parent = emptyenv()); july_unmatched$ids <- character(0)
+july_date <- function(tree_id) {
+  k <- tree_key(tree_id)
+  out <- rep(base_date, length(k))
+  if (!is.null(JULY_DATES)) {
+    hit <- k %in% names(JULY_DATES)
+    out[hit] <- as.POSIXct(JULY_DATES[k[hit]], origin = "1970-01-01", tz = "UTC")
+    if (any(!hit)) july_unmatched$ids <- union(july_unmatched$ids, unique(k[!hit]))
+  } else {
+    july_unmatched$ids <- union(july_unmatched$ids, unique(k))
+  }
+  out
+}
 
 # Process trees with 125cm measurements
 TREE_JULY_125 <- merged_tree_data %>%
   filter(!is.na(CH4_best.flux_125cm)) %>%
   mutate(
-    Date = base_date,
+    Date = july_date(tree_id),
     tree_id = as.character(tree_id),
     species_code = species_id,
     species = ifelse(species_id %in% names(species_mapping), 
@@ -450,7 +509,7 @@ make_height_block <- function(df, flux_col, temp_col, height_cm) {
   df %>%
     filter(!is.na(.data[[flux_col]])) %>%
     mutate(
-      Date = base_date,
+      Date = july_date(tree_id),
       tree_id = as.character(tree_id),
       species_code = species_id,
       species = ifelse(species_id %in% names(species_mapping),
@@ -480,7 +539,7 @@ KALMIA_DATA <- merged_tree_data %>%
   filter(species_id == "KALA" | grepl("(?i)kalmia", species_id)) %>%
   filter(!is.na(CH4_best.flux_75cm) | !is.na(CH4_best.flux_RootCrowncm)) %>%
   mutate(
-    Date = base_date,
+    Date = july_date(tree_id),
     tree_id = as.character(tree_id),
     stem_flux_umol_m2_s = coalesce(CH4_best.flux_75cm, CH4_best.flux_RootCrowncm),
     air_temp_C = coalesce(Temp_Air_75cm, Temp_Air_RootCrowncm),
@@ -501,7 +560,7 @@ OTHER_75CM <- merged_tree_data %>%
   filter(is.na(CH4_best.flux_125cm), !is.na(CH4_best.flux_75cm),
          !(species_id %in% c("KALA", "Kalmia"))) %>%
   mutate(
-    Date = base_date,
+    Date = july_date(tree_id),
     tree_id = as.character(tree_id),
     species_code = species_id,
     species = ifelse(species_id %in% names(species_mapping), 
@@ -527,6 +586,20 @@ OTHER_75CM <- merged_tree_data %>%
 TREE_JULY_2021 <- bind_rows(TREE_JULY_125, TREE_JULY_50, TREE_JULY_200, KALMIA_DATA, OTHER_75CM)
 
 cat("✓ 2021 summer data:", nrow(TREE_JULY_2021), "measurements\n")
+# Report the recovered dates, and any tree that fell back, so the substitution can
+# never be silent again (see the base_date note above).
+cat(sprintf("  measurement dates: %s to %s across %d field days (recovered per tree)\n",
+            format(min(TREE_JULY_2021$Date), "%Y-%m-%d"),
+            format(max(TREE_JULY_2021$Date), "%Y-%m-%d"),
+            length(unique(as.Date(TREE_JULY_2021$Date)))))
+cat(sprintf("  month split: %s\n",
+            paste(sprintf("%s n=%d", names(table(format(TREE_JULY_2021$Date, "%Y-%m"))),
+                          as.integer(table(format(TREE_JULY_2021$Date, "%Y-%m")))),
+                  collapse = " | ")))
+if (length(july_unmatched$ids))
+  cat(sprintf("  !! %d tree(s) had NO auxfile date and fell back to %s: %s\n",
+              length(july_unmatched$ids), format(base_date, "%Y-%m-%d"),
+              paste(july_unmatched$ids, collapse = ", ")))
 cat("  125cm chambers:", nrow(TREE_JULY_125), "\n")
 cat("  Kalmia:", nrow(KALMIA_DATA), "\n")
 cat("  Other 75cm:", nrow(OTHER_75CM), "\n\n")
