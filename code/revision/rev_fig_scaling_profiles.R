@@ -48,6 +48,12 @@ source("code/revision/rev_geometry.R")
 FO <- c("constant","exp_band_slope","power","exponential","linear_floored",
         "linear_bounded_median")
 BAND <- 2; CONV <- 86400*365.25*16e-6
+# FLUX PURPLE, the colour this project already uses for CH4 flux (rev_fig02,
+# rev_fig02a, rev_fig07). The integral panels previously used red and blue, which
+# encoded nothing -- the two flux forms are distinguished by their facet labels,
+# not by hue, so an arbitrary two-colour scheme just invited a reader to look for
+# a meaning that was not there.
+FLUX_PURPLE <- "#756BB1"; FLUX_PALE <- "#f2eff7"
 H_TREE <- 25      # closed-canopy height at this site
 D_TREE <- 0.556   # 95th-percentile DBH, the stem the height anchor is fitted to
 REP_WAI <- grep("2.11", unique(AR$WAI), value = TRUE)[1]
@@ -168,7 +174,7 @@ ONE2 <- bind_rows(lapply(C_FORMS, function(f)
                  contrib = area_per_m * absflux * SEC_YR * NMOL_MG)))
 pc1 <- ggplot(ONE2, aes(y = z)) +
   geom_ribbon(aes(xmin = 0, xmax = area_per_m, fill = relflux)) +
-  scale_fill_gradientn(colours = c("#fff7f3","#fddbc7","#f4a582","#d6604d","#b2182b"),
+  scale_fill_gradientn(colours = c(FLUX_PALE, "#cbc9e2", "#9e9ac8", FLUX_PURPLE, "#54278f"),
                        name = "flux\n(rel. 2 m)") +
   geom_hline(yintercept = BAND, colour = "grey25", linewidth = 0.3, linetype = "dashed") +
   facet_wrap(~form, nrow = 1) +
@@ -181,7 +187,7 @@ pc1 <- ggplot(ONE2, aes(y = z)) +
              strip.text = element_text(size = 7))
 pc2 <- ggplot(ONE2, aes(y = z)) +
   geom_ribbon(aes(xmin = 0, xmax = contrib, fill = form), alpha = 0.9) +
-  scale_fill_manual(values = c(constant = "#d6604d", exp_band_slope = "#4393c3")) +
+  scale_fill_manual(values = setNames(rep(FLUX_PURPLE, length(C_FORMS)), C_FORMS)) +
   geom_hline(yintercept = BAND, colour = "grey25", linewidth = 0.3, linetype = "dashed") +
   facet_wrap(~form, nrow = 1) +
   scale_y_continuous(limits = c(0, 26), expand = c(0, 0)) +
@@ -217,7 +223,10 @@ LAB <- PD %>% group_by(form) %>%
             above = 100*(1 - sum(integrand[z <= BAND])*dzP/sum(integrand*dzP)), .groups="drop")
 pd <- ggplot(PD, aes(y = z)) +
   geom_ribbon(aes(xmin = 0, xmax = integrand, fill = z <= BAND)) +
-  scale_fill_manual(values = c(`TRUE` = "#2166ac", `FALSE` = "#f4a582"),
+  # purple = measured, grey = extrapolated. The colour now carries the one
+  # distinction that matters in this panel -- what was observed against what was
+  # assumed -- instead of an unrelated warm/cool pairing.
+  scale_fill_manual(values = c(`TRUE` = FLUX_PURPLE, `FALSE` = "grey72"),
                     labels = c(`TRUE` = "measured (0-2 m)", `FALSE` = "extrapolated (>2 m)")) +
   geom_hline(yintercept = BAND, colour = "grey25", linewidth = 0.3, linetype = "dashed") +
   geom_text(data = LAB, aes(x = Inf, y = 24, label = sprintf("%.0f mg m-2 yr-1\n%.0f%% above 2 m", tot, above)),
