@@ -79,9 +79,7 @@ fix_dbh <- function(d, s) {
 }
 INV$dbh <- fix_dbh(INV$dbh_m, INV$species)
 INV <- INV[is.finite(INV$dbh) & INV$dbh > 0, ]
-INV <- INV %>% group_by(species) %>%
-  mutate(dbh_within_z = if (n() > 1 && sd(dbh, na.rm = TRUE) > 0)
-           as.numeric(scale(dbh)) else 0) %>% ungroup() %>% as.data.frame()
+INV <- as.data.frame(INV)
 
 # per-tree areas. Kalmia is a shrub: 0.75 m of stem, not 2 m.
 INV$band_h  <- ifelse(INV$species == "Kalmia latifolia", 0.75, 2)
@@ -114,7 +112,7 @@ predict_at <- function(sp_vec) {
   arr <- array(NA_real_, c(nrow(INV), length(HG), 12))
   for (mo in 1:12) for (j in seq_along(HG)) {
     nd <- data.frame(species = factor(sp_vec, levels = trained),
-                     dbh_m = INV$dbh, dbh_within_z = INV$dbh_within_z,
+                     dbh_m = INV$dbh,
                      soil_moisture_at_tree = DR$moist[mo],
                      soil_temp_C_mean = DR$soil_temp_C_mean[mo],
                      air_temp_C_mean  = DR$air_temp_C_mean[mo],

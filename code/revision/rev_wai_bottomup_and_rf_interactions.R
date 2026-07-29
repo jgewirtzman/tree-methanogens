@@ -169,7 +169,7 @@ cat("
 rule("PART 4  DOES THE RF NEED EXPLICIT INTERACTIONS?")
 # ==============================================================================
 d <- tree_train_complete; y <- d$stem_flux_corrected; k <- is.finite(y); d <- d[k,]; y <- y[k]
-base <- data.frame(species=factor(d$species_clean), dbh_m=d$dbh_m, dbh_within_z=d$dbh_within_z,
+base <- data.frame(species=factor(d$species_clean), dbh_m=d$dbh_m,
   soil_moisture_at_tree=d$soil_moisture_at_tree, soil_temp_C_mean=d$soil_temp_C_mean,
   air_temp_C_mean=d$air_temp_C_mean,
   height_cm=ifelse(is.na(d$measurement_height_cm),125,d$measurement_height_cm))

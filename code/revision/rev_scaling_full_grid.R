@@ -88,7 +88,6 @@ stopifnot(nrow(INV)==nrow(TRP))
 INV$dbh <- INV$dbh_m                          # already unit-checked and typo-repaired
 INV$A_band_m2 <- TRP$A_stem_m2                # measured-band area, Kalmia at 0.75 m
 INV <- INV %>% group_by(species) %>%
-  mutate(dbh_within_z=if(n()>1&&sd(dbh,na.rm=TRUE)>0) as.numeric(scale(dbh)) else 0) %>%
   ungroup() %>% as.data.frame()
 INV$sp <- ifelse(!is.na(INV$species) & INV$species %in% trained, INV$species, "SPECIES_OTHER")
 GY <- c("Pinus strobus","Tsuga canadensis")
@@ -109,7 +108,7 @@ DR$m <- fl(DR$m,DR$month); DR$soil_temp_C_mean <- fl(DR$soil_temp_C_mean,DR$mont
 # than the 12.5 cm grid this used before (which also landed mid-step).
 pred_at <- function(h, mo, idx=seq_len(n)) predict(TreeRF, data.frame(
     species=factor(INV$sp[idx],levels=trained), dbh_m=INV$dbh[idx],
-    dbh_within_z=INV$dbh_within_z[idx], soil_moisture_at_tree=DR$m[mo],
+    soil_moisture_at_tree=DR$m[mo],
     soil_temp_C_mean=DR$soil_temp_C_mean[mo], air_temp_C_mean=DR$air_temp_C_mean[mo],
     height_cm=h), num.threads=1)$predictions
 samp <- sample(n, min(400,n)); Hs <- 50:200
@@ -229,15 +228,23 @@ names(Rmat) <- SHARED
 #
 # It is a deliberately conservative scenario and its limits should be stated. The
 # fit spans 1.13 m (interval midpoints 0.685-1.815 m) and is projected to 25 m;
-# median R2 of the four-point fit is 0.580, because a straight line in log space
+# median R2 of the four-point fit is 0.559, because a straight line in log space
 # fits a non-monotonic step poorly; and the 50 cm value supplies essentially all
-# of the decline -- refitting above 88 cm gives a median slope of +0.052 against
-# -0.914 with it. The consequence is that 92% of stems fall below 1% of their 2 m
+# of the decline -- refitting above 88 cm gives a median slope of +0.057 against
+# -0.672 with it. The consequence is that 97% of stems fall below 1% of their 2 m
 # flux by 25 m, against 0.82x measured on the one climbed tree at 10 m. It is
 # retained because a single climbed stem cannot exclude decline in other species
 # or conditions, but it is a lower bound on emission rather than a central case.
-# Uncapped, the 98 stems (1.4%) with a slightly positive fitted slope reach up to 303x
+# Uncapped, the 31 stems (0.4%) with a slightly positive fitted slope reach up to 100x
 # their 2 m value at canopy height -- the one behaviour excluded a priori.
+#
+# NOTE, and it matters for reading the grid: this rate is fitted to the RF's own
+# within-band profile, so it is a MODEL-DERIVED shape, not a data-derived one.
+# Dropping dbh_within_z from the forest moved it: the median slope became shallower
+# (-0.914 to -0.672) while the area-weighted fraction surviving to 25 m FELL, from
+# 0.108 to 0.030, because the shallow-sloped stems that carried most of that
+# survival lost their shallow slopes. That is why the extrapolated term falls
+# further (-53%) than the measured band (-32%) between the two model versions.
 Rmat$exp_band_slope <- pmin(exp(rf_slope * (Z-2)), 1)
 
 res <- list()

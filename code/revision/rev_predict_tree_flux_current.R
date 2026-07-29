@@ -14,7 +14,7 @@
 #   stem set. Running the two in the wrong order deleted 963 stems with no way
 #   to recover them. Both now read the inventory and neither writes it.
 #
-# MODEL: the locked TreeRF (species, dbh_m, dbh_within_z, soil moisture, soil
+# MODEL: the locked TreeRF (species, dbh_m, soil moisture, soil
 #   temperature, air temperature, height).
 #
 # HEIGHT: the band integral is computed EXACTLY, not on a fine grid.
@@ -58,10 +58,7 @@ H_LO <- 50; H_HI <- 200    # cm, the RF's training range in height
 INV <- INV %>%
   filter(is.finite(dbh_m), dbh_m > 0) %>%
   mutate(sp = ifelse(!is.na(species) & species %in% trained, species, "SPECIES_OTHER")) %>%
-  group_by(sp) %>%
-  mutate(dbh_within_z = if (n() > 1 && sd(dbh_m, na.rm = TRUE) > 0)
-                          as.numeric(scale(dbh_m)) else 0) %>%
-  ungroup() %>% as.data.frame()
+  as.data.frame()
 INV$band_m <- ifelse(INV$species %in% "Kalmia latifolia", KALMIA_BAND_M, STEM_BAND_M)
 INV$A_stem_m2 <- pi * INV$dbh_m * INV$band_m
 
@@ -81,7 +78,7 @@ DR$m <- fl(DR$m, DR$month); DR$soil_temp_C_mean <- fl(DR$soil_temp_C_mean, DR$mo
 
 pred_at <- function(h, mo, idx = seq_len(nrow(INV))) predict(TreeRF, data.frame(
     species = factor(INV$sp[idx], levels = trained), dbh_m = INV$dbh_m[idx],
-    dbh_within_z = INV$dbh_within_z[idx], soil_moisture_at_tree = DR$m[mo],
+    soil_moisture_at_tree = DR$m[mo],
     soil_temp_C_mean = DR$soil_temp_C_mean[mo],
     air_temp_C_mean = DR$air_temp_C_mean[mo],
     height_cm = h), num.threads = 1)$predictions

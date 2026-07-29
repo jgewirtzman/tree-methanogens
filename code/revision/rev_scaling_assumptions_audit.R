@@ -84,7 +84,7 @@ cat("\n  --- RF height response by species (other covariates at July means) ---\
 jm <- d[d$month == 7, ]
 grid <- expand.grid(species = levels(factor(d$species_clean)),
                     height_cm = c(50,125,200), stringsAsFactors = FALSE)
-grid$dbh_m <- median(d$dbh_m, na.rm=TRUE); grid$dbh_within_z <- 0
+grid$dbh_m <- median(d$dbh_m, na.rm=TRUE)
 grid$soil_moisture_at_tree <- mean(jm$soil_moisture_at_tree, na.rm=TRUE)
 grid$soil_temp_C_mean <- mean(jm$soil_temp_C_mean, na.rm=TRUE)
 grid$air_temp_C_mean  <- mean(jm$air_temp_C_mean,  na.rm=TRUE)

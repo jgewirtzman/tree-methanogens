@@ -43,7 +43,6 @@ fx <- function(dd,s){dd<-ifelse(!is.na(dd)&dd>3,dd/100,dd)
  ifelse(s=="Kalmia latifolia"&!is.na(dd)&dd*100>10,dd/10,dd))}
 INV$dbh <- fx(INV$dbh_m,INV$species); INV <- INV[is.finite(INV$dbh)&INV$dbh>0,]
 INV <- INV %>% group_by(species) %>%
-  mutate(dbh_within_z=if(n()>1&&sd(dbh,na.rm=TRUE)>0) as.numeric(scale(dbh)) else 0) %>%
   ungroup() %>% as.data.frame()
 INV$sp <- ifelse(INV$species %in% trained, INV$species, "SPECIES_OTHER")
 GY <- c("Pinus strobus","Tsuga canadensis")
@@ -97,7 +96,7 @@ p1b <- ggplot(spmean, aes(h,f,colour=species_clean)) + geom_line(linewidth=.7) +
   theme_bw(base_size=8) + theme(legend.text=element_text(size=5.5), legend.key.height=unit(7,"pt"))
 
 gr <- expand.grid(species=trained, height_cm=seq(50,200,12.5), stringsAsFactors=FALSE)
-gr$dbh_m <- median(d$dbh_m,na.rm=TRUE); gr$dbh_within_z <- 0
+gr$dbh_m <- median(d$dbh_m,na.rm=TRUE)
 gr$soil_moisture_at_tree <- 0.22; gr$soil_temp_C_mean <- 15; gr$air_temp_C_mean <- 17
 gr$species <- factor(gr$species, levels=trained)
 gr$pred <- predict(TreeRF, gr, num.threads=1)$predictions

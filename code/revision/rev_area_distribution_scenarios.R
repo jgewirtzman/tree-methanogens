@@ -56,7 +56,6 @@ fx <- function(dd,s){dd<-ifelse(!is.na(dd)&dd>3,dd/100,dd)
  ifelse(s=="Kalmia latifolia"&!is.na(dd)&dd*100>10,dd/10,dd))}
 INV$dbh <- fx(INV$dbh_m,INV$species); INV <- INV[is.finite(INV$dbh)&INV$dbh>0,]
 INV <- INV %>% group_by(species) %>%
-  mutate(dbh_within_z=if(n()>1&&sd(dbh,na.rm=TRUE)>0) as.numeric(scale(dbh)) else 0) %>%
   ungroup() %>% as.data.frame()
 INV$sp <- ifelse(INV$species %in% trained, INV$species, "SPECIES_OTHER")
 GY <- c("Pinus strobus","Tsuga canadensis")
@@ -77,7 +76,7 @@ DR <- DR %>% left_join(mm,"month") %>% left_join(sm,"month") %>% mutate(m=ifelse
 fl <- function(v,mo) approx(mo[is.finite(v)],v[is.finite(v)],xout=mo,rule=2)$y
 DR$m <- fl(DR$m,DR$month); DR$soil_temp_C_mean <- fl(DR$soil_temp_C_mean,DR$month)
 f2 <- rowMeans(sapply(1:12, function(mo) predict(TreeRF, data.frame(
-  species=factor(INV$sp,levels=trained), dbh_m=INV$dbh, dbh_within_z=INV$dbh_within_z,
+  species=factor(INV$sp,levels=trained), dbh_m=INV$dbh,
   soil_moisture_at_tree=DR$m[mo], soil_temp_C_mean=DR$soil_temp_C_mean[mo],
   air_temp_C_mean=DR$air_temp_C_mean[mo], height_cm=200), num.threads=1)$predictions))
 

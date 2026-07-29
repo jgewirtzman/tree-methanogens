@@ -40,7 +40,7 @@ trained <- sort(unique(as.character(d$species_clean)))
 rule("PART 1  THE RF IS FLAT ABOVE ITS TRAINING RANGE (demonstration)")
 # ==============================================================================
 probe <- data.frame(species=factor("Acer rubrum", levels=trained),
-  dbh_m=0.3, dbh_within_z=0, soil_moisture_at_tree=0.25,
+  dbh_m=0.3, soil_moisture_at_tree=0.25,
   soil_temp_C_mean=17, air_temp_C_mean=22,
   height_cm=c(50,125,200,250,500,1000,2500,10000))
 probe$pred <- predict(TreeRF, probe, num.threads=1)$predictions
@@ -65,7 +65,6 @@ fix_dbh <- function(dd,s){ dd<-ifelse(!is.na(dd)&dd>3,dd/100,dd)
   ifelse(s=="Kalmia latifolia"&!is.na(dd)&dd*100>10,dd/10,dd)) }
 INV$dbh <- fix_dbh(INV$dbh_m, INV$species); INV <- INV[is.finite(INV$dbh)&INV$dbh>0,]
 INV <- INV %>% group_by(species) %>%
-  mutate(dbh_within_z = if (n()>1 && sd(dbh,na.rm=TRUE)>0) as.numeric(scale(dbh)) else 0) %>%
   ungroup() %>% as.data.frame()
 INV$sp <- ifelse(INV$species %in% trained, INV$species, "SPECIES_OTHER")
 
@@ -79,7 +78,7 @@ HG <- seq(50,200,by=12.5)
 P <- array(NA_real_, c(nrow(INV), length(HG), 12))
 for (mo in 1:12) for (j in seq_along(HG)) {
   nd <- data.frame(species=factor(INV$sp, levels=trained), dbh_m=INV$dbh,
-    dbh_within_z=INV$dbh_within_z, soil_moisture_at_tree=DR$m[mo],
+    soil_moisture_at_tree=DR$m[mo],
     soil_temp_C_mean=DR$soil_temp_C_mean[mo], air_temp_C_mean=DR$air_temp_C_mean[mo],
     height_cm=HG[j])
   P[,j,mo] <- predict(TreeRF, nd, num.threads=1)$predictions
