@@ -24,7 +24,7 @@
 #       power             gradual decay, different curvature, never reaches zero
 #       linear_floored    linear decline truncated at zero
 #       linear_unfloored  linear decline continuing THROUGH zero into net uptake
-#       rf_learned_capped per-stem slope learned by the RF from species, moisture,
+#       exp_band_slope per-stem slope learned by the RF from species, moisture,
 #                         temperature and DBH, capped at that stem's own 2 m value
 #
 #   An asymptotic ("decline then plateau") form is NOT carried separately: it is
@@ -186,7 +186,7 @@ WAIS <- c(`1.50 W&W Brookhaven (low bound)`=1.50,
 #   and each exceeds this bound in magnitude.
 NEG_MEDIAN <- -0.0262
 FORMS <- c("constant","exponential","power","linear_floored",
-           "linear_bounded_median","rf_learned_capped")
+           "linear_bounded_median","exp_band_slope")
 
 NU <- 90; u <- (seq_len(NU)-.5)/NU
 Z  <- outer(INV$H, u)                       # n x NU absolute heights
@@ -211,13 +211,28 @@ shape_ratio <- function(form, zz) switch(form,
   linear_floored        = pmax(lin_abs(zz), 0)/f2m_lin,
   linear_bounded_median = pmax(lin_abs(zz), NEG_MEDIAN)/f2m_lin)
 
-SHARED <- setdiff(FORMS,"rf_learned_capped")
+SHARED <- setdiff(FORMS,"exp_band_slope")
 Rmat <- lapply(SHARED, function(fm) matrix(shape_ratio(fm, as.vector(Z)), nrow=n))
 names(Rmat) <- SHARED
-# rf_learned_capped: per-stem slope, CAPPED at 1 so no stem exceeds its own 2 m flux.
+# exp_band_slope. Named for what it is rather than for the model that produced it:
+# a log-linear (exponential) decay whose rate is fitted per stem to the four RF
+# band values, then projected above 2 m and capped at 1 so no stem exceeds its own
+# 2 m flux. It is the same functional FAMILY as `exponential`; what differs is that
+# the rate comes from each stem's own within-band profile rather than from one fit
+# to the campaign means.
+#
+# It is a deliberately conservative scenario and its limits should be stated. The
+# fit spans 1.13 m (interval midpoints 0.685-1.815 m) and is projected to 25 m;
+# median R2 of the four-point fit is 0.580, because a straight line in log space
+# fits a non-monotonic step poorly; and the 50 cm value supplies essentially all
+# of the decline -- refitting above 88 cm gives a median slope of +0.052 against
+# -0.914 with it. The consequence is that 92% of stems fall below 1% of their 2 m
+# flux by 25 m, against 0.82x measured on the one climbed tree at 10 m. It is
+# retained because a single climbed stem cannot exclude decline in other species
+# or conditions, but it is a lower bound on emission rather than a central case.
 # Uncapped, the 98 stems (1.4%) with a slightly positive fitted slope reach up to 303x
 # their 2 m value at canopy height -- the one behaviour excluded a priori.
-Rmat$rf_learned_capped <- pmin(exp(rf_slope * (Z-2)), 1)
+Rmat$exp_band_slope <- pmin(exp(rf_slope * (Z-2)), 1)
 
 res <- list()
 for (bn in names(BOLE)) for (rn in names(BRANCH)) {
@@ -258,10 +273,10 @@ ZB <- seq(0, 26, by = 0.25)                       # absolute-height bins, metres
 zmid <- head(ZB,-1) + diff(ZB)/2
 
 # flux shape ratios, relative to each stem's own 2 m value. All forms except
-# rf_learned_capped are the same function of height for every stem; that one is a
+# exp_band_slope are the same function of height for every stem; that one is a
 # per-stem fitted slope, so its stand curve is the area-weighted mean over stems.
 fx_prof <- bind_rows(lapply(FORMS, function(fm) {
-  if (fm == "rf_learned_capped") {
+  if (fm == "exp_band_slope") {
     r <- sapply(zmid, function(z) {
       v <- pmin(exp(rf_slope*(z-2)), 1); sum(v*f2*INV$dbh)/sum(f2*INV$dbh) })
   } else r <- shape_ratio(fm, zmid)
@@ -304,7 +319,27 @@ band_sp <- bind_rows(lapply(sp_big, function(sp) {
   v <- colMeans(PROFI[i, , drop = FALSE]); f2i <- mean(f2[i])
   data.frame(series = sp, z = zb, ratio = sapply(kk, function(k) v[k]/f2i)) }))
 band_prof <- bind_rows(band_prof, band_sp)
+# absolute flux too, and a 1.25 m normalisation, so the figure can present all
+# three framings rather than committing to "relative to 2 m" by default
+k125 <- findInterval(125, edges, rightmost.closed = TRUE)
+abs_ag <- sapply(kk, function(k) sum(PROFI[, k]*wgt)/sum(wgt))
+band_prof$absolute <- NA_real_; band_prof$rel125 <- NA_real_
+ia <- band_prof$series == "all stems (area-weighted)"
+band_prof$absolute[ia] <- abs_ag
+band_prof$rel125[ia]   <- abs_ag / (sum(PROFI[, k125]*wgt)/sum(wgt))
+for (sp in sp_big) {
+  i <- INV$sp == sp; v <- colMeans(PROFI[i, , drop = FALSE])
+  j <- band_prof$series == sp
+  band_prof$absolute[j] <- sapply(kk, function(k) v[k])
+  band_prof$rel125[j]   <- sapply(kk, function(k) v[k]/v[k125])
+}
 write.csv(band_prof, file.path(outdir,"scaling_band_profile.csv"), row.names=FALSE)
+
+# the stand-mean ABSOLUTE 2 m flux, so the extrapolation forms can be shown in
+# absolute units as well as as ratios
+write.csv(data.frame(f2_stand_mean = sum(f2*wgt)/sum(wgt),
+                     f125_stand_mean = sum(PROFI[, k125]*wgt)/sum(wgt)),
+          file.path(outdir,"scaling_flux_anchors.csv"), row.names=FALSE)
 ag <- band_prof[band_prof$series == "all stems (area-weighted)", ]
 cat(sprintf("  band profile 0-2 m: aggregate %.2f at base -> 1.00 at 2 m (steps at %s cm)\n",
             ag$ratio[1], paste(brk, collapse=", ")))

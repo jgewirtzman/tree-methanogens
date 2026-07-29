@@ -31,7 +31,7 @@ suppressMessages({library(dplyr); library(ggplot2); library(tidyr); library(patc
 outdir <- "outputs/revision"
 R <- read.csv(file.path(outdir, "scaling_full_grid.csv"), stringsAsFactors = FALSE)
 
-FO <- c("constant","rf_learned_capped","power","exponential","linear_floored",
+FO <- c("constant","exp_band_slope","power","exponential","linear_floored",
         "linear_bounded_median")
 R$flux <- factor(R$flux, levels = rev(FO))
 # linear_bounded_median is CONTRADICTED by the only direct evidence above 2 m: all
@@ -82,17 +82,28 @@ pb <- ggplot(B, aes(branch, flux, fill = m)) +
        subtitle = "median over WAI and bole shape; the axis collapsed inside (a)",
        x = NULL, y = NULL) + th
 
-# ---- c: every combination ----------------------------------------------------
-pc <- ggplot(R, aes(WAI, flux, fill = total_mg)) +
-  geom_tile(colour = "white", linewidth = 0.25) + DIV +
-  scale_y_discrete(labels = star) +
-  facet_grid(bole ~ branch) +
-  labs(title = sprintf("c   all %d combinations, nothing collapsed", N_COMB),
-       subtitle = "columns = woody area index within branch placement; rows = bole shape",
+# ---- c: ONE heatmap, every combination, one scale ---------------------------
+# Previously this was facet_grid(bole ~ branch), which ggplot renders as eight
+# panels. Faceting was the wrong structure: the eye cannot compare a cell in one
+# panel with a cell in another, so the "all combinations" panel showed less than
+# the two collapsed panels above it. Now a single heatmap on one scale, with the
+# two structural axes CROSSED into the rows and columns rather than split across
+# panels: rows are flux form x bole shape, columns are woody area index x branch
+# placement. Every one of the combinations is a cell, and any cell is directly
+# comparable to any other.
+CC <- R %>% mutate(
+  row = interaction(flux, bole, sep = "  |  ", lex.order = TRUE),
+  col = interaction(WAI, branch, sep = "  |  ", lex.order = TRUE))
+# order rows by flux (already levelled) then bole; columns by WAI then branch
+CC$row <- factor(CC$row, levels = rev(levels(CC$row)))
+pc <- ggplot(CC, aes(col, row, fill = total_mg)) +
+  geom_tile(colour = "white", linewidth = 0.35) + DIV +
+  labs(title = sprintf("c   all %d combinations on one scale", N_COMB),
+       subtitle = "rows = flux form x bole shape; columns = woody area index x branch placement",
        x = NULL, y = NULL) +
-  th + theme(strip.text = element_text(size = 7),
-             axis.text.x = element_text(angle = 55, hjust = 1, size = 5),
-             axis.text.y = element_text(size = 6))
+  th + theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 4.6),
+             axis.text.y = element_text(size = 5.2),
+             legend.position = "right")
 
 # ---- d: leverage as the range each assumption actually spans ------------------
 # A variance share was tried and rejected. On this grid the flux axis takes 89% of
@@ -142,7 +153,7 @@ pd <- ggplot(LEV, aes(assumption, range_mg)) +
         plot.subtitle = element_text(size = 7.4, colour = "grey30"),
         plot.margin = margin(6, 92, 6, 6))
 
-fig <- (pa | pb) / pc / pd + plot_layout(heights = c(1, 1.3, 0.72)) +
+fig <- (pa | pb) / pc / pd + plot_layout(heights = c(1, 1.85, 0.62)) +
   plot_annotation(
     title = sprintf("Stem CH4 upscaling: %d combinations", N_COMB),
     subtitle = sprintf("%d woody area index x %d bole shapes x %d branch placements x %d vertical flux forms   |   measured 0-2 m band = %.2f mg CH4 m-2 yr-1 in every combination",
@@ -150,7 +161,7 @@ fig <- (pa | pb) / pc / pd + plot_layout(heights = c(1, 1.3, 0.72)) +
     theme = theme(plot.title = element_text(face = "bold", size = 12),
                   plot.subtitle = element_text(size = 8.4, colour = "grey25")))
 ggsave(file.path(outdir, "fig_scaling_heatmap.png"), fig,
-       width = 11.5, height = 13.5, dpi = 200, bg = "white")
+       width = 13, height = 15.5, dpi = 200, bg = "white")
 
 cat(sprintf("=== LEVERAGE: range spanned by each assumption, others held fixed (%d combinations) ===\n", N_COMB))
 print(as.data.frame(LEVS %>% arrange(-med) %>%
