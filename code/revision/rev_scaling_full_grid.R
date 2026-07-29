@@ -146,8 +146,14 @@ BOLE <- list(cone=function(u) pmax(1-u,0), paraboloid=function(u) sqrt(pmax(1-u,
 # cutoff and nothing below, which no real crown does, and without a second Gaussian
 # the smooth options were represented only by one centred high at 0.75H. The pair
 # of Gaussians now brackets a deep crown and a shallow one.
+# uniform_crown (all branch area above 0.60H) is DROPPED. It was a near-duplicate
+# of uniform_top50: cutoffs at 0.60H and 0.50H gave median totals of 16.4 and 16.9
+# mg, a 3% difference, so the two together consumed two of five levels while
+# spanning almost none of the range. The remaining four bracket properly -- area
+# low (uniform_all), a hard cutoff (uniform_top50), and two Gaussian crowns at
+# different depths (0.50H, 0.75H).
 BRANCH <- list(uniform_all=function(u) rep(1,length(u)),
-  uniform_top50=function(u) as.numeric(u>=.50), uniform_crown=function(u) as.numeric(u>=.60),
+  uniform_top50=function(u) as.numeric(u>=.50),
   gaussian_50=function(u) dnorm(u,.50,.18),
   gaussian_75=function(u) dnorm(u,.75,.15))
 # WAI SCENARIOS. The bottom-up value is OURS and is labelled as such. It must not
@@ -264,6 +270,32 @@ for (bn in names(BOLE)) for (rn in names(BRANCH)) {
 }
 R <- bind_rows(res)
 write.csv(R, file.path(outdir,"scaling_full_grid.csv"), row.names=FALSE)
+
+# ---- THE HEADLINE SCENARIO, named once ---------------------------------------
+# One combination is quoted in the text and drawn in the figures, so it is defined
+# here rather than chosen ad hoc in each script:
+#   flux    exp_band_slope  the conservative form -- a decay rate taken from the
+#                           model's own within-band profile, not from an assumed
+#                           shape, and the lowest of the positive forms
+#   WAI     2.11            our bottom-up estimate for THIS stand, not a
+#                           literature value imported from another forest
+#   branch  gaussian_75     a crown centred at 0.75H, which is what a closed-canopy
+#                           dominant looks like after self-pruning; the hard-cutoff
+#                           and low-centred alternatives are kept as scenarios
+#   bole    cone            irrelevant (0.3 mg across the whole grid), so the
+#                           simpler of the two W&W forms
+# The RANGE, not this cell, is the result; this is the cell to point at.
+HEADLINE <- list(flux = "exp_band_slope", branch = "gaussian_75", bole = "cone",
+                 WAI = grep("2.11", names(WAIS), value = TRUE)[1])
+hr <- R[R$flux == HEADLINE$flux & R$branch == HEADLINE$branch &
+        R$bole == HEADLINE$bole & R$WAI == HEADLINE$WAI, ]
+write.csv(cbind(as.data.frame(HEADLINE), hr[, c("measured_mg","extrapolated_mg",
+          "total_mg","pct_extrapolated","pct_of_soil","net_mg")]),
+          file.path(outdir,"scaling_headline.csv"), row.names=FALSE)
+cat(sprintf("\n=== HEADLINE SCENARIO ===\n  %s | %s | %s | %s\n",
+            HEADLINE$flux, HEADLINE$WAI, HEADLINE$branch, HEADLINE$bole))
+cat(sprintf("  total %.1f mg CH4 m-2 yr-1 (%.1f%% of soil uptake, %.0f%% extrapolated)\n",
+            hr$total_mg, hr$pct_of_soil, hr$pct_extrapolated))
 
 # ---- export the SHAPES themselves, for rev_fig_scaling_profiles.R ------------
 # The profile figure must show exactly what this grid computed, so the curves are
