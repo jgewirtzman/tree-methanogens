@@ -174,7 +174,10 @@ ONE2 <- bind_rows(lapply(C_FORMS, function(f)
                  contrib = area_per_m * absflux * SEC_YR * NMOL_MG)))
 pc1 <- ggplot(ONE2, aes(y = z)) +
   geom_ribbon(aes(xmin = 0, xmax = area_per_m, fill = relflux)) +
-  scale_fill_gradientn(colours = c(FLUX_PALE, "#cbc9e2", "#9e9ac8", FLUX_PURPLE, "#54278f"),
+  # rates keep the red ramp: here the colour encodes MAGNITUDE, which a sequential
+  # warm scale reads more directly than purple. Purple is reserved for the
+  # integrals, where it identifies the quantity rather than scaling with it.
+  scale_fill_gradientn(colours = c("#fff7f3","#fddbc7","#f4a582","#d6604d","#b2182b"),
                        name = "flux\n(rel. 2 m)") +
   geom_hline(yintercept = BAND, colour = "grey25", linewidth = 0.3, linetype = "dashed") +
   facet_wrap(~form, nrow = 1) +
