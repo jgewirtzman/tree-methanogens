@@ -169,11 +169,30 @@ BRANCH <- list(uniform_all=function(u) rep(1,length(u)),
 # partly circular and is corroboration only of the arithmetic, not of the value.
 # That belongs in the Discussion, not in a scenario label. The two literature
 # values bound the range from either side.
-WAIS <- c(`1.50 W&W Brookhaven (low bound)`=1.50,
-          `1.69 bottom-up, low`=1.69,
-          `2.11 bottom-up, this stand`=2.11,
-          `2.57 bottom-up, high`=2.57,
-          `3.07 Gauci 2024 (high bound)`=3.07)
+# The three bottom-up values are READ from their producer, not retyped. They were
+# hardcoded here as 1.69 / 2.11 / 2.57, which were computed by
+# rev_wai_bottomup_and_rf_interactions.R on the PRE-REBUILD inventory (7,010 stems,
+# the whole bytag survey missing) divided by the nominal 40,000 m2 square instead of
+# the 37,200 m2 stand. Both errors pushed WAI down; the correct trio is 2.23 / 2.82 /
+# 3.40. Because the literals lived here, fixing the producer alone would not have
+# reached the headline -- and WAI multiplies the extrapolated term, which is ~70% of it.
+# The two literature bounds stay literal: they are citations, not derived quantities.
+WAI_BU <- local({
+  f <- file.path(outdir, "wai_bottomup.csv")
+  if (!file.exists(f))
+    stop("missing ", f, " -- run: Rscript code/revision/rev_wai_bottomup_and_rf_interactions.R")
+  w <- read.csv(f, stringsAsFactors = FALSE)
+  stopifnot(nrow(w) == 3, all(is.finite(w$wai)), !is.unsorted(w$wai))
+  if (!isTRUE(all.equal(w$stand_area_m2[1], STAND_AREA_M2)))
+    stop("wai_bottomup.csv was computed over ", w$stand_area_m2[1],
+         " m2 but the stand is ", STAND_AREA_M2, " m2")
+  setNames(w$wai, sprintf("%.2f %s", w$wai, w$label))
+})
+WAIS <- c(`1.50 W&W Brookhaven (low bound)` = 1.50,
+          WAI_BU,
+          `3.07 Gauci 2024 (high bound)` = 3.07)
+WAIS <- WAIS[order(WAIS)]
+cat(sprintf("WAI axis (%d levels): %s\n", length(WAIS), paste(names(WAIS), collapse=" | ")))
 # NEGATIVE BOUND for the linear form, from the detected stem uptakes surviving Tier 1
 # QC (MDF at 90% confidence, precision per field period; n = 89).
 #
@@ -316,8 +335,12 @@ write.csv(R, file.path(outdir,"scaling_full_grid.csv"), row.names=FALSE)
 #   bole    cone            irrelevant (0.3 mg across the whole grid), so the
 #                           simpler of the two W&W forms
 # The RANGE, not this cell, is the result; this is the cell to point at.
+# Select the headline WAI by its MEANING, not by its digits. This was
+# grep("2.11", names(WAIS)) -- a numeric string match, so the moment the bottom-up
+# estimate was corrected from 2.11 to 2.82 the selector silently returned NA.
 HEADLINE <- list(flux = "exp_band_slope", branch = "gaussian_75", bole = "cone",
-                 WAI = grep("2.11", names(WAIS), value = TRUE)[1])
+                 WAI = grep("bottom-up, this stand", names(WAIS), value = TRUE)[1])
+stopifnot(length(HEADLINE$WAI) == 1, !is.na(HEADLINE$WAI))
 hr <- R[R$flux == HEADLINE$flux & R$branch == HEADLINE$branch &
         R$bole == HEADLINE$bole & R$WAI == HEADLINE$WAI, ]
 write.csv(cbind(as.data.frame(HEADLINE), hr[, c("measured_mg","extrapolated_mg",

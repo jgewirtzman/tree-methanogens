@@ -38,18 +38,24 @@
 suppressMessages({library(dplyr); library(ggplot2); library(tidyr); library(ranger)})
 set.seed(42)
 outdir <- "outputs/revision"; dir.create(outdir, showWarnings=FALSE, recursive=TRUE)
+source("code/revision/rev_geometry.R")
 load("outputs/models/RF_MODELS.RData"); load("outputs/models/TRAINING_DATA.RData")
 load("data/processed/integrated/rf_workflow_input_data_with_2023.RData")
-INV <- rf_workflow_data$PLACEHOLDER_INVENTORY
-A_PLOT <- 200*200
+# CANONICAL stems and ground. This read rf_workflow_data$PLACEHOLDER_INVENTORY over
+# A_PLOT <- 200*200: fg19 only, so the whole bytag survey (961 stems) was missing,
+# 7,010 stems instead of 8,006, divided by the nominal 40,000 m2 square instead of
+# the 37,200 m2 censused stand. Both errors push the WAI DOWN, and this script is the
+# sole producer of the bottom-up WAI that rev_scaling_full_grid.R consumes, where it
+# multiplies ~70% of the headline estimate. The trio it emitted (1.69/2.11/2.57) is
+# 32% low; on the canonical inventory the same recipe gives 2.23/2.82/3.40.
+INV <- canonical_inventory()
+A_PLOT <- STAND_AREA_M2
 rule <- function(s) cat("\n",strrep("=",78),"\n ",s,"\n",strrep("=",78),"\n",sep="")
 
-fix_dbh <- function(dd,s){ dd<-ifelse(!is.na(dd)&dd>3,dd/100,dd)
-  dd<-ifelse(grepl("Betula",s)&!is.na(dd)&dd*100>200,dd/10,dd)
-  dd<-ifelse(s=="Pinus strobus"&!is.na(dd)&dd*100>230,dd/10,dd)
-  ifelse(s=="Kalmia latifolia"&!is.na(dd)&dd*100>100,dd/100,
-  ifelse(s=="Kalmia latifolia"&!is.na(dd)&dd*100>10,dd/10,dd)) }
-INV$dbh <- fix_dbh(INV$dbh_m, INV$species); INV <- INV[is.finite(INV$dbh)&INV$dbh>0,]
+# fix_dbh() removed: it was the over-correcting species-specific DBH repair stack
+# that rev_inventory_build.R replaced with one documented rule. canonical_inventory()
+# returns diameters already unit-checked and typo-repaired, and H from the single
+# allometry in rev_geometry.R.
 
 # ==============================================================================
 rule("PART 1  HEIGHT ALLOMETRY (per stem, not one canopy height)")
@@ -71,9 +77,11 @@ for (Hc in HEIGHT_SCENARIOS) {
   cat(sprintf("  %-22s %8.2f %8.1f %8.1f %8.1f\n",
               sprintf("H_c = %d m", Hc), a_ang, median(H), mean(H), max(H)))
 }
-H_CANOPY <- 25   # midpoint of the observed 20-30 m range
-a_ang <- (H_CANOPY-1.37)/D_ANCHOR^0.53; a_gym <- (H_CANOPY-1.37)/D_ANCHOR^0.60
-INV$H <- 1.37 + ifelse(INV$species %in% GYMNO, a_gym, a_ang) * INV$dbh^INV$b_exp
+# One allometry, defined in rev_geometry.R. It was copy-pasted verbatim into five
+# scripts, and because its scale coefficient is anchored on the 95th percentile of
+# whichever stem list the script loaded, the duplicates silently disagreed.
+H_CANOPY <- CANOPY_H_M
+INV$H <- stem_height_m(INV$dbh_m, INV$species, canopy_h = H_CANOPY)
 cat(sprintf("
   Using H_c = %d m. Because H scales as D^0.53, SUBCANOPY STEMS GET SUBCANOPY HEIGHTS:
   median stem height %.1f m against a %d m canopy -- the point you raised. A single
@@ -104,6 +112,21 @@ for (cc in CONIC_CORR) {
 }
 wai_lo <- S_conic*CONIC_CORR[1]*(1+BRANCH_STEM[1])/A_PLOT
 wai_hi <- S_conic*CONIC_CORR[2]*(1+BRANCH_STEM[2])/A_PLOT
+
+# EXPORT, so rev_scaling_full_grid.R reads these instead of carrying its own copy.
+# The grid used to hardcode `1.69 bottom-up, low` / `2.11 bottom-up, this stand` /
+# `2.57 bottom-up, high` as literals, so correcting this producer would not have
+# reached the headline at all. One producer per quantity.
+WAI_OUT <- data.frame(
+  label = c("bottom-up, low", "bottom-up, this stand", "bottom-up, high"),
+  wai   = c(wai_lo, (wai_lo + wai_hi)/2, wai_hi),
+  basis = sprintf("S_conic %.0f m2 over %.0f m2, conic corr %.2f-%.2f, branch:stem %.1f-%.1f",
+                  S_conic, A_PLOT, CONIC_CORR[1], CONIC_CORR[2],
+                  BRANCH_STEM[1], BRANCH_STEM[2]),
+  n_stems = nrow(INV), stand_area_m2 = A_PLOT, stringsAsFactors = FALSE)
+write.csv(WAI_OUT, file.path(outdir, "wai_bottomup.csv"), row.names = FALSE)
+cat(sprintf("\n  written: %s/wai_bottomup.csv  (%.2f / %.2f / %.2f from %d stems)\n",
+            outdir, wai_lo, (wai_lo+wai_hi)/2, wai_hi, nrow(INV)))
 
 cat(sprintf("
   ---------------------------------------------------------------------------

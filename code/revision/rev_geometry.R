@@ -157,6 +157,64 @@ local({
     stop(sprintf("rev_geometry.R: ring area %.1f != STAND_AREA_M2 %.1f", a, STAND_AREA_M2))
 })
 
+# ==============================================================================
+# THE STAND'S STEMS, AND THEIR HEIGHTS. Source of both, so no script re-derives.
+# ------------------------------------------------------------------------------
+# WHY THIS IS HERE. Seven scripts loaded the stem list themselves, and five of them
+# reached for `rf_workflow_data$PLACEHOLDER_INVENTORY` with `A_PLOT <- 200*200`.
+# That object is fg19-only: 7,010 stems, with the ENTIRE bytag survey (961 stems)
+# missing, over the nominal square rather than the censused stand. So those scripts
+# reported a stand 12% short of stems on ground 7.5% too large -- 3,554 m2 of band
+# area and a stem-area index of 0.0888 against the canonical 4,325.9 and 0.1163,
+# i.e. 24% low. One of them, rev_wai_bottomup_and_rf_interactions.R, is the sole
+# producer of the bottom-up woody area index, which came out 1.69/2.11/2.57 when the
+# canonical inventory gives 2.23/2.82/3.40 -- 32% low in a quantity that multiplies
+# roughly 70% of the headline scaling estimate.
+#
+# The height allometry was separately copy-pasted verbatim into five scripts. Its
+# scale coefficient is anchored on the 95th percentile of the inventory's own
+# diameters, so it silently differed by which stem list the script happened to load.
+#
+# Both now live here. `PLACEHOLDER_INVENTORY` and `PLACEHOLDER_PLOT_AREA` must not
+# be read by anything again; prefer canonical_inventory() and STAND_AREA_M2.
+# ==============================================================================
+
+# Hulshof et al. 2015 Ecol Evol 5:1193-1204 exponents; site-specific scale.
+ALLOM_B_ANGIO <- 0.53
+ALLOM_B_GYMNO <- 0.60
+CANOPY_H_M    <- 25        # midpoint of the observed 20-30 m closed-canopy range
+GYMNOSPERMS   <- c("Pinus strobus", "Tsuga canadensis")
+
+#' Per-stem height from diameter, H = 1.37 + a * DBH^b.
+#' `a` is fitted so a stem at the 95th percentile of diameter (over stems > 10 cm)
+#' reaches CANOPY_H_M. No shrub cap, by decision -- see scaling_parameters.md.
+stem_height_m <- function(dbh_m, species, canopy_h = CANOPY_H_M) {
+  gy <- species %in% GYMNOSPERMS
+  d_anchor <- stats::quantile(dbh_m[dbh_m > 0.10], 0.95, na.rm = TRUE)
+  a <- ifelse(gy, (canopy_h - 1.37)/d_anchor^ALLOM_B_GYMNO,
+                  (canopy_h - 1.37)/d_anchor^ALLOM_B_ANGIO)
+  1.37 + a * dbh_m^ifelse(gy, ALLOM_B_GYMNO, ALLOM_B_ANGIO)
+}
+
+#' THE stem list. Reads what rev_inventory_build.R wrote; adds dbh, H and band area.
+#' in_stand_only = TRUE gives the 8,006 stems the budget is defined over.
+canonical_inventory <- function(in_stand_only = TRUE,
+                                file = "outputs/tables/inventory_stems.csv") {
+  if (!file.exists(file))
+    stop("canonical_inventory(): missing ", file,
+         " -- run: Rscript code/revision/rev_inventory_build.R")
+  INV <- utils::read.csv(file, stringsAsFactors = FALSE)
+  INV <- INV[is.finite(INV$dbh_m) & INV$dbh_m > 0, ]
+  if (in_stand_only) INV <- INV[INV$in_stand, ]
+  INV$dbh <- INV$dbh_m
+  INV$H   <- stem_height_m(INV$dbh_m, INV$species)
+  # Kalmia is a shrub measured over 0.75 m, not 2 m -- matches the band used by
+  # rev_predict_tree_flux_current.R. %in% is NA-safe; 41 stems have species = NA.
+  INV$band_m     <- ifelse(INV$species %in% "Kalmia latifolia", 0.75, 2.00)
+  INV$A_band_m2  <- pi * INV$dbh_m * INV$band_m
+  INV
+}
+
 if (identical(environment(), globalenv()) && !interactive()) {
   cat(sprintf("stand geometry: %d x %d m minus %d uncensused %d m quadrats\n",
               PLOT_SIDE_M, PLOT_SIDE_M, length(UNCENSUSED_QUADRATS), GAP_CELL_M))

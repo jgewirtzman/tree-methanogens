@@ -64,26 +64,34 @@
 # ==============================================================================
 
 suppressMessages({library(dplyr); library(ggplot2); library(tidyr); library(ranger)})
+source("code/revision/rev_geometry.R")
+source("code/revision/rev_species_levels.R")
 set.seed(42)
 outdir <- "outputs/revision"; dir.create(outdir, showWarnings = FALSE, recursive = TRUE)
 
 load("outputs/models/RF_MODELS.RData"); load("outputs/models/TRAINING_DATA.RData")
 load("data/processed/integrated/rf_workflow_input_data_with_2023.RData")
-INV <- rf_workflow_data$PLACEHOLDER_INVENTORY
+INV <- canonical_inventory()
 
-A_PLOT <- 200*200; WAI <- 3.07; CONV <- 86400*365.25*16e-6
+# CANONICAL stems and ground (2026-07-29). This read
+# rf_workflow_data$PLACEHOLDER_INVENTORY over A_PLOT <- 200*200: fg19 only, so the
+# entire bytag survey (961 stems) was missing -- 7,010 stems instead of 8,006 -- over
+# the nominal 40,000 m2 square instead of the 37,200 m2 censused stand. Every
+# per-ground figure below was 7.0% low and every WAI*area 7.5% high, and the stem-area
+# index came out 0.0888 against the canonical 0.11629. The allometry and the DBH repair
+# were also local copies; both now come from rev_geometry.R.
+A_PLOT <- STAND_AREA_M2; WAI <- 3.07; CONV <- 86400*365.25*16e-6
 CANOPY_H <- 20            # m, assumed; varied in the sensitivity grid
 CROWN_BASE_FRAC <- 0.5    # crown base at half canopy height
 rule <- function(s) cat("\n", strrep("=",78), "\n ", s, "\n", strrep("=",78), "\n", sep="")
 
-fix_dbh <- function(dd,s){ dd<-ifelse(!is.na(dd)&dd>3,dd/100,dd)
-  dd<-ifelse(grepl("Betula",s)&!is.na(dd)&dd*100>200,dd/10,dd)
-  dd<-ifelse(s=="Pinus strobus"&!is.na(dd)&dd*100>230,dd/10,dd)
-  ifelse(s=="Kalmia latifolia"&!is.na(dd)&dd*100>100,dd/100,
-  ifelse(s=="Kalmia latifolia"&!is.na(dd)&dd*100>10,dd/10,dd)) }
-INV$dbh <- fix_dbh(INV$dbh_m, INV$species); INV <- INV[is.finite(INV$dbh)&INV$dbh>0,]
+# fix_dbh() and the local band definition removed: canonical_inventory() already
+# returns repaired diameters plus band_m (0.75 m for Kalmia, a shrub; 2 m otherwise)
+# and A_band_m2. Re-repairing repaired data with species == "..." rather than %in%
+# turned the 41 NA-species stems into NA diameters, which is why this reported 7,998
+# stems and an NA band area.
 sum_piD <- sum(pi*INV$dbh)
-A_band  <- sum(pi*INV$dbh*ifelse(INV$species=="Kalmia latifolia",0.75,2))
+A_band  <- sum(INV$A_band_m2)
 
 # ==============================================================================
 rule("AREA DECOMPOSITION")

@@ -26,11 +26,13 @@
 # ==============================================================================
 
 suppressMessages({library(ranger); library(dplyr); library(tidyr)})
+source("code/revision/rev_geometry.R")
+source("code/revision/rev_species_levels.R")
 set.seed(42)
 outdir <- "outputs/revision"; dir.create(outdir, showWarnings=FALSE, recursive=TRUE)
 load("outputs/models/RF_MODELS.RData"); load("outputs/models/TRAINING_DATA.RData")
 load("data/processed/integrated/rf_workflow_input_data_with_2023.RData")
-INV <- rf_workflow_data$PLACEHOLDER_INVENTORY; DR <- rf_workflow_data$PLACEHOLDER_DRIVERS
+INV <- canonical_inventory(); DR <- rf_workflow_data$PLACEHOLDER_DRIVERS
 rule <- function(s) cat("\n",strrep("=",78),"\n ",s,"\n",strrep("=",78),"\n",sep="")
 
 d <- tree_train_complete
@@ -58,15 +60,13 @@ cat("
 # ==============================================================================
 rule("PART 2  PER-TREE RF-LEARNED SHAPE, PROJECTED")
 # ==============================================================================
-fix_dbh <- function(dd,s){ dd<-ifelse(!is.na(dd)&dd>3,dd/100,dd)
-  dd<-ifelse(grepl("Betula",s)&!is.na(dd)&dd*100>200,dd/10,dd)
-  dd<-ifelse(s=="Pinus strobus"&!is.na(dd)&dd*100>230,dd/10,dd)
-  ifelse(s=="Kalmia latifolia"&!is.na(dd)&dd*100>100,dd/100,
-  ifelse(s=="Kalmia latifolia"&!is.na(dd)&dd*100>10,dd/10,dd)) }
-INV$dbh <- fix_dbh(INV$dbh_m, INV$species); INV <- INV[is.finite(INV$dbh)&INV$dbh>0,]
+# fix_dbh() removed. canonical_inventory() returns diameters already unit-checked and
+# typo-repaired by rev_inventory_build.R, so this local stack was re-repairing repaired
+# data -- and it used species == "..." rather than %in%, so the 41 stems with
+# species = NA came back with dbh = NA, then H = NA, and seq(0.05, NA) killed the run.
 INV <- INV %>% group_by(species) %>%
   ungroup() %>% as.data.frame()
-INV$sp <- ifelse(INV$species %in% trained, INV$species, "SPECIES_OTHER")
+INV$sp <- species_to_model_level(INV$species, trained)
 
 mm <- d %>% group_by(month) %>% summarise(m=mean(soil_moisture_at_tree,na.rm=TRUE),.groups="drop")
 sm <- soil_train_complete %>% group_by(month) %>% summarise(ms=mean(soil_moisture_at_site,na.rm=TRUE),.groups="drop")
@@ -107,12 +107,22 @@ for (i in seq_len(nrow(bs)))
   cat(sprintf("    %-24s %7d %10.4f %12.3f\n", bs$sp[i], bs$n[i], bs$slope[i], bs$ratio_2_05[i]))
 
 # --- project each tree's own learned shape and integrate to the canopy --------
-A_PLOT <- 200*200; CONV <- 86400*365.25*16e-6
+# CANONICAL stems and ground (2026-07-29). This read
+# rf_workflow_data$PLACEHOLDER_INVENTORY over A_PLOT <- 200*200: fg19 only, so the
+# entire bytag survey (961 stems) was missing -- 7,010 stems instead of 8,006 -- over
+# the nominal 40,000 m2 square instead of the 37,200 m2 censused stand. Every
+# per-ground figure below was 7.0% low and every WAI*area 7.5% high, and the stem-area
+# index came out 0.0888 against the canonical 0.11629. The allometry and the DBH repair
+# were also local copies; both now come from rev_geometry.R.
+A_PLOT <- STAND_AREA_M2; CONV <- 86400*365.25*16e-6
 GY <- c("Pinus strobus","Tsuga canadensis")
-D_ANCH <- quantile(INV$dbh[INV$dbh>0.10], 0.95, na.rm=TRUE)
-INV$H <- 1.37 + ifelse(INV$species %in% GY, (25-1.37)/D_ANCH^0.60, (25-1.37)/D_ANCH^0.53) *
-         INV$dbh^ifelse(INV$species %in% GY, 0.60, 0.53)
-INV$H <- ifelse(INV$species=="Kalmia latifolia", pmin(INV$H, 3), INV$H)   # shrub cap
+# Height comes from the single allometry in rev_geometry.R (canonical_inventory() has
+# already applied it), not from a fifth local copy.
+# The 3 m Kalmia shrub cap that stood here is REMOVED: the project decision (2026-07-26,
+# scaling_parameters.md section 3) is to apply the published allometry uniformly and
+# document the limitation, because Kalmia is ~2% of woody area and a cap moves the stand
+# total by ~1%. This script was the only place still applying it, so it disagreed with
+# every other estimate of woody area. It also used == rather than %in%.
 S_conic <- pi*INV$dbh*INV$H/2
 for (BS in c(2.7, 4.0)) for (CC in c(1.20, 1.35)) {
   A_w <- S_conic*CC*(1+BS)
