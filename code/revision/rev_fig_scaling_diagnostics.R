@@ -30,28 +30,37 @@
 suppressMessages({library(ranger);library(dplyr);library(ggplot2);library(tidyr);library(patchwork)})
 set.seed(42)
 outdir <- "outputs/revision"; dir.create(outdir, showWarnings=FALSE, recursive=TRUE)
+source("code/revision/rev_geometry.R")
+source("code/revision/rev_species_levels.R")
 load("outputs/models/RF_MODELS.RData"); load("outputs/models/TRAINING_DATA.RData")
-load("data/processed/integrated/rf_workflow_input_data_with_2023.RData")
-INV <- rf_workflow_data$PLACEHOLDER_INVENTORY; d <- tree_train_complete
+d <- tree_train_complete
 trained <- sort(unique(as.character(d$species_clean)))
-A_PLOT <- 200*200; CONV <- 86400*365.25*16e-6
+CONV <- 86400*365.25*16e-6
+A_PLOT <- STAND_AREA_M2   # censused ground; was hardcoded 200*200, the nominal square
 
-fx <- function(dd,s){dd<-ifelse(!is.na(dd)&dd>3,dd/100,dd)
- dd<-ifelse(grepl("Betula",s)&!is.na(dd)&dd*100>200,dd/10,dd)
- dd<-ifelse(s=="Pinus strobus"&!is.na(dd)&dd*100>230,dd/10,dd)
- ifelse(s=="Kalmia latifolia"&!is.na(dd)&dd*100>100,dd/100,
- ifelse(s=="Kalmia latifolia"&!is.na(dd)&dd*100>10,dd/10,dd))}
-INV$dbh <- fx(INV$dbh_m,INV$species); INV <- INV[is.finite(INV$dbh)&INV$dbh>0,]
-INV <- INV %>% group_by(species) %>%
-  ungroup() %>% as.data.frame()
-INV$sp <- ifelse(INV$species %in% trained, INV$species, "SPECIES_OTHER")
+# CANONICAL inventory, not rf_workflow_data$PLACEHOLDER_INVENTORY. That object is the
+# pre-rebuild stem list (before the bytag coordinate rescue and the DBH unit fix), and
+# the fx() stack that stood here was the over-correcting species-specific DBH repair
+# that rev_inventory_build.R replaced with one documented rule. The species line also
+# carried the ladder bug -- see rev_species_levels.R.
+INVFILE <- "outputs/tables/inventory_stems.csv"
+if (!file.exists(INVFILE))
+  stop("missing ", INVFILE, " -- run rev_inventory_build.R first")
+INV <- read.csv(INVFILE, stringsAsFactors=FALSE)
+INV <- INV[INV$in_stand & is.finite(INV$dbh_m) & INV$dbh_m > 0, ]
+INV$dbh <- INV$dbh_m          # already unit-checked and typo-repaired upstream
+INV$sp  <- species_to_model_level(INV$species, trained)
 GY <- c("Pinus strobus","Tsuga canadensis")
 DA <- quantile(INV$dbh[INV$dbh>0.10],.95,na.rm=TRUE)
 INV$H <- 1.37 + ifelse(INV$species %in% GY,(25-1.37)/DA^0.60,(25-1.37)/DA^0.53) *
          INV$dbh^ifelse(INV$species %in% GY,0.60,0.53)      # NO shrub cap
 
 # ---- Kalmia check -----------------------------------------------------------
-K <- INV[INV$species=="Kalmia latifolia",]
+# %in%, not ==. 41 inventory rows have species = NA (unidentified stems, retained by
+# design), and == returns NA for those, so INV[NA, ] injects NA rows and every
+# statistic below came out NA. The old PLACEHOLDER_INVENTORY had no NA species, so
+# this was latent until the canonical inventory was wired in.
+K <- INV[INV$species %in% "Kalmia latifolia", ]
 cat(sprintf("
 KALMIA LATIFOLIA under the unmodified allometry (n = %d)
   DBH  : median %.1f cm, range %.1f - %.1f cm
@@ -64,7 +73,7 @@ KALMIA LATIFOLIA under the unmodified allometry (n = %d)
  median(K$H), mean(K$H), min(K$H), max(K$H),
  100*sum(pi*(K$dbh/2)^2)/sum(pi*(INV$dbh/2)^2),
  100*sum(pi*K$dbh*K$H/2)/sum(pi*INV$dbh*INV$H/2),
- 100*(sum(pi*INV$dbh*ifelse(INV$species=="Kalmia latifolia",pmin(INV$H,3),INV$H)/2) /
+ 100*(sum(pi*INV$dbh*ifelse(INV$species %in% "Kalmia latifolia",pmin(INV$H,3),INV$H)/2) /
       sum(pi*INV$dbh*INV$H/2) - 1)))
 
 # ==============================================================================

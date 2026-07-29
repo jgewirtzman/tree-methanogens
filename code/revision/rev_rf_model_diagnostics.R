@@ -44,7 +44,12 @@ perm_importance <- function(rf, X, y, n_rep = 5) {
   # Baseline and permuted scores are BOTH computed with predict() on the same rows,
   # so they are directly comparable. (Using rf$predictions for the baseline mixes OOB
   # with in-sample predictions and, if the row set differs at all, silently recycles.)
-  z <- asinh(y)
+  # NO transform. Both models are fitted on the MEASURED scale (the asinh was
+  # removed; the variable still named y_asinh in 02_rf_models.R holds raw values).
+  # This line used to be z <- asinh(y), which scored raw predictions against a
+  # transformed target -- so every permutation importance below was computed
+  # against the wrong reference.
+  z <- y
   r2 <- function(p) 1 - sum((z - p)^2) / sum((z - mean(z))^2)
   base <- r2(predict(rf, X)$predictions)
   vapply(colnames(X), function(v) {
@@ -66,7 +71,7 @@ partial_dep <- function(rf, X, var, n_grid = 25, n_sample = 300) {
   data.frame(
     variable = var, value = grid,
     yhat = vapply(grid, function(g) { xs[[var]] <- g
-                    mean(sinh(predict(rf, xs)$predictions), na.rm = TRUE) }, numeric(1))
+                    mean(predict(rf, xs)$predictions, na.rm = TRUE) }, numeric(1))
   )
 }
 
@@ -79,11 +84,17 @@ for (nm in names(MODELS)) {
   # cleaner subset than the model actually saw -- flattering the score.
   ok <- is.finite(m$y) & is.finite(m$rf$predictions)
   X <- m$X[ok, , drop = FALSE]; y <- m$y[ok]
-  oob <- sinh(m$rf$predictions)[ok]
+  # Predictions and response are BOTH on the measured scale, so there is nothing to
+  # back-transform. This was sinh(m$rf$predictions), left over from the removed
+  # asinh: on a max OOB prediction of 1.81 nmol that inflates by 64%, and on the
+  # observed max of 6.17 by 3,780%. It made r2_raw read 0.214 instead of 0.243 and
+  # mean_ratio 1.084 instead of 1.026 -- i.e. it reported the model as three times
+  # more biased than it is.
+  oob <- m$rf$predictions[ok]
 
   summary_rows[[nm]] <- data.frame(
     model = m$label, n = length(y),
-    oob_r2_asinh = m$rf$r.squared,
+    oob_r2 = m$rf$r.squared,
     r2_raw       = 1 - sum((y - oob)^2) / sum((y - mean(y))^2),
     mean_obs = mean(y), mean_pred = mean(oob),
     mean_ratio = mean(oob) / mean(y),
@@ -96,7 +107,7 @@ for (nm in names(MODELS)) {
   cat("\n", strrep("=", 70), "\n  ", toupper(m$label), " MODEL  (n = ", length(y), ")\n",
       strrep("=", 70), "\n", sep = "")
   cat(sprintf("  OOB R2 %.3f | raw R2 %.3f | mean ratio %.3f | Spearman %.3f\n\n",
-              summary_rows[[nm]]$oob_r2_asinh, summary_rows[[nm]]$r2_raw,
+              summary_rows[[nm]]$oob_r2, summary_rows[[nm]]$r2_raw,
               summary_rows[[nm]]$mean_ratio, summary_rows[[nm]]$spearman))
   cat("  Permutation importance (drop in OOB R2 when shuffled):\n")
   for (v in names(imp)[seq_len(min(10, length(imp)))])

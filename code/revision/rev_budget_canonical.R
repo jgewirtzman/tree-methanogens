@@ -20,8 +20,10 @@
 #   * The soil term came from MONTHLY_FLUXES.csv while Figure 9's map drew the
 #     interpolated surface -- two estimates of one quantity, 4.7% apart. The
 #     surface is now authoritative everywhere (decision 2026-07-27).
-#   * Ground area was hardcoded as 200^2. The censused stand is 37,600 m2: the
-#     square minus an unsurveyed block. See rev_geometry.R.
+#   * Ground area was hardcoded as 200^2. The censused stand is 37,200 m2: the
+#     square minus the 7 uncensused 20 m quadrats. See rev_geometry.R, which is
+#     the only place that number is defined. (This comment said 37,600 -- a typo
+#     that never reached the code, since STAND_AREA_M2 is sourced.)
 #   * The measured band was reported as 5.41 here and 5.79 in the scaling grid,
 #     and Figure 9 drew one stacked on the other. The grid now consumes
 #     `tree_measured_mg_m2_yr` from this file instead of recomputing it.
@@ -87,18 +89,34 @@ tree_ann <- sum(M$tree_mg_m2_d)*DAYS_PER_MONTH
 soil_ann <- mean(SOA$flux_nmol_m2_s)*SEC_YR*NMOL_TO_MG
 tree_ann_2m <- sum(B_tree$flux_2m_nmol_m2_s*B_tree$A_stem_m2)/STAND_AREA_M2*SEC_YR*NMOL_TO_MG
 
+# Grouped-CV skill alongside OOB. OOB is not grouped by tree, and the 1,130 tree rows
+# come from only 478 trees (one contributes 13), so OOB scores the model partly on
+# trees it has already seen -- it overstates TreeRF by ~2x. Carried here so that any
+# script or paragraph quoting model skill has both numbers in front of it and cannot
+# reach for the flattering one by default. NA if rev_rf_grouped_cv.R has not run.
+GCV <- local({
+  f <- "outputs/revision/rf_grouped_cv.csv"
+  if (!file.exists(f)) { cat("NOTE: rf_grouped_cv.csv absent -- run rev_rf_grouped_cv.R\n")
+                         return(c(tree = NA_real_, soil = NA_real_)) }
+  g <- read.csv(f, stringsAsFactors = FALSE)
+  c(tree = g$grouped_r2[g$model == "TreeRF"][1],
+    soil = g$grouped_r2[g$model == "SoilRF"][1])
+})
+
 B <- data.frame(
   quantity = c("stand_area_m2","plot_nominal_area_m2","notch_area_m2",
                "stem_area_0_2m_m2","stem_area_index","basal_area_m2","basal_area_m2_ha",
                "soil_area_m2","soil_area_fraction","n_stems","n_stems_unlocated",
                "tree_measured_mg_m2_yr","tree_at_2m_basis_mg_m2_yr","soil_mg_m2_yr",
-               "net_measured_mg_m2_yr","tree_pct_of_soil","tree_r2_oob","soil_r2_oob"),
+               "net_measured_mg_m2_yr","tree_pct_of_soil","tree_r2_oob","soil_r2_oob",
+               "tree_r2_grouped_cv","soil_r2_grouped_cv"),
   value = c(STAND_AREA_M2, PLOT_AREA_M2, NOTCH_AREA_M2,
             stem_area, stem_area/STAND_AREA_M2, basal_area, basal_area/(STAND_AREA_M2/1e4),
             A_soil, A_soil/STAND_AREA_M2, nrow(B_inv), sum(!B_inv$located),
             tree_ann, tree_ann_2m, soil_ann,
             tree_ann + soil_ann, 100*abs(tree_ann)/abs(soil_ann),
-            TreeRF$r.squared, SoilRF$r.squared))
+            TreeRF$r.squared, SoilRF$r.squared,
+            GCV[["tree"]], GCV[["soil"]]))
 write.csv(B, file.path(outdir, "canonical_budget.csv"), row.names = FALSE)
 
 cat("\nCANONICAL BUDGET\n")

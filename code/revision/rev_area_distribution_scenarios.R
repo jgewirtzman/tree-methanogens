@@ -43,21 +43,38 @@
 suppressMessages({library(ranger);library(dplyr);library(ggplot2);library(tidyr);library(patchwork)})
 set.seed(42)
 outdir <- "outputs/revision"; dir.create(outdir, showWarnings=FALSE, recursive=TRUE)
+source("code/revision/rev_geometry.R")
+source("code/revision/rev_species_levels.R")
 load("outputs/models/RF_MODELS.RData"); load("outputs/models/TRAINING_DATA.RData")
-load("data/processed/integrated/rf_workflow_input_data_with_2023.RData")
-INV <- rf_workflow_data$PLACEHOLDER_INVENTORY; DR <- rf_workflow_data$PLACEHOLDER_DRIVERS
 d <- tree_train_complete; trained <- sort(unique(as.character(d$species_clean)))
-A_PLOT <- 200*200; CONV <- 86400*365.25*16e-6
+CONV <- 86400*365.25*16e-6
+A_PLOT <- STAND_AREA_M2   # censused ground. Was hardcoded 200*200 = 40,000, which
+                          # is the NOMINAL square and 7.5% too large, so every WAI
+                          # and every mg m-2 this script reported was low by that.
 
-fx <- function(dd,s){dd<-ifelse(!is.na(dd)&dd>3,dd/100,dd)
- dd<-ifelse(grepl("Betula",s)&!is.na(dd)&dd*100>200,dd/10,dd)
- dd<-ifelse(s=="Pinus strobus"&!is.na(dd)&dd*100>230,dd/10,dd)
- ifelse(s=="Kalmia latifolia"&!is.na(dd)&dd*100>100,dd/100,
- ifelse(s=="Kalmia latifolia"&!is.na(dd)&dd*100>10,dd/10,dd))}
-INV$dbh <- fx(INV$dbh_m,INV$species); INV <- INV[is.finite(INV$dbh)&INV$dbh>0,]
-INV <- INV %>% group_by(species) %>%
-  ungroup() %>% as.data.frame()
-INV$sp <- ifelse(INV$species %in% trained, INV$species, "SPECIES_OTHER")
+# CANONICAL INPUTS, not private re-derivations. This script used to carry its own
+# copy of the whole upscaling front end, and every part of it had drifted:
+#   * rf_workflow_data$PLACEHOLDER_INVENTORY -- the pre-rebuild inventory, before
+#     the bytag coordinate rescue and the DBH unit fix (rev_inventory_build.R);
+#   * an fx() stack of species-specific DBH "repairs" that rev_inventory_build.R
+#     replaced with one documented rule, and which over-corrected;
+#   * the campaign monthly drivers with approx(rule = 2) gapfilling, rather than
+#     the climatologies;
+#   * an UNCALIBRATED 2 m anchor predicted here from scratch;
+#   * the species-ladder bug (see rev_species_levels.R).
+# It now reads the same products rev_scaling_full_grid.R reads, so the two cannot
+# disagree. One producer per quantity.
+NEED <- c(inv="outputs/tables/inventory_stems.csv",
+          tree="outputs/tables/tree_flux_predictions.csv")
+if (any(!file.exists(NEED)))
+  stop("missing ", paste(NEED[!file.exists(NEED)], collapse=", "),
+       " -- run rev_inventory_build.R and rev_predict_tree_flux_current.R first")
+INV <- read.csv(NEED[["inv"]],  stringsAsFactors=FALSE)
+TRP <- read.csv(NEED[["tree"]], stringsAsFactors=FALSE)
+INV <- INV[INV$in_stand, ]; TRP <- TRP[TRP$in_stand, ]
+stopifnot(nrow(INV) == nrow(TRP))
+INV$dbh <- INV$dbh_m          # already unit-checked and typo-repaired upstream
+INV$sp  <- species_to_model_level(INV$species, trained)
 GY <- c("Pinus strobus","Tsuga canadensis")
 DA <- quantile(INV$dbh[INV$dbh>0.10],.95,na.rm=TRUE)
 # NO shrub cap: the published allometry is applied uniformly (see scaling_parameters.md)
@@ -69,16 +86,11 @@ BRSTEM <- 3.35     # midpoint of 2.7-4.0
 INV$A_bole   <- pi*INV$dbh*INV$H/2 * TAPER
 INV$A_branch <- INV$A_bole * BRSTEM
 
-# ---- RF flux at 2 m per tree (annual mean) ----------------------------------
-mm <- d %>% group_by(month) %>% summarise(m=mean(soil_moisture_at_tree,na.rm=TRUE),.groups="drop")
-sm <- soil_train_complete %>% group_by(month) %>% summarise(ms=mean(soil_moisture_at_site,na.rm=TRUE),.groups="drop")
-DR <- DR %>% left_join(mm,"month") %>% left_join(sm,"month") %>% mutate(m=ifelse(is.finite(m),m,ms))
-fl <- function(v,mo) approx(mo[is.finite(v)],v[is.finite(v)],xout=mo,rule=2)$y
-DR$m <- fl(DR$m,DR$month); DR$soil_temp_C_mean <- fl(DR$soil_temp_C_mean,DR$month)
-f2 <- rowMeans(sapply(1:12, function(mo) predict(TreeRF, data.frame(
-  species=factor(INV$sp,levels=trained), dbh_m=INV$dbh,
-  soil_moisture_at_tree=DR$m[mo], soil_temp_C_mean=DR$soil_temp_C_mean[mo],
-  air_temp_C_mean=DR$air_temp_C_mean[mo], height_cm=200), num.threads=1)$predictions))
+# ---- 2 m anchor per tree: READ the canonical calibrated value ----------------
+# This was re-predicted here from the campaign drivers with no per-species
+# calibration, so it disagreed with the anchor the budget and the grid use.
+f2 <- TRP$flux_2m_nmol_m2_s
+stopifnot(all(is.finite(f2)))
 
 # ---- vertical shapes --------------------------------------------------------
 BOLE <- list(

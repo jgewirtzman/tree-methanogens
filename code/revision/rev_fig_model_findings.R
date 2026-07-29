@@ -160,16 +160,27 @@ pb <- ggplot(PD, aes(x, y, colour = model)) +
 d <- tree_train_complete
 cal <- data.frame(sp = as.character(d$species_clean), o = d$stem_flux_corrected,
                   p = TreeRF$predictions) %>% filter(is.finite(o), is.finite(p)) %>%
-  group_by(sp) %>% mutate(r = pmax(pmin(ifelse(mean(p) > 0, mean(o)/mean(p), 1), 5), 0.2)) %>%
+  # NO CLAMP. This was pmax(pmin(ratio, 5), 0.2), but rev_predict_tree_flux_current.R
+  # removed the clamp, so the main-text panel was showing a calibration the stand
+  # budget does not use.
+  group_by(sp) %>% mutate(r = ifelse(mean(p) > 0, mean(o)/mean(p), 1)) %>%
   ungroup() %>% mutate(pc = p*r)
 slog <- function(x) sign(x)*log10(1 + abs(x)/0.01)
 r2 <- 1 - sum((cal$o - cal$pc)^2)/sum((cal$o - mean(cal$o))^2)
+# Grouped-CV skill alongside the OOB figure. OOB is not grouped by tree, and 1,130
+# rows come from 478 trees, so quoting OOB alone in a main-text panel overstates the
+# model by ~2x. rev_rf_grouped_cv.R writes this.
+R2G <- local({
+  f <- "outputs/revision/rf_grouped_cv.csv"
+  if (!file.exists(f)) return(NA_real_)
+  g <- read.csv(f, stringsAsFactors = FALSE); g$grouped_r2[g$model == "TreeRF"][1]
+})
 pc <- ggplot(cal, aes(slog(pc), slog(o))) +
   geom_abline(slope = 1, intercept = 0, colour = "grey55", linetype = "dashed") +
   geom_point(alpha = 0.3, size = 1.1, colour = FLUX_PURPLE) +
   labs(title = "c   predicted against observed",
-       subtitle = sprintf("out-of-bag, calibrated; %d measurements, R2 %.2f\nsigned log axes: flux spans 4 orders of\nmagnitude and includes uptake",
-                          nrow(cal), r2),
+       subtitle = sprintf("out-of-bag, calibrated; %d measurements from %d trees\nR2 %.2f out-of-bag, %.2f cross-validated by tree\nsigned log axes: flux spans 4 orders of\nmagnitude and includes uptake",
+                          nrow(cal), length(unique(tree_train_complete$tree_id)), r2, R2G),
        x = "predicted", y = "observed") +
   theme_bw(base_size = 9) +
   theme(panel.grid.minor = element_blank(),

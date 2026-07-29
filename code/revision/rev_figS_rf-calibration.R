@@ -18,7 +18,12 @@ e <- new.env(); load("outputs/models/TRAINING_DATA.RData", envir=e)
 th <- theme_bw(base_size=10)+theme(panel.grid.minor=element_blank(),
         plot.subtitle=element_text(size=8), plot.title=element_text(size=10.5))
 
-flux <- function(df,col="y_asinh") list(o=sinh(df[[col]])*1000, p=sinh(df$pred_asinh)*1000)
+# y_asinh / pred_asinh are MISNOMERS: both hold flux on the measured scale, in
+# nmol m-2 s-1 (02_rf_models.R -- the asinh transform was removed for both models).
+# This was sinh(x)*1000, i.e. a back-transform that no longer applies followed by a
+# umol->nmol conversion that no longer applies either, against an axis already
+# labelled nmol. It plotted the observed maximum as ~239,000 instead of 6.17.
+flux <- function(df,col="y_asinh") list(o=df[[col]], p=df$pred_asinh)
 
 # obs-vs-pred panel from a table of bin means (mp, mo, se); optional color aesthetic
 obsvpred <- function(d, title, sub, col, brks, colour_by=NULL, col_name=NULL, col_grad=NULL){

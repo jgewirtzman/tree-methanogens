@@ -26,6 +26,14 @@ run <- function(f, fatal = FALSE) {
   invisible(st)
 }
 
+# --- run marker ---------------------------------------------------------------
+# rev_00_assemble_figures.R compares every file it assembles against this marker's
+# timestamp, so a generator that failed cannot slip its previous output into the
+# manuscript set unnoticed. Written before anything else runs.
+dir.create("outputs/revision", showWarnings = FALSE, recursive = TRUE)
+writeLines(format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+           "outputs/revision/.pipeline_run_started")
+
 # --- 0) original-pipeline figures the assembler copies through ---------------
 # Two fail here by design (fig5, S12 methanome); both are replaced by revision
 # versions, so the assembler still finds them.
@@ -41,6 +49,7 @@ run("code/generate_all_figures.R")
 # prediction script. Both prediction scripts now read the same two climatologies
 # and the same moisture surface, so those have to be built before either runs.
 CORE <- c(
+  "code/revision/rev_rf_grouped_cv.R",             # -> rf_grouped_cv.csv (budget reads it)
   "code/revision/rev_inventory_build.R",           # raw -> inventory_stems.csv
   "code/revision/rev_wb_reference_et.R",           # -> water balance (climatology input)
   "code/revision/rev_moisture_climatology.R",      # -> moisture_climatology_monthly.csv
@@ -61,6 +70,16 @@ SUPPORT <- c(
   "code/revision/rev_qc_c0_screen.R",
   "code/revision/rev_mdf_FINAL_precision_and_detection.R",
   "code/revision/rev_surface_area_model.R",
+  # Promoted out of exploratory/ 2026-07-29. Figure 6 panel (b) reads
+  # outputs/revision/FAPROTAX_all_functions_HW_SW.csv, and this is its ONLY
+  # producer -- but it lived in exploratory/, which the glob below never reaches
+  # (non-recursive, by design). So rev_fig06_hydrogenotrophy.R aborted on every
+  # run since 2026-07-23, and because rev_00_assemble_figures.R tests only
+  # file.exists() and never mtime, the assembler copied a stale PNG and reported
+  # success. A load-bearing producer must not sit in a directory documented as
+  # not-run. It reads raw data only, so it has no ordering constraint beyond
+  # preceding the figure block.
+  "code/revision/rev_faprotax_dump_HW_SW.R",
   "code/revision/rev_wai_bottomup_and_rf_interactions.R",
   "code/revision/rev_area_distribution_scenarios.R",
   "code/revision/rev_height_form_crossvalidation.R",

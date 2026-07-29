@@ -48,8 +48,12 @@ pd <- bind_rows(lapply(species, function(sp) {
   xs <- X[rows, , drop = FALSE]
   bind_rows(lapply(grid_h, function(h) {
     xs$height_cm <- h
+    # TreeRF predicts on the MEASURED scale (nmol m-2 s-1); the asinh transform was
+    # removed. This was mean(sinh(...)), a leftover back-transform that inflated the
+    # RF curve while the LMM curve below is a genuine asinh fit -- so the panel's
+    # whole point, comparing the two, was comparing different scales.
     data.frame(species = sp, height_cm = h,
-               flux = mean(sinh(predict(TreeRF, xs)$predictions), na.rm = TRUE))
+               flux = mean(predict(TreeRF, xs)$predictions, na.rm = TRUE))
   }))
 }))
 

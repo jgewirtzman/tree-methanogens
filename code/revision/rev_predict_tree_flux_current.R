@@ -38,6 +38,7 @@
 suppressPackageStartupMessages({library(ranger); library(dplyr)})
 set.seed(42)
 source("code/revision/rev_geometry.R")
+source("code/revision/rev_species_levels.R")
 
 load("outputs/models/RF_MODELS.RData")
 load("outputs/models/TRAINING_DATA.RData")
@@ -57,14 +58,14 @@ H_LO <- 50; H_HI <- 200    # cm, the RF's training range in height
 
 INV <- INV %>%
   filter(is.finite(dbh_m), dbh_m > 0) %>%
-  mutate(sp = ifelse(!is.na(species) & species %in% trained, species, "SPECIES_OTHER")) %>%
+  mutate(sp = species_to_model_level(species, trained)) %>%
   as.data.frame()
 INV$band_m <- ifelse(INV$species %in% "Kalmia latifolia", KALMIA_BAND_M, STEM_BAND_M)
 INV$A_stem_m2 <- pi * INV$dbh_m * INV$band_m
 
-cat(sprintf("stems %d | in stand %d | located %d | trained species %d | SPECIES_OTHER %d\n",
-            nrow(INV), sum(INV$in_stand), sum(INV$located),
-            sum(INV$sp != "SPECIES_OTHER"), sum(INV$sp == "SPECIES_OTHER")))
+cat(sprintf("stems %d | in stand %d | located %d\n",
+            nrow(INV), sum(INV$in_stand), sum(INV$located)))
+report_species_levels(INV$species, INV$sp, trained)
 
 # --- moisture: PER STEM, from the same surface and climatology as the soil term -
 # This used to be one plot-mean scalar applied to all 8,006 stems, built from raw
@@ -219,6 +220,33 @@ cat(sprintf("  no clamp applied; ratio range %.3f - %.3f across %d levels\n",
 band_uncal <- band
 band    <- band    * INV$cal
 flux_2m <- flux_2m * INV$cal
+
+# --- export the CALIBRATED band profile for rev_scaling_full_grid.R -----------
+# The grid needs each stem's within-band profile (to fit the per-stem decay rate
+# for exp_band_slope, and to report the band shape) and its 2 m anchor. It used to
+# rebuild both by re-running the forest itself, and that re-derivation drifted:
+#   - it drove the model from DRIVERS$soil_moisture_at_tree and
+#     DRIVERS$soil_temp_C_mean, i.e. the campaign means this script replaces above
+#     (one plot-mean value per month, December substituted from the soil collars,
+#     January and March absent and filled by approx(rule = 2)), and
+#   - it applied NO per-species calibration.
+# So 74% of the headline scenario -- the extrapolated term, which hangs entirely
+# off that anchor -- sat on a different basis from the 26% that came from this
+# script's canonical band. A single reported total cannot have its two components
+# on different footings, so the profile is exported here and consumed there.
+PROF <- apply(F, c(1, 2), mean) * INV$cal        # n x K, annual mean, CALIBRATED
+stopifnot(nrow(PROF) == nrow(INV), ncol(PROF) == K)
+# 2 m anchor is the last interval of the profile, so the grid cannot disagree
+stopifnot(max(abs(PROF[, K] - flux_2m)) < 1e-12)
+PROFOUT <- cbind(
+  data.frame(source = INV$source, tag = INV$tag, in_stand = INV$in_stand),
+  setNames(as.data.frame(PROF), sprintf("f_i%d", seq_len(K))))
+write.csv(PROFOUT, "outputs/tables/tree_band_profile.csv", row.names = FALSE)
+write.csv(data.frame(k = seq_len(K), edge_lo_cm = head(edges, -1),
+                     edge_hi_cm = tail(edges, -1)),
+          "outputs/tables/tree_band_profile_edges.csv", row.names = FALSE)
+cat(sprintf("exported calibrated band profile: %d stems x %d intervals (edges %s)\n",
+            nrow(PROF), K, paste(edges, collapse = ", ")))
 
 # lon/lat alongside PX/PY, so map panels need no transform of their own
 ll <- geo_transforms()$fwd(INV$PX, INV$PY)
