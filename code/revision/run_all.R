@@ -62,6 +62,7 @@ SUPPORT <- c(
   "code/revision/rev_rf_species_fallback_loso.R",
   "code/revision/rev_rf_species_pooling.R",
   "code/revision/rev_rf_species_bias_audit.R",
+  "code/revision/rev_fig_model_findings.R",
   "code/revision/rev_model_family_comparison.R",
   "code/revision/rev_rf_height_extrapolation.R",
   "code/revision/rev_scaling_assumptions_audit.R")

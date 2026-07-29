@@ -146,22 +146,25 @@ flux_2m <- rowMeans(F[, K, ])
 # months. Calibrating on the predicted value instead -- linear or isotonic -- does
 # NOT work (sum ratio 1.11-1.13), because the shrinkage is structured by species
 # rather than by predicted magnitude. See rev_model_family_comparison.R.
-CAL_LO <- 0.2; CAL_HI <- 5      # guard: levels with 1-3 records can give wild ratios
+# NO CLAMP. An earlier version bounded the ratio to [0.2, 5] to guard against
+# levels with 1-3 records. It bound on exactly one level (GEN_Betula, n = 2, raw
+# ratio 0.181), so it changed almost nothing while introducing an arbitrary
+# parameter that would have had to be defended. The unclamped ratio is what the
+# cross-validation in rev_model_family_comparison.R actually evaluated.
 cal <- data.frame(sp = as.character(d$species_clean),
                   obs = d$stem_flux_corrected, oob = TreeRF$predictions) %>%
   filter(is.finite(obs), is.finite(oob)) %>%
   group_by(sp) %>%
   summarise(n = dplyr::n(), obs_mean = mean(obs), oob_mean = mean(oob),
-            ratio = ifelse(oob_mean > 0, obs_mean/oob_mean, 1), .groups = "drop") %>%
-  mutate(ratio_used = pmax(pmin(ratio, CAL_HI), CAL_LO))
-cmap <- setNames(cal$ratio_used, cal$sp)
+            ratio = ifelse(oob_mean > 0, obs_mean/oob_mean, 1), .groups = "drop")
+cmap <- setNames(cal$ratio, cal$sp)
 INV$cal <- as.numeric(ifelse(is.na(cmap[INV$sp]), 1, cmap[INV$sp]))
 cat("\nper-species calibration (observed / out-of-bag predicted):\n")
 print(as.data.frame(cal %>% arrange(ratio) %>%
       transmute(sp, n, obs_mean = round(obs_mean,4), oob_mean = round(oob_mean,4),
-                ratio = round(ratio,3), used = round(ratio_used,3))), row.names = FALSE)
-cat(sprintf("  clamped to [%.1f, %.1f]: %d level(s) affected\n",
-            CAL_LO, CAL_HI, sum(abs(cal$ratio - cal$ratio_used) > 1e-9)))
+                ratio = round(ratio,3))), row.names = FALSE)
+cat(sprintf("  no clamp applied; ratio range %.3f - %.3f across %d levels\n",
+            min(cal$ratio), max(cal$ratio), nrow(cal)))
 
 band_uncal <- band
 band    <- band    * INV$cal
