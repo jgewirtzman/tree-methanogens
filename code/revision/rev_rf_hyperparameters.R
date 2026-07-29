@@ -30,6 +30,25 @@
 #   mtry           2 .. 6      currently floor(sqrt(6)) = 2
 #   min.node.size  1,3,5,10,20 currently 5
 #
+# RESULT: tuning is not worth doing here, and the current setting is already the
+# right one for the criterion that matters.
+#
+#   mtry 2, node 10   R2 0.2358   ratio 0.967   best raw skill
+#   mtry 2, node  5   R2 0.2231   ratio 0.992   CURRENT -- least biased in aggregate
+#   mtry 6, node  1   R2 0.0468   ratio 0.880   worst
+#
+#   nested CV, untuned : R2 0.1997
+#   nested CV, tuned   : R2 0.1896   => tuning is worth -0.0101 R2
+#
+# Three things follow. (1) Once selection is paid for honestly, tuning costs a
+# little skill rather than buying any -- the grid differences are selection noise
+# on 1,009 measurements. (2) mtry is the live knob and LOW is better: mtry 6 loses
+# three quarters of the skill of mtry 2, because with `species` as a strong native
+# factor a low mtry acts as regularisation. (3) node 10 wins on R2 but is worse in
+# aggregate (ratio 0.967 against 0.992), which is the shrinkage trade this script
+# exists to expose: bigger nodes average harder, predict individual trees slightly
+# better, and bias the SUM further. Node 5 is the better choice for a budget.
+#
 # Output: outputs/revision/rf_hyperparameters.csv
 # ==============================================================================
 suppressMessages({library(dplyr); library(ranger)})
