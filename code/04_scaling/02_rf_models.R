@@ -833,15 +833,11 @@ cat("  Species×moisture:", nrow(species_moisture_full), "rows,", ncol(species_m
 # =============================================================================
 # TREE FEATURE MATRIX -- final specification (2026 revision)
 # -----------------------------------------------------------------------------
-# Seven predictors, chosen by testing each against a single random reference column
+# Six predictors, chosen by testing each against a single random reference column
 # over 20 fits (a predictor is kept only if its permutation importance beats pure
 # noise). Mean importance and the fraction of runs beating the random column:
 #
 #   dbh_m         0.0749  100%      absolute size -> drives stem area
-#   dbh_within_z  0.0675  100%      size relative to conspecifics; transfers across
-#                                   species better than raw cm (grouped R2 0.134 vs
-#                                   0.115 when used alone). Both are kept: r = 0.80,
-#                                   correlated but not redundant.
 #   species       0.0310  100%      as a NATIVE FACTOR -- ranger splits on levels
 #                                   directly, so no one-hot expansion is needed
 #   moisture      0.0193  100%
@@ -849,6 +845,26 @@ cat("  Species×moisture:", nrow(species_moisture_full), "rows,", ncol(species_m
 #   air_temp      0.0094   95%
 #   height_cm     0.0082   85%      measurement height (see below)
 #   month         0.0053   65%      marginal, and largely carried by the temperatures
+#
+# REMOVED, dbh_within_z: it passed the random-column test above, but it is unusable
+# for the purpose this model exists for. It is standardised WITHIN POPULATION, and
+# the fitting and application populations are not the same one. Measured trees are
+# much larger than inventory stems -- Pinus strobus averages 0.490 m among the 110
+# measured and 0.047 m across the 3,317 in the inventory; Betula lenta 0.302 m
+# against 0.061 m. Because each side is standardised against itself, the inventory
+# z-scores land INSIDE the training range (-3.06 to 12.8 against -4.68 to 5.69):
+# 0.0% of stems and 0.0% of band area fall outside it, so no extrapolation check
+# fires. A 1.9 cm pine sapling is handed z = -0.26, "a slightly below-average pine",
+# and the forest reads the size signal of a ~45 cm tree.
+#
+# The effect is a uniform inflation across every species, not a tail artifact:
+# predicted flux at 163 cm falls 20-35% per species when it is dropped (Tsuga
+# 0.0615 -> 0.0397, Pinus strobus 0.0715 -> 0.0419, Acer rubrum 0.1638 -> 0.1317),
+# and the stand band term falls ~29%. The per-species calibration does not absorb
+# this: that ratio is estimated on measured trees, where the z-scores are correct.
+#
+# Dropping it costs no skill -- 5x5-fold CV R2 0.2104 -> 0.2236 -- and removes the
+# r = 0.79 collinearity with dbh_m that made permutation importance unreadable.
 #
 # REJECTED: elevation (35% of runs), local basal area (0%), distance to river (0%).
 # These are static per-tree values and add nothing for stems; for soil they proved to
@@ -860,13 +876,16 @@ cat("  Species×moisture:", nrow(species_moisture_full), "rows,", ncol(species_m
 # is measured species), and the asinh transform (fit on raw nmol; unbiased with no
 # back-transformation correction needed).
 #
-# The 7-predictor model outperforms the 34-predictor engineered version it replaces:
-# OOB R2 0.296 vs 0.282, grouped-CV R2 0.122 vs 0.104.
+# IMPORTANCE IS READ AS PERMUTATION (incMSE), NOT IMPURITY. Impurity gain counts
+# variance reduction at splits and inflates continuous, high-cardinality predictors;
+# on these data the two metrics give opposite answers (impurity called the soil model
+# a temperature model at 88% soil temp, permutation calls it a moisture model at 44%).
+# The models are still FIT with importance = "impurity" for continuity with the
+# stored objects; rev_fig_model_findings.R refits with permutation to report it.
 # =============================================================================
 X_tree_species_first <- data.frame(
   species       = factor(tree_train_complete$species_clean),
   dbh_m         = tree_train_complete$dbh_m,
-  dbh_within_z  = tree_train_complete$dbh_within_z,
   soil_moisture_at_tree = tree_train_complete$soil_moisture_at_tree,
   soil_temp_C_mean = tree_train_complete$soil_temp_C_mean,
   air_temp_C_mean  = tree_train_complete$air_temp_C_mean,
@@ -1146,13 +1165,12 @@ for (t in 1:12) {
     )
   
   # Prediction features must match the trained specification exactly (2026 revision):
-  # species as a native factor, both DBH forms, the three environmental drivers, and
+  # species as a native factor, absolute DBH, the three environmental drivers, and
   # height fixed at the 0-2 m band mid-point.
   X_pred_tree <- data.frame(
     species       = factor(as.character(inv_predictions$species_clean),
                            levels = levels(tree_train_complete_species_levels)),
     dbh_m         = inv_predictions$dbh_m,
-    dbh_within_z  = inv_predictions$dbh_within_z,
     soil_moisture_at_tree = inv_predictions$soil_moisture_abs,
     soil_temp_C_mean = inv_predictions$soil_temp_C,
     air_temp_C_mean  = inv_predictions$air_temp_C,

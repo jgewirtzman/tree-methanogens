@@ -819,7 +819,7 @@ compute_pd <- function(model, data, var_name, n_points = 50) {
 pd_tree_air <- compute_pd(TreeRF, as.data.frame(X_tree), "air_temp_C_mean")
 pd_tree_soil_moist <- compute_pd(TreeRF, as.data.frame(X_tree), "soil_moisture_at_tree")
 pd_tree_soil_temp <- compute_pd(TreeRF, as.data.frame(X_tree), "soil_temp_C_mean")
-pd_tree_dbh <- compute_pd(TreeRF, as.data.frame(X_tree), "dbh_within_z")
+pd_tree_dbh <- compute_pd(TreeRF, as.data.frame(X_tree), "dbh_m")
 
 # Create plots
 p_tree_air <- ggplot(pd_tree_air, aes(x = x, y = y_mean)) +
