@@ -132,7 +132,11 @@ SUPPORT <- c(
   "code/revision/rev_fig_model_findings.R",
   "code/revision/rev_model_family_comparison.R",
   "code/revision/rev_rf_height_extrapolation.R",
-  "code/revision/rev_scaling_assumptions_audit.R")
+  "code/revision/rev_scaling_assumptions_audit.R",
+  # Referee-facing evidence produced in the 2026-07-30 pass. Both were written but
+  # never wired in, which is the same defect this file exists to prevent.
+  "code/revision/rev_rf_predictor_selection_current.R",  # -> rf_predictor_selection_current.csv
+  "code/revision/rev_rf_calibration_sensitivity.R")      # -> rf_calibration_sensitivity.csv
 SUPPORT <- SUPPORT[file.exists(SUPPORT)]
 cat(sprintf("\n== SUPPORTING ANALYSES (%d) ==\n", length(SUPPORT)))
 for (f in SUPPORT) run(f)
