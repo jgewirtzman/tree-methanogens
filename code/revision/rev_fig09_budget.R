@@ -122,10 +122,26 @@ tv <- tree_pts$flux_nmol_m2_s
 # (30% of stems sit within 1% of one value), so two of the five colour stops
 # landed 1% apart and the ramp jumped from pale to mid-red at the median. The map
 # read as uniformly hot when most stems sit at the low-middle of the range.
+# ASINH colour scaling (2026-07-30). UNITS ARE UNCHANGED -- the legend still reads
+# nmol m-2 s-1 and the breaks are round numbers in those units; only the mapping from
+# value to colour is transformed. The distribution is strongly right-skewed: median
+# 0.102 against a maximum of 0.758, so on a linear ramp the median sat at 13% of the
+# range, four fifths of the stems shared the palest two colours, and the spatial
+# structure in the bulk was invisible. asinh rather than log because it is well behaved
+# as the value approaches zero (stems run down to 0.018) and needs no offset, and it is
+# the transform already used for flux axes elsewhere in this figure set.
+asinh_col <- scales::trans_new(
+  "asinh_flux",
+  transform = function(x) asinh(x / 0.1),
+  inverse   = function(x) 0.1 * sinh(x))
+col_brks <- c(0.02, 0.05, 0.1, 0.2, 0.4, 0.8)
+col_brks <- col_brks[col_brks <= max(tv) * 1.05]
+
 pb <- ggplot(tree_pts %>% arrange(flux_nmol_m2_s), aes(PX, PY, color = flux_nmol_m2_s, size = dbh_m)) +
   geom_point(alpha = 0.9) +
-  scale_color_gradientn(colours = REDS, name = expression("Tree CH"[4]*"  (nmol m"^-2*" s"^-1*", per m"^2*" woody surface, 0-2 m band mean)"),
-                        limits = c(0, max(tv)),
+  scale_color_gradientn(colours = REDS, name = expression("Tree CH"[4]*"  (nmol m"^-2*" s"^-1*", per m"^2*" woody surface, 0-2 m band mean; asinh colour scale)"),
+                        limits = c(0, max(tv)), trans = asinh_col,
+                        breaks = col_brks, labels = col_brks,
                         guide = guide_colorbar(title.position = "top")) +
   scale_size_continuous(range = c(0.15, 1.9), guide = "none") +
   map_scales + labs(x = "metres", y = "metres") +
