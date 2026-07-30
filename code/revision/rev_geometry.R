@@ -123,6 +123,10 @@ square_ring_local <- function() {
 #' Geodetic parameters live in the workflow RData alongside the transform itself.
 #' Returns a list with `fwd(PX,PY)` and `inv(lat,lon)`, both vectorised.
 geo_transforms <- function(rdata = "data/processed/integrated/rf_workflow_input_data_with_2023.RData") {
+  # Callable from the repo root or from code/04_scaling/, whose scripts use ../../
+  if (!file.exists(rdata) && file.exists(file.path("../..", rdata)))
+    rdata <- file.path("../..", rdata)
+  if (!file.exists(rdata)) stop("geo_transforms(): cannot find ", rdata)
   e <- new.env(); load(rdata, envir = e); w <- e$rf_workflow_data
   lat0 <- w$ref_lat * pi/180; lon0 <- w$ref_lon * pi/180
   rot  <- w$rotation_angle;   er   <- w$earth_radius
@@ -200,6 +204,9 @@ stem_height_m <- function(dbh_m, species, canopy_h = CANOPY_H_M) {
 #' in_stand_only = TRUE gives the 8,006 stems the budget is defined over.
 canonical_inventory <- function(in_stand_only = TRUE,
                                 file = "outputs/tables/inventory_stems.csv") {
+  # Callable from the repo root or from code/04_scaling/, whose scripts use ../../
+  if (!file.exists(file) && file.exists(file.path("../..", file)))
+    file <- file.path("../..", file)
   if (!file.exists(file))
     stop("canonical_inventory(): missing ", file,
          " -- run: Rscript code/revision/rev_inventory_build.R")

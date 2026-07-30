@@ -484,6 +484,17 @@ cat("\nComputing partial dependence plots...\n")
 
 # Function to compute partial dependence
 compute_partial_dependence <- function(model, data, var_name, n_points = 50) {
+  # A partial-dependence curve needs an ORDERED axis. `species` is a factor and
+  # entered the top predictors once the model was respecified, so quantile() was being
+  # called on it and killed the whole script before its ggsave -- which is why
+  # figS15_rf_predictions.png (manuscript Figure S21) was stale by six days. Skip
+  # non-numeric predictors rather than erroring; a categorical PD belongs in a
+  # different panel type.
+  if (!is.numeric(data[[var_name]])) {
+    cat("Note: skipping partial dependence for non-numeric predictor '", var_name, "'\n", sep = "")
+    return(NULL)
+  }
+
   var_range <- quantile(data[[var_name]], probs = c(0.05, 0.95), na.rm = TRUE)
   var_seq <- seq(var_range[1], var_range[2], length.out = n_points)
   
@@ -629,6 +640,17 @@ compute_pd <- function(model, data, var_name, n_points = 50) {
     return(NULL)
   }
   
+  # A partial-dependence curve needs an ORDERED axis. `species` is a factor and
+  # entered the top predictors once the model was respecified, so quantile() was being
+  # called on it and killed the whole script before its ggsave -- which is why
+  # figS15_rf_predictions.png (manuscript Figure S21) was stale by six days. Skip
+  # non-numeric predictors rather than erroring; a categorical PD belongs in a
+  # different panel type.
+  if (!is.numeric(data[[var_name]])) {
+    cat("Note: skipping partial dependence for non-numeric predictor '", var_name, "'\n", sep = "")
+    return(NULL)
+  }
+
   var_range <- quantile(data[[var_name]], probs = c(0.05, 0.95), na.rm = TRUE)
   var_seq <- seq(var_range[1], var_range[2], length.out = n_points)
   
@@ -797,6 +819,17 @@ compute_pd <- function(model, data, var_name, n_points = 50) {
     return(NULL)
   }
   
+  # A partial-dependence curve needs an ORDERED axis. `species` is a factor and
+  # entered the top predictors once the model was respecified, so quantile() was being
+  # called on it and killed the whole script before its ggsave -- which is why
+  # figS15_rf_predictions.png (manuscript Figure S21) was stale by six days. Skip
+  # non-numeric predictors rather than erroring; a categorical PD belongs in a
+  # different panel type.
+  if (!is.numeric(data[[var_name]])) {
+    cat("Note: skipping partial dependence for non-numeric predictor '", var_name, "'\n", sep = "")
+    return(NULL)
+  }
+
   var_range <- quantile(data[[var_name]], probs = c(0.05, 0.95), na.rm = TRUE)
   var_seq <- seq(var_range[1], var_range[2], length.out = n_points)
   
