@@ -38,7 +38,9 @@ suppressPackageStartupMessages({library(ranger)})
 load("outputs/models/RF_MODELS.RData")
 load("outputs/models/TRAINING_DATA.RData")
 
-NREP <- 5; NFOLD <- 5
+# 30 repeats -- see rev_rf_grouped_cv.R. At NREP = 5 the between-variant ranking here
+# was dominated by fold noise; differences must be read against the SE, not ranked.
+NREP <- 30; NFOLD <- 5
 X0  <- as.data.frame(X_tree)
 y   <- tree_train_complete$y_asinh
 grp <- as.character(tree_train_complete$tree_id)
@@ -46,24 +48,33 @@ mo  <- tree_train_complete$month
 stopifnot(identical(colnames(X0), TreeRF$forest$independent.variable.names))
 
 # Candidate specifications. "base" is what is currently locked.
-VARIANTS <- list(
-  base                 = colnames(X0),
-  drop_air_temp        = setdiff(colnames(X0), "air_temp_C_mean"),
-  drop_soil_temp       = setdiff(colnames(X0), "soil_temp_C_mean"),
-  drop_both_temps      = setdiff(colnames(X0), c("air_temp_C_mean","soil_temp_C_mean")),
-  drop_height          = setdiff(colnames(X0), "height_cm"),
-  drop_dbh             = setdiff(colnames(X0), "dbh_m"),
-  drop_moisture        = setdiff(colnames(X0), "soil_moisture_at_tree"),
-  drop_species         = setdiff(colnames(X0), "species"),
-  add_month            = c(colnames(X0), "month"),
-  drop_air_add_month   = c(setdiff(colnames(X0), "air_temp_C_mean"), "month")
+# Variants are built by DROPPING from / ADDING to whatever the locked model actually
+# has. air_temp_C_mean was removed from the specification on 2026-07-30 (decision A),
+# so any variant defined as setdiff(X0, "air_temp_C_mean") is now a silent no-op --
+# it would duplicate `base` and be reported as a distinct comparison. Guard against
+# that by constructing readmissions explicitly and asserting every variant is unique.
+ADDABLE <- list(air_temp_C_mean = tree_train_complete$air_temp_C_mean,
+                month           = mo)
+VARIANTS <- c(
+  list(base = colnames(X0)),
+  setNames(lapply(colnames(X0), function(v) setdiff(colnames(X0), v)),
+           paste0("drop_", colnames(X0))),
+  setNames(lapply(names(ADDABLE), function(v) c(colnames(X0), v)),
+           paste0("add_", names(ADDABLE))),
+  list(add_both = c(colnames(X0), names(ADDABLE)))
 )
+if ("soil_temp_C_mean" %in% colnames(X0))
+  VARIANTS$drop_temp_add_air <- c(setdiff(colnames(X0), "soil_temp_C_mean"), "air_temp_C_mean")
+stopifnot(!any(duplicated(lapply(VARIANTS, sort))))
 
 score <- function(cols) {
   X <- X0
-  if ("month" %in% cols) X$month <- mo
+  for (v in names(ADDABLE)) if (v %in% cols && !v %in% names(X)) X[[v]] <- ADDABLE[[v]]
   X <- X[, cols, drop = FALSE]
-  mt <- max(1, floor(sqrt(ncol(X))))
+  stopifnot(all(sapply(X, function(z) !all(is.na(z)))))
+  # hyperparameters from the FITTED object, not retyped, so this cannot silently
+  # score a different configuration than the one that is locked
+  mt <- max(1, floor(sqrt(ncol(X)))); nt <- TreeRF$num.trees; nn <- TreeRF$min.node.size
   r2 <- ratio <- numeric(NREP)
   for (rep in seq_len(NREP)) {
     ut <- unique(grp); set.seed(2000 + rep)
@@ -71,8 +82,8 @@ score <- function(cols) {
     pr <- rep(NA_real_, nrow(X))
     for (k in seq_len(NFOLD)) {
       tr <- which(fold != k); te <- which(fold == k)
-      m <- ranger(x = X[tr, , drop = FALSE], y = y[tr], num.trees = 800,
-                  min.node.size = 5, mtry = mt, num.threads = 1, seed = 42)
+      m <- ranger(x = X[tr, , drop = FALSE], y = y[tr], num.trees = nt,
+                  min.node.size = nn, mtry = mt, num.threads = 1, seed = 42)
       pr[te] <- predict(m, X[te, , drop = FALSE])$predictions
     }
     ok <- is.finite(pr) & is.finite(y)
@@ -80,7 +91,7 @@ score <- function(cols) {
     ratio[rep] <- mean(pr[ok])/mean(y[ok])
   }
   # OOB on the full data, for comparison with what gets quoted
-  oob <- ranger(x = X, y = y, num.trees = 800, min.node.size = 5, mtry = mt,
+  oob <- ranger(x = X, y = y, num.trees = nt, min.node.size = nn, mtry = mt,
                 num.threads = 1, seed = 42)$r.squared
   data.frame(n_pred = ncol(X), oob_r2 = oob,
              grouped_r2 = mean(r2), grouped_r2_se = sd(r2)/sqrt(NREP),

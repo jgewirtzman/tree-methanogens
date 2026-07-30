@@ -214,11 +214,14 @@ for(col in names(features)) {
 # Predict (on asinh scale)
 pred_asinh <- predict(TreeRF, features_aligned)$predictions
 
-# Back-transform to get flux in μmol/m²/s
-pred_flux_umol <- sinh(pred_asinh)
-
-# Convert to nmol for display
-INVENTORY$flux_nmol_m2_s <- pred_flux_umol * 1000
+# No back-transform and no umol->nmol conversion: predictions are already on the
+# measured scale in nmol m-2 s-1 (the asinh transform was removed). Left as
+# sinh(x)*1000 this turned a 1.8 nmol prediction into ~2,942, i.e. ~1,600x high and
+# non-linearly distorted, and it drove the tree flux map plotted below. The copy
+# inside predict_tree_month() was fixed earlier in this branch; this top-level one
+# was missed.
+pred_flux_umol <- pred_asinh
+INVENTORY$flux_nmol_m2_s <- pred_flux_umol
 
 cat("  Predictions complete\n")
 cat("  Flux range (nmol/m²/s):", round(range(INVENTORY$flux_nmol_m2_s), 3), "\n")
@@ -496,7 +499,7 @@ predict_tree_month <- function(month_val, inventory_df, moisture_affine, drivers
         moisture_pct = inventory_df$soil_moisture_at_tree * 100
       )
     
-    cat(" done (mean:", round(mean(pred_flux * 1000), 3), "nmol)\n")
+    cat(" done (mean:", round(mean(pred_flux), 3), "nmol)\n")
     return(result)
     
   }, error = function(e) {

@@ -80,7 +80,12 @@ M <- data.frame(month = 1:12) %>%
   left_join(TRM, "month") %>% left_join(soil_monthly, "month") %>%
   mutate(tree_bh_nmol_m2_s = tree_bh_nmol_m2_s,
          tree_mg_m2_d = tree_nmol_m2_s*SEC_PER_DAY*NMOL_TO_MG,
-         soil_mg_m2_d = soil_nmol_m2_s*SEC_PER_DAY*NMOL_TO_MG,
+         # x soil fraction, exactly as the annual term below. Without it this series
+         # was per m2 of SOIL while tree_mg_m2_d was per m2 of GROUND, so plot_mg_m2_d
+         # summed two different bases -- the very mixing the annual fix removed. It is
+         # only 0.45%, but rev_fig09_budget.R plots this series in panel (c) under the
+         # label "Soil (per sq.m ground)", which was then untrue.
+         soil_mg_m2_d = soil_nmol_m2_s*SEC_PER_DAY*NMOL_TO_MG*(A_soil/STAND_AREA_M2),
          plot_mg_m2_d = tree_mg_m2_d + soil_mg_m2_d)
 stopifnot(all(is.finite(M$tree_nmol_m2_s)), all(is.finite(M$soil_nmol_m2_s)))
 write.csv(M, file.path(outdir, "canonical_monthly.csv"), row.names = FALSE)

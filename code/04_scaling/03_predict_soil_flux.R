@@ -168,7 +168,7 @@ predict_soil_month_extended <- function(month_val, grid_df, moisture_affine, dri
         uptake = pred_flux < 0
       )
     
-    cat(" done (mean:", round(mean(pred_flux * 1000), 3), "nmol)\n")
+    cat(" done (mean:", round(mean(pred_flux), 3), "nmol)\n")
     return(result)
     
   }, error = function(e) {

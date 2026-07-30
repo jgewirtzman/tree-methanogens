@@ -27,7 +27,12 @@ suppressPackageStartupMessages({library(ranger)})
 load("outputs/models/RF_MODELS.RData")
 load("outputs/models/TRAINING_DATA.RData")
 
-NREP <- 5; NFOLD <- 5
+# 30 repeats, not 5. With 478 trees and a handful of high-flux stems dominating
+# whichever fold receives them, the fold assignment is the largest source of variance:
+# over 30 independent seeds the grouped R2 ranges 0.043-0.156. A 5-repeat SD came out
+# at 0.0060 and understated the true spread (~0.025) by about four-fold, and this
+# number is quoted in canonical_budget.csv and on the main-text model panel.
+NREP <- 30; NFOLD <- 5
 r2 <- function(a, b) 1 - sum((a - b)^2) / sum((a - mean(a))^2)
 
 # Score one locked spec: OOB (as reported) vs grouped CV (honest), NREP x NFOLD.

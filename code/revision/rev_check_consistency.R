@@ -75,6 +75,23 @@ if (!is.null(SOA)) {
 }
 chk("net = tree + soil", near(v("tree_measured_mg_m2_yr") + v("soil_mg_m2_yr"), v("net_measured_mg_m2_yr"), 1e-9),
     sprintf("%.4f", v("net_measured_mg_m2_yr")))
+# The MONTHLY series must be on the same basis as the annual scalars. It was not: the
+# soil-fraction rescaling was applied to the annual term only, so canonical_monthly.csv
+# stayed per-m2-of-soil while the tree column beside it was per-m2-of-ground, and
+# rev_fig09_budget.R plots that series labelled "per sq.m ground". 0.45%, and invisible
+# to every other check here, which is why this one exists.
+MON <- rd("outputs/revision/canonical_monthly.csv")
+if (!is.null(MON)) {
+  DPM <- 365.25/12
+  chk("monthly soil sums to the annual soil term",
+      near(sum(MON$soil_mg_m2_d)*DPM, v("soil_mg_m2_yr"), 5e-3),
+      sprintf("%.4f vs %.4f", sum(MON$soil_mg_m2_d)*DPM, v("soil_mg_m2_yr")))
+  chk("monthly tree sums to the annual tree term",
+      near(sum(MON$tree_mg_m2_d)*DPM, v("tree_measured_mg_m2_yr"), 5e-3),
+      sprintf("%.4f vs %.4f", sum(MON$tree_mg_m2_d)*DPM, v("tree_measured_mg_m2_yr")))
+  chk("monthly plot = monthly tree + monthly soil (same basis)",
+      all(abs(MON$plot_mg_m2_d - (MON$tree_mg_m2_d + MON$soil_mg_m2_d)) < 1e-12))
+}
 chk("tree %% of soil consistent",
     near(v("tree_pct_of_soil"), 100*abs(v("tree_measured_mg_m2_yr"))/abs(v("soil_mg_m2_yr")), 1e-6),
     sprintf("%.4f%%", v("tree_pct_of_soil")))

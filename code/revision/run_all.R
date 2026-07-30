@@ -58,6 +58,11 @@ CORE <- c(
   "code/revision/rev_predict_tree_flux_current.R", # -> tree_flux_predictions.csv, tree_monthly_stand.csv
   "code/revision/rev_predict_soil_surface.R",      # -> soil_surface_{monthly,annual}.csv
   "code/revision/rev_budget_canonical.R",          # -> canonical_{budget,monthly}.csv
+  # MUST precede the grid: rev_scaling_full_grid.R now stop()s if wai_bottomup.csv is
+  # absent, and outputs/ is gitignored, so with this in SUPPORT (which runs AFTER the
+  # fatal CORE block) a clean checkout aborted at the last CORE step. That is the exact
+  # failure this file's header describes for the driver builders.
+  "code/revision/rev_wai_bottomup_and_rf_interactions.R",  # -> wai_bottomup.csv
   "code/revision/rev_scaling_full_grid.R")
 # fig_scaling_profiles / heatmap read the grid exports and run in the figure block         # -> scaling_full_grid.csv
 cat(sprintf("\n== CORE CHAIN (%d steps, dependency-ordered) ==\n", length(CORE)))
@@ -80,7 +85,6 @@ SUPPORT <- c(
   # not-run. It reads raw data only, so it has no ordering constraint beyond
   # preceding the figure block.
   "code/revision/rev_faprotax_dump_HW_SW.R",
-  "code/revision/rev_wai_bottomup_and_rf_interactions.R",
   "code/revision/rev_area_distribution_scenarios.R",
   "code/revision/rev_height_form_crossvalidation.R",
   "code/revision/rev_rf_model_diagnostics.R",
