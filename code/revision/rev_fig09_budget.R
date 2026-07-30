@@ -113,7 +113,7 @@ pa <- ggplot(soil_map, aes(PX, PY, fill = mean_flux_nmol)) +
   map_scales + labs(x = "metres", y = "metres") +
   geom_path(data = STAND, aes(PX, PY), inherit.aes = FALSE,
             colour = "grey25", linewidth = 0.45) +
-  coord_equal(xlim = c(-6, 206), ylim = c(-6, 224), expand = FALSE) + th_map
+  coord_equal(xlim = c(-6, 206), ylim = c(-6, 206), expand = FALSE) + th_map
 
 # ---- (b) tree map (source = red; per m2 WOODY SURFACE; quantile-spread color) -
 tv <- tree_pts$flux_nmol_m2_s
@@ -152,7 +152,7 @@ pb <- ggplot(tree_pts %>% arrange(flux_nmol_m2_s), aes(PX, PY, color = flux_nmol
   map_scales + labs(x = "metres", y = "metres") +
   geom_path(data = STAND, aes(PX, PY), inherit.aes = FALSE,
             colour = "grey25", linewidth = 0.45) +
-  coord_equal(xlim = c(-6, 206), ylim = c(-6, 224), expand = FALSE) + th_map
+  coord_equal(xlim = c(-6, 206), ylim = c(-6, 206), expand = FALSE) + th_map
 
 # ---- north arrow, rotated by the plot's own rotation ------------------------
 # The axes are metres, so no scale bar is needed. The plot is rotated from north,
@@ -164,8 +164,11 @@ pb <- ggplot(tree_pts %>% arrange(flux_nmol_m2_s), aes(PX, PY, color = flux_nmol
 # PY 0-60), which carries no stems and no soil cells -- genuinely empty space rather
 # than somewhere the marker has to compete with data.
 #
+# The panels used to reserve headroom to ylim 224 purely for a top-right arrow; with
+# the marker moved into the staircase that band was empty, so the maps are now square
+# at ylim 206 and the stand fills the panel.
 # It previously sat at (186, 214) with the "N" at 1.5x the needle length above the
-# tip, i.e. y ~ 230, while coord_equal clips at ylim 224 -- so the letter was drawn
+# tip, i.e. y ~ 230, while coord_equal clipped at ylim 224 -- so the letter was drawn
 # outside the panel and silently cropped. That is why the arrow had no N.
 #
 # Style: a conventional shaft-and-head arrow rather than the half-filled compass
