@@ -134,8 +134,13 @@ asinh_col <- scales::trans_new(
   "asinh_flux",
   transform = function(x) asinh(x / 0.1),
   inverse   = function(x) 0.1 * sinh(x))
-col_brks <- c(0.02, 0.05, 0.1, 0.2, 0.4, 0.8)
-col_brks <- col_brks[col_brks <= max(tv) * 1.05]
+# Breaks chosen for even spacing ON THE TRANSFORMED scale, anchored at zero. On
+# asinh(x/0.1) these sit at 0, 0.48, 0.88, 1.44, 2.10 and 2.71, i.e. gaps of
+# 0.48/0.40/0.56/0.65/0.62 -- near-uniform. The old 0.02 stop crowded the bottom of the
+# bar (0.20 on the transformed scale, a third of the way to the next tick) and told the
+# reader nothing the zero anchor does not.
+col_brks <- c(0, 0.05, 0.1, 0.2, 0.4, 0.75)
+col_brks <- col_brks[col_brks <= max(tv) * 1.02]
 
 pb <- ggplot(tree_pts %>% arrange(flux_nmol_m2_s), aes(PX, PY, color = flux_nmol_m2_s, size = dbh_m)) +
   geom_point(alpha = 0.9) +
