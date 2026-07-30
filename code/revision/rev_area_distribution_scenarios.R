@@ -76,10 +76,11 @@ stopifnot(nrow(INV) == nrow(TRP))
 INV$dbh <- INV$dbh_m          # already unit-checked and typo-repaired upstream
 INV$sp  <- species_to_model_level(INV$species, trained)
 GY <- c("Pinus strobus","Tsuga canadensis")
-DA <- quantile(INV$dbh[INV$dbh>0.10],.95,na.rm=TRUE)
+# One allometry, from rev_geometry.R. This was a copy-pasted duplicate that retyped
+# the canopy anchor and both exponents and recomputed the 95th-percentile DBH
+# locally, so changing CANOPY_H_M or the exponents would have moved none of them.
 # NO shrub cap: the published allometry is applied uniformly (see scaling_parameters.md)
-INV$H <- 1.37 + ifelse(INV$species %in% GY,(25-1.37)/DA^0.60,(25-1.37)/DA^0.53) *
-         INV$dbh^ifelse(INV$species %in% GY,0.60,0.53)
+INV$H <- stem_height_m(INV$dbh, INV$species)
 
 TAPER <- 1.275     # midpoint of W&W 1.20-1.35
 BRSTEM <- 3.35     # midpoint of 2.7-4.0

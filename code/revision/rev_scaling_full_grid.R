@@ -6,15 +6,19 @@
 #
 # Every unconstrained assumption, crossed:
 #
-#   WAI (total woody area)   3 sourced values
+#   WAI (total woody area)   5 levels: 2 literature bounds + a bottom-up low/mid/high
 #       1.50   Whittaker & Woodwell 1967, Brookhaven oak-pine (open, mixed conifer)
-#       2.11   bottom-up from THIS inventory + W&W relations (taper 1.275, br:stem 3.35);
-#              the full bottom-up range is 1.69-2.57
 #       3.07   Gauci et al. 2024, temperate forest -- the value used in the submitted ms
+#       2.23 / 2.82 / 3.40  bottom-up from THIS inventory + W&W relations (taper
+#              1.20-1.35, branch:stem 2.7-4.0). READ from wai_bottomup.csv, never typed
+#              here. The trio was 1.69/2.11/2.57 until 2026-07-29, computed on the
+#              pre-rebuild 7,010-stem inventory over the nominal 40,000 m2 square; both
+#              errors pushed it down ~32%. Note Gauci's 3.07 now sits INSIDE our own
+#              range rather than above it, which changes what the 'high bound' means.
 #
-#   BOLE SHAPE               3   cylinder / cone / paraboloid   (W&W: true stems lie
-#                                between the conic and parabolic forms)
-#   BRANCH SHAPE             4   uniform_all / uniform_top50 / uniform_crown / gaussian_75
+#   BOLE SHAPE               2   cone / paraboloid   (W&W: true stems lie between the
+#                                conic and parabolic forms; cylinder was dropped)
+#   BRANCH SHAPE             4   uniform_all / uniform_top50 / gaussian_50 / gaussian_75
 #   FLUX ABOVE 2 m           6   Each has a stated mechanism and is identifiable from
 #                                three heights. One constraint is imposed: no stem may
 #                                increase substantially with height (no mechanism, no
@@ -50,8 +54,9 @@
 #   EXTRAPOLATED  woody area at z > 2 m, flux = each tree's RF value at 2 m times the
 #               chosen form's shape ratio. NOTHING here is measured at this site.
 #
-# The extrapolated fraction is the honest headline uncertainty: it is typically ~85-90%
-# of the whole-surface number.
+# The extrapolated fraction is the honest headline uncertainty. Across the current grid
+# its median is 78.5% and it spans 10.6-94.9% (it exceeds 100% for the uptake form,
+# where the extrapolated part is negative and the total is below the measured band).
 #
 # Output: outputs/revision/scaling_full_grid.csv
 #         outputs/revision/fig_scaling_full_grid.png
@@ -97,9 +102,10 @@ INV <- INV %>% group_by(species) %>%
   ungroup() %>% as.data.frame()
 INV$sp <- species_to_model_level(INV$species, trained)
 GY <- c("Pinus strobus","Tsuga canadensis")
-DA <- quantile(INV$dbh[INV$dbh>0.10],.95,na.rm=TRUE)
-INV$H <- 1.37 + ifelse(INV$species %in% GY,(25-1.37)/DA^0.60,(25-1.37)/DA^0.53) *
-         INV$dbh^ifelse(INV$species %in% GY,0.60,0.53)     # no shrub cap, by decision
+# One allometry, from rev_geometry.R. This was a copy-pasted duplicate that retyped
+# the canopy anchor and both exponents and recomputed the 95th-percentile DBH
+# locally, so changing CANOPY_H_M or the exponents would have moved none of them.
+INV$H <- stem_height_m(INV$dbh, INV$species)   # no shrub cap, by decision
 n <- nrow(INV)
 
 # --- per-tree band profile: READ, not re-derived ------------------------------

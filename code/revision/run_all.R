@@ -107,6 +107,7 @@ source("code/revision/rev_00_assemble_figures.R")
 
 # --- 5) report anything never reached ----------------------------------------
 SOURCED <- c("code/revision/rev_geometry.R",        # sourced by others, not run alone
+             "code/revision/rev_species_levels.R",  # ditto -- the species->level mapping
              "code/revision/rev_prep_species_data.R")
 allR  <- list.files("code/revision", "\\.R$", full.names = TRUE)
 never <- setdiff(allR, c(CORE, SUPPORT, rest, SOURCED,

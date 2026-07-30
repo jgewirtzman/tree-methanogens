@@ -54,9 +54,17 @@ BAND <- 2; CONV <- 86400*365.25*16e-6
 # not by hue, so an arbitrary two-colour scheme just invited a reader to look for
 # a meaning that was not there.
 FLUX_PURPLE <- "#756BB1"; FLUX_PALE <- "#f2eff7"
-H_TREE <- 25      # closed-canopy height at this site
-D_TREE <- 0.556   # 95th-percentile DBH, the stem the height anchor is fitted to
-REP_WAI <- grep("2.11", unique(AR$WAI), value = TRUE)[1]
+H_TREE <- CANOPY_H_M   # closed-canopy height; defined once in rev_geometry.R
+# 95th-percentile DBH, the stem the height anchor is fitted to. Was hardcoded 0.556;
+# derived here so it cannot drift from the inventory the anchor is actually fitted on.
+D_TREE <- as.numeric(local({ i <- canonical_inventory(); quantile(i$dbh_m[i$dbh_m > 0.10], .95, na.rm = TRUE) }))
+# Select the representative WAI by MEANING, not by digits. This was
+# grep("2.11", ...), which is the same digit-matching failure that
+# rev_scaling_full_grid.R:339 documents as fixed on the PRODUCER side -- but this
+# CONSUMER was not updated, so once the bottom-up estimate was corrected to 2.82 the
+# grep returned NA, panel (d) filtered to zero rows and the subtitle printed "NA".
+REP_WAI <- grep("bottom-up, this stand", unique(AR$WAI), value = TRUE)[1]
+stopifnot(length(REP_WAI) == 1, !is.na(REP_WAI))
 REP_BRANCH <- "gaussian_75"; REP_BOLE <- "cone"; REP_FLUX <- "exp_band_slope"
 
 COLF <- setNames(c("#b2182b","#d6604d","#f4a582","#92c5de","#4393c3","#2166ac"), FO)
@@ -144,7 +152,7 @@ pb <- ggplot(TREE, aes(area_per_m, z, fill = part)) +
   facet_grid(bole ~ branch) +
   scale_y_continuous(limits = c(0, 26), expand = c(0, 0)) +
   scale_x_continuous(expand = c(0, 0), breaks = c(0, 1, 2)) +
-  labs(title = sprintf("b   one %d m canopy tree: bole and branch area, stacked", H_TREE),
+  labs(title = sprintf("b   one %g m canopy tree: bole and branch area, stacked", H_TREE),
        subtitle = "rows = bole shape, columns = branch placement; the two rows are near-identical",
        x = expression("woody area (m"^2*" per m of height)"), y = "height (m)") +
   th + theme(legend.position = "bottom", strip.text = element_text(size = 6.4),
@@ -257,7 +265,7 @@ fig <- (pa | pc1 | pc2) / (pb | pd) + plot_layout(widths = c(1.45, 1, 1)) +
 ggsave(file.path(outdir, "fig_scaling_profiles.png"), fig,
        width = 16.5, height = 15, dpi = 200, bg = "white")
 
-cat(sprintf("one tree: H %d m, DBH %.3f m, conic stem surface %.1f m2\n", H_TREE, D_TREE, CONIC))
+cat(sprintf("one tree: H %g m, DBH %.3f m, conic stem surface %.1f m2\n", H_TREE, D_TREE, CONIC))
 cat(sprintf("  area split bole %.2f : branch %.2f (W&W branch:stem 3.35)\n", 1/4.35, 3.35/4.35))
 cat(sprintf("measured band, pooled: %.2fx the 2 m value at the stem base\n", BPag$ratio[1]))
 cat("  per species at the base:\n")
