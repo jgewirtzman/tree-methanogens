@@ -144,7 +144,7 @@ col_brks <- col_brks[col_brks <= max(tv) * 1.02]
 
 pb <- ggplot(tree_pts %>% arrange(flux_nmol_m2_s), aes(PX, PY, color = flux_nmol_m2_s, size = dbh_m)) +
   geom_point(alpha = 0.9) +
-  scale_color_gradientn(colours = REDS, name = expression("Tree CH"[4]*"  (nmol m"^-2*" s"^-1*", per m"^2*" woody surface, 0-2 m band mean; asinh colour scale)"),
+  scale_color_gradientn(colours = REDS, name = expression("Tree CH"[4]*"  (nmol m"^-2*" s"^-1*", per m"^2*" woody surface, 0-2 m band mean)"),
                         limits = c(0, max(tv)), trans = asinh_col,
                         breaks = col_brks, labels = col_brks,
                         guide = guide_colorbar(title.position = "top")) +
