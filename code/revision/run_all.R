@@ -105,6 +105,11 @@ rest <- setdiff(rest, c(CORE, SUPPORT))
 cat(sprintf("\n== STATS, TABLES AND FIGURES (%d) ==\n", length(rest)))
 for (f in rest) run(f)
 
+# --- 3b) regenerate the parameter record from the canonical outputs ----------
+# scaling_parameters.md section 0 claims "nothing here is typed by hand". This is what
+# makes that true; without it the claim drifted through four rounds of changes.
+run("code/revision/rev_write_parameter_record.R")
+
 # --- 4) assemble -------------------------------------------------------------
 cat("\n>>> assembling numbered manuscript figures\n")
 source("code/revision/rev_00_assemble_figures.R")
