@@ -43,8 +43,8 @@ set.seed(42)
 load("outputs/models/TRAINING_DATA.RData")
 
 # Use the model's OWN feature matrix rather than rebuilding it: X_tree already
-# carries the locked 7-predictor set, including the imputation of missing
-# measurement height to 125 cm (813 of 1104 rows, i.e. 61% of training data is at
+# carries the locked 6-predictor set, including the imputation of missing
+# measurement height to 125 cm (839 of 1130 rows, i.e. 74% of training data is at
 # an assumed breast height -- worth knowing, but not this script's business).
 X0 <- as.data.frame(X_tree)
 PREDS <- setdiff(names(X0), "species")

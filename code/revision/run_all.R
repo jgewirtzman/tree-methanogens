@@ -15,10 +15,22 @@
 # whatever is still never reached is reported at the end.
 # Exploratory scripts (code/revision/exploratory/) are NOT run.
 # ==============================================================================
+LOGDIR <- "outputs/revision/logs"
+dir.create(LOGDIR, showWarnings = FALSE, recursive = TRUE)
+
+# Every script's console output is captured to outputs/revision/logs/<name>.txt.
+# Nine scripts used to DECLARE a .txt output in their headers that nothing ever wrote:
+# they only cat() to the console, and system2(stdout = "") let it fall through to the
+# terminal. The .txt files on disk had been produced by hand-redirection on one day in
+# July and could never be refreshed, so four referee-facing audits were frozen against
+# a superseded model while appearing to be pipeline products. Capturing centrally fixes
+# the whole class at once and gives every step a transcript.
 run <- function(f, fatal = FALSE) {
   cat("\n>>>", basename(f), "\n")
-  st <- tryCatch(system2("Rscript", f, stdout = "", stderr = ""),
+  logf <- file.path(LOGDIR, sub("\\.R$", ".txt", basename(f)))
+  st <- tryCatch(system2("Rscript", f, stdout = logf, stderr = logf),
                  warning = function(w) 1L, error = function(e) 1L)
+  if (file.exists(logf)) cat(readLines(logf, warn = FALSE), sep = "\n")
   if (!identical(st, 0L)) {
     cat("   [non-zero exit]\n")
     if (fatal) stop("required step failed: ", basename(f), call. = FALSE)
@@ -33,6 +45,26 @@ run <- function(f, fatal = FALSE) {
 dir.create("outputs/revision", showWarnings = FALSE, recursive = TRUE)
 writeLines(format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
            "outputs/revision/.pipeline_run_started")
+
+# --- model prerequisite -------------------------------------------------------
+# This pipeline SCORES and CONSUMES the locked forests; it does not fit them. The only
+# producer of RF_MODELS.RData / TRAINING_DATA.RData is code/04_scaling/02_rf_models.R,
+# which is deliberately not run here because it retrains (~10 min) and the model is
+# frozen. Five fatal CORE steps load those files, so on a clean checkout the run would
+# otherwise die deep in the chain with an opaque error. Fail early and say why.
+local({
+  need <- c("outputs/models/RF_MODELS.RData", "outputs/models/TRAINING_DATA.RData")
+  miss <- need[!file.exists(need)]
+  if (length(miss))
+    stop("missing locked model file(s):\n  ", paste(miss, collapse = "\n  "),
+         "\n\nBuild them first (from code/04_scaling/):\n",
+         "  Rscript 01_load_and_prep_data.R && Rscript 02_rf_models.R\n",
+         call. = FALSE)
+  src <- "code/04_scaling/02_rf_models.R"
+  if (file.exists(src) && file.mtime(src) > min(file.mtime(need)))
+    cat("[note] 02_rf_models.R is NEWER than the locked model files;",
+        "the model may need rebuilding.\n")
+})
 
 # --- 0) original-pipeline figures the assembler copies through ---------------
 # Two fail here by design (fig5, S12 methanome); both are replaced by revision
@@ -70,6 +102,12 @@ for (f in CORE) run(f, fatal = TRUE)
 
 # --- 2) supporting analyses (produce CSV/TXT that figures and prose cite) ----
 SUPPORT <- c(
+  # Produces data/processed/environmental/soil_env_by_collar.csv, which
+  # code/04_scaling/01_load_and_prep_data.R reads to give each soil collar and each
+  # monthly tree its OWN measured temperature and moisture rather than a plot-level
+  # constant. It was never in this pipeline, so that dependency was real but unwired
+  # and the CSV survived only from a manual run on 2026-07-25.
+  "code/revision/rev_compile_soil_env.R",
   "code/revision/rev_moisture_elevation_check.R",
   "code/revision/rev_moisture_interpolation.R",
   "code/revision/rev_qc_c0_screen.R",

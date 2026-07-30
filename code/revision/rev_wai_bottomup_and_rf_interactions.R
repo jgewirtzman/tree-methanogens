@@ -135,13 +135,26 @@ cat(sprintf("
     bottom-up, this inventory + W&W relations      %.2f - %.2f
     W&W published, climax temperate deciduous      2.00 - 2.20
     W&W published, Brookhaven oak-pine (open)      ~1.50
-    Gauci et al. 2024, temperate forest            3.07   <- currently used
+    Gauci et al. 2024, temperate forest            3.07
   ---------------------------------------------------------------------------
-  Our bottom-up estimate brackets the W&W published temperate-deciduous value. The
-  Gauci value sits at or above the top of that range, so the budget as currently
-  written uses the HIGH end of the plausible WAI range. Presenting 1.5 / 2.0-2.2 /
-  3.07 as a WAI sensitivity is well supported and would widen the reported band by
-  roughly a factor of two at the low end.
+  READ THIS BEFORE QUOTING THE COMPARISON. Both statements that used to stand here
+  are now false, because the bottom-up trio was recomputed on the canonical inventory
+  (8,006 stems over the 37,200 m2 censused stand, not 7,010 over the nominal 40,000)
+  and rose about 32%%:
+
+    * that our bottom-up estimate brackets the W&W published temperate-deciduous
+      value (2.00-2.20) -- it no longer brackets it, the range now sits ENTIRELY
+      ABOVE it;
+    * that the Gauci value sits at or above the top of that range, so the budget uses
+      the HIGH end -- 3.07 now sits INSIDE our own range, between the mid and the
+      high. It is no longer an upper bound and the budget is not using the high end.
+
+  Note also that agreement with W&W's published value was never independent evidence:
+  our estimate is built FROM their taper correction and branch:stem ratios, so any
+  resemblance corroborates the arithmetic, not the value (scaling_parameters.md 4).
+  The stand is 65%% conifer by basal area while those ratios come from deciduous and
+  pitch-pine stands, which is the standing limitation. See decision E in
+  manuscript/OPEN_DECISIONS.md.
 ", wai_lo, wai_hi))
 
 # ==============================================================================

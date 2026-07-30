@@ -198,8 +198,9 @@ flux_2m <- rowMeans(F[, K, ])
 # NOT work (sum ratio 1.11-1.13), because the shrinkage is structured by species
 # rather than by predicted magnitude. See rev_model_family_comparison.R.
 # NO CLAMP. An earlier version bounded the ratio to [0.2, 5] to guard against
-# levels with 1-3 records. It bound on exactly one level (GEN_Betula, n = 2, raw
-# ratio 0.181), so it changed almost nothing while introducing an arbitrary
+# levels with 1-3 records. On the current model it binds on NO level at all -- every
+# ratio falls inside [0.2, 5], so rev_rf_calibration_sensitivity.R measures the clamped
+# variant as changing the stand total by exactly 0.00%. It introduced an arbitrary
 # parameter that would have had to be defended. The unclamped ratio is what the
 # cross-validation in rev_model_family_comparison.R actually evaluated.
 cal <- data.frame(sp = as.character(d$species_clean),

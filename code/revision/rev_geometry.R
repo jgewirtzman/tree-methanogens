@@ -179,8 +179,12 @@ local({
 # scale coefficient is anchored on the 95th percentile of the inventory's own
 # diameters, so it silently differed by which stem list the script happened to load.
 #
-# Both now live here. `PLACEHOLDER_INVENTORY` and `PLACEHOLDER_PLOT_AREA` must not
-# be read by anything again; prefer canonical_inventory() and STAND_AREA_M2.
+# Both now live here. Prefer canonical_inventory() and STAND_AREA_M2 over
+# `PLACEHOLDER_INVENTORY` / `PLACEHOLDER_PLOT_AREA`. Every script run_all.R reaches has
+# been migrated; four unreached model-selection scripts still read the placeholder
+# (rev_rf_model_selection.R, rev_rf_predictor_selection.R,
+# rev_rf_predictor_significance.R, rev_mdf_11_ambient_map.R) and are superseded by
+# rev_rf_predictor_selection_current.R.
 # ==============================================================================
 
 # Hulshof et al. 2015 Ecol Evol 5:1193-1204 exponents; site-specific scale.
