@@ -1,3 +1,6 @@
+# UNITS (2026-07-30): every *_umol_m2_s column here holds nmol m-2 s-1 -- the name is
+# a documented misnomer (02_rf_models.R). The asinh transform was removed, so both
+# sinh() back-transforms and umol->nmol x1000 conversions are stale and are gone.
 # ==============================================================================
 # Compare Outlier Removal Strategies
 # ==============================================================================
@@ -24,26 +27,26 @@ load("../../data/processed/integrated/rf_workflow_input_data_with_2023.RData")
 
 # Extract and prepare base datasets with unit conversion
 TREE_JULY_BASE <- rf_workflow_data$PLACEHOLDER_TREE_JULY %>%
-  mutate(stem_flux_umol_m2_s = stem_flux_umol_m2_s / 1000)  # Convert nmol to μmol
+  mutate(stem_flux_umol_m2_s = stem_flux_umol_m2_s )
 
 TREE_YEAR_BASE <- rf_workflow_data$PLACEHOLDER_TREE_YEAR %>%
-  mutate(stem_flux_umol_m2_s = stem_flux_umol_m2_s / 1000)
+  mutate(stem_flux_umol_m2_s = stem_flux_umol_m2_s )
 
 SOIL_YEAR_BASE <- rf_workflow_data$PLACEHOLDER_SOIL_YEAR %>%
-  mutate(soil_flux_umol_m2_s = soil_flux_umol_m2_s / 1000)
+  mutate(soil_flux_umol_m2_s = soil_flux_umol_m2_s )
 
 # MAD-based outlier removal function
 remove_outliers_mad <- function(x, k = 8) {
   med <- median(x, na.rm = TRUE)
   mad_val <- mad(x, na.rm = TRUE)
-  
+
   if(mad_val == 0 || is.na(mad_val)) {
     q1 <- quantile(x, 0.25, na.rm = TRUE)
     q3 <- quantile(x, 0.75, na.rm = TRUE)
     iqr <- q3 - q1
-    
+
     if(iqr == 0) return(!is.na(x))
-    
+
     lower <- q1 - 3 * iqr
     upper <- q3 + 3 * iqr
     return(x >= lower & x <= upper)
@@ -59,58 +62,58 @@ remove_outliers_mad <- function(x, k = 8) {
 # -----------------------------------------------------------------------------
 
 process_with_outlier_method <- function(method = c("none", "percentile", "mad")) {
-  
+
   cat("Processing with method:", method, "\n")
-  
+
   # Combine tree data
   tree_combined <- bind_rows(
     TREE_JULY_BASE %>% mutate(chamber_type = "rigid"),
     TREE_YEAR_BASE %>% mutate(chamber_type = coalesce(chamber_type, "semirigid"))
   ) %>%
     filter(!is.na(stem_flux_umol_m2_s))
-  
+
   # Transform to asinh scale
   tree_combined$z <- asinh(tree_combined$stem_flux_umol_m2_s)
-  
+
   # Apply outlier removal based on method
   if(method == "percentile") {
     # Remove top and bottom 1%
     tree_percentiles <- quantile(tree_combined$z, probs = c(0.01, 0.99), na.rm = TRUE)
-    outlier_mask_tree <- tree_combined$z >= tree_percentiles[1] & 
+    outlier_mask_tree <- tree_combined$z >= tree_percentiles[1] &
       tree_combined$z <= tree_percentiles[2]
     tree_combined <- tree_combined[outlier_mask_tree, ]
-    
+
     # Same for soil
     SOIL_YEAR <- SOIL_YEAR_BASE
     SOIL_YEAR$z_soil <- asinh(SOIL_YEAR$soil_flux_umol_m2_s)
     soil_percentiles <- quantile(SOIL_YEAR$z_soil, probs = c(0.01, 0.99), na.rm = TRUE)
-    outlier_mask_soil <- SOIL_YEAR$z_soil >= soil_percentiles[1] & 
+    outlier_mask_soil <- SOIL_YEAR$z_soil >= soil_percentiles[1] &
       SOIL_YEAR$z_soil <= soil_percentiles[2]
     SOIL_YEAR <- SOIL_YEAR[outlier_mask_soil, ]
-    
+
   } else if(method == "mad") {
     # MAD-based removal
     outlier_mask_tree <- remove_outliers_mad(tree_combined$z, k = 8)
     tree_combined <- tree_combined[outlier_mask_tree, ]
-    
+
     SOIL_YEAR <- SOIL_YEAR_BASE
     SOIL_YEAR$z_soil <- asinh(SOIL_YEAR$soil_flux_umol_m2_s)
     outlier_mask_soil <- remove_outliers_mad(SOIL_YEAR$z_soil, k = 8)
     SOIL_YEAR <- SOIL_YEAR[outlier_mask_soil, ]
-    
+
   } else {
     # No outlier removal
     SOIL_YEAR <- SOIL_YEAR_BASE
   }
-  
+
   # Clean up temporary columns
   if("z_soil" %in% names(SOIL_YEAR)) {
     SOIL_YEAR$z_soil <- NULL
   }
-  
+
   n_tree <- nrow(tree_combined)
   n_soil <- nrow(SOIL_YEAR)
-  
+
   # Return processed datasets
   return(list(
     tree_data = tree_combined,
@@ -126,10 +129,10 @@ process_with_outlier_method <- function(method = c("none", "percentile", "mad"))
 # -----------------------------------------------------------------------------
 
 train_and_predict_monthly <- function(processed_data) {
-  
+
   tree_data <- processed_data$tree_data
   soil_data <- processed_data$soil_data
-  
+
   # Simple feature engineering for trees
   tree_train <- tree_data %>%
     mutate(
@@ -142,16 +145,16 @@ train_and_predict_monthly <- function(processed_data) {
       air_temp_C = coalesce(air_temp_C, median(air_temp_C, na.rm = TRUE)),
       soil_temp_C = coalesce(soil_temp_C, median(soil_temp_C, na.rm = TRUE)),
       soil_moisture_abs = coalesce(soil_moisture_abs, median(soil_moisture_abs, na.rm = TRUE))
-    )
-  
+)
+
   # Tree features
   X_tree <- tree_train %>%
-    select(dbh_m, air_temp_C, soil_temp_C, soil_moisture_abs, 
+    select(dbh_m, air_temp_C, soil_temp_C, soil_moisture_abs,
            month_sin, month_cos, chamber_rigid) %>%
     as.matrix()
-  
+
   y_tree <- tree_train$y_asinh
-  
+
   # Train tree RF
   tree_rf <- ranger(
     x = X_tree,
@@ -160,8 +163,8 @@ train_and_predict_monthly <- function(processed_data) {
     min.node.size = 5,
     mtry = floor(sqrt(ncol(X_tree))),
     num.threads = 1
-  )
-  
+)
+
   # Simple feature engineering for soil
   soil_train <- soil_data %>%
     mutate(
@@ -171,15 +174,15 @@ train_and_predict_monthly <- function(processed_data) {
       air_temp_C = coalesce(air_temp_C, median(air_temp_C, na.rm = TRUE)),
       soil_temp_C = coalesce(soil_temp_C, median(soil_temp_C, na.rm = TRUE)),
       soil_moisture_abs = coalesce(soil_moisture_abs, median(soil_moisture_abs, na.rm = TRUE))
-    )
-  
+)
+
   # Soil features
   X_soil <- soil_train %>%
     select(air_temp_C, soil_temp_C, soil_moisture_abs, month_sin, month_cos) %>%
     as.matrix()
-  
+
   y_soil <- soil_train$y_asinh
-  
+
   # Train soil RF
   soil_rf <- ranger(
     x = X_soil,
@@ -188,38 +191,38 @@ train_and_predict_monthly <- function(processed_data) {
     min.node.size = 5,
     mtry = floor(sqrt(ncol(X_soil))),
     num.threads = 1
-  )
-  
+)
+
   # Monthly predictions (simplified - using training data means per month)
   monthly_results <- map_df(1:12, function(m) {
-    
+
     # Get monthly statistics from training data
     tree_month <- tree_train %>% filter(month == m)
     soil_month <- soil_train %>% filter(month == m)
-    
+
     # Use mean of predictions for the month (simplified approach)
     tree_flux_mean <- ifelse(nrow(tree_month) > 0,
-                             mean(sinh(tree_rf$predictions[tree_train$month == m]), na.rm = TRUE),
+                             mean(tree_rf$predictions[tree_train$month == m], na.rm = TRUE),
                              0)
-    
+
     soil_flux_mean <- ifelse(nrow(soil_month) > 0,
-                             mean(sinh(soil_rf$predictions[soil_train$month == m]), na.rm = TRUE),
+                             mean(soil_rf$predictions[soil_train$month == m], na.rm = TRUE),
                              0)
-    
+
     tibble(
       month = m,
       tree_flux_umol_m2_s = tree_flux_mean,
       soil_flux_umol_m2_s = soil_flux_mean,
       tree_n = nrow(tree_month),
       soil_n = nrow(soil_month)
-    )
+)
   })
-  
+
   # Add model performance metrics
   monthly_results$tree_r2 <- tree_rf$r.squared
   monthly_results$soil_r2 <- soil_rf$r.squared
   monthly_results$method <- processed_data$method
-  
+
   return(monthly_results)
 }
 
@@ -249,7 +252,7 @@ all_monthly <- bind_rows(
 # -----------------------------------------------------------------------------
 
 # Plot 1: Tree flux comparison by month
-p1 <- ggplot(all_monthly, aes(x = month, y = tree_flux_umol_m2_s * 1000, 
+p1 <- ggplot(all_monthly, aes(x = month, y = tree_flux_umol_m2_s,
                               color = method, group = method)) +
   geom_line(size = 1.2) +
   geom_point(size = 2) +
@@ -262,7 +265,7 @@ p1 <- ggplot(all_monthly, aes(x = month, y = tree_flux_umol_m2_s * 1000,
   theme(legend.position = "bottom")
 
 # Plot 2: Soil flux comparison by month
-p2 <- ggplot(all_monthly, aes(x = month, y = soil_flux_umol_m2_s * 1000, 
+p2 <- ggplot(all_monthly, aes(x = month, y = soil_flux_umol_m2_s,
                               color = method, group = method)) +
   geom_line(size = 1.2) +
   geom_point(size = 2) +
@@ -276,7 +279,7 @@ p2 <- ggplot(all_monthly, aes(x = month, y = soil_flux_umol_m2_s * 1000,
 
 # Combine plots
 combined_plot <- p1 / p2
-ggsave("../../outputs/figures/DIAGNOSTIC_outlier_comparison_monthly.png", combined_plot, 
+ggsave("../../outputs/figures/DIAGNOSTIC_outlier_comparison_monthly.png", combined_plot,
        width = 10, height = 10, dpi = 300)
 
 # -----------------------------------------------------------------------------
@@ -294,7 +297,7 @@ cat(sprintf("1%% Tails      | %8d | %8d\n", results_pct$n_tree, results_pct$n_so
 cat(sprintf("MAD (k=8)      | %8d | %8d\n", results_mad$n_tree, results_mad$n_soil))
 
 cat("\nPERCENT RETAINED:\n")
-cat(sprintf("1%% Tails:  Trees = %.1f%%, Soil = %.1f%%\n", 
+cat(sprintf("1%% Tails:  Trees = %.1f%%, Soil = %.1f%%\n",
             100 * results_pct$n_tree / results_none$n_tree,
             100 * results_pct$n_soil / results_none$n_soil))
 cat(sprintf("MAD (k=8): Trees = %.1f%%, Soil = %.1f%%\n",
@@ -305,12 +308,12 @@ cat(sprintf("MAD (k=8): Trees = %.1f%%, Soil = %.1f%%\n",
 annual_comparison <- all_monthly %>%
   group_by(method) %>%
   summarise(
-    annual_tree_nmol = sum(tree_flux_umol_m2_s * 1000) * 30.4,
-    annual_soil_nmol = sum(soil_flux_umol_m2_s * 1000) * 30.4,
+    annual_tree_nmol = sum(tree_flux_umol_m2_s ) * (365.25/12),
+    annual_soil_nmol = sum(soil_flux_umol_m2_s ) * (365.25/12),
     tree_r2 = first(tree_r2),
     soil_r2 = first(soil_r2),
     .groups = "drop"
-  )
+)
 
 cat("\nANNUAL TOTALS (nmol m⁻² yr⁻¹):\n")
 print(annual_comparison)
@@ -343,7 +346,7 @@ all_monthly_wide <- all_monthly %>%
 diff_data <- all_monthly %>%
   filter(method != "No Removal") %>%
   left_join(
-    all_monthly %>% 
+    all_monthly %>%
       filter(method == "No Removal") %>%
       select(month, tree_base = tree_flux_umol_m2_s, soil_base = soil_flux_umol_m2_s),
     by = "month"
@@ -351,7 +354,7 @@ diff_data <- all_monthly %>%
   mutate(
     tree_diff_pct = 100 * (tree_flux_umol_m2_s - tree_base) / tree_base,
     soil_diff_pct = 100 * (soil_flux_umol_m2_s - soil_base) / soil_base
-  )
+)
 
 # Plot percent differences
 p3 <- ggplot(diff_data, aes(x = month)) +

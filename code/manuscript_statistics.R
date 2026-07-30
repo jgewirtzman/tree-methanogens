@@ -108,8 +108,26 @@ ymf2023 <- read.csv("data/processed/flux/methanogen_tree_flux_complete_dataset.c
 aux      <- read.csv("data/processed/flux/goflux_auxfile.csv")
 ch4_flux <- read.csv("data/processed/flux/CH4_best_flux_lgr_results.csv")
 
+# CANONICAL BUDGET is authoritative for every stand-level number (2026-07-30).
+# This script is named "manuscript statistics" and was quoting the LEGACY
+# ANNUAL_SUMMARY.csv / MONTHLY_FLUXES.csv, which come from the old upscaling block
+# inside 02_rf_models.R -- built on a 7,010-stem inventory that omits the entire bytag
+# survey, with a two-rung species ladder that buckets all 1,899 Kalmia into
+# SPECIES_OTHER, and annualised with 30.4 days/month. It reported tree 2.725 and soil
+# -543.43 against the canonical 4.378 and -422.16: 38% and 29% apart. Those legacy
+# files are still read below for the monthly SHAPE only; every scalar now comes from
+# canonical_budget.csv.
 monthly_fluxes <- read.csv("outputs/tables/MONTHLY_FLUXES.csv")
 annual_summary <- read.csv("outputs/tables/ANNUAL_SUMMARY.csv")
+CANON <- local({
+  f <- "outputs/revision/canonical_budget.csv"
+  if (!file.exists(f))
+    stop("manuscript_statistics.R needs ", f,
+         " -- run code/revision/rev_budget_canonical.R first")
+  b <- read.csv(f, stringsAsFactors = FALSE)
+  setNames(b$value, b$quantity)
+})
+canon <- function(q) { if (!q %in% names(CANON)) stop("canonical_budget.csv lacks ", q); unname(CANON[[q]]) }
 load("outputs/models/RF_MODELS.RData")
 if (file.exists("outputs/models/TRAINING_DATA.RData")) {
   load("outputs/models/TRAINING_DATA.RData")  # tree_train_complete, X_tree, X_soil, soil_train_complete
@@ -1476,49 +1494,62 @@ stat("Per-unit-area offset", paste0(round(abs(mean(tree_monthly_nmol) / mean(soi
 
 # Annual totals
 sub_header("Annual totals")
-stat("Tree emissions", annual_summary$annual_tree_mg_m2, "mg CH4 m-2 yr-1")
-stat("Soil uptake", annual_summary$annual_soil_mg_m2, "mg CH4 m-2 yr-1")
-record("annual_tree_mg_m2_yr", annual_summary$annual_tree_mg_m2)
-record("annual_soil_mg_m2_yr", annual_summary$annual_soil_mg_m2)
+stat("Tree emissions", round(canon("tree_measured_mg_m2_yr"), 3), "mg CH4 m-2 yr-1")
+stat("Soil uptake", round(canon("soil_mg_m2_yr"), 3), "mg CH4 m-2 yr-1")
+stat("Net budget", round(canon("net_measured_mg_m2_yr"), 3), "mg CH4 m-2 yr-1")
+record("annual_tree_mg_m2_yr", canon("tree_measured_mg_m2_yr"))
+record("annual_soil_mg_m2_yr", canon("soil_mg_m2_yr"))
+record("net_measured_mg_m2_yr", canon("net_measured_mg_m2_yr"))
+cat(sprintf("  [legacy ANNUAL_SUMMARY.csv, NOT used: tree %.3f, soil %.3f -- see note at the top]\n",
+            annual_summary$annual_tree_mg_m2, annual_summary$annual_soil_mg_m2))
 
 # Surface area and offset
 sub_header("Stem surface area and offset")
 # Load inventory for geometry
-tryCatch({
-  load("data/processed/integrated/rf_workflow_input_data_with_2023.RData")
-  inv <- rf_workflow_data$PLACEHOLDER_INVENTORY
-  if (!is.null(inv) && "DBH" %in% names(inv)) {
-    # Compute lateral surface area to 2m height
-    inv$stem_area_m2 <- pi * (inv$DBH / 100) * 2  # pi * diameter * height
-    total_stem_area <- sum(inv$stem_area_m2, na.rm = TRUE)
-    plot_area_ha <- 10.2
-    plot_area_m2 <- plot_area_ha * 10000
-    stem_frac <- total_stem_area / plot_area_m2 * 100
-    stat("Total stem surface area (0-2m)", round(total_stem_area, 0), "m2")
-    stat("Stem area as % of plot", round(stem_frac, 2), "%")
-  }
-}, error = function(e) {
-  cat("  [Using pre-computed values from annual summary]\n")
-})
+# Read, not recomputed. This block used PLACEHOLDER_INVENTORY (7,010 stems, no bytag
+# survey), a hardcoded plot_area_ha <- 10.2 -- the lat/lon BOUNDING BOX of a plot
+# rotated ~10 degrees from north, 2.7x the censused stand -- and pi*DBH*2 for every
+# stem including the 1,904 Kalmia whose band is 0.75 m. It was also inside a tryCatch
+# whose guard ("DBH" %in% names(inv)) is FALSE for that object, so it silently emitted
+# nothing at all.
+stat("Total stem surface area (0-2m)", round(canon("stem_area_0_2m_m2"), 0), "m2")
+stat("Stem area as % of censused stand", round(100*canon("stem_area_index"), 2), "%")
+stat("Censused stand area", round(canon("stand_area_m2")/1e4, 2), "ha")
+stat("Stems in stand", canon("n_stems"))
 
-# From annual summary
-tree_ann <- annual_summary$annual_tree_mg_m2
-soil_ann <- annual_summary$annual_soil_mg_m2
+tree_ann <- canon("tree_measured_mg_m2_yr")
+soil_ann <- canon("soil_mg_m2_yr")
 offset_pct <- abs(tree_ann / soil_ann) * 100
 stat("Plot-level offset", round(offset_pct, 2), "%")
 record("plot_offset_pct", offset_pct)
 
 # WAI extrapolation
-WAI <- 3.07
-# Per-stem-area flux = mean tree nmol * conversion to annual mg
-mean_tree_nmol <- mean(tree_monthly_nmol)
-# Annualize: nmol m-2 s-1 * 16e-9 g/nmol * 1e6 ug/g * 1e-3 mg/ug * 86400 s/d * 365.25 d/yr
-wai_annual <- mean_tree_nmol * 16e-9 * 1e6 * 1e-3 * 86400 * 365.25 * WAI
-stat("WAI extrapolation (annual)", round(wai_annual, 1), "mg CH4 m-2 yr-1")
-wai_offset <- abs(wai_annual / soil_ann) * 100
-stat("WAI offset of soil uptake", round(wai_offset, 1), "%")
-record("wai_tree_mg_m2_yr", wai_annual)
-record("wai_offset_pct", wai_offset)
+# WHOLE-SURFACE SCALING: read the grid, do not re-derive it here.
+# What stood here multiplied a PER-M2-OF-GROUND tree flux by a woody area index, which
+# is per m2 of woody surface per m2 of ground -- the two are not composable that way,
+# and the error was recorded as open in code/revision/notes/STATUS.md. The scaling is
+# now a 240-combination grid (6 flux forms x 5 WAI x 4 branch x 2 bole) produced by
+# rev_scaling_full_grid.R, which holds the measured 0-2 m band fixed and lets only the
+# area above 2 m absorb the WAI choice. Quote the RANGE; the named cell is one of 240.
+local({
+  f <- "outputs/revision/scaling_full_grid.csv"; h <- "outputs/revision/scaling_headline.csv"
+  if (!file.exists(f) || !file.exists(h)) {
+    cat("  [scaling grid absent -- run code/revision/rev_scaling_full_grid.R]\n"); return(invisible())
+  }
+  G <- read.csv(f, stringsAsFactors = FALSE); H <- read.csv(h, stringsAsFactors = FALSE)
+  stat("Whole-surface range, all 240 combinations",
+       sprintf("%.1f to %.1f", min(G$total_mg), max(G$total_mg)), "mg CH4 m-2 yr-1")
+  stat("As % of soil uptake",
+       sprintf("%.1f to %.1f", min(G$pct_of_soil), max(G$pct_of_soil)), "%")
+  stat("Net budget across the grid",
+       sprintf("%.1f to %.1f", min(G$net_mg), max(G$net_mg)), "mg CH4 m-2 yr-1")
+  stat("Sink in", sprintf("%d of %d combinations", sum(G$net_mg < 0), nrow(G)))
+  stat("Named scenario", sprintf("%.2f mg (%.1f%% of soil, %.0f%% extrapolated)",
+       H$total_mg[1], H$pct_of_soil[1], H$pct_extrapolated[1]))
+  record("whole_surface_lo_mg_m2_yr", min(G$total_mg))
+  record("whole_surface_hi_mg_m2_yr", max(G$total_mg))
+  record("headline_total_mg_m2_yr", H$total_mg[1])
+})
 
 
 # ==============================================================================
@@ -1840,10 +1871,12 @@ if (all(file.exists(pic_files))) {
 sub_header("Figure S15: RF model diagnostics (expanded)")
 if (exists("TreeRF") && exists("SoilRF")) {
   # CCC requires DescTools; compute manually if not available
-  tree_obs <- tree_train_complete$stem_flux_corrected * 1000
-  tree_pred <- tree_train_complete$pred_flux * 1000
-  soil_obs <- soil_train_complete$soil_flux_umol_m2_s * 1000
-  soil_pred <- soil_train_complete$pred_flux * 1000
+  # Already nmol m-2 s-1. The x1000 that stood here was a umol-era conversion and made
+  # every RMSE printed below 1000x too large, on lines labelled "nmol m-2 s-1".
+  tree_obs <- tree_train_complete$stem_flux_corrected
+  tree_pred <- tree_train_complete$pred_flux
+  soil_obs <- soil_train_complete$soil_flux_umol_m2_s
+  soil_pred <- soil_train_complete$pred_flux
 
   # Manual CCC: 2 * r * sx * sy / (sx^2 + sy^2 + (mx - my)^2)
   ccc_manual <- function(x, y) {

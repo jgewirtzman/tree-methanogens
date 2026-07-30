@@ -1,3 +1,6 @@
+# UNITS (2026-07-30): every *_umol_m2_s column here holds nmol m-2 s-1 -- the name is
+# a documented misnomer (02_rf_models.R). The asinh transform was removed, so both
+# sinh() back-transforms and umol->nmol x1000 conversions are stale and are gone.
 # ==============================================================================
 # RF Diagnostic Plots
 # ==============================================================================
@@ -68,18 +71,18 @@ cat("\nGenerating monthly flux predictions plot...\n")
 # Extract the per-area fluxes from your results
 # These are the mean fluxes before scaling by area fractions
 monthly_flux_plot_data <- bind_rows(
-  tree_results %>% 
+  tree_results %>%
     dplyr::select(month, mean_flux) %>%
     mutate(
-      flux_nmol = mean_flux * 1000,  # Convert μmol to nmol
+      flux_nmol = mean_flux,
       type = "Tree stems"
     ),
   soil_results %>%
     dplyr::select(month, mean_flux) %>%
     mutate(
-      flux_nmol = mean_flux * 1000,  # Convert μmol to nmol
+      flux_nmol = mean_flux,
       type = "Soil"
-    )
+)
 )
 
 # Create the monthly flux plot
@@ -130,7 +133,7 @@ monthly_flux_summary <- monthly_flux_plot_data %>%
     max_flux = max(flux_nmol),
     peak_month = month[which.max(abs(flux_nmol))],
     .groups = "drop"
-  )
+)
 print(monthly_flux_summary)
 
 cat("✓ Monthly flux plots saved\n")
@@ -146,29 +149,29 @@ cat("\nGenerating combined observation vs prediction plot...\n")
 combined_obs_pred <- bind_rows(
   # Tree data
   data.frame(
-    observed = sinh(y_tree),  # Back-transform from asinh
-    predicted = sinh(TreeRF$predictions),  # Back-transform predictions
+    observed = y_tree,
+    predicted = TreeRF$predictions,
     source = "Trees",
     chamber_type = tree_combined$I_monthly[complete_rows]  # Get chamber type for coloring
   ),
   # Soil data
   data.frame(
-    observed = sinh(y_soil),  # Back-transform
-    predicted = sinh(SoilRF$predictions),  # Back-transform
+    observed = y_soil,
+    predicted = SoilRF$predictions,
     source = "Soil",
     chamber_type = 2  # Dummy value for soil (for consistent coloring)
-  )
+)
 ) %>%
   mutate(
     # Convert to nmol for display
-    observed_nmol = observed * 1000,
-    predicted_nmol = predicted * 1000
-  )
+    observed_nmol = observed,
+    predicted_nmol = predicted
+)
 
 # Calculate overall R² and statistics
 lm_combined <- lm(predicted_nmol ~ observed_nmol, data = combined_obs_pred)
 r2_combined <- summary(lm_combined)$r.squared
-rmse_combined <- sqrt(mean((combined_obs_pred$predicted_nmol - combined_obs_pred$observed_nmol)^2, na.rm = TRUE))
+rmse_combined <- sqrt(mean(combined_obs_pred$predicted_nmol - combined_obs_pred$observed_nmol^2, na.rm = TRUE))
 
 # Calculate R² by source for annotation
 r2_by_source <- combined_obs_pred %>%
@@ -177,7 +180,7 @@ r2_by_source <- combined_obs_pred %>%
     r2 = cor(observed_nmol, predicted_nmol, use = "complete.obs")^2,
     n = n(),
     .groups = "drop"
-  )
+)
 
 # Create the combined scatter plot
 p_combined <- ggplot(combined_obs_pred, aes(x = observed_nmol, y = predicted_nmol)) +
@@ -203,7 +206,7 @@ p_combined <- ggplot(combined_obs_pred, aes(x = observed_nmol, y = predicted_nmo
     shape = "Source"
   ) +
   # Add R² annotations for each source
-  annotate("text", 
+  annotate("text",
            x = min(combined_obs_pred$observed_nmol[combined_obs_pred$source == "Trees"], na.rm = TRUE),
            y = max(combined_obs_pred$predicted_nmol[combined_obs_pred$source == "Trees"], na.rm = TRUE),
            label = paste0("Trees R² = ", round(r2_by_source$r2[r2_by_source$source == "Trees"], 3)),
@@ -217,7 +220,7 @@ p_combined <- ggplot(combined_obs_pred, aes(x = observed_nmol, y = predicted_nmo
   theme(
     legend.position = "bottom",
     panel.grid.minor = element_blank()
-  )
+)
 
 ggsave("../../outputs/figures/COMBINED_OBS_VS_PRED.png", p_combined, width = 9, height = 8)
 
@@ -244,7 +247,7 @@ ggsave("../../outputs/figures/COMBINED_OBS_VS_PRED_FACET.png", p_combined_facet,
 cat("\nCombined Model Performance:\n")
 cat("  Overall R²:", round(r2_combined, 3), "\n")
 cat("  Overall RMSE:", round(rmse_combined, 2), "nmol/m²/s\n")
-cat("  Tree R²:", round(r2_by_source$r2[r2_by_source$source == "Trees"], 3), 
+cat("  Tree R²:", round(r2_by_source$r2[r2_by_source$source == "Trees"], 3),
     "(n =", r2_by_source$n[r2_by_source$source == "Trees"], ")\n")
 cat("  Soil R²:", round(r2_by_source$r2[r2_by_source$source == "Soil"], 3),
     "(n =", r2_by_source$n[r2_by_source$source == "Soil"], ")\n")
@@ -277,13 +280,13 @@ cat("\nAnalyzing tree flux distributions by species...\n")
 # Combine observed and predicted values by species
 tree_species_data <- data.frame(
   species = tree_train$species[complete_rows],
-  observed = sinh(y_tree) * 1000,  # Convert to nmol
-  predicted = sinh(TreeRF$predictions) * 1000,  # Convert to nmol
+  observed = (y_tree),
+  predicted = (TreeRF$predictions),
   stringsAsFactors = FALSE
 ) %>%
   # IMPORTANT: Filter out entries that are tree IDs, not species names
-  filter(!is.na(species) & 
-           species != "" & 
+  filter(!is.na(species) &
+           species != "" &
            !grepl("^Tree [0-9]", species) &  # Remove "Tree 1234" style entries
            !grepl("^[0-9]+-[0-9]+", species))  # Remove "3-1" style entries
 
@@ -299,14 +302,14 @@ tree_species_filtered <- tree_species_data %>%
   filter(species %in% common_species)
 
 if(nrow(tree_species_filtered) > 0) {
-  
+
   # Reshape for plotting
   tree_species_long <- tree_species_filtered %>%
     pivot_longer(cols = c(observed, predicted),
                  names_to = "type",
                  values_to = "flux_nmol") %>%
     mutate(type = factor(type, levels = c("observed", "predicted")))
-  
+
   # Calculate summary stats by species
   species_summary <- tree_species_long %>%
     group_by(species, type) %>%
@@ -317,13 +320,13 @@ if(nrow(tree_species_filtered) > 0) {
       n = n()/2,  # Divide by 2 because we doubled rows in pivot_longer
       .groups = "drop"
     ) %>%
-    pivot_wider(names_from = type, 
+    pivot_wider(names_from = type,
                 values_from = c(mean, median, sd),
                 names_sep = "_")
-  
+
   cat("\nSpecies-level statistics (nmol/m²/s):\n")
   print(species_summary)
-  
+
   # PLOT 1: Box plots by species
   p_species_box <- ggplot(tree_species_long, aes(x = species, y = flux_nmol, fill = type)) +
     geom_boxplot(alpha = 0.7, position = position_dodge(0.8)) +
@@ -338,9 +341,9 @@ if(nrow(tree_species_filtered) > 0) {
     theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
           legend.position = "bottom") +
     coord_cartesian(ylim = quantile(tree_species_long$flux_nmol, c(0.01, 0.99), na.rm = TRUE))
-  
+
   ggsave("../../outputs/figures/DIAGNOSTIC_SPECIES_BOXPLOT.png", p_species_box, width = 12, height = 7)
-  
+
   # PLOT 2: Scatter plot of observed vs predicted by species
   p_species_scatter <- ggplot(tree_species_filtered, aes(x = observed, y = predicted)) +
     geom_point(alpha = 0.6, size = 2) +
@@ -351,9 +354,9 @@ if(nrow(tree_species_filtered) > 0) {
          x = expression(paste("Observed CH"[4], " flux (nmol m"^-2, " s"^-1, ")")),
          y = expression(paste("Predicted CH"[4], " flux (nmol m"^-2, " s"^-1, ")"))) +
     theme_minimal()
-  
+
   ggsave("../../outputs/figures/DIAGNOSTIC_SPECIES_SCATTER.png", p_species_scatter, width = 12, height = 10)
-  
+
 } else {
   cat("\nWARNING: No valid species found after filtering out tree IDs\n")
   cat("This suggests species information may not be properly linked\n")
@@ -371,16 +374,16 @@ moisture_data <- bind_rows(
   data.frame(
     source = "Trees",
     moisture = tree_train$soil_moisture_at_tree[complete_rows],
-    observed = sinh(y_tree) * 1000,  # nmol
-    predicted = sinh(TreeRF$predictions) * 1000
+    observed = (y_tree),
+    predicted = (TreeRF$predictions)
   ),
   # Soil data
   data.frame(
     source = "Soil",
     moisture = soil_train$soil_moisture_at_site[complete_rows_soil],
-    observed = sinh(y_soil) * 1000,
-    predicted = sinh(SoilRF$predictions) * 1000
-  )
+    observed = (y_soil),
+    predicted = (SoilRF$predictions)
+)
 ) %>%
   filter(!is.na(moisture))
 
@@ -408,7 +411,7 @@ moisture_data <- moisture_data %>%
                        breaks = moisture_breaks,
                        labels = bin_labels,
                        include.lowest = TRUE)
-  )
+)
 
 # Calculate summary stats by moisture bin
 moisture_summary <- moisture_data %>%
@@ -505,7 +508,7 @@ if(nrow(tree_species_filtered) > 0) {
       .groups = "drop"
     ) %>%
     arrange(desc(correlation))
-  
+
   cat("\nCorrelation by species:\n")
   print(species_cor)
 }
@@ -519,7 +522,7 @@ moisture_cor <- moisture_data %>%
     n = n(),
     moisture_range = paste0("[", round(min(moisture), 3), "-", round(max(moisture), 3), "]"),
     .groups = "drop"
-  )
+)
 
 cat("\nCorrelation by moisture bin:\n")
 print(moisture_cor)
@@ -535,7 +538,7 @@ temp_flux_relationship <- tree_train %>%
     mean_flux = mean(stem_flux_corrected),
     median_flux = median(stem_flux_corrected),
     .groups = "drop"
-  )
+)
 
 print(temp_flux_relationship)
 

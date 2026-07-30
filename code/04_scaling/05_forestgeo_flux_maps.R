@@ -1,3 +1,6 @@
+# UNITS (2026-07-30): every *_umol_m2_s column here holds nmol m-2 s-1 -- the name is
+# a documented misnomer (02_rf_models.R). The asinh transform was removed, so both
+# sinh() back-transforms and umol->nmol x1000 conversions are stale and are gone.
 # ==============================================================================
 # ForestGEO Flux Maps
 # ==============================================================================
@@ -99,44 +102,44 @@ cat("Predicting CH4 flux for month", MONTH_TO_MAP, "\n")
 
 # Prediction function
 predict_tree_flux <- function(inv_df, month_num) {
-  
+
   # Get monthly drivers
   air_temp <- DRIVERS$air_temp_C_mean[month_num]
   soil_temp <- DRIVERS$soil_temp_C_mean[month_num]
   if(is.na(soil_temp)) soil_temp <- air_temp * 0.8
-  
+
   # Get seasonal index
-  si_tree <- SI_TABLES %>% 
-    filter(group == "tree", month == month_num) %>% 
-    pull(SI) %>% 
+  si_tree <- SI_TABLES %>%
+    filter(group == "tree", month == month_num) %>%
+    pull(SI) %>%
     {if(length(.) > 0) .[1] else 0}
-  
+
   # Prepare features
   predictions <- inv_df %>%
     mutate(
       # Moisture at tree location
       moisture_raw = moisture_lookup_xy(x, y),
-      soil_moisture_abs = MOISTURE_AFFINE_TABLE$alpha_t[month_num] + 
+      soil_moisture_abs = MOISTURE_AFFINE_TABLE$alpha_t[month_num] +
         MOISTURE_AFFINE_TABLE$beta_t[month_num] * moisture_raw,
       soil_moisture_abs = pmax(0, pmin(0.75, soil_moisture_abs)),
-      
+
       # Environmental
       air_temp_C = air_temp,
       soil_temp_C = soil_temp,
       SI_tree = si_tree,
-      
+
       # Cyclic month encoding
       month_sin = sin(2 * pi * month_num / 12),
       month_cos = cos(2 * pi * month_num / 12),
-      
+
       # Chamber type
       chamber_rigid = 1,
       chamber_semirigid = 0,
-      
+
       # Interactions
       moisture_x_airT = soil_moisture_abs * air_temp_C,
       moisture_x_soilT = soil_moisture_abs * soil_temp_C,
-      
+
       # Taxonomy
       genus = sub(" .*", "", species),
       family = case_when(
@@ -147,18 +150,18 @@ predict_tree_flux <- function(inv_df, month_num) {
         genus %in% c("Pinus", "Tsuga") ~ "Pinaceae",
         genus == "Carya" ~ "Juglandaceae",
         TRUE ~ "OTHER"
-      )
-    )
-  
+)
+)
+
   # Add taxonomy priors
   predictions$taxon_prior_asinh <- 0
-  
+
   if(exists("TAXONOMY_PRIORS")) {
-    species_priors <- setNames(TAXONOMY_PRIORS$species$med_resid, 
+    species_priors <- setNames(TAXONOMY_PRIORS$species$med_resid,
                                TAXONOMY_PRIORS$species$species)
-    genus_priors <- setNames(TAXONOMY_PRIORS$genus$med_resid, 
+    genus_priors <- setNames(TAXONOMY_PRIORS$genus$med_resid,
                              TAXONOMY_PRIORS$genus$genus)
-    
+
     for(i in 1:nrow(predictions)) {
       if(predictions$species[i] %in% names(species_priors)) {
         predictions$taxon_prior_asinh[i] <- species_priors[predictions$species[i]]
@@ -167,40 +170,40 @@ predict_tree_flux <- function(inv_df, month_num) {
       }
     }
   }
-  
+
   # Build feature matrix
   numeric_features <- predictions %>%
     dplyr::select(dbh_m, air_temp_C, soil_temp_C, soil_moisture_abs, SI_tree,
            moisture_x_airT, moisture_x_soilT, taxon_prior_asinh,
            chamber_rigid, chamber_semirigid, month_sin, month_cos) %>%
     as.matrix()
-  
+
   # Add categorical dummies
   species_dummies <- model.matrix(~ species - 1, data = predictions)
   genus_dummies <- model.matrix(~ genus - 1, data = predictions)
   family_dummies <- model.matrix(~ family - 1, data = predictions)
-  
+
   X_pred <- cbind(numeric_features, species_dummies, genus_dummies, family_dummies)
-  
+
   # Align with model features
-  X_pred_aligned <- matrix(0, nrow = nrow(X_pred), 
+  X_pred_aligned <- matrix(0, nrow = nrow(X_pred),
                            ncol = length(TreeRF$forest$independent.variable.names))
   colnames(X_pred_aligned) <- TreeRF$forest$independent.variable.names
-  
+
   for(col in colnames(X_pred_aligned)) {
     if(col %in% colnames(X_pred)) {
       X_pred_aligned[, col] <- X_pred[, col]
     }
   }
-  
+
   # Predict and back-transform
   pred_asinh <- predict(TreeRF, X_pred_aligned)$predictions
-  return(sinh(pred_asinh))
+  return(pred_asinh)
 }
 
 # Apply predictions
 INVENTORY$flux_umol_m2_s <- predict_tree_flux(INVENTORY, MONTH_TO_MAP)
-INVENTORY$flux_nmol_m2_s <- INVENTORY$flux_umol_m2_s * 1000
+INVENTORY$flux_nmol_m2_s <- INVENTORY$flux_umol_m2_s
 
 # Add categories
 INVENTORY <- INVENTORY %>%
@@ -215,11 +218,11 @@ INVENTORY <- INVENTORY %>%
     ),
     flux_category = factor(flux_category,
                            levels = c("Sink", "Very Low", "Low", "Moderate", "High", "Very High"))
-  )
+)
 
 cat("✓ Flux predictions complete\n")
 cat("  Range:", round(range(INVENTORY$flux_nmol_m2_s), 2), "nmol m-2 s-1\n")
-cat("  Trees as sinks:", sum(INVENTORY$flux_nmol_m2_s < 0), 
+cat("  Trees as sinks:", sum(INVENTORY$flux_nmol_m2_s < 0),
     "(", round(100 * mean(INVENTORY$flux_nmol_m2_s < 0), 1), "%)\n\n")
 
 # =============================================================================
@@ -286,7 +289,7 @@ p2 <- INVENTORY %>%
   theme(
     legend.position = "bottom",
     strip.text = element_text(face = "italic", size = 9)
-  )
+)
 
 ggsave("../../outputs/figures/forestgeo_flux_by_species.png", p2, width = 12, height = 10, dpi = 300)
 
@@ -336,7 +339,7 @@ print(head(species_summary, 10))
 # By size class
 size_summary <- INVENTORY %>%
   mutate(
-    size_class = cut(dbh_m * 100, 
+    size_class = cut(dbh_m * 100,
                      breaks = c(0, 10, 20, 40, 100),
                      labels = c("<10cm", "10-20cm", "20-40cm", ">40cm"))
   ) %>%
@@ -346,7 +349,7 @@ size_summary <- INVENTORY %>%
     mean_flux = round(mean(flux_nmol_m2_s), 2),
     pct_sink = round(100 * mean(flux_nmol_m2_s < 0), 1),
     .groups = "drop"
-  )
+)
 
 cat("\nFlux by tree size:\n")
 print(size_summary)
@@ -470,7 +473,7 @@ INVENTORY <- fg_final %>%
 
 cat("  Trees in inventory:", nrow(INVENTORY), "\n")
 cat("  Species:", length(unique(INVENTORY$species[INVENTORY$species != "Unknown"])), "\n")
-cat("  DBH range:", round(min(INVENTORY$dbh_m * 100), 1), "-", 
+cat("  DBH range:", round(min(INVENTORY$dbh_m * 100), 1), "-",
     round(max(INVENTORY$dbh_m * 100), 1), "cm\n\n")
 
 # =============================================================================
@@ -483,44 +486,44 @@ MONTH_TO_MAP <- 7  # July
 cat("Predicting CH4 flux for month", MONTH_TO_MAP, "(", month.name[MONTH_TO_MAP], ")...\n")
 
 predict_tree_flux <- function(inv_df, month_num) {
-  
+
   # Monthly drivers
   air_temp <- DRIVERS$air_temp_C_mean[month_num]
   soil_temp <- DRIVERS$soil_temp_C_mean[month_num]
   if(is.na(soil_temp)) soil_temp <- air_temp * 0.8
-  
+
   # Seasonal index
-  si_tree <- SI_TABLES %>% 
-    filter(group == "tree", month == month_num) %>% 
-    pull(SI) %>% 
+  si_tree <- SI_TABLES %>%
+    filter(group == "tree", month == month_num) %>%
+    pull(SI) %>%
     {if(length(.) > 0) .[1] else 0}
-  
+
   # Build features
   predictions <- inv_df %>%
     mutate(
       # Moisture
       moisture_raw = moisture_lookup_xy(x, y),
-      soil_moisture_abs = MOISTURE_AFFINE_TABLE$alpha_t[month_num] + 
+      soil_moisture_abs = MOISTURE_AFFINE_TABLE$alpha_t[month_num] +
         MOISTURE_AFFINE_TABLE$beta_t[month_num] * moisture_raw,
       soil_moisture_abs = pmax(0, pmin(0.75, soil_moisture_abs)),
-      
+
       # Environmental
       air_temp_C = air_temp,
       soil_temp_C = soil_temp,
       SI_tree = si_tree,
-      
+
       # Cyclic month
       month_sin = sin(2 * pi * month_num / 12),
       month_cos = cos(2 * pi * month_num / 12),
-      
+
       # Chamber
       chamber_rigid = 1,
       chamber_semirigid = 0,
-      
+
       # Interactions
       moisture_x_airT = soil_moisture_abs * air_temp_C,
       moisture_x_soilT = soil_moisture_abs * soil_temp_C,
-      
+
       # Taxonomy
       genus = sub(" .*", "", species),
       family = case_when(
@@ -537,21 +540,21 @@ predict_tree_flux <- function(inv_df, month_num) {
         genus == "Vaccinium" ~ "Ericaceae",
         genus == "Liriodendron" ~ "Magnoliaceae",
         TRUE ~ "OTHER"
-      )
-    )
-  
+)
+)
+
   # Add taxonomy priors
   predictions$taxon_prior_asinh <- 0
   if(exists("TAXONOMY_PRIORS")) {
     species_priors <- setNames(TAXONOMY_PRIORS$species$med_resid, TAXONOMY_PRIORS$species$species)
     genus_priors <- setNames(TAXONOMY_PRIORS$genus$med_resid, TAXONOMY_PRIORS$genus$genus)
     family_priors <- setNames(TAXONOMY_PRIORS$family$med_resid, TAXONOMY_PRIORS$family$family)
-    
+
     for(i in 1:nrow(predictions)) {
       sp <- predictions$species[i]
       gn <- predictions$genus[i]
       fm <- predictions$family[i]
-      
+
       if(sp %in% names(species_priors)) {
         predictions$taxon_prior_asinh[i] <- species_priors[sp]
       } else if(gn %in% names(genus_priors)) {
@@ -561,40 +564,40 @@ predict_tree_flux <- function(inv_df, month_num) {
       }
     }
   }
-  
+
   # Build feature matrix
   numeric_features <- predictions %>%
     dplyr::select(dbh_m, air_temp_C, soil_temp_C, soil_moisture_abs, SI_tree,
            moisture_x_airT, moisture_x_soilT, taxon_prior_asinh,
            chamber_rigid, chamber_semirigid, month_sin, month_cos) %>%
     as.matrix()
-  
+
   # Categorical dummies
   species_dummies <- model.matrix(~ species - 1, data = predictions)
   genus_dummies <- model.matrix(~ genus - 1, data = predictions)
   family_dummies <- model.matrix(~ family - 1, data = predictions)
-  
+
   X_pred <- cbind(numeric_features, species_dummies, genus_dummies, family_dummies)
-  
+
   # Align with model
-  X_pred_aligned <- matrix(0, nrow = nrow(X_pred), 
+  X_pred_aligned <- matrix(0, nrow = nrow(X_pred),
                            ncol = length(TreeRF$forest$independent.variable.names))
   colnames(X_pred_aligned) <- TreeRF$forest$independent.variable.names
-  
+
   for(col in colnames(X_pred_aligned)) {
     if(col %in% colnames(X_pred)) {
       X_pred_aligned[, col] <- X_pred[, col]
     }
   }
-  
+
   # Predict
   pred_asinh <- predict(TreeRF, X_pred_aligned)$predictions
-  return(sinh(pred_asinh))
+  return(pred_asinh)
 }
 
 # Apply predictions
 INVENTORY$flux_umol_m2_s <- predict_tree_flux(INVENTORY, MONTH_TO_MAP)
-INVENTORY$flux_nmol_m2_s <- INVENTORY$flux_umol_m2_s * 1000
+INVENTORY$flux_nmol_m2_s <- INVENTORY$flux_umol_m2_s
 
 # Categorize flux
 INVENTORY <- INVENTORY %>%
@@ -602,15 +605,15 @@ INVENTORY <- INVENTORY %>%
     flux_category = case_when(
       flux_nmol_m2_s < 0 ~ "Sink",
       flux_nmol_m2_s < 1 ~ "Very Low",
-      flux_nmol_m2_s < 5 ~ "Low", 
+      flux_nmol_m2_s < 5 ~ "Low",
       flux_nmol_m2_s < 10 ~ "Moderate",
       flux_nmol_m2_s < 20 ~ "High",
       TRUE ~ "Very High"
     ),
     flux_category = factor(flux_category,
-                           levels = c("Sink", "Very Low", "Low", 
+                           levels = c("Sink", "Very Low", "Low",
                                       "Moderate", "High", "Very High"))
-  )
+)
 
 cat("✓ Flux predictions complete\n")
 cat("  Range:", round(min(INVENTORY$flux_nmol_m2_s), 2), "-",
@@ -692,7 +695,7 @@ p2 <- INVENTORY %>%
     legend.position = "bottom",
     strip.text = element_text(face = "italic", size = 9),
     panel.grid = element_blank()
-  )
+)
 
 ggsave("../../outputs/figures/fg_flux_by_species.png", p2, width = 14, height = 12, dpi = 300)
 
@@ -729,7 +732,7 @@ p2b <- INVENTORY %>%
     strip.text = element_text(face = "italic", size = 9),
     panel.grid = element_blank(),
     panel.background = element_rect(fill = "white", color = NA)
-  )
+)
 
 ggsave("../../outputs/figures/fg_flux_by_species_context.png", p2b, width = 14, height = 12, dpi = 300)
 
@@ -762,8 +765,8 @@ p4 <- ggplot(INVENTORY, aes(x = longitude, y = latitude)) +
   geom_point(aes(color = dataset, size = dbh_m * 100, alpha = flux_nmol_m2_s)) +
   scale_color_manual(
     name = "Data Source",
-    values = c("fg19" = "darkgreen", "fgplot" = "orange", 
-               "fgtag" = "purple", "fgtag_missing" = "red", 
+    values = c("fg19" = "darkgreen", "fgplot" = "orange",
+               "fgtag" = "purple", "fgtag_missing" = "red",
                "fgplot_missing" = "pink")
   ) +
   scale_size_continuous(
@@ -802,7 +805,7 @@ cat("  95% CI:", round(quantile(INVENTORY$flux_nmol_m2_s, 0.025), 2), "-",
 
 # Top emitting species
 cat("TOP 10 EMITTING SPECIES (mean flux):\n")
-print(head(species_summary %>% 
+print(head(species_summary %>%
              dplyr::select(species, n, mean_flux, median_flux, total_basal), 10))
 cat("\n")
 
@@ -819,7 +822,7 @@ size_summary <- INVENTORY %>%
     mean_flux = round(mean(flux_nmol_m2_s), 2),
     pct_sink = round(100 * mean(flux_nmol_m2_s < 0), 1),
     .groups = "drop"
-  )
+)
 
 cat("BY SIZE CLASS:\n")
 print(size_summary)
@@ -833,7 +836,7 @@ source_summary <- INVENTORY %>%
     mean_flux = round(mean(flux_nmol_m2_s), 2),
     median_flux = round(median(flux_nmol_m2_s), 2),
     .groups = "drop"
-  )
+)
 
 cat("BY DATA SOURCE:\n")
 print(source_summary)
