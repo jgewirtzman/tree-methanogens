@@ -32,29 +32,32 @@ if (!file.exists("outputs/models/RF_MODELS.RData") || !file.exists("outputs/mode
 load("outputs/models/RF_MODELS.RData")           # TreeRF, SoilRF
 load("outputs/models/TRAINING_DATA.RData")        # tree_train_complete, X_tree, X_soil, soil_train_complete
 
-## Load monthly predictions (for panels g/h and Figure 2)
-load("outputs/models/tree_monthly_predictions.RData")
-tree_monthly_raw <- monthly_predictions
-load("outputs/models/soil_monthly_predictions.RData")
-soil_monthly_raw <- monthly_predictions
+## MONTHLY SERIES -- read the canonical product, do not load the legacy RData.
+## outputs/models/{tree,soil}_monthly_predictions.RData date from 2025-09-29, ten
+## months older than RF_MODELS.RData, carry the pre-respecification schema
+## (flux_umol_m2_s, moisture_pct, BasalArea_m2), and have NO producer in run_all.R --
+## the only scripts that write them, 03_predict_{tree,soil}_flux.R, are never run.
+## Panels (g)/(h) built from them therefore showed a superseded model, and the block
+## died outright once the schema drifted. canonical_monthly.csv is written by
+## rev_budget_canonical.R from the locked model, with both terms per m2 of GROUND.
+monthly_canon <- read.csv("outputs/revision/canonical_monthly.csv", stringsAsFactors = FALSE)
+stopifnot(nrow(monthly_canon) == 12,
+          all(c("tree_nmol_m2_s","tree_bh_nmol_m2_s","soil_nmol_m2_s") %in% names(monthly_canon)))
 
-## Summarise by month for tree_results / soil_results
-tree_results <- tree_monthly_raw %>%
-  group_by(month) %>%
-  summarise(mean_flux = mean(flux_umol_m2_s, na.rm = TRUE), .groups = "drop")
+## Panels (g)/(h): tree per m2 of BARK at breast height (the measured basis), soil per
+## m2 of ground. Both already nmol m-2 s-1.
+tree_results <- data.frame(month = monthly_canon$month, mean_flux = monthly_canon$tree_bh_nmol_m2_s)
+soil_results <- data.frame(month = monthly_canon$month, mean_flux = monthly_canon$soil_nmol_m2_s)
 
-soil_results <- soil_monthly_raw %>%
-  group_by(month) %>%
-  summarise(mean_flux = mean(flux_umol_m2_s, na.rm = TRUE), .groups = "drop")
-
-## Build monthly_results (combined plot-level) for Figure 2
-monthly_results <- tree_results %>%
-  rename(Phi_tree_umol_m2_s = mean_flux) %>%
-  left_join(
-    soil_results %>% rename(Phi_soil_umol_m2_s = mean_flux),
-    by = "month"
-  ) %>%
-  mutate(Phi_plot_umol_m2_s = Phi_tree_umol_m2_s + Phi_soil_umol_m2_s)
+## Figure 2 combines the two on a common PLOT basis, so the tree term here is the
+## per-m2-of-ground series rather than the per-bark one. The column names keep their
+## historical `umol` spelling; the values are nmol, as everywhere else in this pipeline.
+monthly_results <- data.frame(
+  month               = monthly_canon$month,
+  Phi_tree_umol_m2_s  = monthly_canon$tree_nmol_m2_s,
+  Phi_soil_umol_m2_s  = monthly_canon$soil_nmol_m2_s)
+monthly_results$Phi_plot_umol_m2_s <-
+  monthly_results$Phi_tree_umol_m2_s + monthly_results$Phi_soil_umol_m2_s
 
 cat("\n=== GENERATING PUBLICATION FIGURES ===\n")
 
@@ -900,7 +903,16 @@ tree_pd_panel <- (p_tree_air | p_tree_moist) / (p_tree_stemp | p_tree_dbh)
 pd_soil_air <- compute_pd(SoilRF, as.data.frame(X_soil), "air_temp_C_mean")
 pd_soil_moist <- compute_pd(SoilRF, as.data.frame(X_soil), "soil_moisture_at_site")
 pd_soil_temp <- compute_pd(SoilRF, as.data.frame(X_soil), "soil_temp_C_mean")
-pd_soil_SI <- compute_pd(SoilRF, as.data.frame(X_soil), "SI")
+# The 4th soil PD slot follows the model, not a hardcoded name. "SI" (the empirical
+# seasonal index) was removed from the soil specification, so compute_pd() returned
+# NULL and the ggplot below was built on NULL data -- which is what killed this script
+# before its ggsave and left manuscript Figure S21 stale for six days. Pick whichever
+# retained predictor is not already shown.
+.soil_pd4 <- setdiff(SoilRF$forest$independent.variable.names,
+                     c("air_temp_C_mean","soil_moisture_at_site","soil_temp_C_mean"))
+.soil_pd4 <- .soil_pd4[vapply(.soil_pd4, function(v) is.numeric(X_soil[[v]]), logical(1))]
+.soil_pd4 <- if (length(.soil_pd4)) .soil_pd4[1] else NA_character_
+pd_soil_SI <- if (!is.na(.soil_pd4)) compute_pd(SoilRF, as.data.frame(X_soil), .soil_pd4) else NULL
 
 # Create plots
 p_soil_air <- ggplot(pd_soil_air, aes(x = x, y = y_mean)) +
@@ -926,10 +938,11 @@ p_soil_stemp <- ggplot(pd_soil_temp, aes(x = x, y = y_mean)) +
   theme_bw(base_size = 9) +
   theme(panel.grid.minor = element_blank())
 
-p_soil_SI <- ggplot(pd_soil_SI, aes(x = x, y = y_mean)) +
+p_soil_SI <- if (is.null(pd_soil_SI)) patchwork::plot_spacer() else
+  ggplot(pd_soil_SI, aes(x = x, y = y_mean)) +
   geom_ribbon(aes(ymin = y_lower, ymax = y_upper), alpha = 0.2, fill = "#8B4513") +
   geom_line(color = "#8B4513", size = 1) +
-  labs(x = "Seasonal index", y = "") +
+  labs(x = .soil_pd4, y = "") +
   theme_bw(base_size = 9) +
   theme(panel.grid.minor = element_blank())
 
@@ -952,7 +965,7 @@ cat("\nStructure:\n")
 cat("  Row 1: Tree performance | Tree importance | Tree PD (2×2 grid)\n")
 cat("  Row 2: Soil performance | Soil importance | Soil PD (2×2 grid)\n")
 cat("\nTree PD features: Air temp, Soil moisture, Soil temp, DBH\n")
-cat("Soil PD features: Air temp, Soil moisture, Soil temp, Seasonal index\n")
+cat(sprintf("Soil PD features: Air temp, Soil moisture, Soil temp, %s\n", ifelse(is.na(.soil_pd4), "(none)", .soil_pd4)))
 
 
 
