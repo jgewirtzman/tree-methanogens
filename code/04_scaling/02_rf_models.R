@@ -643,12 +643,25 @@ build_features_tree <- function(df, drivers, Mhat_fn, SI_table, taxonomy, taxon_
   # reading that day is 72-82 F. Screened on physical plausibility, not on the flux.
   # Switchable so the effect of this change can be attributed rather than assumed:
   # options(rf.tree_paired_temps = FALSE) reproduces the monthly-mean specification.
-  if (isTRUE(getOption("rf.tree_paired_temps", TRUE))) {
-  obs_soil_t <- if ("soil_temp_C" %in% names(df)) temp_ok(df$soil_temp_C, -5, 30, "soil temperature") else NA_real_
-  obs_air_t  <- if ("air_temp_C"  %in% names(df)) temp_ok(df$air_temp_C, -25, 45, "air temperature")  else NA_real_
-  df$soil_temp_C_mean <- dplyr::coalesce(obs_soil_t, as.numeric(df$soil_temp_C_mean))
-  df$air_temp_C_mean  <- dplyr::coalesce(obs_air_t,  as.numeric(df$air_temp_C_mean))
-  } else cat("  NOTE: rf.tree_paired_temps = FALSE -- monthly means only\n")
+  # "none" | "soil" | "both". Soil and air are NOT equivalent here. Across-collar soil
+  # temperature varies by only 0.36 C within a field day against a 5.17 C seasonal SD,
+  # so a per-measurement soil reading is essentially a DAILY value and the monthly
+  # climatology is a fair aggregate of it. Air temperature is different: it swings
+  # diurnally and the measurements were made in the warm part of the day, so
+  # measurement-time air temperature is biased warm relative to any monthly mean
+  # (training median 22.1 C against a monthly-mean median of 9.9 C). Training on it and
+  # predicting from monthly means is a genuine mismatch, so the two are switched apart.
+  .pt <- getOption("rf.tree_paired_temps", "soil")
+  if (isTRUE(.pt)) .pt <- "both"; if (isFALSE(.pt)) .pt <- "none"
+  if (.pt %in% c("soil","both")) {
+    obs_soil_t <- if ("soil_temp_C" %in% names(df)) temp_ok(df$soil_temp_C, -5, 30, "soil temperature") else NA_real_
+    df$soil_temp_C_mean <- dplyr::coalesce(obs_soil_t, as.numeric(df$soil_temp_C_mean))
+  }
+  if (.pt == "both") {
+    obs_air_t <- if ("air_temp_C" %in% names(df)) temp_ok(df$air_temp_C, -25, 45, "air temperature") else NA_real_
+    df$air_temp_C_mean <- dplyr::coalesce(obs_air_t, as.numeric(df$air_temp_C_mean))
+  }
+  cat(sprintf("  rf.tree_paired_temps = '%s'\n", .pt))
   cat(sprintf("  tree temperatures: %d distinct soil, %d distinct air (was 10 and 11, i.e. month)\n",
               length(unique(df$soil_temp_C_mean[!is.na(df$soil_temp_C_mean)])),
               length(unique(df$air_temp_C_mean[!is.na(df$air_temp_C_mean)]))))
