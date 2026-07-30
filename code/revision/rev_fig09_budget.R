@@ -160,18 +160,29 @@ pb <- ggplot(tree_pts %>% arrange(flux_nmol_m2_s), aes(PX, PY, color = flux_nmol
 .rot <- local({ e <- new.env()
   load("data/processed/integrated/rf_workflow_input_data_with_2023.RData", envir = e)
   e$rf_workflow_data$rotation_angle })
+# Placed in the BOTTOM-RIGHT, inside the uncensused quadrat staircase (PX 140-200,
+# PY 0-60), which carries no stems and no soil cells -- genuinely empty space rather
+# than somewhere the marker has to compete with data.
+#
+# It previously sat at (186, 214) with the "N" at 1.5x the needle length above the
+# tip, i.e. y ~ 230, while coord_equal clips at ylim 224 -- so the letter was drawn
+# outside the panel and silently cropped. That is why the arrow had no N.
+#
+# Style: a conventional shaft-and-head arrow rather than the half-filled compass
+# needle, with the N above the tip and a white halo so it reads over any background.
 add_ctx <- function(p) {
-  cx <- 186; cy <- 214; L <- 11; w <- 4.2      # needle centre and size, in metres
+  cx <- 178; cy <- 22; L <- 13                 # arrow centre and half-length, metres
   rr <- function(dx, dy) c(cx + dx*cos(-.rot) - dy*sin(-.rot),
                            cy + dx*sin(-.rot) + dy*cos(-.rot))
-  tip <- rr(0, L); base <- rr(0, -L); lw <- rr(-w, -L*0.35); rw <- rr(w, -L*0.35)
+  tail <- rr(0, -L); tip <- rr(0, L); lab <- rr(0, L * 1.62)
   p +
-    annotate("polygon", x = c(tip[1], lw[1], base[1]), y = c(tip[2], lw[2], base[2]),
-             fill = "grey15", colour = "grey15", linewidth = 0.2) +
-    annotate("polygon", x = c(tip[1], rw[1], base[1]), y = c(tip[2], rw[2], base[2]),
-             fill = "white", colour = "grey15", linewidth = 0.2) +
-    annotate("text", x = rr(0, L*1.5)[1], y = rr(0, L*1.5)[2], label = "N",
-             size = 2.6, fontface = "bold", colour = "grey15")
+    annotate("segment", x = tail[1], y = tail[2], xend = tip[1], yend = tip[2],
+             colour = "grey15", linewidth = 0.55,
+             arrow = grid::arrow(length = unit(0.055, "npc"), type = "closed",
+                                 angle = 22)) +
+    annotate("label", x = lab[1], y = lab[2], label = "N",
+             size = 2.9, fontface = "bold", colour = "grey15",
+             fill = "white", alpha = 0.75, label.size = 0, label.padding = unit(0.06, "lines"))
 }
 pa <- add_ctx(pa); pb <- add_ctx(pb)
 
