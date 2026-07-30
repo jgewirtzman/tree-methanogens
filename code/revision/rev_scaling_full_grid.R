@@ -329,10 +329,34 @@ write.csv(R, file.path(outdir,"scaling_full_grid.csv"), row.names=FALSE)
 #                           estimate", and the only direct measurements above 2 m
 #                           (the climbed oak, 0.82x at 10 m) contradict it -- this
 #                           form puts the median stem at 0.005x by 10 m.
-#                           RETAINED AS THE NAMED CELL ONLY so that figures and text
-#                           point at one place. THE RANGE IS THE RESULT. Whether
-#                           this stays the quoted cell is an open decision; see
-#                           code/revision/notes/AUDIT_2026-07-29.md, blocker 4.
+#                           ADOPTED as the named cell, decided 2026-07-30 (decision D,
+#                           manuscript/OPEN_DECISIONS.md). A budget cascade needs a
+#                           centre and a mean over scenarios would be arbitrary
+#                           weighting; of the candidates this is the only one whose
+#                           SHAPE is model-informed -- the decay rate varies per stem
+#                           with species, size and moisture rather than being one
+#                           imposed curve -- so the stand total reflects composition.
+#                           It also sits mid-range rather than at an extreme.
+#
+#                           THREE THINGS MUST BE DISCLOSED WHEREVER IT IS QUOTED:
+#                             1. the fitted slope is dominated by the 50 cm value --
+#                                refit above 88 cm and the median slope moves from
+#                                -0.914 to +0.052, i.e. it changes sign;
+#                             2. median R2 of the per-stem 4-point fits is 0.580, and
+#                                1.13 m of fit is projected to ~25 m;
+#                             3. it is the ONLY form whose shape depends on the model.
+#                                power, exponential and linear_floored are fitted to
+#                                the OBSERVED three-height means, so their shapes move
+#                                only through the 2 m anchor. When air temperature was
+#                                restored to the tree model this cell moved 20% while
+#                                those moved ~5%.
+#                           Alternatives considered and rejected: `constant` (best on
+#                           the leave-one-height-out CV and invariant to the unsourced
+#                           area shapes, but it is the LARGEST positive scenario, 92%
+#                           extrapolated, and the CV validates 0.75 m of extrapolation
+#                           rather than 23 m); `power` (mid-range and model-independent,
+#                           but not model-informed). THE RANGE IS STILL THE RESULT --
+#                           this is the cascade's centre, not an estimate of the truth.
 #   WAI     2.11            our bottom-up estimate for THIS stand, not a
 #                           literature value imported from another forest
 #   branch  gaussian_75     a crown centred at 0.75H, which is what a closed-canopy
