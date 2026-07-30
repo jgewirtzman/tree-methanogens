@@ -152,15 +152,18 @@ predict_soil_month_extended <- function(month_val, grid_df, moisture_affine, dri
   # Predict
   tryCatch({
     pred_asinh <- predict(model, features)$predictions
-    pred_flux <- sinh(pred_asinh)
+      # raw scale: the asinh transform was removed (02_rf_models.R) and the response is
+  # already nmol m-2 s-1, so both the sinh back-transform and the umol->nmol x1000
+  # that stood here are stale. Left in place they made predictions 1000x too large.
+  pred_flux <- pred_asinh
     
     result <- grid_df %>%
       dplyr::select(x, y) %>%
       mutate(
         month = month_val,
         flux_umol_m2_s = pred_flux,
-        flux_nmol_m2_s = pred_flux * 1000,
-        flux_mg_m2_d = pred_flux * 86400 * 16 * 1e-3,
+        flux_nmol_m2_s = pred_flux,
+        flux_mg_m2_d   = pred_flux * 86400 * 16 * 1e-6,
         moisture_pct = grid_df$soil_moisture_at_site * 100,
         uptake = pred_flux < 0
       )

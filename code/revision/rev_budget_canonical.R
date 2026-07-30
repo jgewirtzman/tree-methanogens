@@ -86,7 +86,17 @@ stopifnot(all(is.finite(M$tree_nmol_m2_s)), all(is.finite(M$soil_nmol_m2_s)))
 write.csv(M, file.path(outdir, "canonical_monthly.csv"), row.names = FALSE)
 
 tree_ann <- sum(M$tree_mg_m2_d)*DAYS_PER_MONTH
-soil_ann <- mean(SOA$flux_nmol_m2_s)*SEC_YR*NMOL_TO_MG
+# BOTH TERMS ON THE SAME BASIS: per m2 of GROUND.
+# The tree term is a sum over stems divided by STAND_AREA_M2, so it is per m2 of ground
+# already. The soil term is the spatial MEAN of the predicted surface, i.e. per m2 of
+# SOIL, and soil is not the whole stand -- basal area occupies 166.77 m2 of it. Summing
+# the two without rescaling adds a per-soil quantity to a per-ground one, which is
+# exactly the basis mixing this paper has to be careful about. Multiply by the soil
+# fraction (0.99552) to put it on ground. The effect is small, 0.448%, but the repo's
+# own legacy code did this (02_rf_models.R: mean_flux * A_soil/A_plot) and
+# canonical_budget.csv already exports soil_area_fraction -- so a consumer could
+# reasonably have applied it a second time.
+soil_ann <- mean(SOA$flux_nmol_m2_s)*SEC_YR*NMOL_TO_MG * (A_soil/STAND_AREA_M2)
 tree_ann_2m <- sum(B_tree$flux_2m_nmol_m2_s*B_tree$A_stem_m2)/STAND_AREA_M2*SEC_YR*NMOL_TO_MG
 
 # Grouped-CV skill alongside OOB. OOB is not grouped by tree, and the 1,130 tree rows

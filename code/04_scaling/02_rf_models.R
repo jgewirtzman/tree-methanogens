@@ -46,7 +46,18 @@ MOISTURE_DEC_RASTER <- rf_workflow_data$PLACEHOLDER_MOISTURE_DEC_RASTER
 moisture_lookup_xy <- rf_workflow_data$PLACEHOLDER_MOISTURE_LOOKUP_XY
 DRIVERS <- rf_workflow_data$PLACEHOLDER_DRIVERS
 TAXONOMY <- rf_workflow_data$PLACEHOLDER_TAXONOMY
-PLOT_AREA <- rf_workflow_data$PLACEHOLDER_PLOT_AREA
+# CENSUSED STAND, not the nominal square. PLACEHOLDER_PLOT_AREA is 40,000 m2
+# (200 x 200); seven of the 100 ForestGEO quadrats were never censused, so the stand is
+# 37,200 m2 (rev_geometry.R, the single definition). Everything below that divides by
+# this -- Phi_tree, A_soil, MONTHLY_FLUXES.csv, ANNUAL_SUMMARY.csv -- was 7.0% low:
+# annual_tree_mg_m2 came out 2.4999 against the canonical 3.7395.
+local({
+  g <- "code/revision/rev_geometry.R"
+  if (!file.exists(g)) g <- "../../code/revision/rev_geometry.R"
+  if (!file.exists(g)) stop("cannot find rev_geometry.R to get the stand area")
+  source(g, local = FALSE)
+})
+PLOT_AREA <- STAND_AREA_M2
 
 cat("Note: Using GPS coordinates throughout (x = longitude, y = latitude)\n")
 
@@ -595,6 +606,53 @@ build_features_tree <- function(df, drivers, Mhat_fn, SI_table, taxonomy, taxon_
   df <- df %>%
     left_join(si_tree, by = "month")
   
+  # PAIRED PER-MEASUREMENT TEMPERATURES (2026 revision).
+  #
+  # These were the monthly plot-level means ONLY, so soil and air temperature each took
+  # exactly one value per month across every tree: 10 and 11 distinct values over 1,130
+  # rows, with no within-month variation at all. Both were therefore deterministic step
+  # functions of month, which means the tree model could not identify a temperature
+  # response separately from a seasonal one, and any importance attributed to
+  # "temperature" was importance attributed to month under another name.
+  #
+  # The campaign measured temperature at the tree. On a single field day soil
+  # temperature spans ~5 C across the plot, so there is real signal being discarded --
+  # the same argument that justifies using per-stem moisture rather than a plot scalar.
+  # build_features_soil() has always coalesced its observed values (see below); the tree
+  # side never did. Prefer the observed reading, fall back to the monthly mean.
+  #
+  # Known limitation, stated rather than engineered around: at PREDICTION time only the
+  # monthly climatology exists, so inventory stems receive a stand-wide monthly value.
+  # The soil model already has this property. Air temperature is the weaker of the two
+  # here -- its within-day spread is largely time-of-day rather than location -- so its
+  # response should not be read as spatial.
+  temp_ok <- function(x, lo, hi, what) {
+    x <- suppressWarnings(as.numeric(x))
+    bad <- is.finite(x) & (x < lo | x > hi)
+    if (any(bad)) {
+      cat(sprintf("  screened %d implausible %s reading(s) outside [%g, %g]: %s\n",
+                  sum(bad), what, lo, hi,
+                  paste(sprintf("%.1f", x[bad]), collapse = ", ")))
+      x[bad] <- NA_real_
+    }
+    x
+  }
+  # Two known bad values, both traced to source: a 44.6 C soil reading (tree 748,
+  # 2023-07-07; that day's 99th percentile is 21.1) and a -8.5 C air reading on
+  # 2023-06-30, which is a Celsius value entered in the Fahrenheit column -- every other
+  # reading that day is 72-82 F. Screened on physical plausibility, not on the flux.
+  # Switchable so the effect of this change can be attributed rather than assumed:
+  # options(rf.tree_paired_temps = FALSE) reproduces the monthly-mean specification.
+  if (isTRUE(getOption("rf.tree_paired_temps", TRUE))) {
+  obs_soil_t <- if ("soil_temp_C" %in% names(df)) temp_ok(df$soil_temp_C, -5, 30, "soil temperature") else NA_real_
+  obs_air_t  <- if ("air_temp_C"  %in% names(df)) temp_ok(df$air_temp_C, -25, 45, "air temperature")  else NA_real_
+  df$soil_temp_C_mean <- dplyr::coalesce(obs_soil_t, as.numeric(df$soil_temp_C_mean))
+  df$air_temp_C_mean  <- dplyr::coalesce(obs_air_t,  as.numeric(df$air_temp_C_mean))
+  } else cat("  NOTE: rf.tree_paired_temps = FALSE -- monthly means only\n")
+  cat(sprintf("  tree temperatures: %d distinct soil, %d distinct air (was 10 and 11, i.e. month)\n",
+              length(unique(df$soil_temp_C_mean[!is.na(df$soil_temp_C_mean)])),
+              length(unique(df$air_temp_C_mean[!is.na(df$air_temp_C_mean)]))))
+
   df$air_temp_C_mean <- as.numeric(df$air_temp_C_mean)
   df$soil_temp_C_mean <- as.numeric(df$soil_temp_C_mean)
   df$SI <- as.numeric(df$SI)
@@ -1002,15 +1060,24 @@ cat("  OOB RMSE (asinh):", round(sqrt(SoilRF$prediction.error), 4), "\n\n")
 
 ## Save training data + feature matrices early (before QC, which may error)
 ## Add predictions to tree_train_complete for downstream plotting
+# NO sinh, NO x1000. The response is on the measured scale in nmol m-2 s-1 (the asinh
+# transform was removed; pred_asinh is a misnomer kept only for column compatibility).
+# This wrote sinh(pred)*1000 and obs*1000, i.e. a back-transform that no longer applies
+# followed by a umol->nmol conversion that no longer applies either -- so the saved
+# obs_flux_nmol read 30.8 median / 6171 max against the true 0.031 / 6.17, and every
+# consumer of these columns inherited a 1000x error. 08_rf_publication_plots.R is one,
+# and it generates manuscript Figure S21.
 tree_train_complete$pred_asinh <- TreeRF$predictions
-tree_train_complete$pred_flux <- sinh(tree_train_complete$pred_asinh)
-tree_train_complete$pred_flux_nmol <- tree_train_complete$pred_flux * 1000
-tree_train_complete$obs_flux_nmol <- tree_train_complete$stem_flux_corrected * 1000
+tree_train_complete$pred_flux <- tree_train_complete$pred_asinh
+tree_train_complete$pred_flux_nmol <- tree_train_complete$pred_flux
+tree_train_complete$obs_flux_nmol <- tree_train_complete$stem_flux_corrected
 
 ## Add predictions to soil data
 soil_train_complete <- soil_train[complete_rows_soil, ]
 soil_train_complete$pred_asinh <- SoilRF$predictions
-soil_train_complete$pred_flux <- sinh(soil_train_complete$pred_asinh)
+# raw scale: no back-transform (sinh here turned soil predictions of -2.96..1.47
+# into -9.61..2.06, a >35% distortion)
+soil_train_complete$pred_flux <- soil_train_complete$pred_asinh
 
 save(tree_train_complete, X_tree, X_soil,
      soil_train_complete, complete_rows_soil,
@@ -1390,7 +1457,7 @@ cat("\nGenerating quality control plots...\n")
 qc1_data <- tree_train_complete %>%
   mutate(
     chamber = ifelse(chamber_rigid == 1, "rigid", "semirigid"),
-    flux_original = sinh(y_asinh)
+    flux_original = y_asinh   # y_asinh holds RAW nmol; sinh() no longer applies
   )
 
 p1 <- ggplot(qc1_data, aes(x = chamber, y = flux_original)) +
@@ -1429,7 +1496,7 @@ ggsave("../../outputs/figures/QC_OUTLIERS.png", p1b, width = 6, height = 6)
 # NOTE (2026 revision fix): TreeRF is fitted on tree_train_complete (complete cases),
 # so its predictions align with THAT frame, not the unfiltered tree_train.
 tree_train_complete$pred_asinh <- TreeRF$predictions
-tree_train_complete$pred_flux <- sinh(tree_train_complete$pred_asinh)
+tree_train_complete$pred_flux <- tree_train_complete$pred_asinh
 tree_train_complete$chamber <- ifelse(tree_train_complete$chamber_rigid == 1, "rigid", "semirigid")
 
 p2 <- ggplot(tree_train_complete, aes(x = stem_flux_corrected, y = pred_flux, 
@@ -1450,7 +1517,7 @@ ggsave("../../outputs/figures/QC_PRED_VS_OBS_TREE.png", p2, width = 8, height = 
 
 # QC2b: Predictions vs observations - Soil
 soil_train_complete$pred_asinh <- SoilRF$predictions
-soil_train_complete$pred_flux <- sinh(soil_train_complete$pred_asinh)
+soil_train_complete$pred_flux <- soil_train_complete$pred_asinh
 
 p2b <- ggplot(soil_train_complete, aes(x = soil_flux_umol_m2_s, y = pred_flux)) +
   geom_point(alpha = 0.5, color = "darkgreen") +
@@ -1642,12 +1709,12 @@ cat("\nGenerating updated plots with nmol units...\n")
 # NOTE (2026 revision fix): TreeRF is fitted on tree_train_complete (complete cases),
 # so its predictions align with THAT frame, not the unfiltered tree_train.
 tree_train_complete$pred_asinh <- TreeRF$predictions
-tree_train_complete$pred_flux <- sinh(tree_train_complete$pred_asinh)
+tree_train_complete$pred_flux <- tree_train_complete$pred_asinh
 tree_train_complete$chamber <- ifelse(tree_train_complete$chamber_rigid == 1, "rigid", "semirigid")
 
-# Convert to nmol for plotting (multiply by 1000)
-tree_train_complete$pred_flux_nmol <- tree_train_complete$pred_flux * 1000
-tree_train_complete$obs_flux_nmol <- tree_train_complete$stem_flux_corrected * 1000
+# Already nmol -- the x1000 here was a leftover from the umol era
+tree_train_complete$pred_flux_nmol <- tree_train_complete$pred_flux
+tree_train_complete$obs_flux_nmol <- tree_train_complete$stem_flux_corrected
 
 p2_nmol <- ggplot(tree_train_complete, aes(x = obs_flux_nmol, y = pred_flux_nmol, 
                                   color = chamber)) +
@@ -1672,11 +1739,11 @@ cat("  Saved: QC_PRED_VS_OBS_TREE_nmol.png\n")
 
 # QC2b: Predictions vs observations - Soil (in nmol)
 soil_train_complete$pred_asinh <- SoilRF$predictions
-soil_train_complete$pred_flux <- sinh(soil_train_complete$pred_asinh)
+soil_train_complete$pred_flux <- soil_train_complete$pred_asinh
 
-# Convert to nmol for plotting
-soil_train_complete$pred_flux_nmol <- soil_train_complete$pred_flux * 1000
-soil_train_complete$obs_flux_nmol <- soil_train_complete$soil_flux_umol_m2_s * 1000
+# Already nmol -- the x1000 here was a leftover from the umol era
+soil_train_complete$pred_flux_nmol <- soil_train_complete$pred_flux
+soil_train_complete$obs_flux_nmol <- soil_train_complete$soil_flux_umol_m2_s
 
 p2b_nmol <- ggplot(soil_train_complete, aes(x = obs_flux_nmol, y = pred_flux_nmol)) +
   geom_point(alpha = 0.5, color = "darkgreen") +

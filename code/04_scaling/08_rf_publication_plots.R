@@ -1,3 +1,8 @@
+# UNITS (2026 revision): every *_umol_m2_s column in this pipeline holds nmol m-2 s-1.
+# The name is a documented misnomer (02_rf_models.R, "asinh() has a fixed knee").
+# The x1000 conversions below were correct in the umol era and are now a 1000x
+# error; sinh() back-transforms are stale for the same reason (the transform was
+# removed). Both are neutralised here.
 # ==============================================================================
 # RF Publication Plots (Figures 1, 9, S6)
 # ==============================================================================
@@ -75,16 +80,16 @@ cat("\nCreating Figure 1: Model Performance...\n")
 perf_data <- bind_rows(
   tree_train_complete %>%
     mutate(
-      observed_nmol = stem_flux_corrected * 1000,
-      predicted_nmol = pred_flux * 1000,
+      observed_nmol = stem_flux_corrected,
+      predicted_nmol = pred_flux,
       source = "Tree stems"
     ) %>%
     dplyr::select(observed_nmol, predicted_nmol, source),
   
   soil_train_complete %>%
     mutate(
-      observed_nmol = soil_flux_umol_m2_s * 1000,
-      predicted_nmol = pred_flux * 1000,
+      observed_nmol = soil_flux_umol_m2_s,
+      predicted_nmol = pred_flux,
       source = "Soil"
     ) %>%
     dplyr::select(observed_nmol, predicted_nmol, source)
@@ -143,9 +148,9 @@ cat("\nCreating Figure 2: Seasonal Patterns...\n")
 # Prepare monthly data
 monthly_plot_data <- monthly_results %>%
   mutate(
-    tree_nmol = Phi_tree_umol_m2_s * 1000,
-    soil_nmol = Phi_soil_umol_m2_s * 1000,
-    total_nmol = Phi_plot_umol_m2_s * 1000
+    tree_nmol = Phi_tree_umol_m2_s,
+    soil_nmol = Phi_soil_umol_m2_s,
+    total_nmol = Phi_plot_umol_m2_s
   ) %>%
   dplyr::select(month, tree_nmol, soil_nmol, total_nmol) %>%
   pivot_longer(cols = c(tree_nmol, soil_nmol, total_nmol),
@@ -296,8 +301,8 @@ summary_table <- data.frame(
     NA
   ),
   `RMSE (nmol/m²/s)` = c(
-    round(sqrt(TreeRF$prediction.error) * 1000, 1),
-    round(sqrt(SoilRF$prediction.error) * 1000, 1),
+    round(sqrt(TreeRF$prediction.error), 1),
+    round(sqrt(SoilRF$prediction.error), 1),
     NA
   ),
   `Training obs` = c(
@@ -350,16 +355,16 @@ cat("\nPreparing performance panels...\n")
 perf_data <- bind_rows(
   tree_train_complete %>%
     mutate(
-      observed_nmol = stem_flux_corrected * 1000,
-      predicted_nmol = pred_flux * 1000,
+      observed_nmol = stem_flux_corrected,
+      predicted_nmol = pred_flux,
       source = "Tree stems"
     ) %>%
     dplyr::select(observed_nmol, predicted_nmol, source),
   
   soil_train_complete %>%
     mutate(
-      observed_nmol = soil_flux_umol_m2_s * 1000,
-      predicted_nmol = pred_flux * 1000,
+      observed_nmol = soil_flux_umol_m2_s,
+      predicted_nmol = pred_flux,
       source = "Soil"
     ) %>%
     dplyr::select(observed_nmol, predicted_nmol, source)
@@ -490,7 +495,7 @@ compute_partial_dependence <- function(model, data, var_name, n_points = 50) {
   
   data.frame(
     x = var_seq,
-    y = sinh(predictions) * 1000  # Convert back to nmol
+    y = predictions  # already nmol
   )
 }
 
@@ -638,9 +643,9 @@ compute_pd <- function(model, data, var_name, n_points = 50) {
   
   data.frame(
     x = var_seq,
-    y_mean = sinh(mean_pred) * 1000,
-    y_lower = sinh(mean_pred - sd_pred) * 1000,
-    y_upper = sinh(mean_pred + sd_pred) * 1000,
+    y_mean = mean_pred,
+    y_lower = mean_pred - sd_pred,
+    y_upper = mean_pred + sd_pred,
     feature = var_name
   )
 }
@@ -806,9 +811,9 @@ compute_pd <- function(model, data, var_name, n_points = 50) {
   
   data.frame(
     x = var_seq,
-    y_mean = sinh(mean_pred) * 1000,
-    y_lower = sinh(mean_pred - sd_pred) * 1000,
-    y_upper = sinh(mean_pred + sd_pred) * 1000
+    y_mean = mean_pred,
+    y_lower = mean_pred - sd_pred,
+    y_upper = mean_pred + sd_pred
   )
 }
 
@@ -934,11 +939,11 @@ cat("\n=== CREATING MONTHLY FLUX PANELS ===\n")
 
 # Prepare monthly data for plotting
 monthly_tree <- tree_results %>%
-  mutate(flux_nmol = mean_flux * 1000) %>%
+  mutate(flux_nmol = mean_flux) %>%
   dplyr::select(month, flux_nmol)
 
 monthly_soil <- soil_results %>%
-  mutate(flux_nmol = mean_flux * 1000) %>%
+  mutate(flux_nmol = mean_flux) %>%
   dplyr::select(month, flux_nmol)
 
 # Tree monthly flux
