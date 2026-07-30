@@ -41,7 +41,21 @@ load("../../data/processed/integrated/rf_workflow_input_data_with_2023.RData")
 TREE_JULY <- rf_workflow_data$PLACEHOLDER_TREE_JULY
 TREE_YEAR <- rf_workflow_data$PLACEHOLDER_TREE_YEAR
 SOIL_YEAR <- rf_workflow_data$PLACEHOLDER_SOIL_YEAR
-INVENTORY <- rf_workflow_data$PLACEHOLDER_INVENTORY
+# CANONICAL inventory for the legacy upscaling block below. PLACEHOLDER_INVENTORY is
+# fg19-only: 7,010 stems with the entire 961-stem bytag survey missing, and unlocated
+# stems dropped. That is what made MONTHLY_FLUXES.csv / ANNUAL_SUMMARY.csv diverge from
+# the canonical budget by 38% (tree) and 29% (soil).
+local({ g <- "code/revision/rev_geometry.R"; if (!file.exists(g)) g <- "../../code/revision/rev_geometry.R"
+        source(g, local = FALSE)
+        sl <- "code/revision/rev_species_levels.R"; if (!file.exists(sl)) sl <- "../../code/revision/rev_species_levels.R"
+        source(sl, local = FALSE) })
+INVENTORY <- canonical_inventory()
+# Column names the legacy block below expects. canonical_inventory() speaks the
+# inventory's own vocabulary (tag, PX, PY in plot-local metres); geo_transforms() is
+# the same lon/lat conversion rev_predict_tree_flux_current.R uses, so the two agree.
+INVENTORY$tree_id <- as.character(INVENTORY$tag)   # character, as everywhere else
+local({ ll <- geo_transforms()$fwd(INVENTORY$PX, INVENTORY$PY)
+        INVENTORY$x <<- ll$lon; INVENTORY$y <<- ll$lat })
 MOISTURE_DEC_RASTER <- rf_workflow_data$PLACEHOLDER_MOISTURE_DEC_RASTER
 moisture_lookup_xy <- rf_workflow_data$PLACEHOLDER_MOISTURE_LOOKUP_XY
 DRIVERS <- rf_workflow_data$PLACEHOLDER_DRIVERS
@@ -65,30 +79,15 @@ cat("Note: Using GPS coordinates throughout (x = longitude, y = latitude)\n")
 # DBH CORRECTION FOR INVENTORY
 # =============================================================================
 
-cat("\n*** APPLYING DBH CORRECTIONS ***\n")
-
-INVENTORY <- INVENTORY %>%
-  mutate(
-    dbh_original = dbh_m,
-    dbh_corrected = case_when(
-      dbh_m > 3 ~ dbh_m / 100,
-      dbh_m >= 0.5 & dbh_m <= 3 ~ dbh_m,
-      TRUE ~ dbh_m
-    ),
-    dbh_final = case_when(
-      species == "Kalmia latifolia" & (dbh_corrected * 100) > 100 ~ dbh_corrected / 100,
-      species == "Kalmia latifolia" & (dbh_corrected * 100) > 10 ~ dbh_corrected / 10,
-      grepl("Betula", species) & (dbh_corrected * 100) > 200 ~ dbh_corrected / 10,
-      species == "Pinus strobus" & (dbh_corrected * 100) > 230 ~ dbh_corrected / 10,
-      TRUE ~ dbh_corrected
-    ),
-    dbh_m = dbh_final
-  ) %>%
-  dplyr::select(tree_id, species, dbh_m, x, y)
-
-n_dbh_corrected <- sum(INVENTORY$dbh_m != rf_workflow_data$PLACEHOLDER_INVENTORY$dbh_m)
-cat("  DBH corrections applied to", n_dbh_corrected, "trees\n")
-cat("  DBH range (cm):", round(range(INVENTORY$dbh_m * 100), 1), "\n")
+# DBH repair removed. canonical_inventory() returns diameters already unit-checked and
+# typo-repaired by rev_inventory_build.R under ONE documented rule (shift the decimal
+# until the value is <= 100 cm), replacing this stack of species-specific thresholds
+# which over-corrected and used species == "..." rather than %in%, so the 41 stems with
+# species = NA fell through unpredictably. The n_dbh_corrected line that followed
+# compared against PLACEHOLDER_INVENTORY row-by-row and would now be a length mismatch.
+INVENTORY <- INVENTORY %>% dplyr::select(tree_id, species, dbh_m, x, y)
+cat(sprintf("  Inventory: %d stems, DBH range %.1f-%.1f cm (canonical, pre-repaired)\n",
+            nrow(INVENTORY), min(INVENTORY$dbh_m)*100, max(INVENTORY$dbh_m)*100))
 
 # =============================================================================
 # UNIT CONVERSION: nmol TO μmol
@@ -959,25 +958,23 @@ X_tree_species_first <- data.frame(
   dbh_m         = tree_train_complete$dbh_m,
   soil_moisture_at_tree = tree_train_complete$soil_moisture_at_tree,
   soil_temp_C_mean = tree_train_complete$soil_temp_C_mean,
-  # air_temp_C_mean DROPPED (2026-07-30, decision A in manuscript/OPEN_DECISIONS.md).
-  # Its marginal relationship with flux is nil (Spearman rho = +0.002, non-monotonic
-  # across quintiles), and the two temperature variables are mutually substitutable:
-  # under grouped CV by tree, dropping either alone costs nothing measurable (0.1036
-  # vs 0.1038 against a base of 0.1160) while dropping BOTH costs 0.0845 and is the
-  # only temperature result that clears its own standard error. So temperature is
-  # load-bearing; air temperature specifically is not, once soil temperature is present.
-  #
-  # The decisive argument is coverage rather than skill. When air temperature was coded
-  # at measurement resolution it drifted the stand total systematically, because for 10
-  # of 12 months only 18-91 training rows lie within 2 C of the monthly value that
-  # prediction uses, against 418-419 in July and August. The two well-supported months
-  # moved the expected way (-22%); the ten thin months moved +21-34% and dominated the
-  # annual mean. Chambers only ran on warm days in the warm part of the day, so
-  # measurement-time air temperature has almost no support near any monthly mean.
-  # Keeping it as a monthly mean instead just reinstates a deterministic function of
-  # month under a temperature name. Dropping it removes the artefact rather than
-  # describing it. Soil temperature is retained and carries genuine daily resolution
-  # (182 distinct values), so the seasonal signal is not lost.
+  # air_temp_C_mean RESTORED 2026-07-30. Decision A dropped it; three independent lines
+  # of evidence reversed that, and the reversal is the honest reading:
+  #   1. at 30 CV repeats (the 5-repeat SE was understated ~4x) re-adding it is a
+  #      significant skill gain, 0.1199 +/- 0.0053 against 0.1067 +/- 0.0055;
+  #   2. it carries about HALF the tree term's seasonal amplitude -- without it the
+  #      monthly cycle flattens from max/min 1.58 to 1.27 on a common design, and to
+  #      1.13 at stand level, because soil moisture and soil temperature alone barely
+  #      move the prediction (January 0.00882 vs August 0.00900 nmol m-2 s-1);
+  #   3. the coverage argument that justified dropping it applied to the
+  #      MEASUREMENT-RESOLUTION coding, where 10 of 12 months had almost no training
+  #      support near the monthly value. As a monthly mean, training and prediction use
+  #      the same 12 values, so that objection does not apply.
+  # Neither of the criteria used to drop it (grouped CV R2, the stand sum) is sensitive
+  # to seasonal SHAPE, which is why the cost went unmeasured. It remains a seasonal
+  # proxy -- 11 distinct values, constant within a month -- so no temperature effect is
+  # identifiable separately from season, and the text must say so.
+  air_temp_C_mean  = tree_train_complete$air_temp_C_mean,
   # Measurement height. The 2021 campaign measured 50/125/200 cm on the same trees;
   # without this the three rows are identical in every predictor and differ only in the
   # response, so the model averages them and the height signal is lost. Flux roughly
@@ -1123,7 +1120,7 @@ cat("Computing plot geometry...\n")
 
 compute_geometry <- function(inventory_df) {
   inventory_df$S_i <- ifelse(
-    inventory_df$species == "Kalmia latifolia",
+    inventory_df$species %in% "Kalmia latifolia",
     pi * inventory_df$dbh_m * 0.75,
     pi * inventory_df$dbh_m * 2
   )
@@ -1151,12 +1148,12 @@ cat("  Soil fraction:", round(geometry$A_soil/geometry$A_plot, 3), "\n\n")
 cat("\n=== MONTHLY SPATIAL PREDICTIONS (SPECIES-FIRST) ===\n")
 
 # Prepare INVENTORY with within-species DBH
-species_counts_train <- table(tree_train$species)
-INVENTORY$species_clean <- ifelse(
-  INVENTORY$species %in% names(species_counts_train) & species_counts_train[INVENTORY$species] >= 10,
-  INVENTORY$species,
-  "SPECIES_OTHER"
-)
+# The taxonomic ladder, via the one definition. This was a bare lump-at-10 with no
+# GEN_<genus> rung, so all 1,899 Kalmia landed in SPECIES_OTHER -- whose observed mean
+# is ~7x theirs. It also returned NA (not "SPECIES_OTHER") for an NA-species stem,
+# because species_counts_train[NA] is NA and TRUE & NA is NA.
+INVENTORY$species_clean <- species_to_model_level(
+  INVENTORY$species, sort(unique(as.character(tree_train_complete$species_clean))))
 
 dbh_stats <- tree_train %>%
   group_by(species_clean) %>%
@@ -1298,7 +1295,7 @@ for (t in 1:12) {
   pred_flux_umol_m2_s <- pred_asinh          # raw scale: no back-transform
   
   S_tree <- ifelse(
-    inv_predictions$species == "Kalmia latifolia",
+    inv_predictions$species %in% "Kalmia latifolia",
     pi * inv_predictions$dbh_m * 0.75,
     pi * inv_predictions$dbh_m * 2
   )
@@ -1448,9 +1445,9 @@ print(monthly_results)
 
 annual_summary <- monthly_results %>%
   summarise(
-    annual_tree_mg_m2 = sum(Phi_tree_mg_m2_d) * 30.4,
-    annual_soil_mg_m2 = sum(Phi_soil_mg_m2_d) * 30.4,
-    annual_plot_mg_m2 = sum(Phi_plot_mg_m2_d) * 30.4
+    annual_tree_mg_m2 = sum(Phi_tree_mg_m2_d) * (365.25/12),
+    annual_soil_mg_m2 = sum(Phi_soil_mg_m2_d) * (365.25/12),
+    annual_plot_mg_m2 = sum(Phi_plot_mg_m2_d) * (365.25/12)
   )
 
 cat("\nAnnual totals (mg CH4 m-2 yr-1):\n")
@@ -1701,7 +1698,7 @@ diagnostics <- list(
     soil = sort(unique(soil_train_complete$month))
   ),
   training_chambers = as.list(table(tree_train_complete$chamber_type)),
-  dbh_corrections_applied = n_dbh_corrected,
+  dbh_corrections_applied = NA_integer_,  # repairs now happen in rev_inventory_build.R
   coordinate_system = "GPS (x = longitude, y = latitude)"  # ADDED
 )
 
