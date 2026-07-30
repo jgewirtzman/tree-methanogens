@@ -959,7 +959,25 @@ X_tree_species_first <- data.frame(
   dbh_m         = tree_train_complete$dbh_m,
   soil_moisture_at_tree = tree_train_complete$soil_moisture_at_tree,
   soil_temp_C_mean = tree_train_complete$soil_temp_C_mean,
-  air_temp_C_mean  = tree_train_complete$air_temp_C_mean,
+  # air_temp_C_mean DROPPED (2026-07-30, decision A in manuscript/OPEN_DECISIONS.md).
+  # Its marginal relationship with flux is nil (Spearman rho = +0.002, non-monotonic
+  # across quintiles), and the two temperature variables are mutually substitutable:
+  # under grouped CV by tree, dropping either alone costs nothing measurable (0.1036
+  # vs 0.1038 against a base of 0.1160) while dropping BOTH costs 0.0845 and is the
+  # only temperature result that clears its own standard error. So temperature is
+  # load-bearing; air temperature specifically is not, once soil temperature is present.
+  #
+  # The decisive argument is coverage rather than skill. When air temperature was coded
+  # at measurement resolution it drifted the stand total systematically, because for 10
+  # of 12 months only 18-91 training rows lie within 2 C of the monthly value that
+  # prediction uses, against 418-419 in July and August. The two well-supported months
+  # moved the expected way (-22%); the ten thin months moved +21-34% and dominated the
+  # annual mean. Chambers only ran on warm days in the warm part of the day, so
+  # measurement-time air temperature has almost no support near any monthly mean.
+  # Keeping it as a monthly mean instead just reinstates a deterministic function of
+  # month under a temperature name. Dropping it removes the artefact rather than
+  # describing it. Soil temperature is retained and carries genuine daily resolution
+  # (182 distinct values), so the seasonal signal is not lost.
   # Measurement height. The 2021 campaign measured 50/125/200 cm on the same trees;
   # without this the three rows are identical in every predictor and differ only in the
   # response, so the model averages them and the height signal is lost. Flux roughly
