@@ -481,15 +481,18 @@ predict_tree_month <- function(month_val, inventory_df, moisture_affine, drivers
   # Predict
   tryCatch({
     pred_asinh <- predict(model, features_aligned)$predictions
-    pred_flux <- sinh(pred_asinh)
+      # raw scale: the asinh transform was removed (02_rf_models.R) and the response is
+  # already nmol m-2 s-1, so both the sinh back-transform and the umol->nmol x1000
+  # that stood here are stale. Left in place they made predictions 1000x too large.
+  pred_flux <- pred_asinh
     
     result <- inventory_df %>%
       dplyr::select(tree_id, species, x, y, dbh_m, BasalArea_m2) %>%
       mutate(
         month = month_val,
         flux_umol_m2_s = pred_flux,
-        flux_nmol_m2_s = pred_flux * 1000,
-        flux_mg_m2_d = pred_flux * 86400 * 16 * 1e-3,
+        flux_nmol_m2_s = pred_flux,
+        flux_mg_m2_d   = pred_flux * 86400 * 16 * 1e-6,
         moisture_pct = inventory_df$soil_moisture_at_tree * 100
       )
     

@@ -1460,9 +1460,11 @@ if (exists("SoilRF")) {
 
 # Monthly fluxes
 sub_header("Monthly predicted fluxes")
-# Convert from umol to nmol: multiply by 1000
-tree_monthly_nmol <- monthly_fluxes$Phi_tree_umol_m2_s * 1000
-soil_monthly_nmol <- monthly_fluxes$Phi_soil_umol_m2_s * 1000
+# Phi_*_umol_m2_s already holds nmol m-2 s-1 -- the name is a documented misnomer.
+# The x1000 that stood here reported the tree mean as 4.96 nmol m-2 s-1 instead of
+# 0.00496 and soil as -1078 instead of -1.08.
+tree_monthly_nmol <- monthly_fluxes$Phi_tree_umol_m2_s
+soil_monthly_nmol <- monthly_fluxes$Phi_soil_umol_m2_s
 
 stat("Tree stem annual mean", mean(tree_monthly_nmol), "nmol m-2 s-1")
 stat("Tree stem monthly range", paste(round(min(tree_monthly_nmol), 4), "to",
