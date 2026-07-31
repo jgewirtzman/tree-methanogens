@@ -25,7 +25,7 @@
 #
 # Usage:  Rscript code/revision/rev_write_parameter_record.R
 # ==============================================================================
-source("code/revision/rev_geometry.R")
+source("code/lib/rev_geometry.R")
 
 MD    <- "code/revision/notes/scaling_parameters.md"
 BEGIN <- "<!-- BEGIN GENERATED: headline -- rev_write_parameter_record.R -->"

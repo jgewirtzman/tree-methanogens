@@ -44,7 +44,7 @@
 suppressPackageStartupMessages({library(dplyr); library(ranger); library(mgcv)})
 set.seed(42)
 load("outputs/models/TRAINING_DATA.RData")
-source("code/revision/rev_geometry.R")
+source("code/lib/rev_geometry.R")
 
 X0 <- as.data.frame(X_tree)
 PREDS <- setdiff(names(X0), "species")

@@ -30,7 +30,7 @@ SINK <- "#2166ac"; SRC <- "#b2182b"; SRC_LT <- "#f4a582"; NETC <- "grey40"
 # and the budget panel stacked a 5.41 mg measured band (canonical) under an 85 mg
 # whole-surface bar built on a 5.79 mg band (grid). Soil is the interpolated
 # surface everywhere (decision 2026-07-27); the tree term is the canonical band.
-source("code/revision/rev_geometry.R")
+source("code/lib/rev_geometry.R")
 soil_map <- read.csv("outputs/tables/soil_surface_annual.csv")     # clipped to the stand
 tree_pts <- read.csv("outputs/tables/tree_flux_predictions.csv")
 tree_pts <- tree_pts[tree_pts$in_stand & tree_pts$located, ]       # mappable subset

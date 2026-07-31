@@ -14,7 +14,7 @@ tax<-otu[,taxc]; cnt<-as.matrix(sapply(otu[,setdiff(names(otu),taxc),drop=FALSE]
 mgfam<-c("Methanobacteriaceae","Methanomassiliicoccaceae","Methanoregulaceae","Methanocellaceae",
          "Methanosaetaceae","Methanomicrobiaceae","Methanosarcinaceae","Methanomethyliaceae","Methanocorpusculaceae")
 mg_asv<-rownames(otu)[tax$Family %in% mgfam]
-source("code/00_harmonization/load_methanotroph_definitions.R")
+source("code/lib/load_methanotroph_definitions.R")
 dp<-if(file.exists("data/processed/molecular/methanotroph_definitions_revised.csv"))"data/processed/molecular/methanotroph_definitions_revised.csv" else "data/compiled/methanotroph_definitions.csv"
 tax$mt<-classify_methanotrophs(tax,load_methanotroph_defs(dp),include_conditional=TRUE)
 mt_asv<-rownames(otu)[tax$mt %in% c("Known","Putative")]

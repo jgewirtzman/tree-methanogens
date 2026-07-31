@@ -43,8 +43,8 @@
 suppressMessages({library(ranger);library(dplyr);library(ggplot2);library(tidyr);library(patchwork)})
 set.seed(42)
 outdir <- "outputs/revision"; dir.create(outdir, showWarnings=FALSE, recursive=TRUE)
-source("code/revision/rev_geometry.R")
-source("code/revision/rev_species_levels.R")
+source("code/lib/rev_geometry.R")
+source("code/lib/rev_species_levels.R")
 load("outputs/models/RF_MODELS.RData"); load("outputs/models/TRAINING_DATA.RData")
 d <- tree_train_complete; trained <- sort(unique(as.character(d$species_clean)))
 CONV <- 86400*365.25*16e-6

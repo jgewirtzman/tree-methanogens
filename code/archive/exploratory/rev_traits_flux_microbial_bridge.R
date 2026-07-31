@@ -46,7 +46,7 @@ trait_labels <- c(porosity_num = "Wood porosity (tracheid<diffuse<ring)",
   wood_heartwood_pH = "Heartwood pH", baad_heartwood_fraction_mean = "Heartwood fraction")
 
 # ---- canonical species-level responses (manuscript's own construction) -------
-source("code/revision/rev_prep_species_data.R")   # analysis_ratio/mcra/meth, flux_by_species
+source("code/lib/rev_prep_species_data.R")   # analysis_ratio/mcra/meth, flux_by_species
 sp <- analysis_ratio %>%
   transmute(species_id, n_trees, flux = median_flux, balance = median_log_ratio) %>%
   left_join(analysis_mcra %>% transmute(species_id, mcra = log10(value + 1)), by = "species_id") %>%

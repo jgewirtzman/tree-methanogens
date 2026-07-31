@@ -144,7 +144,7 @@ for (fam in methanogen_families) {
 # STEP 4: Methanotroph calculations (using canonical definitions)
 # ==============================================================================
 
-source("code/00_harmonization/load_methanotroph_definitions.R")
+source("code/lib/load_methanotroph_definitions.R")
 mt_defs <- load_methanotroph_defs("data/processed/molecular/methanotroph_definitions_revised.csv")  # R2 #2: Methylacidiphilaceae family Known->Putative
 
 # Classify each ASV as Known, Putative, or NA

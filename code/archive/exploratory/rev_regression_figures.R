@@ -13,7 +13,7 @@
 # Outputs: outputs/revision/regfig_<predictor>.png  (+ combined contact sheet)
 # ==============================================================================
 
-source("code/revision/rev_prep_species_data.R")
+source("code/lib/rev_prep_species_data.R")
 suppressPackageStartupMessages({ library(ggplot2); library(gridExtra) })
 out_dir <- "outputs/revision"; dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
 

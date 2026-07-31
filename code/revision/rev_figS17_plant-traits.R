@@ -23,7 +23,7 @@ sp_map <- c(ACRU="Acer rubrum",ACSA="Acer saccharum",BEAL="Betula alleghaniensis
   KALA="Kalmia latifolia",PIST="Pinus strobus",PRSE="Prunus serotina",QUAL="Quercus alba",
   QURU="Quercus rubra",QUVE="Quercus velutina",SAAL="Sassafras albidum",TSCA="Tsuga canadensis")
 
-source("code/revision/rev_prep_species_data.R")
+source("code/lib/rev_prep_species_data.R")
 resp <- analysis_ratio %>% transmute(species_id, `Stem CH4 flux`=median_flux, `Balance (mcrA:MOB)`=median_log_ratio) %>%
   left_join(analysis_mcra %>% transmute(species_id, `mcrA (methanogen)`=log10(value+1)), by="species_id") %>%
   left_join(analysis_meth %>% transmute(species_id, `Methanotroph`=log10(value+1)), by="species_id")

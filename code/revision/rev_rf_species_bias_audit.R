@@ -32,7 +32,7 @@
 suppressPackageStartupMessages({library(dplyr); library(ranger)})
 load("outputs/models/RF_MODELS.RData")
 load("outputs/models/TRAINING_DATA.RData")
-source("code/revision/rev_geometry.R")
+source("code/lib/rev_geometry.R")
 
 CONV <- 86400 * 365.25 * 16e-6
 

@@ -50,7 +50,7 @@
 # there, and an unlocated record therefore comes from censused ground.
 # ==============================================================================
 suppressPackageStartupMessages({library(dplyr)})
-source("code/revision/rev_geometry.R")
+source("code/lib/rev_geometry.R")
 
 RAW <- "data/raw/inventory"
 OUT <- "outputs/tables/inventory_stems.csv"

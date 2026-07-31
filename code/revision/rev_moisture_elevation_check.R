@@ -32,7 +32,7 @@
 suppressPackageStartupMessages({library(dplyr); library(fields); library(ggplot2)
                                 library(patchwork)})
 set.seed(42)
-source("code/revision/rev_geometry.R")
+source("code/lib/rev_geometry.R")
 
 E <- read.csv("outputs/tables/combined_elevation_data.csv", stringsAsFactors = FALSE)
 E <- E[is.finite(E$Longitude) & is.finite(E$Latitude) & is.finite(E$Elevation), ]

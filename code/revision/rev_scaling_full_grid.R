@@ -65,8 +65,8 @@
 suppressMessages({library(ranger);library(dplyr);library(ggplot2);library(tidyr);library(patchwork)})
 set.seed(42)
 outdir <- "outputs/revision"; dir.create(outdir, showWarnings=FALSE, recursive=TRUE)
-source("code/revision/rev_geometry.R")
-source("code/revision/rev_species_levels.R")
+source("code/lib/rev_geometry.R")
+source("code/lib/rev_species_levels.R")
 load("outputs/models/RF_MODELS.RData"); load("outputs/models/TRAINING_DATA.RData")
 load("data/processed/integrated/rf_workflow_input_data_with_2023.RData")
 DR <- rf_workflow_data$PLACEHOLDER_DRIVERS

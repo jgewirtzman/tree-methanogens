@@ -15,7 +15,7 @@
 #
 #   Rscript code/revision/rev_check_consistency.R
 # ==============================================================================
-source("code/revision/rev_geometry.R")
+source("code/lib/rev_geometry.R")
 
 FAILS <- 0L
 chk <- function(label, ok, detail = "") {

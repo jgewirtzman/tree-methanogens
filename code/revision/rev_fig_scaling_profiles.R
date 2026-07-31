@@ -43,7 +43,7 @@ BP <- read.csv(file.path(outdir, "scaling_band_profile.csv"),  stringsAsFactors 
 KN <- read.csv(file.path(outdir, "scaling_shape_kernels.csv"), stringsAsFactors = FALSE)
 AR <- read.csv(file.path(outdir, "scaling_area_profiles.csv"), stringsAsFactors = FALSE)
 GR <- read.csv(file.path(outdir, "scaling_full_grid.csv"),     stringsAsFactors = FALSE)
-source("code/revision/rev_geometry.R")
+source("code/lib/rev_geometry.R")
 
 FO <- c("constant","exp_band_slope","power","exponential","linear_floored",
         "linear_bounded_median")

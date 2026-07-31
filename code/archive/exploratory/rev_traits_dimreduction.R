@@ -27,7 +27,7 @@ sp_map <- c(ACRU="Acer rubrum",ACSA="Acer saccharum",BEAL="Betula alleghaniensis
   TSCA="Tsuga canadensis")
 
 # ---- responses ---------------------------------------------------------------
-source("code/revision/rev_prep_species_data.R")
+source("code/lib/rev_prep_species_data.R")
 resp <- analysis_ratio %>% transmute(species_id, flux = median_flux, balance = median_log_ratio) %>%
   left_join(analysis_mcra %>% transmute(species_id, mcra = log10(value + 1)), by = "species_id") %>%
   left_join(analysis_meth %>% transmute(species_id, meth = log10(value + 1)), by = "species_id")

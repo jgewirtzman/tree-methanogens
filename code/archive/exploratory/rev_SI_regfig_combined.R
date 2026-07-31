@@ -7,7 +7,7 @@
 # Reuses helpers/data from R_regression_figures.R. NEW file. Edits nothing.
 # Output: outputs/revision/SI_regfig_combined.png
 # ==============================================================================
-source("code/revision/rev_prep_species_data.R")
+source("code/lib/rev_prep_species_data.R")
 suppressPackageStartupMessages({ library(ggplot2); library(dplyr); library(gridExtra) })
 out <- "outputs/revision"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
 

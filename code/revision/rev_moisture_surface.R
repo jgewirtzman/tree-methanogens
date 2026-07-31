@@ -33,7 +33,7 @@
 # ==============================================================================
 suppressPackageStartupMessages({library(dplyr); library(fields)})
 set.seed(42)
-source("code/revision/rev_geometry.R")
+source("code/lib/rev_geometry.R")
 
 CELL_M <- 2      # metres; 100 x 100 cells over the plot, matching the survey's limits
 

@@ -125,7 +125,7 @@ ps.filt <- prune_samples(!is.na(sample_data(ps.ra)$compartment), ps.ra)
 # STEP 3: Load methanotroph definitions (Knief 2015)
 # ==============================================================================
 
-source("code/00_harmonization/load_methanotroph_definitions.R")
+source("code/lib/load_methanotroph_definitions.R")
 mt_defs <- load_methanotroph_defs()
 
 # ==============================================================================

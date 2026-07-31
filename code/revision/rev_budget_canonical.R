@@ -32,7 +32,7 @@
 #         outputs/revision/canonical_monthly.csv  (monthly series, both terms)
 # ==============================================================================
 suppressPackageStartupMessages({library(dplyr)})
-source("code/revision/rev_geometry.R")
+source("code/lib/rev_geometry.R")
 outdir <- "outputs/revision"; dir.create(outdir, showWarnings = FALSE, recursive = TRUE)
 
 need <- c(inv  = "outputs/tables/inventory_stems.csv",

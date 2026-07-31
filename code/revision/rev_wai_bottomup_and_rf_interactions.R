@@ -38,7 +38,7 @@
 suppressMessages({library(dplyr); library(ggplot2); library(tidyr); library(ranger)})
 set.seed(42)
 outdir <- "outputs/revision"; dir.create(outdir, showWarnings=FALSE, recursive=TRUE)
-source("code/revision/rev_geometry.R")
+source("code/lib/rev_geometry.R")
 load("outputs/models/RF_MODELS.RData"); load("outputs/models/TRAINING_DATA.RData")
 load("data/processed/integrated/rf_workflow_input_data_with_2023.RData")
 # CANONICAL stems and ground. This read rf_workflow_data$PLACEHOLDER_INVENTORY over

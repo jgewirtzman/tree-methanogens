@@ -64,8 +64,8 @@
 # ==============================================================================
 
 suppressMessages({library(dplyr); library(ggplot2); library(tidyr); library(ranger)})
-source("code/revision/rev_geometry.R")
-source("code/revision/rev_species_levels.R")
+source("code/lib/rev_geometry.R")
+source("code/lib/rev_species_levels.R")
 set.seed(42)
 outdir <- "outputs/revision"; dir.create(outdir, showWarnings = FALSE, recursive = TRUE)
 
