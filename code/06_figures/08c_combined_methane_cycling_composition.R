@@ -29,49 +29,13 @@ library(viridis)
 # STEP 1: Build phyloseq object (shared for both methanogen and methanotroph)
 # ==============================================================================
 
-ddpcr <- read.csv("data/raw/ddpcr/ddPCR_meta_all_data.csv")
-water <- read.csv("data/raw/tree_cores/Tree_Core_Sectioning_Data.csv")
-qpcr_16s <- read.csv("data/raw/16s/16s_w_metadata.csv")
-qpcr_16s <- subset(qpcr_16s, qpcr_16s$Sample.ID != "None")
-qpcr_16s <- qpcr_16s[, c(3, 4, 6)]
 
-water$seq_id <- toupper(water$seq_id)
-ddpcr <- merge(ddpcr, water, by = c("core_type", "seq_id"), all.x = TRUE)
-ddpcr <- merge(ddpcr, qpcr_16s, by = c("core_type", "seq_id"), all.x = TRUE)
-
-otu_tab <- read.delim("data/raw/16s/OTU_table.txt", header = TRUE, row.names = 1)
-bastard_tax <- otu_tab[, 590:596]
-bastard_tax[bastard_tax == ""] <- NA
-tax_tab_pre <- tax_table(bastard_tax)
-taxa_names(tax_tab_pre) <- sub("sp", "seq", taxa_names(tax_tab_pre))
-otu_tab_corr <- otu_tab[, 1:589]
-otu_table_pre <- otu_table(otu_tab_corr, taxa_are_rows = TRUE)
-
-phylo_tree <- read_tree("data/raw/16s/unrooted_tree.nwk")
-samp_data <- read.delim("data/raw/16s/tree_16s_mapping_dada2_corrected.txt", row.names = 1)
-samp_data$RowName <- row.names(samp_data)
-samp_data$seq_id <- sub("prime", "'", samp_data$seq_id)
-samp_data$seq_id <- sub("star", "*", samp_data$seq_id)
-samp_data$seq_id <- sub("HM", "H", samp_data$seq_id)
-samp_data$seq_id[samp_data$ForwardFastqFile == "206_B01_16S_S3_R1_001.fastq"] <- "RO104"
-samp_data$core_type[samp_data$ForwardFastqFile == "206_B01_16S_S3_R1_001.fastq"] <- "Inner"
-
-samp_data_merged <- merge(ddpcr, samp_data, by = c("seq_id", "core_type"), all.y = TRUE)
-dups <- which(duplicated(samp_data_merged$RowName) == TRUE)
-samp_data_merged <- samp_data_merged[-c(dups), ]
-row.names(samp_data_merged) <- samp_data_merged$RowName
-
-raw_ps <- phyloseq(tax_tab_pre, otu_table_pre, phylo_tree, sample_data(samp_data_merged))
-
-pop_taxa <- function(physeq, badTaxa) {
-  allTaxa <- taxa_names(physeq)
-  allTaxa <- allTaxa[!(allTaxa %in% badTaxa)]
-  return(prune_taxa(allTaxa, physeq))
-}
-
-mitochondria <- rownames(tax_table(raw_ps))[which(tax_table(raw_ps)[, 5] == "Mitochondria")]
-chloroplast <- rownames(tax_table(raw_ps))[which(tax_table(raw_ps)[, 4] == "Chloroplast")]
-no_mito <- pop_taxa(raw_ps, c(mitochondria, chloroplast))
+# 16S phyloseq assembly: single definition in code/lib/build_phyloseq.R.
+# All nine copies of this ~45-line block produced an identical object
+# (71,511 taxa / 587 samples / 6,427,747 counts) before consolidation.
+source("code/lib/build_phyloseq.R")
+.ps16   <- build_16s_phyloseq()
+no_mito <- .ps16$ps
 
 taxa_names(no_mito) <- paste0("ASV", seq(ntaxa(no_mito)))
 set.seed(46814)

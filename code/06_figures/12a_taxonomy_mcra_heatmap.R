@@ -22,87 +22,21 @@
 #   - OTU table:     data/raw/16s/OTU_table.txt
 #   - Phylo tree:    data/raw/16s/unrooted_tree.nwk
 #   - Sample map:    data/raw/16s/tree_16s_mapping_dada2_corrected.txt
-#   - ddPCR meta:    data/raw/ddpcr/ddPCR_meta_all_data.csv
-#   - Core data:     data/raw/tree_cores/Tree_Core_Sectioning_Data.csv
-#   - 16S qPCR:      data/raw/16s/16s_w_metadata.csv
-#   - PICRUSt meta:  data/raw/picrust/16S_tree_sample_table_with_meta.csv
-#
-# Outputs:
-#   - figS6_taxonomy_mcra_heatmap.png
-#   - family_mcra_associations_strict.csv
-#   - family_mcra_associations_loose.csv
-#
-# Required packages: phyloseq, tidyverse, lme4, pheatmap, RColorBrewer
-# ==============================================================================
-
 library(phyloseq)
 library(tidyverse)
 library(lme4)
 library(pheatmap)
 library(RColorBrewer)
 
-# ==============================================================================
-# STEP 1: Build phyloseq object (consistent with 08_/08b_/08c_/08d_ scripts)
-# ==============================================================================
+# 16S phyloseq assembly: single definition in code/lib/build_phyloseq.R.
+# All nine copies of this ~45-line block produced an identical object
+# (71,511 taxa / 587 samples / 6,427,747 counts) before consolidation.
+source("code/lib/build_phyloseq.R")
+.ps16   <- build_16s_phyloseq()
+no_mito <- .ps16$ps
 
-# Load and merge metadata
-ddpcr <- read.csv("data/raw/ddpcr/ddPCR_meta_all_data.csv")
-water <- read.csv("data/raw/tree_cores/Tree_Core_Sectioning_Data.csv")
-qpcr_16s <- read.csv("data/raw/16s/16s_w_metadata.csv")
-qpcr_16s <- subset(qpcr_16s, qpcr_16s$Sample.ID != "None")
-qpcr_16s <- qpcr_16s[, c(3, 4, 6)]
-
-water$seq_id <- toupper(water$seq_id)
-ddpcr <- merge(ddpcr, water, by = c("core_type", "seq_id"), all.x = TRUE)
-ddpcr <- merge(ddpcr, qpcr_16s, by = c("core_type", "seq_id"), all.x = TRUE)
-
-# Parse OTU table (taxonomy embedded in columns 590-596)
-otu_tab <- read.delim("data/raw/16s/OTU_table.txt", header = TRUE, row.names = 1)
-bastard_tax <- otu_tab[, 590:596]
-bastard_tax[bastard_tax == ""] <- NA
-tax_tab_pre <- tax_table(bastard_tax)
-taxa_names(tax_tab_pre) <- sub("sp", "seq", taxa_names(tax_tab_pre))
-
-otu_tab_corr <- otu_tab[, 1:589]
-otu_table_pre <- otu_table(otu_tab_corr, taxa_are_rows = TRUE)
-
-# Load tree and sample metadata
-phylo_tree <- read_tree("data/raw/16s/unrooted_tree.nwk")
-samp_data <- read.delim("data/raw/16s/tree_16s_mapping_dada2_corrected.txt", row.names = 1)
-samp_data$RowName <- row.names(samp_data)
-
-# Fix sample names
-samp_data$seq_id <- sub("prime", "'", samp_data$seq_id)
-samp_data$seq_id <- sub("star", "*", samp_data$seq_id)
-samp_data$seq_id <- sub("HM", "H", samp_data$seq_id)
-samp_data$seq_id[samp_data$ForwardFastqFile == "206_B01_16S_S3_R1_001.fastq"] <- "RO104"
-samp_data$core_type[samp_data$ForwardFastqFile == "206_B01_16S_S3_R1_001.fastq"] <- "Inner"
-
-# Merge and create phyloseq object
-samp_data_merged <- merge(ddpcr, samp_data, by = c("seq_id", "core_type"), all.y = TRUE)
-dups <- which(duplicated(samp_data_merged$RowName) == TRUE)
-samp_data_merged <- samp_data_merged[-c(dups), ]
-row.names(samp_data_merged) <- samp_data_merged$RowName
-
-raw_ps <- phyloseq(tax_tab_pre, otu_table_pre, phylo_tree, sample_data(samp_data_merged))
-
-# ==============================================================================
-# STEP 2: Remove mitochondria and chloroplasts (plastid filtering)
-# ==============================================================================
-
-pop_taxa <- function(physeq, badTaxa) {
-  allTaxa <- taxa_names(physeq)
-  allTaxa <- allTaxa[!(allTaxa %in% badTaxa)]
-  return(prune_taxa(allTaxa, physeq))
-}
-
-mitochondria <- rownames(tax_table(raw_ps))[which(tax_table(raw_ps)[, 5] == "Mitochondria")]
-chloroplast <- rownames(tax_table(raw_ps))[which(tax_table(raw_ps)[, 4] == "Chloroplast")]
-badTaxa <- c(mitochondria, chloroplast)
-no_mito <- pop_taxa(raw_ps, badTaxa)
-
-cat("Removed", length(mitochondria), "mitochondrial and",
-    length(chloroplast), "chloroplast taxa\n")
+cat("Removed", .ps16$n_mitochondria, "mitochondrial and",
+    .ps16$n_chloroplast, "chloroplast taxa\n")
 
 # ==============================================================================
 # STEP 3: Rarefy and transform to relative abundance
