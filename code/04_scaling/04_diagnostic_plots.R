@@ -171,7 +171,7 @@ combined_obs_pred <- bind_rows(
 # Calculate overall R² and statistics
 lm_combined <- lm(predicted_nmol ~ observed_nmol, data = combined_obs_pred)
 r2_combined <- summary(lm_combined)$r.squared
-rmse_combined <- sqrt(mean(combined_obs_pred$predicted_nmol - combined_obs_pred$observed_nmol^2, na.rm = TRUE))
+rmse_combined <- sqrt(mean((combined_obs_pred$predicted_nmol - combined_obs_pred$observed_nmol)^2, na.rm = TRUE))
 
 # Calculate R² by source for annotation
 r2_by_source <- combined_obs_pred %>%
