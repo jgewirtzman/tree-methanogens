@@ -453,7 +453,7 @@ if (nrow(sig_ch4) > 0) {
 cat("\n=== ANALYSIS D: Methanotroph Diversity ===\n")
 
 # Classify methanotroph ASVs
-source("code/00_harmonization/load_methanotroph_definitions.R")
+source("code/lib/load_methanotroph_definitions.R")
 mt_defs <- load_methanotroph_defs()
 
 tax_df <- as.data.frame(tax_table(ps.ra))

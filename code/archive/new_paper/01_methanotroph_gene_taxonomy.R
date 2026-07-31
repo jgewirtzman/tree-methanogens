@@ -131,7 +131,7 @@ cat("Filtered samples:", nsamples(ps.filt), "\n")
 # STEP 3: Classify methanotroph ASVs and compute per-sample abundances
 # ==============================================================================
 
-source("code/00_harmonization/load_methanotroph_definitions.R")
+source("code/lib/load_methanotroph_definitions.R")
 mt_defs <- load_methanotroph_defs()
 
 otu_df <- as.data.frame(otu_table(ps.filt))

@@ -29,7 +29,7 @@
 #   aggregate_x_ratio_panels.png
 # ==============================================================================
 
-source("code/revision/rev_prep_species_data.R")   # shared prep (new helper)
+source("code/lib/rev_prep_species_data.R")   # shared prep (new helper)
 suppressPackageStartupMessages(library(ggplot2))
 
 out_dir <- "outputs/revision"

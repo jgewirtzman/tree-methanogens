@@ -19,7 +19,7 @@ sp_map <- c(ACRU="Acer rubrum",ACSA="Acer saccharum",BEAL="Betula alleghaniensis
   QUAL="Quercus alba",QURU="Quercus rubra",QUVE="Quercus velutina",SAAL="Sassafras albidum",
   TSCA="Tsuga canadensis")
 
-source("code/revision/rev_prep_species_data.R")
+source("code/lib/rev_prep_species_data.R")
 micro <- tree_level_complete %>% group_by(species_id) %>%
   summarise(meth = median(log_meth), mcra = median(log_mcra), balance = median(log_ratio), .groups="drop")
 flux <- flux_by_species %>% transmute(species_id, flux = median_flux)

@@ -113,7 +113,7 @@ ps.filt <- prune_samples(sample_names(ps.ra) %in% rownames(samp_df), ps.ra)
 # STEP 3: Subset to methanotroph ASVs only
 # ==============================================================================
 
-source("code/00_harmonization/load_methanotroph_definitions.R")
+source("code/lib/load_methanotroph_definitions.R")
 mt_defs <- load_methanotroph_defs()
 tax_df <- as.data.frame(tax_table(ps.filt))
 tax_df$mt_status <- classify_methanotrophs(tax_df, mt_defs, include_conditional = TRUE)

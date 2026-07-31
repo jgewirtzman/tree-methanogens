@@ -35,7 +35,7 @@ traits <- tr %>% select(spcode, wood_density_gcm3, bark_density_gcm3, gymnosperm
                         wood_sapwood_pH) %>% left_join(niche, by = "spcode")
 
 # ---- per-tree responses (the data underlying the species aggregation) --------
-source("code/revision/rev_prep_species_data.R")   # tree_level_complete, flux_all
+source("code/lib/rev_prep_species_data.R")   # tree_level_complete, flux_all
 tree <- tree_level_complete %>% transmute(species_id, log_ratio, log_mcra, log_meth) %>%
   left_join(traits, by = c("species_id" = "spcode"))
 flux <- flux_all %>% transmute(species_id, CH4_flux) %>%

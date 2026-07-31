@@ -28,7 +28,7 @@ sp_map <- c(ACRU="Acer rubrum",ACSA="Acer saccharum",BEAL="Betula alleghaniensis
   TSCA="Tsuga canadensis")
 
 # ---- responses (manuscript canonical microbial + flux quantities) ------------
-source("code/revision/rev_prep_species_data.R")
+source("code/lib/rev_prep_species_data.R")
 resp <- analysis_ratio %>% transmute(species_id, `Stem CH4 flux` = median_flux,
                                       `Balance (mcrA:MOB)` = median_log_ratio) %>%
   left_join(analysis_mcra %>% transmute(species_id, `mcrA (methanogen)` = log10(value + 1)), by = "species_id") %>%

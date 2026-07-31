@@ -45,9 +45,9 @@ SOIL_YEAR <- rf_workflow_data$PLACEHOLDER_SOIL_YEAR
 # fg19-only: 7,010 stems with the entire 961-stem bytag survey missing, and unlocated
 # stems dropped. That is what made MONTHLY_FLUXES.csv / ANNUAL_SUMMARY.csv diverge from
 # the canonical budget by 38% (tree) and 29% (soil).
-local({ g <- "code/revision/rev_geometry.R"; if (!file.exists(g)) g <- "../../code/revision/rev_geometry.R"
+local({ g <- "code/lib/rev_geometry.R"; if (!file.exists(g)) g <- "../../code/lib/rev_geometry.R"
         source(g, local = FALSE)
-        sl <- "code/revision/rev_species_levels.R"; if (!file.exists(sl)) sl <- "../../code/revision/rev_species_levels.R"
+        sl <- "code/lib/rev_species_levels.R"; if (!file.exists(sl)) sl <- "../../code/lib/rev_species_levels.R"
         source(sl, local = FALSE) })
 INVENTORY <- canonical_inventory()
 # Column names the legacy block below expects. canonical_inventory() speaks the
@@ -66,8 +66,8 @@ TAXONOMY <- rf_workflow_data$PLACEHOLDER_TAXONOMY
 # this -- Phi_tree, A_soil, MONTHLY_FLUXES.csv, ANNUAL_SUMMARY.csv -- was 7.0% low:
 # annual_tree_mg_m2 came out 2.4999 against the canonical 3.7395.
 local({
-  g <- "code/revision/rev_geometry.R"
-  if (!file.exists(g)) g <- "../../code/revision/rev_geometry.R"
+  g <- "code/lib/rev_geometry.R"
+  if (!file.exists(g)) g <- "../../code/lib/rev_geometry.R"
   if (!file.exists(g)) stop("cannot find rev_geometry.R to get the stand area")
   source(g, local = FALSE)
 })

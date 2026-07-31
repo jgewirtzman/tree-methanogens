@@ -26,7 +26,7 @@ sp_map <- c(ACRU="Acer rubrum",ACSA="Acer saccharum",BEAL="Betula alleghaniensis
   TSCA="Tsuga canadensis")
 
 # ---- per-species responses (use WIDE set: microbe from all wood-sampled spp) --
-source("code/revision/rev_prep_species_data.R")
+source("code/lib/rev_prep_species_data.R")
 micro <- tree_level_complete %>% group_by(species_id) %>%
   summarise(meth = median(log_meth), mcra = median(log_mcra), balance = median(log_ratio),
             n_tree = n(), .groups = "drop")
