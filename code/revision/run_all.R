@@ -163,7 +163,17 @@ SOURCED <- c("code/revision/rev_geometry.R",        # sourced by others, not run
 allR  <- list.files("code/revision", "\\.R$", full.names = TRUE)
 never <- setdiff(allR, c(CORE, SUPPORT, rest, SOURCED,
                          "code/revision/run_all.R",
-                         "code/revision/rev_00_assemble_figures.R"))
+                         "code/revision/rev_00_assemble_figures.R",
+                         # Run standalone at step 3b, not via CORE/SUPPORT/rest, so it
+                         # was absent here and got reported as "never run" on every
+                         # pass -- immediately after this script had just run it. The
+                         # 2026-07-31 reorg audit nearly archived it on that evidence;
+                         # it is the only producer of scaling_parameters.md section 0.
+                         "code/revision/rev_write_parameter_record.R",
+                         # The gate. Deliberately not part of the pipeline (it checks
+                         # agreement BETWEEN outputs, so it runs after, by hand), but
+                         # it is not dead either.
+                         "code/revision/rev_check_consistency.R"))
 if (length(never)) {
   cat(sprintf("\n[note] %d script(s) in code/revision/ were not run by this pipeline:\n",
               length(never)))
