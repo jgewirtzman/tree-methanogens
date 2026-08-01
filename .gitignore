@@ -44,7 +44,18 @@ data/**
 outputs/**
 !outputs/**/
 !outputs/**/.gitkeep
-!outputs/revision/figures/**
+# The ASSEMBLED numbered manuscript set only -- the figures a reader should get
+# from a clone. Was !outputs/revision/figures/** until the outputs reorg moved
+# these out of outputs/revision/; without updating it the whole tracked figure
+# set silently became ignored and would have been dropped from the public repo.
+# NOT included, deliberately: figures/generated (raw generator output),
+# figures/legacy (original-pipeline intermediates) and figures/qc (diagnostics)
+# are all regenerable and none are cited.
+!outputs/figures/main/**
+!outputs/figures/SI/**
+!outputs/figures/photos/**
+!outputs/figures/tables/**
+!outputs/figures/MANIFEST.md
 
 # --- Deprecated directory (old code/data, not tracked) ---
 deprecated/
