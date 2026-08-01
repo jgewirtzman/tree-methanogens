@@ -1,6 +1,0 @@
-"campaign","period","location","heights","trees","species","stem_flux","soil_flux","ddpcr","s16","gas","isotopes","covariates"
-"Monthly survey","Jun2020-May2021","hillslope U/I/wetland-margin","breast",48,8,414,288,NA,NA,NA,NA,"merged in Fig1"
-"Height+molecular","Summer2021","upland, in plot","50/125/200cm",150,16,439,NA,571,569,157,125,"VWC/DBH/temp+wood"
-"Felled black oak","Oct2022","stand (1 tree)","0.5-10m+seam",1,1,9,NA,22,60,7,NA,"tree"
-"Cross-species","Summer2023","spatial, in plot","breast",336,14,338,NA,NA,NA,NA,NA,"VWC/DBH/temp"
-"Inventory","-","census plot","-",7225,18,NA,NA,NA,NA,NA,NA,NA

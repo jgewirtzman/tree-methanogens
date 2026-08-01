@@ -44,18 +44,16 @@ data/**
 outputs/**
 !outputs/**/
 !outputs/**/.gitkeep
-# The ASSEMBLED numbered manuscript set only -- the figures a reader should get
-# from a clone. Was !outputs/revision/figures/** until the outputs reorg moved
-# these out of outputs/revision/; without updating it the whole tracked figure
-# set silently became ignored and would have been dropped from the public repo.
-# NOT included, deliberately: figures/generated (raw generator output),
-# figures/legacy (original-pipeline intermediates) and figures/qc (diagnostics)
-# are all regenerable and none are cited.
-!outputs/figures/main/**
-!outputs/figures/SI/**
-!outputs/figures/photos/**
-!outputs/figures/tables/**
-!outputs/figures/MANIFEST.md
+# NOTHING under outputs/ is tracked -- only the folder skeleton, exactly as for
+# data/. The assembled manuscript figure set used to be the one exception
+# (!outputs/revision/figures/**), kept so a reader got the figures from a clone.
+# It is no longer needed: code/make_figures.R regenerates the whole numbered set
+# end to end (generators -> assembler) from the Zenodo data drop-in, so the
+# figures are reproducible rather than stored.
+#
+# NOTE for submission: figures therefore live only on disk after a local run.
+# The Zenodo archive holds data/, not outputs/, so journal figure files come from
+# outputs/figures/{main,SI}/ after running make_figures.R -- not from the repo.
 
 # --- Deprecated directory (old code/data, not tracked) ---
 deprecated/
