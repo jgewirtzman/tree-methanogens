@@ -48,7 +48,7 @@ writeLines(format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
 
 # --- model prerequisite -------------------------------------------------------
 # This pipeline SCORES and CONSUMES the locked forests; it does not fit them. The only
-# producer of RF_MODELS.RData / TRAINING_DATA.RData is code/04_scaling/02_rf_models.R,
+# producer of RF_MODELS.RData / TRAINING_DATA.RData is code/05_model/02_rf_models.R,
 # which is deliberately not run here because it retrains (~10 min) and the model is
 # frozen. Five fatal CORE steps load those files, so on a clean checkout the run would
 # otherwise die deep in the chain with an opaque error. Fail early and say why.
@@ -57,10 +57,10 @@ local({
   miss <- need[!file.exists(need)]
   if (length(miss))
     stop("missing locked model file(s):\n  ", paste(miss, collapse = "\n  "),
-         "\n\nBuild them first (from code/04_scaling/):\n",
+         "\n\nBuild them first (from code/05_model/):\n",
          "  Rscript 01_load_and_prep_data.R && Rscript 02_rf_models.R\n",
          call. = FALSE)
-  src <- "code/04_scaling/02_rf_models.R"
+  src <- "code/05_model/02_rf_models.R"
   if (file.exists(src) && file.mtime(src) > min(file.mtime(need)))
     cat("[note] 02_rf_models.R is NEWER than the locked model files;",
         "the model may need rebuilding.\n")
@@ -103,7 +103,7 @@ for (f in CORE) run(f, fatal = TRUE)
 # --- 2) supporting analyses (produce CSV/TXT that figures and prose cite) ----
 SUPPORT <- c(
   # Produces data/processed/environmental/soil_env_by_collar.csv, which
-  # code/04_scaling/01_load_and_prep_data.R reads to give each soil collar and each
+  # code/05_model/01_load_and_prep_data.R reads to give each soil collar and each
   # monthly tree its OWN measured temperature and moisture rather than a plot-level
   # constant. It was never in this pipeline, so that dependency was real but unwired
   # and the CSV survived only from a manual run on 2026-07-25.

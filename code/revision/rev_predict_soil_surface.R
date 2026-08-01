@@ -16,7 +16,7 @@
 #
 #   The surface also needed regenerating regardless: outputs/models/
 #   soil_monthly_predictions.RData dates from 2025-09 and predates the model
-#   lock, and code/04_scaling/03_predict_soil_flux.R still builds the old feature
+#   lock, and code/06_upscale/06_predict_soil_flux.R still builds the old feature
 #   set (moisture x temperature interactions, month_sin/month_cos) that the
 #   locked SoilRF does not use. Its four predictors are soil_moisture_at_site,
 #   soil_temp_C_mean, air_temp_C_mean and month.

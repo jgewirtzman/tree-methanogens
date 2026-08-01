@@ -55,17 +55,17 @@ cat("Sourcing existing scripts...\n")
 # This gives us best_df (extended moisture) and min_bbox (exact bounding box)
 
 cat("  Sourcing fg_aligned.R...\n")
-invisible(capture.output(source('../../code/07_maps/01_forestgeo_alignment.R')))
+invisible(capture.output(source('../../code/06_upscale/01_forestgeo_alignment.R')))
 
 cat("  Sourcing map.R...\n")
-invisible(capture.output(source('../../code/07_maps/02_spatial_interpolation.R')))
+invisible(capture.output(source('../../code/06_upscale/02_spatial_interpolation.R')))
 
 cat("  Sourcing complete_map2.R...\n") 
-invisible(capture.output(source('../../code/07_maps/03_interpolation_methods.R'
+invisible(capture.output(source('../../code/06_upscale/03_interpolation_methods.R'
 )))
 
 cat("  Sourcing complete_map2.R...\n") 
-invisible(capture.output(source('../../code/07_maps/04_seasonal_flux_maps.R')))
+invisible(capture.output(source('../../code/06_upscale/04_seasonal_flux_maps.R')))
 
 
 cat("  Objects loaded successfully\n")

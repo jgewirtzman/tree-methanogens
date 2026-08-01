@@ -10,8 +10,8 @@
 # ==============================================================================
 
 # Source upstream dependencies (must run from project root)
-source("code/07_maps/01_forestgeo_alignment.R")
-source("code/07_maps/02_spatial_interpolation.R")
+source("code/06_upscale/01_forestgeo_alignment.R")
+source("code/06_upscale/02_spatial_interpolation.R")
 
 # Overlay stem map on interpolated moisture map
 
