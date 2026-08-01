@@ -59,10 +59,15 @@ SI <- c(
   "Figure_S19_scale-dependent-genes"     = "outputs/figures/generated/figS11_final.png",
   "Figure_S20_radial-sections"           = "outputs/figures/legacy/supplementary/figS13_tree_radial_sections.png",  # PLACEMENT TBC
   # Upscaling (Fig 9)
-  "Figure_S21_rf-flux-predictions"       = "outputs/figures/legacy/supplementary/figS15_rf_predictions.png",
+  "Figure_S21_rf-model-summary"          = "outputs/figures/generated/figS21_rf_model_summary.png",  # merged: S21 layout + grouped permutation importance (absorbs fig_model_findings)
   "Figure_S22_rf-calibration"            = "outputs/figures/generated/figS_rf_calibration.png",  # OOB budget calibration (R3.3)
   # Plant traits (discussion) — single heatmap with in-panel significance covers it (no composite)
-  "Figure_S23_plant-traits"              = "outputs/figures/generated/traits_heatmap_robust.png")
+  "Figure_S23_plant-traits"              = "outputs/figures/generated/traits_heatmap_robust.png",
+  # Scaling support for Figure 9. Appended rather than slotted next to the other
+  # scaling material: SI order is meant to follow main-text citation order, and
+  # that order is only settled during the text pass.
+  "Figure_S24_scaling-profiles"          = "outputs/figures/generated/fig_scaling_profiles.png",
+  "Figure_S25_scaling-heatmap"           = "outputs/figures/generated/fig_scaling_heatmap.png")
 
 # Manuscript tables (ratified w/ Jon). Table S1 = primer sequences (formatted markdown in
 # notes/primer_sequences.md), not assembled here. Dropped: pmoA/mmoX by compartment/species
