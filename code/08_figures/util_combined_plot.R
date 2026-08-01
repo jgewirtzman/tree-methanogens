@@ -27,13 +27,13 @@ if (!exists("merged_final")) {
 
 # Load plotting functions and species_mapping if not already defined
 if (!exists("species_mapping") || !exists("create_mcra_barplot_by_species")) {
-  source("code/02_ddpcr/04_species_barplots.R")
+  source("code/08_figures/04_species_barplots.R")
   cat("Sourced 04_species_barplots.R\n")
 }
 
 # Load scatter plot function if not already defined
 if (!exists("create_gene_scatter_ggside_transformed_probe_mcra")) {
-  source("code/02_ddpcr/util_ridge_plots.R")
+  source("code/07_molecular/util_ridge_plots.R")
   cat("Sourced util_ridge_plots.R\n")
 }
 

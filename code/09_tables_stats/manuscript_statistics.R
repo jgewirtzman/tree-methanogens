@@ -6,7 +6,7 @@
 #   cross-referencing. No figures are generated — console output only.
 #
 # Usage: Open tree-methanogens.Rproj in RStudio, then:
-#   source("code/manuscript_statistics.R")
+#   source("code/09_tables_stats/manuscript_statistics.R")
 #
 # Output: Saves all statistics to outputs/manuscript_statistics.txt
 #   and prints to console. Ends with a machine-readable summary for
