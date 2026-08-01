@@ -677,8 +677,8 @@ p <- ggplot(analysis_data, aes(x = median_mcra_log10, y = median_flux)) +
 
 print(p)
 
-source('code/06_figures/02_radial_cross_sections.R')
-source('code/06_figures/03_threshold_analysis.R')
+source('code/08_figures/02_radial_cross_sections.R')
+source('code/08_figures/03_threshold_analysis.R')
 
 combined_plot<-grid.arrange(p_main, p, nrow=2)
 

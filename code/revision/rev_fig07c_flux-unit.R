@@ -3,7 +3,7 @@
 # ==============================================================================
 # R2: Fig 7c (felled-oak stem CH4 flux vs height) is "missing the CH4 flux unit."
 #
-# DIAGNOSIS (code/06_figures/09_felled_oak_profiles.R:221):
+# DIAGNOSIS (code/08_figures/09_felled_oak_profiles.R:221):
 #   Panel 3 draws  ylab(expression(CH[4]~"Flux"))  -- no unit. The flux is the
 #   goFlux CH4_best.flux (same variable/pipeline as Fig 2; range here -0.005 to
 #   0.40, median 0.039), i.e. nmol m-2 s-1.
@@ -78,4 +78,4 @@ ggsave(file.path(out, "fig7c_flux_unit_fixed.png"), p3, width = 4.2, height = 5.
        dpi = 300, bg = "white")
 cat("Wrote", file.path(out, "fig7c_flux_unit_fixed.png"), "\n")
 cat("Fix: y-axis label 'CH4 Flux' -> 'CH4 flux (nmol m-2 s-1)'.\n")
-cat("Apply in code/06_figures/09_felled_oak_profiles.R:221 (with approval).\n")
+cat("Apply in code/08_figures/09_felled_oak_profiles.R:221 (with approval).\n")

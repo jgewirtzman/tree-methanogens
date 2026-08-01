@@ -17,7 +17,7 @@
 # Output: outputs/revision/figS11_final.png
 # ==============================================================================
 suppressWarnings(suppressMessages(
-  source("code/05_gene_flux_analysis/02_scale_dependent_gene_patterns.R")
+  source("code/07_molecular/02_scale_dependent_gene_patterns.R")
 ))
 suppressPackageStartupMessages({ library(tidyverse); library(patchwork); library(grid) })
 out <- "outputs/revision"; dir.create(out, showWarnings = FALSE, recursive = TRUE)

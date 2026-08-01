@@ -1,5 +1,5 @@
 # ==============================================================================
-# REVISION — Fig 5 FINAL. Copy of code/06_figures/08c with ONE change: loads the
+# REVISION — Fig 5 FINAL. Copy of code/08_figures/08c with ONE change: loads the
 # revised methanotroph definitions (R2 #2) in which family-level Methylacidiphilaceae
 # is Putative not Known (genus Methylacidiphilum stays Known). NEW file; edits
 # nothing existing. Output: outputs/revision/fig5_final.png

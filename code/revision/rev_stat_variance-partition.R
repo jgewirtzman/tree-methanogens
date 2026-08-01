@@ -5,7 +5,7 @@
 # in the manuscript? Which is correct?
 #
 # ANSWER (see printed output):
-#   * Manuscript 82.9% comes from code/06_figures/04_variance_partition.R
+#   * Manuscript 82.9% comes from code/08_figures/04_variance_partition.R
 #     "Method 2": an OLS hierarchical partition of a model that includes
 #     ENVIRONMENT (DBH, air/soil temp, VWC) + SPECIES + their INTERACTIONS.
 #     Unexplained = 1 - R2(interaction model) = 82.9%; Species-UNIQUE = 5.3%.

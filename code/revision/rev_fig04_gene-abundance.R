@@ -1,7 +1,7 @@
 # ==============================================================================
 # REVISION — Fig 4 final: methanogen (mcrA) / methanotroph (pmoA,mmoX) gene
 # abundance by compartment (heartwood/sapwood/soil), (a) species barplot + (b) scatter.
-# Copy of the original generator (code/02_ddpcr/util_combined_plot.R) with a
+# Copy of the original generator (code/08_figures/util_combined_plot.R) with a
 # DILUTION_10X toggle (default 1) on the absolute ddPCR copies — flip to 10 if Wyatt
 # confirms the dropped template->reaction dilution (A1). Original scripts untouched.
 #
@@ -22,8 +22,8 @@ merged_final <- read_csv("data/processed/integrated/merged_tree_dataset_final.cs
 ddpcr_cols <- grep("^ddpcr_.*_loose$", names(merged_final), value = TRUE)
 merged_final[ddpcr_cols] <- merged_final[ddpcr_cols] * DILUTION_10X   # x10 toggle (absolute copies only)
 
-source("code/02_ddpcr/04_species_barplots.R")   # defines create_mcra_barplot_by_species + species_mapping
-source("code/02_ddpcr/util_ridge_plots.R")       # defines create_gene_scatter_ggside_transformed_probe_mcra
+source("code/08_figures/04_species_barplots.R")   # defines create_mcra_barplot_by_species + species_mapping
+source("code/07_molecular/util_ridge_plots.R")       # defines create_gene_scatter_ggside_transformed_probe_mcra
 
 result      <- create_mcra_barplot_by_species(merged_final, species_mapping)
 scatterplot <- create_gene_scatter_ggside_transformed_probe_mcra(merged_final)

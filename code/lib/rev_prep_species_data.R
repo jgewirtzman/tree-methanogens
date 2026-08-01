@@ -2,7 +2,7 @@
 # REVISION HELPER — shared species/gene/flux data prep (NEW file; sourced)
 # ==============================================================================
 # Reproduces the prep chain from
-# code/05_gene_flux_analysis/02_scale_dependent_gene_patterns.R (lines 50-302),
+# code/07_molecular/02_scale_dependent_gene_patterns.R (lines 50-302),
 # VERBATIM logic, so numbers match the as-reviewed manuscript
 # (ratio R2 = 0.513, r = 0.717). Builds, in the calling environment:
 #   tree_level_complete  - per-tree area-weighted genes + 125cm flux + log_ratio

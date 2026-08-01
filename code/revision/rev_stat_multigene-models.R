@@ -11,7 +11,7 @@
 # Sources 02_scale for data only (outputs git-restored by wrapper). NEW file.
 # Output: outputs/revision/species_multigene_models.txt
 # ==============================================================================
-suppressWarnings(suppressMessages(source("code/05_gene_flux_analysis/02_scale_dependent_gene_patterns.R")))
+suppressWarnings(suppressMessages(source("code/07_molecular/02_scale_dependent_gene_patterns.R")))
 suppressPackageStartupMessages(library(tidyverse))
 out <- "outputs/revision"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
 sink(file.path(out, "species_multigene_models.txt"), split = TRUE)

@@ -11,7 +11,7 @@
 # NEW file; originals untouched (02_scale sourced for data only, its 2 outputs
 # git-restored by the wrapper). Output: outputs/revision/S1S2_arcsinh_report.txt
 # ==============================================================================
-suppressWarnings(suppressMessages(source("code/05_gene_flux_analysis/02_scale_dependent_gene_patterns.R")))
+suppressWarnings(suppressMessages(source("code/07_molecular/02_scale_dependent_gene_patterns.R")))
 suppressPackageStartupMessages({ library(tidyverse); has_car <- requireNamespace("car", quietly = TRUE) })
 out <- "outputs/revision"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
 sink(file.path(out, "S1S2_arcsinh_report.txt"), split = TRUE)

@@ -1,6 +1,6 @@
 # ==============================================================================
 # REVISION helper: dump FAPROTAX HW/SW (Inner/Outer) for ALL functions.
-# Replicates the phyloseq build + FAPROTAX calc of code/06_figures/08d verbatim,
+# Replicates the phyloseq build + FAPROTAX calc of code/08_figures/08d verbatim,
 # then writes the full per-function heartwood/sapwood table used by panel (b) of
 # the hydrogenotrophy synthesis figure. NEW file (does not modify 08d).
 # Output: outputs/revision/FAPROTAX_all_functions_HW_SW.csv

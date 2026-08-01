@@ -4,7 +4,7 @@
 # Addresses R2 #1 (unit basis: dry vs wet; "copies per gram") and R2 Fig 7b
 # (copies per uL depends on elution volume & extraction mass -> use copies/g).
 #
-# The pipeline (code/02_ddpcr/05_ddpcr_analysis.R, L287) converts with a FIXED
+# The pipeline (code/07_molecular/05_ddpcr_analysis.R, L287) converts with a FIXED
 # 100 mg proxy mass and 37.5 uL elution:  copies ~ concentration * 37.5 / 100.
 # We now have the ACTUAL per-sample mass (sample_mass_mg), so we compute the
 # true mass-normalized value:

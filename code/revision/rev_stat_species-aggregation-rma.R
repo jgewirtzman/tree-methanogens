@@ -10,7 +10,7 @@
 #
 # STATUS: NEW revision-only script. Does NOT modify any existing pipeline code.
 #   It reproduces (verbatim) the species-level aggregation from
-#   code/05_gene_flux_analysis/02_scale_dependent_gene_patterns.R (lines 50-302)
+#   code/07_molecular/02_scale_dependent_gene_patterns.R (lines 50-302)
 #   so the numbers match the as-reviewed manuscript, then adds the RMA analysis.
 #
 # Inputs (same as script 02):

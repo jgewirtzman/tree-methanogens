@@ -16,7 +16,7 @@ suppressPackageStartupMessages({ library(tidyverse) })
 out <- "outputs/revision"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
 
 invisible(capture.output(suppressMessages(
-  source("code/05_gene_flux_analysis/02_scale_dependent_gene_patterns.R"))))
+  source("code/07_molecular/02_scale_dependent_gene_patterns.R"))))
 
 # assemble one per-species table (median gene abundances + median flux)
 d <- flux_by_species %>% dplyr::select(species, median_flux) %>%

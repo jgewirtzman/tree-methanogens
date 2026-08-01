@@ -7,7 +7,7 @@
 # oxidation" (3.6% HW) is on par with hydrogenotrophic methanogens (also H2
 # oxidisers) -> the H2 economy is understated.
 #
-# This reproduces the manuscript's FAPROTAX chain (code/06_figures/08d, same seed)
+# This reproduces the manuscript's FAPROTAX chain (code/08_figures/08d, same seed)
 # and computes the numbers that quantify R2's point but were NOT reported:
 #   (1) ANNOTATED FRACTION: % of community abundance FAPROTAX assigns ANY function
 #       (the rest is functionally invisible -> the % values are of the WHOLE
