@@ -220,8 +220,15 @@ make_pathway_heatmap <- function(pvals_file, meta_df, gene_col, gene_label,
     dev.off()
     cat("Saved:", output_file, "\n")
   }, error = function(e) {
-    try(dev.off(), silent = TRUE)
-    cat("ERROR generating", output_file, ":", conditionMessage(e), "\n")
+    # Close EVERY device this call may have left open, not just the top one, and
+    # delete the half-written file. A silent failure here is what put the
+    # moisture map into fig6_picrust_mcra_no_mcra_heatmap.png: the device stayed
+    # open on this path and a later script drew into it. The error must also
+    # propagate -- a figure that failed to draw cannot report success, or the
+    # assembler copies the stale/wrong PNG and file.exists() calls it fine.
+    while (dev.cur() != 1L) try(dev.off(), silent = TRUE)
+    if (file.exists(output_file)) unlink(output_file)
+    stop("failed generating ", output_file, ": ", conditionMessage(e), call. = FALSE)
   })
 
   return(invisible(sig))
