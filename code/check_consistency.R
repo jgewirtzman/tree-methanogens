@@ -13,7 +13,7 @@
 # Each check prints PASS or FAIL with the numbers, and the exit status is non-zero
 # if anything failed, so it can gate a commit.
 #
-#   Rscript code/revision/rev_check_consistency.R
+#   Rscript code/check_consistency.R
 # ==============================================================================
 source("code/lib/rev_geometry.R")
 

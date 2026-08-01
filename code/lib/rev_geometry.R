@@ -213,7 +213,7 @@ canonical_inventory <- function(in_stand_only = TRUE,
     file <- file.path("../..", file)
   if (!file.exists(file))
     stop("canonical_inventory(): missing ", file,
-         " -- run: Rscript code/revision/rev_inventory_build.R")
+         " -- run: Rscript code/01_import/rev_inventory_build.R")
   INV <- utils::read.csv(file, stringsAsFactors = FALSE)
   INV <- INV[is.finite(INV$dbh_m) & INV$dbh_m > 0, ]
   if (in_stand_only) INV <- INV[INV$in_stand, ]

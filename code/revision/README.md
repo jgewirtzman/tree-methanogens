@@ -7,7 +7,7 @@ and is git-tracked; **data** lives in the one consolidated `data/` tree (Zenodo 
 
 ## Reproduce everything
 ```
-Rscript code/revision/run_all.R
+Rscript code/run_all.R
 ```
 Runs the original figure pipeline first (`generate_all_figures.R`, which populates the
 **unchanged** figures like Fig 8 and several SI — two scripts fail there by design, fig5 &

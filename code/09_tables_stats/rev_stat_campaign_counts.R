@@ -13,7 +13,7 @@
 # species QUVE) — these are SURVEY trees and stay in the survey totals. They are
 # distinct from the single 2022 FELLED black oak, which is a separate section.
 #
-# Run from repo root:  Rscript code/revision/rev_stat_campaign_counts.R
+# Run from repo root:  Rscript code/09_tables_stats/rev_stat_campaign_counts.R
 # Writes: outputs/revision/campaign_counts.txt  (+ .csv table)
 # ==============================================================================
 suppressMessages(library(dplyr)); options(warn = -1, stringsAsFactors = FALSE)
@@ -130,7 +130,7 @@ inv_area <- round(diff(range(inv$x_m,na.rm=TRUE))*diff(range(inv$y_m,na.rm=TRUE)
 sink("outputs/revision/campaign_counts.txt")
 cat("CAMPAIGN / SAMPLE-SIZE ACCOUNTING\n")
 cat("Rule: keep all fluxes (non-NA best.flux, no QC). Black oak = separate section.\n")
-cat("Source: code/revision/rev_stat_campaign_counts.R\n"); cat(strrep("=",78),"\n\n")
+cat("Source: code/09_tables_stats/rev_stat_campaign_counts.R\n"); cat(strrep("=",78),"\n\n")
 
 cat("A. STEM FLUX (deployments with a CH4 value)\n")
 P("  Monthly 2020-21 (breast ht; positions U/I/WD/WS): %d fluxes | %d trees | %d species (%d tags unresolved)", n_monthly, mon_trees, mon_spp, mon_unres)

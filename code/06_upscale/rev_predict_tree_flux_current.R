@@ -49,7 +49,7 @@ trained <- sort(unique(as.character(d$species_clean)))
 
 INVFILE <- "outputs/tables/inventory_stems.csv"
 if (!file.exists(INVFILE))
-  stop("missing ", INVFILE, " -- run: Rscript code/revision/rev_inventory_build.R")
+  stop("missing ", INVFILE, " -- run: Rscript code/01_import/rev_inventory_build.R")
 INV <- read.csv(INVFILE, stringsAsFactors = FALSE)
 
 STEM_BAND_M   <- 2.00
@@ -125,7 +125,7 @@ cat(sprintf("monthly stand-mean moisture %.3f-%.3f (climatology, 2019-2022)\n",
 # 2018-2023 tower record. Air temperature already came from that record.
 STFILE <- "outputs/tables/soil_temp_climatology_monthly.csv"
 if (!file.exists(STFILE))
-  stop("missing ", STFILE, " -- run code/revision/rev_soil_temp_climatology.R first")
+  stop("missing ", STFILE, " -- run code/04_drivers/rev_soil_temp_climatology.R first")
 STCLIM <- read.csv(STFILE, stringsAsFactors = FALSE)
 stopifnot(nrow(STCLIM) == 12, all(is.finite(STCLIM$soil_temp_C)))
 DR$soil_temp_C_mean <- STCLIM$soil_temp_C[match(DR$month, STCLIM$mo)]

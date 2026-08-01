@@ -18,7 +18,7 @@
 # Outputs: outputs/revision/rf_diagnostics_{tree,soil}.png
 #          outputs/revision/rf_diagnostics_summary.csv
 #
-# Run from repo root:  Rscript code/revision/rev_rf_model_diagnostics.R
+# Run from repo root:  Rscript code/05_model/rev_rf_model_diagnostics.R
 # ==============================================================================
 
 suppressMessages({library(ranger); library(dplyr); library(ggplot2); library(tidyr)})

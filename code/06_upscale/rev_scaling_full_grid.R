@@ -186,7 +186,7 @@ BRANCH <- list(uniform_all=function(u) rep(1,length(u)),
 WAI_BU <- local({
   f <- file.path(outdir, "wai_bottomup.csv")
   if (!file.exists(f))
-    stop("missing ", f, " -- run: Rscript code/revision/rev_wai_bottomup_and_rf_interactions.R")
+    stop("missing ", f, " -- run: Rscript code/06_upscale/rev_wai_bottomup_and_rf_interactions.R")
   w <- read.csv(f, stringsAsFactors = FALSE)
   stopifnot(nrow(w) == 3, all(is.finite(w$wai)), !is.unsorted(w$wai))
   if (!isTRUE(all.equal(w$stand_area_m2[1], STAND_AREA_M2)))

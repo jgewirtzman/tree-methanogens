@@ -122,7 +122,7 @@ if (length(stale_list)) {
 } else if (!is.na(STALE_REF)) {
   cat("  all assembled figures/tables were produced by this pipeline run\n")
 } else {
-  cat("  (staleness not checked: no outputs/revision/.pipeline_run_started marker;\n   run via code/revision/run_all.R to enable the check)\n")
+  cat("  (staleness not checked: no outputs/revision/.pipeline_run_started marker;\n   run via code/run_all.R to enable the check)\n")
 }
 
 # MANIFEST.md — regenerated from the maps each run so it can never drift

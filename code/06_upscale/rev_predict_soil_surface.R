@@ -53,7 +53,7 @@ AFF <- read.csv("outputs/tables/MOISTURE_AFFINE_TABLE.csv")
 
 GRIDFILE <- "outputs/tables/moisture_surface_grid.csv"
 if (!file.exists(GRIDFILE))
-  stop("missing ", GRIDFILE, " -- run code/revision/rev_moisture_surface.R first")
+  stop("missing ", GRIDFILE, " -- run code/04_drivers/rev_moisture_surface.R first")
 S <- read.csv(GRIDFILE, stringsAsFactors = FALSE)
 stopifnot(all(in_stand(S$PX, S$PY)))
 cat(sprintf("moisture grid: %d cells on censused ground (%.2f ha)\n",
@@ -72,7 +72,7 @@ DR <- DR %>% arrange(month) %>%
 # 2018-2023 tower record. Air temperature already came from that record.
 STFILE <- "outputs/tables/soil_temp_climatology_monthly.csv"
 if (!file.exists(STFILE))
-  stop("missing ", STFILE, " -- run code/revision/rev_soil_temp_climatology.R first")
+  stop("missing ", STFILE, " -- run code/04_drivers/rev_soil_temp_climatology.R first")
 STCLIM <- read.csv(STFILE, stringsAsFactors = FALSE)
 stopifnot(nrow(STCLIM) == 12, all(is.finite(STCLIM$soil_temp_C)))
 DR$soil_temp_C_mean <- STCLIM$soil_temp_C[match(DR$month, STCLIM$mo)]
@@ -98,7 +98,7 @@ DR$soil_temp_C_mean <- STCLIM$soil_temp_C[match(DR$month, STCLIM$mo)]
 # climatology at all: it jumped from 0.113 in November to 0.355 in December.
 CLIMFILE <- "outputs/tables/moisture_climatology_monthly.csv"
 if (!file.exists(CLIMFILE))
-  stop("missing ", CLIMFILE, " -- run code/revision/rev_moisture_climatology.R first")
+  stop("missing ", CLIMFILE, " -- run code/04_drivers/rev_moisture_climatology.R first")
 CLIM <- read.csv(CLIMFILE, stringsAsFactors = FALSE)
 stopifnot(nrow(CLIM) == 12, all(is.finite(CLIM$moisture)))
 shape <- S$vwc_rel                                    # already mean 1 over the stand

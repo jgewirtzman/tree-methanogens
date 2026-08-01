@@ -99,7 +99,7 @@ cat(sprintf("de-confounding: %d campaign dates | raw SD %.4f -> %.4f (%.0f%% of 
 
 # --- 2. transfer function on the water-balance store --------------------------
 WB <- "outputs/tables/tower_daily_waterbalance.csv"
-if (!file.exists(WB)) stop("missing ", WB, " -- run code/revision/rev_wb_reference_et.R first")
+if (!file.exists(WB)) stop("missing ", WB, " -- run code/04_drivers/rev_wb_reference_et.R first")
 W <- read.csv(WB, stringsAsFactors = FALSE) %>% arrange(as.Date(date))
 W$date <- as.Date(W$date); W$mo <- as.integer(format(W$date, "%m"))
 W$yr  <- as.integer(format(W$date, "%Y"))

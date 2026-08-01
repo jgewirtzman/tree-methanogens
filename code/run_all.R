@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 # ==============================================================================
-# Revision pipeline. Run from the repo root:  Rscript code/revision/run_all.R
+# Revision pipeline. Run from the repo root:  Rscript code/run_all.R
 # Reads data/ (the Zenodo drop-in) + code/ (git); writes outputs/revision/ and
 # outputs/revision/figures/{main,SI}/.
 #
@@ -81,21 +81,21 @@ run("code/generate_all_figures.R")
 # prediction script. Both prediction scripts now read the same two climatologies
 # and the same moisture surface, so those have to be built before either runs.
 CORE <- c(
-  "code/revision/rev_rf_grouped_cv.R",             # -> rf_grouped_cv.csv (budget reads it)
-  "code/revision/rev_inventory_build.R",           # raw -> inventory_stems.csv
-  "code/revision/rev_wb_reference_et.R",           # -> water balance (climatology input)
-  "code/revision/rev_moisture_climatology.R",      # -> moisture_climatology_monthly.csv
-  "code/revision/rev_soil_temp_climatology.R",     # -> soil_temp_climatology_monthly.csv
-  "code/revision/rev_moisture_surface.R",          # -> moisture_surface_grid.csv
-  "code/revision/rev_predict_tree_flux_current.R", # -> tree_flux_predictions.csv, tree_monthly_stand.csv
-  "code/revision/rev_predict_soil_surface.R",      # -> soil_surface_{monthly,annual}.csv
-  "code/revision/rev_budget_canonical.R",          # -> canonical_{budget,monthly}.csv
+  "code/05_model/rev_rf_grouped_cv.R",             # -> rf_grouped_cv.csv (budget reads it)
+  "code/01_import/rev_inventory_build.R",           # raw -> inventory_stems.csv
+  "code/04_drivers/rev_wb_reference_et.R",           # -> water balance (climatology input)
+  "code/04_drivers/rev_moisture_climatology.R",      # -> moisture_climatology_monthly.csv
+  "code/04_drivers/rev_soil_temp_climatology.R",     # -> soil_temp_climatology_monthly.csv
+  "code/04_drivers/rev_moisture_surface.R",          # -> moisture_surface_grid.csv
+  "code/06_upscale/rev_predict_tree_flux_current.R", # -> tree_flux_predictions.csv, tree_monthly_stand.csv
+  "code/06_upscale/rev_predict_soil_surface.R",      # -> soil_surface_{monthly,annual}.csv
+  "code/06_upscale/rev_budget_canonical.R",          # -> canonical_{budget,monthly}.csv
   # MUST precede the grid: rev_scaling_full_grid.R now stop()s if wai_bottomup.csv is
   # absent, and outputs/ is gitignored, so with this in SUPPORT (which runs AFTER the
   # fatal CORE block) a clean checkout aborted at the last CORE step. That is the exact
   # failure this file's header describes for the driver builders.
-  "code/revision/rev_wai_bottomup_and_rf_interactions.R",  # -> wai_bottomup.csv
-  "code/revision/rev_scaling_full_grid.R")
+  "code/06_upscale/rev_wai_bottomup_and_rf_interactions.R",  # -> wai_bottomup.csv
+  "code/06_upscale/rev_scaling_full_grid.R")
 # fig_scaling_profiles / heatmap read the grid exports and run in the figure block         # -> scaling_full_grid.csv
 cat(sprintf("\n== CORE CHAIN (%d steps, dependency-ordered) ==\n", length(CORE)))
 for (f in CORE) run(f, fatal = TRUE)
@@ -107,12 +107,12 @@ SUPPORT <- c(
   # monthly tree its OWN measured temperature and moisture rather than a plot-level
   # constant. It was never in this pipeline, so that dependency was real but unwired
   # and the CSV survived only from a manual run on 2026-07-25.
-  "code/revision/rev_compile_soil_env.R",
-  "code/revision/rev_moisture_elevation_check.R",
-  "code/revision/rev_moisture_interpolation.R",
-  "code/revision/rev_qc_c0_screen.R",
-  "code/revision/rev_mdf_FINAL_precision_and_detection.R",
-  "code/revision/rev_surface_area_model.R",
+  "code/03_merge/rev_compile_soil_env.R",
+  "code/04_drivers/rev_moisture_elevation_check.R",
+  "code/04_drivers/rev_moisture_interpolation.R",
+  "code/02_flux/rev_qc_c0_screen.R",
+  "code/02_flux/rev_mdf_FINAL_precision_and_detection.R",
+  "code/06_upscale/rev_surface_area_model.R",
   # Promoted out of exploratory/ 2026-07-29. Figure 6 panel (b) reads
   # outputs/revision/FAPROTAX_all_functions_HW_SW.csv, and this is its ONLY
   # producer -- but it lived in exploratory/, which the glob below never reaches
@@ -122,21 +122,21 @@ SUPPORT <- c(
   # success. A load-bearing producer must not sit in a directory documented as
   # not-run. It reads raw data only, so it has no ordering constraint beyond
   # preceding the figure block.
-  "code/revision/rev_faprotax_dump_HW_SW.R",
-  "code/revision/rev_area_distribution_scenarios.R",
-  "code/revision/rev_height_form_crossvalidation.R",
-  "code/revision/rev_rf_model_diagnostics.R",
-  "code/revision/rev_rf_species_fallback_loso.R",
-  "code/revision/rev_rf_species_pooling.R",
-  "code/revision/rev_rf_species_bias_audit.R",
-  "code/revision/rev_fig_model_findings.R",
-  "code/revision/rev_model_family_comparison.R",
-  "code/revision/rev_rf_height_extrapolation.R",
-  "code/revision/rev_scaling_assumptions_audit.R",
+  "code/07_molecular/rev_faprotax_dump_HW_SW.R",
+  "code/06_upscale/rev_area_distribution_scenarios.R",
+  "code/05_model/rev_height_form_crossvalidation.R",
+  "code/05_model/rev_rf_model_diagnostics.R",
+  "code/05_model/rev_rf_species_fallback_loso.R",
+  "code/05_model/rev_rf_species_pooling.R",
+  "code/05_model/rev_rf_species_bias_audit.R",
+  "code/08_figures/rev_fig_model_findings.R",
+  "code/05_model/rev_model_family_comparison.R",
+  "code/05_model/rev_rf_height_extrapolation.R",
+  "code/06_upscale/rev_scaling_assumptions_audit.R",
   # Referee-facing evidence produced in the 2026-07-30 pass. Both were written but
   # never wired in, which is the same defect this file exists to prevent.
-  "code/revision/rev_rf_predictor_selection_current.R",  # -> rf_predictor_selection_current.csv
-  "code/revision/rev_rf_calibration_sensitivity.R")      # -> rf_calibration_sensitivity.csv
+  "code/05_model/rev_rf_predictor_selection_current.R",  # -> rf_predictor_selection_current.csv
+  "code/05_model/rev_rf_calibration_sensitivity.R")      # -> rf_calibration_sensitivity.csv
 SUPPORT <- SUPPORT[file.exists(SUPPORT)]
 cat(sprintf("\n== SUPPORTING ANALYSES (%d) ==\n", length(SUPPORT)))
 for (f in SUPPORT) run(f)
@@ -151,47 +151,47 @@ for (f in SUPPORT) run(f)
 # disk keep all 28 invariants passing. Select on meaning, never on spelling.
 # This list was generated from the glob it replaces and verified set-identical.
 rest <- c(
-  "code/revision/rev_fig01_temporal-flux.R",
-  "code/revision/rev_fig02_height-flux.R",
-  "code/revision/rev_fig02a_axis-support.R",
-  "code/revision/rev_fig03_variance-partition.R",
-  "code/revision/rev_fig04_gene-abundance.R",
-  "code/revision/rev_fig05_methane-cycling.R",
-  "code/revision/rev_fig06_hydrogenotrophy.R",
-  "code/revision/rev_fig07_decay-methanogenesis.R",
-  "code/revision/rev_fig07b_copies-per-g.R",
-  "code/revision/rev_fig07c_flux-unit.R",
-  "code/revision/rev_fig09_budget.R",
-  "code/revision/rev_figS02_height-slope-moisture.R",
-  "code/revision/rev_figS04_pmoa-mmox-coupling.R",
-  "code/revision/rev_figS11_scale-dependent.R",
-  "code/revision/rev_figS12_isotope-sources.R",
-  "code/revision/rev_figS15_black-oak-methanome.R",
-  "code/revision/rev_figS17_plant-traits.R",
-  "code/revision/rev_figS19_mcra-probe-validation.R",
-  "code/revision/rev_figS20_stem-deterioration.R",
-  "code/revision/rev_figSI_detection.R",
-  "code/revision/rev_figS_black-oak-cross-sections.R",
-  "code/revision/rev_figS_rf-calibration.R",
-  "code/revision/rev_fig_height_curves.R",
-  "code/revision/rev_fig_scaling_diagnostics.R",
-  "code/revision/rev_fig_scaling_heatmap.R",
-  "code/revision/rev_fig_scaling_profiles.R",
-  "code/revision/rev_stat_campaign_counts.R",
-  "code/revision/rev_stat_copies-per-gram.R",
-  "code/revision/rev_stat_dbh_by_species_campaign.R",
-  "code/revision/rev_stat_faprotax-caveats.R",
-  "code/revision/rev_stat_isotopes-canonical.R",
-  "code/revision/rev_stat_known-putative-table.R",
-  "code/revision/rev_stat_multigene-models.R",
-  "code/revision/rev_stat_pmoa-mmox-robustness.R",
-  "code/revision/rev_stat_s1-rf-soil-arcsinh.R",
-  "code/revision/rev_stat_s1s2-arcsinh.R",
-  "code/revision/rev_stat_species-aggregation-rma.R",
-  "code/revision/rev_stat_tree-distribution.R",
-  "code/revision/rev_stat_tree_flux_merged.R",
-  "code/revision/rev_stat_variance-partition.R",
-  "code/revision/rev_tbl_ddpcr-16s-concordance.R"
+  "code/08_figures/rev_fig01_temporal-flux.R",
+  "code/08_figures/rev_fig02_height-flux.R",
+  "code/08_figures/rev_fig02a_axis-support.R",
+  "code/08_figures/rev_fig03_variance-partition.R",
+  "code/08_figures/rev_fig04_gene-abundance.R",
+  "code/08_figures/rev_fig05_methane-cycling.R",
+  "code/08_figures/rev_fig06_hydrogenotrophy.R",
+  "code/08_figures/rev_fig07_decay-methanogenesis.R",
+  "code/08_figures/rev_fig07b_copies-per-g.R",
+  "code/08_figures/rev_fig07c_flux-unit.R",
+  "code/08_figures/rev_fig09_budget.R",
+  "code/08_figures/rev_figS02_height-slope-moisture.R",
+  "code/08_figures/rev_figS04_pmoa-mmox-coupling.R",
+  "code/08_figures/rev_figS11_scale-dependent.R",
+  "code/08_figures/rev_figS12_isotope-sources.R",
+  "code/08_figures/rev_figS15_black-oak-methanome.R",
+  "code/08_figures/rev_figS17_plant-traits.R",
+  "code/08_figures/rev_figS19_mcra-probe-validation.R",
+  "code/08_figures/rev_figS20_stem-deterioration.R",
+  "code/08_figures/rev_figSI_detection.R",
+  "code/08_figures/rev_figS_black-oak-cross-sections.R",
+  "code/08_figures/rev_figS_rf-calibration.R",
+  "code/08_figures/rev_fig_height_curves.R",
+  "code/08_figures/rev_fig_scaling_diagnostics.R",
+  "code/08_figures/rev_fig_scaling_heatmap.R",
+  "code/08_figures/rev_fig_scaling_profiles.R",
+  "code/09_tables_stats/rev_stat_campaign_counts.R",
+  "code/09_tables_stats/rev_stat_copies-per-gram.R",
+  "code/09_tables_stats/rev_stat_dbh_by_species_campaign.R",
+  "code/09_tables_stats/rev_stat_faprotax-caveats.R",
+  "code/09_tables_stats/rev_stat_isotopes-canonical.R",
+  "code/09_tables_stats/rev_stat_known-putative-table.R",
+  "code/09_tables_stats/rev_stat_multigene-models.R",
+  "code/09_tables_stats/rev_stat_pmoa-mmox-robustness.R",
+  "code/09_tables_stats/rev_stat_s1-rf-soil-arcsinh.R",
+  "code/09_tables_stats/rev_stat_s1s2-arcsinh.R",
+  "code/09_tables_stats/rev_stat_species-aggregation-rma.R",
+  "code/09_tables_stats/rev_stat_tree-distribution.R",
+  "code/09_tables_stats/rev_stat_tree_flux_merged.R",
+  "code/09_tables_stats/rev_stat_variance-partition.R",
+  "code/09_tables_stats/rev_tbl_ddpcr-16s-concordance.R"
 )
 rest <- setdiff(rest, c(CORE, SUPPORT))
 local({
@@ -206,11 +206,11 @@ for (f in rest) run(f)
 # --- 3b) regenerate the parameter record from the canonical outputs ----------
 # scaling_parameters.md section 0 claims "nothing here is typed by hand". This is what
 # makes that true; without it the claim drifted through four rounds of changes.
-run("code/revision/rev_write_parameter_record.R")
+run("code/09_tables_stats/rev_write_parameter_record.R")
 
 # --- 4) assemble -------------------------------------------------------------
 cat("\n>>> assembling numbered manuscript figures\n")
-source("code/revision/rev_00_assemble_figures.R")
+source("code/08_figures/rev_00_assemble_figures.R")
 
 # --- 5) report anything never reached ----------------------------------------
 SOURCED <- c("code/lib/rev_geometry.R",        # sourced by others, not run alone
@@ -218,18 +218,18 @@ SOURCED <- c("code/lib/rev_geometry.R",        # sourced by others, not run alon
              "code/lib/rev_prep_species_data.R")
 allR  <- list.files("code/revision", "\\.R$", full.names = TRUE)
 never <- setdiff(allR, c(CORE, SUPPORT, rest, SOURCED,
-                         "code/revision/run_all.R",
-                         "code/revision/rev_00_assemble_figures.R",
+                         "code/run_all.R",
+                         "code/08_figures/rev_00_assemble_figures.R",
                          # Run standalone at step 3b, not via CORE/SUPPORT/rest, so it
                          # was absent here and got reported as "never run" on every
                          # pass -- immediately after this script had just run it. The
                          # 2026-07-31 reorg audit nearly archived it on that evidence;
                          # it is the only producer of scaling_parameters.md section 0.
-                         "code/revision/rev_write_parameter_record.R",
+                         "code/09_tables_stats/rev_write_parameter_record.R",
                          # The gate. Deliberately not part of the pipeline (it checks
                          # agreement BETWEEN outputs, so it runs after, by hand), but
                          # it is not dead either.
-                         "code/revision/rev_check_consistency.R"))
+                         "code/check_consistency.R"))
 if (length(never)) {
   cat(sprintf("\n[note] %d script(s) in code/revision/ were not run by this pipeline:\n",
               length(never)))
