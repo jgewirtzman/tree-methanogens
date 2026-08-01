@@ -356,10 +356,10 @@ cat("✓ Models and data loaded\n\n")
 cat("Sourcing map scripts for spatial setup and tree data...\n")
 
 # Source to get fg_final with all coordinate corrections
-invisible(capture.output(source('../../code/07_maps/01_forestgeo_alignment.R')))
-invisible(capture.output(source('../../code/07_maps/02_spatial_interpolation.R')))
-invisible(capture.output(source('../../code/07_maps/03_interpolation_methods.R')))
-invisible(capture.output(source('../../code/07_maps/04_seasonal_flux_maps.R')))
+invisible(capture.output(source('../../code/06_upscale/01_forestgeo_alignment.R')))
+invisible(capture.output(source('../../code/06_upscale/02_spatial_interpolation.R')))
+invisible(capture.output(source('../../code/06_upscale/03_interpolation_methods.R')))
+invisible(capture.output(source('../../code/06_upscale/04_seasonal_flux_maps.R')))
 
 # Use fg_final as our inventory
 INVENTORY <- fg_final %>%

@@ -33,7 +33,7 @@ cat("Starting at:", format(Sys.time()), "\n\n")
 # =============================================================================
 
 # First run your fg_aligned.R script to create fg_final
-source('../../code/07_maps/01_forestgeo_alignment.R')
+source('../../code/06_upscale/01_forestgeo_alignment.R')
 
 # Verify fg_final exists
 if(!exists("fg_final")) {
@@ -417,7 +417,7 @@ cat("Loading corrected ForestGEO data...\n")
 # - Duplicate removal
 # - Species name mapping
 
-source('../../code/07_maps/01_forestgeo_alignment.R')
+source('../../code/06_upscale/01_forestgeo_alignment.R')
 
 if(!exists("fg_final")) {
   stop("ERROR: fg_final not found. Please ensure fg_aligned.R runs successfully.")

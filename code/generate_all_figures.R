@@ -75,7 +75,7 @@ run_figure_script("code/06_figures/09_felled_oak_profiles.R",            "fig7")
 run_figure_script("code/05_gene_flux_analysis/04_species_gene_flux.R",   "fig8")
 
 # fig9: loads from .RData files produced by earlier pipeline stages
-run_figure_script("code/04_scaling/09_upscale_publication_plots.R",      "fig9")
+run_figure_script("code/08_figures/09_upscale_publication_plots.R",      "fig9")
 
 # ==============================================================================
 # SUPPLEMENTARY FIGURES
@@ -94,11 +94,11 @@ run_figure_script("code/05_gene_flux_analysis/methanotrophs/03_pmoa_mmox_analysi
 
 run_figure_script("code/06_figures/10_black_oak_methanome_heatmap.R",    "S12")
 run_figure_script("code/06_figures/02_radial_cross_sections.R",          "S13")
-run_figure_script("code/04_scaling/08_rf_publication_plots.R",           "S15")
+run_figure_script("code/08_figures/08_rf_publication_plots.R",           "S15")
 
 # S1 runs LAST because the maps pipeline loads the raster package which masks
 # dplyr::select. Sources its own upstream dependencies (01_forestgeo + 02_spatial).
-run_figure_script("code/07_maps/05_methods_figure_map.R",               "S1")
+run_figure_script("code/08_figures/05_methods_figure_map.R",               "S1")
 
 
 # ==============================================================================
