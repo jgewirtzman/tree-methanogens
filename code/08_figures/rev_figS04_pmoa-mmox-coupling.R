@@ -27,10 +27,10 @@ source("code/lib/outputs.R")
 # NOTE size axis = geometric-mean center (the 1/2 is the Bland-Altman mean); NOT the
 #   arithmetic-sum "total abundance" used elsewhere.
 # Absolute axes subject to pending x10 (DILUTION_10X); ratios/slopes are not.
-# NEW file; original S10 generator untouched. Output: outputs/revision/figS10_final.png
+# NEW file; original S10 generator untouched. Output: outputs/figures/generated/figS10_final.png
 # ==============================================================================
 suppressPackageStartupMessages({ library(tidyverse); library(patchwork) })
-out <- "outputs/revision"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
+out <- "outputs"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
 E <- 75; DILUTION_10X <- 1
 COMP4 <- c(Heartwood = "#a6611a", Sapwood = "#dfc27d", Organic = "#018571", Mineral = "#80cdc1")
 WOODC <- c("Heartwood", "Sapwood"); SOILC <- c("Organic", "Mineral")

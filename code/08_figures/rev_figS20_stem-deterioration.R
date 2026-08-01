@@ -8,7 +8,7 @@
 # and show the actual fitted curves (+/- 95% CI) over the raw data, with model
 # comparison (AIC, marginal R^2, quadratic-term p). Lets the data adjudicate the
 # shape rather than assuming it. Axis in original flux units (back-transformed).
-# Reads data/; writes outputs/revision/figS20_stem_deterioration.png
+# Reads data/; writes outputs/figures/generated/figS20_stem_deterioration.png
 # ==============================================================================
 suppressMessages({library(ggplot2);library(patchwork);library(lme4);library(lmerTest)})
 options(warn=-1,stringsAsFactors=FALSE)
@@ -48,8 +48,8 @@ panel<-function(metric,xlab,catlabs){
 }
 pA<-panel("bark","Bark loss (decay)",c("healthy","moderate","severe","dead"))
 pB<-panel("wound","Wounding (damage)",c("1","2","3","4"))
-ggsave("outputs/revision/figS20_stem_deterioration.png",
+ggsave("outputs/figures/generated/figS20_stem_deterioration.png",
   (pA | pB+labs(y=NULL))+plot_annotation(
     caption="Species-controlled (1|species), n=282. Rise into moderate deterioration robust to mean/median/rank."),
   width=11,height=5,dpi=300)
-cat("wrote outputs/revision/figS20_stem_deterioration.png\n")
+cat("wrote outputs/figures/generated/figS20_stem_deterioration.png\n")

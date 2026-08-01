@@ -10,7 +10,7 @@
 #   - soilmoisture_total.csv (from data/raw/field_data/)
 #
 # Outputs:
-#   - outputs/figures/main/fig1_temporal_flux_timeseries.png
+#   - outputs/figures/legacy/main/fig1_temporal_flux_timeseries.png
 # ==============================================================================
 
 # Load required libraries
@@ -308,7 +308,7 @@ final_plot <- plot_grid(
 print(final_plot)
 
 # Save the plot
-ggsave("outputs/revision/fig1_final.png",
+ggsave("outputs/figures/generated/fig1_final.png",
        final_plot, width = 10, height = 7, dpi = 300)
 
 # ===== CALCULATE STATISTICS FOR FIGURE CAPTION =====

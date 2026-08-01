@@ -24,14 +24,14 @@
 # NEW file (does not edit the pipeline). Reuses the same processed inputs as
 #   04_height_effect_analysis.R.
 # Run: Rscript code/revision/R_fig2a_consistent_axis.R
-# Output: outputs/revision/fig2a_consistent_axis.png (drop-in replacement panel a)
+# Output: outputs/figures/generated/fig2a_consistent_axis.png (drop-in replacement panel a)
 # ==============================================================================
 
 suppressPackageStartupMessages({
   library(ggplot2); library(dplyr); library(scales); library(gghalves)
 source("code/lib/outputs.R")
 })
-out <- "outputs/revision"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
+out <- "outputs"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
 
 species_mapping <- c(ACRU="Acer rubrum",ACSA="Acer saccharum",BEAL="Betula alleghaniensis",
   BELE="Betula lenta",BEPA="Betula papyrifera",FAGR="Fagus grandifolia",FRAM="Fraxinus americana",

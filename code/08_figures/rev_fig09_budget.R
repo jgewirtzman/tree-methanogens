@@ -12,11 +12,11 @@ source("code/lib/outputs.R")
 #   * honesty: bounding scenario flagged unconstrained; RF OOB R2 noted.
 #
 # NEW file. Run: Rscript code/revision/R_fig_component_budget.R
-# Output: outputs/revision/fig_budget_maps.png
+# Output: outputs/figures/generated/fig_budget_maps.png
 # ==============================================================================
 
 suppressPackageStartupMessages({ library(tidyverse); library(patchwork); library(scales) })
-out <- "outputs/revision"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
+out <- "outputs"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
 
 # ---- palette: RdBu family matching the paper's red/blue (sink = blue #2166ac,
 #      source = red #b2182b), consistent with the other main figures -----------

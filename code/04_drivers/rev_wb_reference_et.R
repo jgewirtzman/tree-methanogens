@@ -25,7 +25,7 @@
 # job: it failed 2020-06 to 2020-09, which is 15 of the 22 campaign dates.
 #
 # Output: outputs/tables/tower_daily_waterbalance.csv
-#         outputs/revision/wb_reference_et.txt
+#         outputs/audit/wb_reference_et.txt
 # ==============================================================================
 suppressPackageStartupMessages({library(dplyr)})
 
@@ -140,7 +140,7 @@ for (n in names(cand)) D[[n]] <- cand[[n]]
 dir.create("outputs/tables", showWarnings = FALSE, recursive = TRUE)
 write.csv(D, "outputs/tables/tower_daily_waterbalance.csv", row.names = FALSE)
 
-dir.create("outputs/revision", showWarnings = FALSE, recursive = TRUE)
+dir.create("outputs", showWarnings = FALSE, recursive = TRUE)
 con <- file("outputs/audit/wb_reference_et.txt", "w")
 cat(sprintf("REFERENCE ET AND WATER BALANCE (rev_wb_reference_et.R)\nbuilt %s\n\n",
             format(Sys.time(), "%Y-%m-%d %H:%M:%S")), file = con)
@@ -152,4 +152,4 @@ cat(sprintf("PM annual %.0f mm | HS annual %.0f mm | r = %.3f\n",
 cat(sprintf("\nbest index: %s\n\n", BEST), file = con)
 utils::write.table(R, con, sep = "\t", row.names = FALSE, quote = FALSE)
 close(con)
-cat("\nwritten: outputs/tables/tower_daily_waterbalance.csv, outputs/revision/wb_reference_et.txt\n")
+cat("\nwritten: outputs/tables/tower_daily_waterbalance.csv, outputs/audit/wb_reference_et.txt\n")

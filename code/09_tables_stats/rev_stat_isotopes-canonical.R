@@ -3,11 +3,11 @@ source("code/lib/outputs.R")
 # ISOTOPES — FINAL settled workflow (NPH-MS-2026-56441 revision)
 # ==============================================================================
 # Supersedes the exploratory isotope scripts. Self-contained. Produces:
-#   outputs/revision/ISOTOPES_methods.md      methods text
-#   outputs/revision/ISOTOPES_results.md      results text (numbers filled in)
-#   outputs/revision/ISOTOPES_fig1_source.png Keeling + convergence panels
-#   outputs/revision/ISOTOPES_fig2_crossplot.png  d13CH4 vs d13CO2 + alpha_C isolines
-#   outputs/revision/ISOTOPES_sample_table.csv    per-sample data
+#   outputs/audit/ISOTOPES_methods.md      methods text
+#   outputs/audit/ISOTOPES_results.md      results text (numbers filled in)
+#   outputs/figures/generated/ISOTOPES_fig1_source.png Keeling + convergence panels
+#   outputs/figures/generated/ISOTOPES_fig2_crossplot.png  d13CH4 vs d13CO2 + alpha_C isolines
+#   outputs/data/ISOTOPES_sample_table.csv    per-sample data
 #
 # SETTLED DECISIONS (from the revision thread):
 #  * Use WHOLE-TREE single-borehole samples (manuscript basis). Exclude
@@ -24,7 +24,7 @@ source("code/lib/outputs.R")
 # ==============================================================================
 
 suppressPackageStartupMessages({ library(tidyverse); library(gridExtra) })
-out <- "outputs/revision"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
+out <- "outputs"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
 
 # ---- 1. LOAD + QC ------------------------------------------------------------
 runs <- list.files("data/raw/internal_gas/picarro", pattern = "_results.csv$", full.names = TRUE)

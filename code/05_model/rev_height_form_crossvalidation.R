@@ -37,13 +37,13 @@ source("code/lib/outputs.R")
 # the number affected is reported rather than silently dropped, and a common-subset
 # comparison is given so the ranking is not an artefact of differing sample sets.
 #
-# Output: outputs/revision/height_form_crossvalidation.txt
-#         outputs/revision/fig_height_form_cv.png
+# Output: outputs/audit/height_form_crossvalidation.txt
+#         outputs/figures/generated/fig_height_form_cv.png
 # ==============================================================================
 
 suppressMessages({library(dplyr); library(ggplot2); library(tidyr)})
 set.seed(42)
-outdir <- "outputs/revision"; dir.create(outdir, showWarnings=FALSE, recursive=TRUE)
+outdir <- "outputs"; dir.create(outdir, showWarnings=FALSE, recursive=TRUE)
 load("outputs/models/TRAINING_DATA.RData")
 
 pair <- tree_train_complete %>%
@@ -137,4 +137,4 @@ p <- ggplot(pd, aes(reorder(form,-rmse), rmse, fill=form)) +
        x=NULL, y="RMSE (nmol m-2 s-1)") +
   theme_bw(base_size=9)
 ggsave(out_path("fig_height_form_cv.png"), p, width=8, height=6, dpi=200, bg="white")
-cat("\nWritten: outputs/revision/fig_height_form_cv.png\n")
+cat("\nWritten: outputs/figures/generated/fig_height_form_cv.png\n")

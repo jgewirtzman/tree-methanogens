@@ -36,7 +36,7 @@
 # response and feature matrix from before the model lock, and read a traits table
 # from an absolute path outside this repository, so it cannot reproduce.
 #
-# Output: outputs/revision/species_fallback_loso.csv / .txt
+# Output: outputs/data/species_fallback_loso.csv / .txt
 # ==============================================================================
 suppressPackageStartupMessages({library(ranger); library(dplyr)})
 set.seed(42)
@@ -120,11 +120,11 @@ print(as.data.frame(BY %>% select(scheme, species, n, rmse) %>%
 cat("\nwins by species (lowest RMSE):\n")
 print(table(BY %>% group_by(species) %>% slice_min(rmse, n = 1) %>% pull(scheme)))
 
-dir.create("outputs/revision", showWarnings = FALSE, recursive = TRUE)
+dir.create("outputs", showWarnings = FALSE, recursive = TRUE)
 write.csv(BY, "outputs/data/species_fallback_loso.csv", row.names = FALSE)
 con <- file("outputs/audit/species_fallback_loso.txt", "w")
 cat(sprintf("SPECIES FALLBACK, LEAVE-ONE-SPECIES-OUT\nbuilt %s\nheld out: %s\n\n",
             format(Sys.time(), "%Y-%m-%d %H:%M:%S"), paste(HOLD, collapse = ", ")), file = con)
 utils::write.table(round(as.data.frame(OVER %>% select(-scheme)), 4), con, sep = "\t", quote = FALSE)
 close(con)
-cat("\nwritten: outputs/revision/species_fallback_loso.{csv,txt}\n")
+cat("\nwritten: outputs/species_fallback_loso.{csv,txt}\n")

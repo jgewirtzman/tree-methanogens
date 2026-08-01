@@ -13,10 +13,10 @@ source("code/lib/outputs.R")
 # harmonization would move soil to a dry basis and needs soil moisture we don't have).
 # The DILUTION_10X toggle multiplies these copies/g values, i.e. the A1 x10 correction
 # (uniform log10 shift; relative/among-compartment comparisons unchanged).
-# Output: outputs/revision/fig4_final.png
+# Output: outputs/figures/generated/fig4_final.png
 # ==============================================================================
 suppressPackageStartupMessages({ library(tidyverse); library(cowplot); library(patchwork) })
-out <- "outputs/revision"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
+out <- "outputs"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
 DILUTION_10X <- 1   # set to 10 when Wyatt confirms the dropped dilution
 
 merged_final <- read_csv("data/processed/integrated/merged_tree_dataset_final.csv", show_col_types = FALSE)

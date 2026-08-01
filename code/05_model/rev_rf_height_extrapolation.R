@@ -22,14 +22,14 @@
 #         0.5-2.0 m, so projecting it to 25 m is extrapolation however it is dressed.
 #         It belongs alongside the other functional forms as a scenario, not above them.
 #
-# Output: outputs/revision/rf_height_extrapolation.txt
+# Output: outputs/audit/rf_height_extrapolation.txt
 # ==============================================================================
 
 suppressMessages({library(ranger); library(dplyr); library(tidyr)})
 source("code/lib/rev_geometry.R")
 source("code/lib/rev_species_levels.R")
 set.seed(42)
-outdir <- "outputs/revision"; dir.create(outdir, showWarnings=FALSE, recursive=TRUE)
+outdir <- "outputs"; dir.create(outdir, showWarnings=FALSE, recursive=TRUE)
 load("outputs/models/RF_MODELS.RData"); load("outputs/models/TRAINING_DATA.RData")
 load("data/processed/integrated/rf_workflow_input_data_with_2023.RData")
 INV <- canonical_inventory(); DR <- rf_workflow_data$PLACEHOLDER_DRIVERS

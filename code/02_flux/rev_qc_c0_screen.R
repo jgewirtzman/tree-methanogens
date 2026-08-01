@@ -49,13 +49,13 @@ source("code/lib/outputs.R")
 #   missing value as a clean bill of health.
 #
 # OUTPUTS
-#   outputs/revision/qc_excluded_measurements.csv   canonical exclusion list
+#   outputs/data/qc_excluded_measurements.csv   canonical exclusion list
 #   data/compiled/semirigid_chamber_flux.csv        + qc_pass, qc_reason columns
 #                                                   (rows RETAINED; filter on qc_pass)
 # ==============================================================================
 
 suppressMessages({library(dplyr)})
-outdir <- "outputs/revision"; dir.create(outdir, showWarnings=FALSE, recursive=TRUE)
+outdir <- "outputs"; dir.create(outdir, showWarnings=FALSE, recursive=TRUE)
 C0_MULT <- 1.5
 
 rule <- function(s) cat("\n",strrep("=",78),"\n ",s,"\n",strrep("=",78),"\n",sep="")
@@ -91,7 +91,7 @@ for (nm in names(SRC)) {
 }
 EXCL <- bind_rows(EX)
 write.csv(EXCL, out_path("qc_excluded_measurements.csv"), row.names=FALSE)
-cat(sprintf("\n  Canonical exclusion list: %d measurements -> outputs/revision/qc_excluded_measurements.csv\n",
+cat(sprintf("\n  Canonical exclusion list: %d measurements -> outputs/data/qc_excluded_measurements.csv\n",
             nrow(EXCL)))
 
 # --- annotate the compiled (Zenodo) product -----------------------------------

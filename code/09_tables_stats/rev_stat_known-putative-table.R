@@ -23,11 +23,11 @@ source("code/lib/outputs.R")
 # temperate-forest (mesophilic) Methylacidiphilaceae are not known to oxidize CH4.
 #
 # NEW file. Run: Rscript code/revision/R_known_putative_table.R
-# Outputs: outputs/revision/known_putative_taxa_table.csv, kp_counts.txt
+# Outputs: outputs/data/known_putative_taxa_table.csv, kp_counts.txt
 # ==============================================================================
 
 suppressPackageStartupMessages({ library(tidyverse) })
-out <- "outputs/revision"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
+out <- "outputs"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
 
 defs <- read_csv("data/compiled/methanotroph_definitions.csv", show_col_types = FALSE) %>%
   mutate(across(c(Include_known, Include_putative), ~toupper(trimws(.))))

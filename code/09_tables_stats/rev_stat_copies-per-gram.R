@@ -20,7 +20,7 @@ source("code/lib/outputs.R")
 # ==============================================================================
 
 suppressPackageStartupMessages({ library(tidyverse) })
-out_dir <- "outputs/revision"; dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
+out_dir <- "outputs"; dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
 ELUTION_UL <- 75   # CANONICAL: 02_harmonize_all_data.R:317 uses Conc * 75 / mass_mg * 1000
                    # (75 uL elution volume; treats ddPCR Conc as copies/uL of eluent).
                    # Earlier draft used 37.5 (=75/2) -> was 2x low; corrected to match manuscript.

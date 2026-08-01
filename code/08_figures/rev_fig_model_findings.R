@@ -36,11 +36,11 @@ source("code/lib/outputs.R")
 #   b  partial dependence on the dominant predictor, with the observed range
 #   c  predicted against observed, calibrated, with the 1:1 line
 #
-# Output: outputs/revision/fig_model_findings.png
+# Output: outputs/figures/generated/fig_model_findings.png
 # ==============================================================================
 suppressMessages({library(dplyr); library(ranger); library(ggplot2); library(patchwork); library(tidyr)})
 set.seed(42)
-outdir <- "outputs/revision"
+outdir <- "outputs"
 load("outputs/models/RF_MODELS.RData"); load("outputs/models/TRAINING_DATA.RData")
 FLUX_PURPLE <- "#756BB1"
 
@@ -200,4 +200,4 @@ cat("\n=== SoilRF importance (share) ===\n")
 print(as.data.frame(IMP %>% filter(model == "SoilRF") %>% arrange(-share) %>%
       transmute(predictor = label, share = sprintf("%.1f%%", 100*share))), row.names = FALSE)
 cat(sprintf("\ncalibrated OOB R2 (tree): %.3f on %d measurements\n", r2, nrow(cal)))
-cat("\nwritten: outputs/revision/fig_model_findings.png\n")
+cat("\nwritten: outputs/figures/generated/fig_model_findings.png\n")

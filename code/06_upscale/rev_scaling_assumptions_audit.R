@@ -11,15 +11,15 @@ source("code/lib/outputs.R")
 #   Q3  How is woody surface area distributed vertically (bole vs branches)?
 #   Q4  How does our own surface area relate to the Gauci et al. 2024 WAI of 3.07?
 #
-# Output: outputs/revision/scaling_assumptions_audit.txt (transcript of this run)
-#         outputs/revision/fig_height_profiles_by_species.png
+# Output: outputs/audit/scaling_assumptions_audit.txt (transcript of this run)
+#         outputs/figures/generated/fig_height_profiles_by_species.png
 # ==============================================================================
 
 suppressMessages({library(dplyr); library(ggplot2); library(tidyr); library(ranger)})
 source("code/lib/rev_geometry.R")
 source("code/lib/rev_species_levels.R")
 set.seed(42)
-outdir <- "outputs/revision"; dir.create(outdir, showWarnings = FALSE, recursive = TRUE)
+outdir <- "outputs"; dir.create(outdir, showWarnings = FALSE, recursive = TRUE)
 
 load("outputs/models/RF_MODELS.RData")
 load("outputs/models/TRAINING_DATA.RData")
@@ -248,4 +248,4 @@ p <- ggplot(both, aes(h, f, colour=src)) +
        x="measurement height (cm)", y=expression(CH[4]~flux~(nmol~m^-2~s^-1))) +
   theme_bw(base_size=8) + theme(legend.position="top")
 ggsave(out_path("fig_height_profiles_by_species.png"), p, width=9, height=6, dpi=200, bg="white")
-cat("\nWritten: outputs/revision/fig_height_profiles_by_species.png\n")
+cat("\nWritten: outputs/figures/generated/fig_height_profiles_by_species.png\n")

@@ -54,8 +54,8 @@ build <- function(xp, yp, xr, yr, xlab, ylab, out){
                                    legend.background=element_rect(fill=alpha("white",.7), colour=NA))
   ggsave(out, p, width=7.4, height=6.3, dpi=300); out
 }
-build("prp","egp","pr","eg", prlab, eglab, "outputs/revision/figS19_mcra_probe-x.png")      # probe on X
-build("egp","prp","eg","pr", eglab, prlab, "outputs/revision/figS19_mcra_evagreen-x.png")   # EvaGreen on X (chosen)
+build("prp","egp","pr","eg", prlab, eglab, "outputs/figures/generated/figS19_mcra_probe-x.png")      # probe on X
+build("egp","prp","eg","pr", eglab, prlab, "outputs/figures/generated/figS19_mcra_evagreen-x.png")   # EvaGreen on X (chosen)
 # canonical = EvaGreen-on-x: false positives form a band pinned to 0 on OUR probe measure
-file.copy("outputs/revision/figS19_mcra_evagreen-x.png", "outputs/revision/figS19_mcra_probe_validation.png", overwrite=TRUE)
+file.copy("outputs/figures/generated/figS19_mcra_evagreen-x.png", "outputs/figures/generated/figS19_mcra_probe_validation.png", overwrite=TRUE)
 cat("wrote figS19_mcra_{probe-x,evagreen-x}.png (canonical = EvaGreen-x)\n")

@@ -498,7 +498,7 @@ mega_combined_plot <- (label_tree / wrap_elements(tree_row) /
 
 mega_combined_plot
 
-ggsave("outputs/figures/main/fig9_upscaled_flux_seasonal.png",
+ggsave("outputs/figures/legacy/main/fig9_upscaled_flux_seasonal.png",
        mega_combined_plot, width = 12, height = 12, dpi = 300, bg = "white")
 
 cat("\n✓ All figures saved successfully!\n")

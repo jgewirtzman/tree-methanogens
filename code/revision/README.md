@@ -12,7 +12,7 @@ Rscript code/run_all.R
 Runs the original figure pipeline first (`generate_all_figures.R`, which populates the
 **unchanged** figures like Fig 8 and several SI — two scripts fail there by design, fig5 &
 S12, both replaced by revision versions), then every revision generator (stats then figures
-via glob), then assembles the numbered set into `outputs/revision/figures/{main,SI,photos}/`.
+via glob), then assembles the numbered set into `outputs/figures/{main,SI,photos}/`.
 A full run yields **9 main + 23 SI + 1 photo, 0 missing**. Reads `data/` and `code/`; writes
 to `outputs/figures/` (originals) and `outputs/revision/`.
 
@@ -22,7 +22,7 @@ to `outputs/figures/` (originals) and `outputs/revision/`.
 ```
 code/revision/
 ├── run_all.R                  # one-command reproduce (globs rev_stat_*/rev_fig*)
-├── rev_00_assemble_figures.R  # copies finals -> outputs/revision/figures/{main,SI,photos}/ (numbered)
+├── rev_00_assemble_figures.R  # copies finals -> outputs/figures/{main,SI,photos}/ (numbered)
 ├── rev_prep_species_data.R    # shared, side-effect-free species-level data prep (sourced)
 ├── rev_fig01_*.R … rev_fig09_*.R    # main-figure generators (by manuscript number)
 │     rev_fig06_hydrogenotrophy      #   NEW synthesis main fig
@@ -46,8 +46,8 @@ specific curated inputs were added there, alongside the existing files:
 
 ## Outputs
 - `outputs/revision/` — all generated figures, reports, tables (CSV/TXT/PNG).
-- `outputs/revision/exploratory/` — outputs of the exploratory scripts (incl. `explore_*.png`).
-- `outputs/revision/figures/main/`, `.../SI/`, `.../photos/` — the numbered manuscript figure set
+- `outputs/scratch/` — outputs of the exploratory scripts (incl. `explore_*.png`).
+- `outputs/figures/legacy/main/`, `.../SI/`, `.../photos/` — the numbered manuscript figure set
   (photos = field plates, e.g. cross-sections + chamber photos; separate from SI data figures).
 - Some assembled figures are original-pipeline figures (unchanged); run `generate_all_figures.R`
   first to populate them, else the assembler reports them MISSING.

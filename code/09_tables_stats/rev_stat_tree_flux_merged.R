@@ -7,7 +7,7 @@
 #     (CO2_LM.r2|CO2_HM.r2|CH4_LM.r2.x|CH4_HM.r2.x) >= 0.7  &  CH4 in [-100,200]
 # Reports ORIGINAL vs MERGED side by side so the revised numbers are traceable,
 # and adds the dead-vs-live breakdown (new to the revision). Does NOT edit the
-# original pipeline script. Writes outputs/revision/tree_flux_merged_stats.txt.
+# original pipeline script. Writes outputs/audit/tree_flux_merged_stats.txt.
 # ==============================================================================
 suppressPackageStartupMessages(library(dplyr)); options(warn=-1)
 num<-function(x) suppressWarnings(as.numeric(x)); NMOL_TO_UG<-57.744
@@ -46,4 +46,4 @@ for(s in c(FALSE,TRUE)){
 }
 P("\n(NOTE: formal dead-vs-live inference is tree-level, controlling for species/plot;")
 P(" see dead-vs-live analysis. Above is descriptive only. All fold-in adds are pre-QC 45 meas / 7 trees.)")
-close(out); cat("\nwrote outputs/revision/tree_flux_merged_stats.txt\n")
+close(out); cat("\nwrote outputs/audit/tree_flux_merged_stats.txt\n")

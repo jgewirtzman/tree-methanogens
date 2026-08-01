@@ -12,7 +12,7 @@
 #   the two population humps.
 # Matches rev_fig07 felled-oak aesthetics. Felled-oak ITS load = local
 # data/processed/molecular/black_oak/bo_its_load.csv (QUVE subset of the ITS metadata).
-# Writes outputs/revision/fig7_decay_methanogenesis.png
+# Writes outputs/figures/generated/fig7_decay_methanogenesis.png
 # ==============================================================================
 suppressMessages({library(tidyverse);library(patchwork);library(lme4);library(lmerTest)})
 options(warn=-1)
@@ -135,6 +135,6 @@ pb<-ggplot(d,aes(X,Y,colour=material))+geom_point(alpha=.4,size=1.2)+
 fig<-(pa|pb)/(pc|pd|pe|pf)+plot_layout(heights=c(1,1.15))+
   plot_annotation(tag_levels="a",tag_prefix="(",tag_suffix=")",
     theme=theme(plot.tag=element_text(size=11,face="bold")))
-ggsave("outputs/revision/fig7_decay_methanogenesis.png",fig,width=13,height=9,dpi=250)
+ggsave("outputs/figures/generated/fig7_decay_methanogenesis.png",fig,width=13,height=9,dpi=250)
 cat(sprintf("bark-flux: R2=%.2f p=%.4f dAIC=%.1f | wood mcrA-ITS: R2=%.2f p=%.4f dAIC=%.1f\n",R2a,pqa,dAICa,R2b,pqb,dAICb))
-cat("wrote outputs/revision/fig7_decay_methanogenesis.png\n")
+cat("wrote outputs/figures/generated/fig7_decay_methanogenesis.png\n")

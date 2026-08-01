@@ -180,7 +180,7 @@ p_abs <- Reduce(`/`, panels) +
 
 print(p_abs)
 
-ggsave("outputs/revision/black_oak_methanome_revised.png",
+ggsave("outputs/figures/generated/black_oak_methanome_revised.png",
        p_abs, width = 12, height = 8, dpi = 300)
 
 # ==============================================================================

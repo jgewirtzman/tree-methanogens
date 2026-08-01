@@ -7,7 +7,7 @@
 # mcrA/CH4/flux peak at 4-6 m is the leading edge of this cone). Photos are field
 # shots (ruler for scale); centre-cropped to square and labelled by height.
 # Input photos: outputs/figures/black_oak_cross_section_photos/{height}.jpg
-# Writes outputs/revision/figS_black_oak_cross_sections.png
+# Writes outputs/figures/generated/figS_black_oak_cross_sections.png
 # ==============================================================================
 suppressMessages({library(jpeg);library(grid);library(gridExtra)});options(warn=-1)
 dir<-"outputs/figures/black_oak_cross_section_photos"
@@ -22,5 +22,5 @@ grobs<-Map(function(f,l){
 },ord,labs)
 # title/caption intentionally omitted -> lives in the manuscript figure caption
 plate<-arrangeGrob(grobs=grobs,nrow=1,padding=unit(3,"mm"))
-ggplot2::ggsave("outputs/revision/figS_black_oak_cross_sections.png",plate,width=15.5,height=3.1,dpi=220,bg="white")
-cat("wrote outputs/revision/figS_black_oak_cross_sections.png\n")
+ggplot2::ggsave("outputs/figures/generated/figS_black_oak_cross_sections.png",plate,width=15.5,height=3.1,dpi=220,bg="white")
+cat("wrote outputs/figures/generated/figS_black_oak_cross_sections.png\n")

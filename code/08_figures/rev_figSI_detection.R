@@ -14,7 +14,7 @@ source("code/lib/outputs.R")
 # MDF = z*sigma/t*flux.term at 90%.
 # ==============================================================================
 suppressMessages({library(dplyr);library(ggplot2);library(tidyr);library(patchwork)})
-outdir <- "outputs/revision"
+outdir <- "outputs"
 G <- read.csv(out_path("flux_FINAL.csv"), stringsAsFactors=FALSE)
 G$camp <- factor(G$camp, levels=c("Height+molecular","Cross-species","Monthly survey"))
 G$class <- factor(G$class, levels=c("uptake","below detection","emission"))
@@ -75,5 +75,5 @@ ggsave(out_path("fig_SI_detection.png"), pa/(pb|pc)/pd +
   plot_annotation(title="Detection limits and the interpretation of negative stem fluxes",
     theme=theme(plot.title=element_text(size=11,face="bold"))),
   width=10.5, height=11, dpi=200, bg="white")
-cat("Written: outputs/revision/fig_SI_detection.png\n\n")
+cat("Written: outputs/figures/generated/fig_SI_detection.png\n\n")
 print(as.data.frame(D), row.names=FALSE, digits=3)

@@ -3,7 +3,7 @@
 # Replicates the phyloseq build + FAPROTAX calc of code/08_figures/08d verbatim,
 # then writes the full per-function heartwood/sapwood table used by panel (b) of
 # the hydrogenotrophy synthesis figure. NEW file (does not modify 08d).
-# Output: outputs/revision/FAPROTAX_all_functions_HW_SW.csv
+# Output: outputs/data/FAPROTAX_all_functions_HW_SW.csv
 # ==============================================================================
 suppressPackageStartupMessages({library(phyloseq);library(microeco);library(tidyverse)})
 

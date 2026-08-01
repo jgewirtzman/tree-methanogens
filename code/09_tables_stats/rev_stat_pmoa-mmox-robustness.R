@@ -11,10 +11,10 @@ source("code/lib/outputs.R")
 #
 # Reuses the exact per-species objects from 02_scale_dependent_gene_patterns.R
 # (analysis_mcra/pmoa/mmox/methanotroph/ratio; 10 species). NEW file; edits nothing.
-# Output: outputs/revision/pmoa_mmox_robustness.txt
+# Output: outputs/audit/pmoa_mmox_robustness.txt
 # ==============================================================================
 suppressPackageStartupMessages({ library(tidyverse) })
-out <- "outputs/revision"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
+out <- "outputs"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
 
 invisible(capture.output(suppressMessages(
   source("code/07_molecular/02_scale_dependent_gene_patterns.R"))))

@@ -1,8 +1,8 @@
 #!/usr/bin/env Rscript
 # ==============================================================================
 # Revision pipeline. Run from the repo root:  Rscript code/run_all.R
-# Reads data/ (the Zenodo drop-in) + code/ (git); writes outputs/revision/ and
-# outputs/revision/figures/{main,SI}/.
+# Reads data/ (the Zenodo drop-in) + code/ (git); writes outputs/ and
+# outputs/figures/{main,SI}/.
 #
 # ORDER IS EXPLICIT, NOT A GLOB. This script used to collect work by filename
 # pattern -- ^rev_stat_, ^rev_tbl_, ^rev_fig -- which silently skipped 44 of the
@@ -15,10 +15,10 @@
 # whatever is still never reached is reported at the end.
 # Exploratory scripts (code/revision/exploratory/) are NOT run.
 # ==============================================================================
-LOGDIR <- "outputs/revision/logs"
+LOGDIR <- "outputs/logs"
 dir.create(LOGDIR, showWarnings = FALSE, recursive = TRUE)
 
-# Every script's console output is captured to outputs/revision/logs/<name>.txt.
+# Every script's console output is captured to outputs/logs/<name>.txt.
 # Nine scripts used to DECLARE a .txt output in their headers that nothing ever wrote:
 # they only cat() to the console, and system2(stdout = "") let it fall through to the
 # terminal. The .txt files on disk had been produced by hand-redirection on one day in
@@ -42,9 +42,9 @@ run <- function(f, fatal = FALSE) {
 # rev_00_assemble_figures.R compares every file it assembles against this marker's
 # timestamp, so a generator that failed cannot slip its previous output into the
 # manuscript set unnoticed. Written before anything else runs.
-dir.create("outputs/revision", showWarnings = FALSE, recursive = TRUE)
+dir.create("outputs", showWarnings = FALSE, recursive = TRUE)
 writeLines(format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
-           "outputs/revision/.pipeline_run_started")
+           "outputs/.pipeline_run_started")
 
 # --- model prerequisite -------------------------------------------------------
 # This pipeline SCORES and CONSUMES the locked forests; it does not fit them. The only
@@ -114,7 +114,7 @@ SUPPORT <- c(
   "code/02_flux/rev_mdf_FINAL_precision_and_detection.R",
   "code/06_upscale/rev_surface_area_model.R",
   # Promoted out of exploratory/ 2026-07-29. Figure 6 panel (b) reads
-  # outputs/revision/FAPROTAX_all_functions_HW_SW.csv, and this is its ONLY
+  # outputs/data/FAPROTAX_all_functions_HW_SW.csv, and this is its ONLY
   # producer -- but it lived in exploratory/, which the glob below never reaches
   # (non-recursive, by design). So rev_fig06_hydrogenotrophy.R aborted on every
   # run since 2026-07-23, and because rev_00_assemble_figures.R tests only
@@ -236,4 +236,4 @@ if (length(never)) {
   cat(paste("   -", basename(never), collapse = "\n"), "\n")
   cat("   (these are superseded or one-off; add to SUPPORT above if they should run)\n")
 }
-cat("\nDone. Numbered figures in outputs/revision/figures/{main,SI}/ (see MANIFEST.md).\n")
+cat("\nDone. Numbered figures in outputs/figures/{main,SI}/ (see MANIFEST.md).\n")

@@ -59,13 +59,13 @@ source("code/lib/outputs.R")
 # its median is 78.5% and it spans 10.6-94.9% (it exceeds 100% for the uptake form,
 # where the extrapolated part is negative and the total is below the measured band).
 #
-# Output: outputs/revision/scaling_full_grid.csv
-#         outputs/revision/fig_scaling_full_grid.png
+# Output: outputs/data/scaling_full_grid.csv
+#         outputs/figures/generated/fig_scaling_full_grid.png
 # ==============================================================================
 
 suppressMessages({library(ranger);library(dplyr);library(ggplot2);library(tidyr);library(patchwork)})
 set.seed(42)
-outdir <- "outputs/revision"; dir.create(outdir, showWarnings=FALSE, recursive=TRUE)
+outdir <- "outputs"; dir.create(outdir, showWarnings=FALSE, recursive=TRUE)
 source("code/lib/rev_geometry.R")
 source("code/lib/rev_species_levels.R")
 load("outputs/models/RF_MODELS.RData"); load("outputs/models/TRAINING_DATA.RData")
@@ -589,4 +589,4 @@ ggsave(out_path("fig_scaling_full_grid.png"), p1/p2 +
                      nrow(R), SOIL_ANN),
     theme=theme(plot.title=element_text(size=10,face="bold"))),
   width=9,height=8,dpi=200,bg="white")
-cat("\nWritten: outputs/revision/scaling_full_grid.csv and fig_scaling_full_grid.png\n")
+cat("\nWritten: outputs/data/scaling_full_grid.csv and fig_scaling_full_grid.png\n")

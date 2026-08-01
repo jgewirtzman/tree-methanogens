@@ -18,11 +18,11 @@ source("code/lib/outputs.R")
 # reproduces only the CH4 calibration path from the source script; it does not
 # edit the pipeline or overwrite any tracked output.
 # Run: Rscript code/revision/R_fig7c_flux_unit.R
-# Output: outputs/revision/fig7c_flux_unit_fixed.png
+# Output: outputs/figures/generated/fig7c_flux_unit_fixed.png
 # ==============================================================================
 
 suppressPackageStartupMessages({ library(tidyverse); library(viridis) })
-out <- "outputs/revision"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
+out <- "outputs"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
 
 # ---- CH4 calibration (mirrors 09_felled_oak_profiles.R, CH4 path only) --------
 GHG_standards <- read.csv("data/raw/field_data/black_oak/ghg_standards.csv", fileEncoding = "UTF-8-BOM")
