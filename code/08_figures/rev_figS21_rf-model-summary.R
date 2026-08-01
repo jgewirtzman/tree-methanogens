@@ -135,12 +135,20 @@ obs_panel <- function(D, o, p, ttl, col, r2g) {
   # renders on every device.
   lab <- sprintf("CCC = %.3f\nR2 = %.3f (OOB)\nR2 = %.3f (grouped CV)\nn = %d",
                  ccc(D[[o]], D[[p]]), r2, r2g, nrow(D))
+  # EQUAL AXES. With independent x and y ranges (here roughly 0-2.5 against
+  # 0-6.2) a true slope-1 line renders as a shallow diagonal through the cloud
+  # and reads as a fitted regression -- so the panel appeared to show a model
+  # tracking the data when it actually shows large fluxes being under-predicted.
+  # A shared range makes 1:1 sit at 45 degrees, and the under-prediction becomes
+  # visible instead of ambiguous. It is a real result, not an artifact to hide.
+  rng <- range(c(D[[o]], D[[p]]), finite = TRUE)
   ggplot(D, aes(.data[[p]], .data[[o]])) +
     geom_hex(bins = 40) +
     geom_abline(slope = 1, intercept = 0, color = "red", linewidth = 0.8, alpha = 0.8) +
     annotate("text", x = -Inf, y = Inf, hjust = -0.1, vjust = 1.2,
              label = lab, size = 2.7, lineheight = 1.05) +
     scale_fill_viridis_c(name = "Count", trans = "log10", option = "magma") +
+    coord_equal(xlim = rng, ylim = rng) +
     labs(title = ttl,
          x = expression("Predicted (nmol m"^-2*" s"^-1*")"),
          y = expression("Observed (nmol m"^-2*" s"^-1*")")) +
@@ -177,12 +185,23 @@ pd_grid <- function(m, X, vars, ttl, col) {
   D <- bind_rows(lapply(vars, function(v)
     pdp(m, X, v) %>% mutate(var = PD_LAB[[v]])))
   D$var <- factor(D$var, levels = unname(PD_LAB[vars]))
+  # Rug of the OBSERVED values behind each curve. Partial dependence is drawn
+  # across the 2nd-98th percentile, so the tails rest on very few measurements
+  # and a bare curve gives no way to tell a supported region from a sparse one.
+  # This paper's central caveat is extrapolation -- 64.6% of the named scenario
+  # sits above 2 m, where nothing was measured -- so showing where data actually
+  # exist belongs on every one of these panels.
+  RUG <- bind_rows(lapply(vars, function(v)
+    data.frame(x = X[[v]], var = PD_LAB[[v]])))
+  RUG$var <- factor(RUG$var, levels = unname(PD_LAB[vars]))
   # NOTE: the original drew a shaded ribbon here as ymin = y*0.9, ymax = y*1.1 --
   # a hardcoded +/-10% of the fitted value, not an interval estimated from
   # anything. It reads as a confidence band and is not one, so it is omitted
   # rather than reproduced. A real band would need per-point spread across trees;
   # say the word and it can be computed instead of drawn.
   ggplot(D, aes(x, y)) +
+    geom_rug(data = RUG, aes(x = x), inherit.aes = FALSE,
+             alpha = 0.14, length = unit(0.025, "npc"), colour = col) +
     geom_line(color = col, linewidth = 1.2) +
     facet_wrap(~var, scales = "free_x", nrow = 2) +
     labs(title = ttl, x = NULL,
