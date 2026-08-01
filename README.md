@@ -11,7 +11,7 @@ Analysis code and data processing pipeline for the study of methane fluxes from 
 All data are archived on Zenodo: **[10.5281/zenodo.18779715](https://doi.org/10.5281/zenodo.18779715)**
 
 The Zenodo archive contains:
-- **`data/compiled/`** — 12 analysis-ready CSV datasets with clear column names and documented units, suitable for reanalysis and meta-analysis. See `README_data.md` (included in the archive) for full column dictionaries. These can be regenerated from raw data via `Rscript code/compile_zenodo_datasets.R`.
+- **`data/compiled/`** — 20 analysis-ready CSV datasets with clear column names and documented units, suitable for reanalysis and meta-analysis. See `README_data.md` (included in the archive) for full column dictionaries. These can be regenerated from raw data via `Rscript code/zenodo/compile_zenodo_datasets.R`. Datasets 14–20 are pipeline outputs (the stand budget, scaling grid and model skill) archived so the manuscript's numbers can be checked without re-fitting the models.
 - **`data/raw/`** — Unprocessed instrument and field data files
 - **`data/processed/`** — Intermediate pipeline outputs (regenerable from raw data)
 

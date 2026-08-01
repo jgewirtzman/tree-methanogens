@@ -352,10 +352,51 @@ cat(sprintf("  -> Wrote black_oak_its_load.csv (%d rows)\n\n", nrow(bo_its_clean
 # 10. METHANOTROPH DEFINITIONS (curated taxonomy lookup)
 # ============================================================================
 cat("--- 10. Methanotroph definitions ---\n")
-methano_def <- read_csv("data/processed/molecular/methanotroph_definitions.csv",
+# REVISED definitions, not the original. The unrevised file no longer exists on
+# disk, so this step could not run at all; more importantly the archive was
+# shipping a copy that CONTRADICTS the paper. The archived version classified
+# Methylacidiphilaceae as known = YES; the revision reclassified it to
+# known = NO, putative = YES (family-level, genus unresolved) and every revision
+# figure loads the revised file via load_methanotroph_defs(). A reader
+# re-running the analysis from the archive would have got different methanotroph
+# classifications from the published figures.
+methano_def <- read_csv("data/processed/molecular/methanotroph_definitions_revised.csv",
                          show_col_types = FALSE)
 write_csv(methano_def, file.path(out_dir, "methanotroph_definitions.csv"))
 cat(sprintf("  -> Wrote methanotroph_definitions.csv (%d taxa)\n\n", nrow(methano_def)))
+
+
+# ============================================================================
+# 11. REVISION RESULTS -- the numbers the revised paper reports
+# ============================================================================
+# These are pipeline OUTPUTS, not raw measurements, and they are archived so the
+# revised manuscript's headline figures can be checked without re-running a
+# ~10-minute model fit. Every stand-level number in the paper traces to one of
+# them, and each has exactly one producer (see the repo README).
+#
+# Copied verbatim rather than recomputed: the point is to archive precisely what
+# the manuscript quotes. rev_check_consistency.R asserts their mutual agreement.
+cat("--- 11. Revision results ---\n")
+REVISION_OUTPUTS <- c(
+  "canonical_budget.csv"   = "outputs/data/canonical_budget.csv",     # stand budget + model skill
+  "canonical_monthly.csv"  = "outputs/data/canonical_monthly.csv",    # monthly series, both terms
+  "scaling_full_grid.csv"  = "outputs/data/scaling_full_grid.csv",    # all 240 scenario combinations
+  "scaling_headline.csv"   = "outputs/data/scaling_headline.csv",     # the named scenario
+  "wai_bottomup.csv"       = "outputs/data/wai_bottomup.csv",         # bottom-up woody area index
+  "rf_grouped_cv.csv"      = "outputs/data/rf_grouped_cv.csv",        # grouped CV skill
+  "forest_inventory_stems.csv" = "outputs/tables/inventory_stems.csv" # one row per stem, all sources
+)
+for (nm in names(REVISION_OUTPUTS)) {
+  src <- REVISION_OUTPUTS[[nm]]
+  if (!file.exists(src)) {
+    cat(sprintf("  !! MISSING %s -- run the pipeline before archiving\n", src))
+    next
+  }
+  file.copy(src, file.path(out_dir, nm), overwrite = TRUE)
+  cat(sprintf("  -> Wrote %s (%d rows)\n", nm,
+              nrow(read_csv(src, show_col_types = FALSE))))
+}
+cat("\n")
 
 
 # ============================================================================
