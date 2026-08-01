@@ -142,6 +142,55 @@ cat(sprintf("  -> Wrote static_chamber_flux.csv (%d rows)\n\n", nrow(static_flux
 # ============================================================================
 # 3. ddPCR GENE ABUNDANCES
 # ============================================================================
+cat("--- 2b. Height chamber flux (2021 multi-height campaign) ---\n")
+# The third flux campaign, and the one the height predictor comes from. It was
+# absent from earlier releases, so 2021 rigid measurements the model trains on had
+# no archived source and the model could not be refit from the archive. Keeps the
+# goFlux fit diagnostics and chamber geometry, which the merged model table drops
+# and which the detection-limit analysis needs.
+height_flux <- read_csv("data/processed/flux/CH4_best_flux_lgr_results.csv",
+                        show_col_types = FALSE)
+height_aux  <- read_csv("data/processed/flux/goflux_auxfile.csv", show_col_types = FALSE)
+
+height_flux_clean <- height_flux %>%
+  left_join(height_aux, by = "UniqueID") %>%
+  transmute(
+    unique_id        = UniqueID,
+    start_time       = start.time,
+    plot             = plot,
+    tree_id          = tree_id,
+    species          = species,
+    chamber_id       = chamber_id,
+    # Raw field label, not numeric: values include "Root Crown" alongside heights
+    # in cm. The model uses a cleaned numeric height (see flux_measurements_tree.csv).
+    measurement_height_raw = measurement_height,
+    chamber_area_m2  = Area,
+    chamber_vol_L    = Vtot,
+    chamber_temp_C   = Tcham,
+    chamber_press_kPa = Pcham,
+    obs_length_s     = obs.length,
+    nb_obs           = nb.obs,
+    temp_source      = temp_source,
+    CH4_best_flux_nmol_m2_s = best.flux,
+    CH4_model        = model,
+    CH4_quality      = quality.check,
+    CH4_LM_flux      = LM.flux,
+    CH4_LM_r2        = LM.r2,
+    CH4_LM_pval      = LM.p.val,
+    CH4_LM_RMSE      = LM.RMSE,
+    CH4_LM_SE        = LM.SE,
+    CH4_HM_flux      = HM.flux,
+    CH4_HM_r2        = HM.r2,
+    CH4_HM_RMSE      = HM.RMSE,
+    CH4_C0           = C0,
+    CH4_Ct           = Ct,
+    CH4_MDF          = MDF,
+    CH4_flux_term    = flux.term,
+    CH4_precision    = prec
+  )
+write_csv(height_flux_clean, file.path(out_dir, "height_chamber_flux.csv"))
+cat(sprintf("  -> Wrote height_chamber_flux.csv (%d rows)\n\n", nrow(height_flux_clean)))
+
 cat("--- 3. ddPCR gene abundances ---\n")
 ddpcr <- read_csv("data/processed/molecular/processed_ddpcr_data.csv",
                    show_col_types = FALSE)
@@ -266,8 +315,12 @@ inventory_clean <- inventory %>%
     y_m          = py
   )
 
-write_csv(inventory_clean, file.path(out_dir, "forest_inventory.csv"))
-cat(sprintf("  -> Wrote forest_inventory.csv (%d stems)\n\n", nrow(inventory_clean)))
+# RAW 2019 ForestGEO census, fg19 only. This is 7,053 stems and does NOT include
+# the 961-stem bytag survey, so it is not the stand. Analyses use
+# forest_inventory_stems.csv, which merges both sources. Named for its scope so
+# the two cannot be confused.
+write_csv(inventory_clean, file.path(out_dir, "forest_inventory_census_fg19.csv"))
+cat(sprintf("  -> Wrote forest_inventory_census_fg19.csv (%d stems)\n\n", nrow(inventory_clean)))
 
 
 # ============================================================================
@@ -377,14 +430,19 @@ cat(sprintf("  -> Wrote methanotroph_definitions.csv (%d taxa)\n\n", nrow(methan
 # Copied verbatim rather than recomputed: the point is to archive precisely what
 # the manuscript quotes. rev_check_consistency.R asserts their mutual agreement.
 cat("--- 11. Revision results ---\n")
+# Results, not input data, so they are archived from outputs/data/ where the
+# pipeline writes them rather than copied into data/compiled/. scaling_headline.csv
+# is deliberately absent: it is one row of scaling_full_grid.csv, identified by
+# scenario == "exp_band_slope" & WAI == 2.82, and check_consistency.R asserts that
+# containment. A pointer is documentation, not a dataset.
 REVISION_OUTPUTS <- c(
-  "canonical_budget.csv"   = "outputs/data/canonical_budget.csv",     # stand budget + model skill
-  "canonical_monthly.csv"  = "outputs/data/canonical_monthly.csv",    # monthly series, both terms
-  "scaling_full_grid.csv"  = "outputs/data/scaling_full_grid.csv",    # all 240 scenario combinations
-  "scaling_headline.csv"   = "outputs/data/scaling_headline.csv",     # the named scenario
-  "wai_bottomup.csv"       = "outputs/data/wai_bottomup.csv",         # bottom-up woody area index
-  "rf_grouped_cv.csv"      = "outputs/data/rf_grouped_cv.csv",        # grouped CV skill
-  "forest_inventory_stems.csv" = "outputs/tables/inventory_stems.csv" # one row per stem, all sources
+  "forest_inventory_stems.csv" = "outputs/tables/inventory_stems.csv", # one row per stem, all sources
+  # The measurement-level flux table the model is actually fitted on: 1,130 stem
+  # measurements from 478 trees over 2020, 2021 and 2023, with drivers joined.
+  # Without it the archive carried the 2020-21 semi-rigid and 2023 campaigns but
+  # not the 2021 rigid one, so the model could not be refit from the archive.
+  "flux_measurements_tree.csv" = "outputs/data/flux_measurements_tree.csv",
+  "flux_measurements_soil.csv" = "outputs/data/flux_measurements_soil.csv"
 )
 for (nm in names(REVISION_OUTPUTS)) {
   src <- REVISION_OUTPUTS[[nm]]
