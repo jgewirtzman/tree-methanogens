@@ -33,182 +33,160 @@ This project integrates:
 
 ```
 tree-methanogens/
-├── data/
-│   ├── raw/                    # Unprocessed instrument and field data
-│   │   ├── lgr/                # LGR3 analyzer output (.txt files)
-│   │   ├── inventory/          # ForestGEO census data
-│   │   ├── dbh/                # Tree diameter measurements
-│   │   ├── tree_cores/         # Increment core data
-│   │   ├── ddpcr/              # Digital droplet PCR raw data
-│   │   ├── ddpcr_raw/          # Collated ddPCR gene data
-│   │   ├── internal_gas/       # Picarro & GC internal gas data
-│   │   ├── weather/            # YMF met tower data
-│   │   ├── 16s/                # 16S amplicon OTU/taxonomy tables
-│   │   │   └── black_oak/      # Black Oak 16S amplicon data (QUVE)
-│   │   ├── picrust/            # PICRUSt2 functional predictions & metadata
-│   │   ├── environmental/      # Environmental covariates
-│   │   ├── external/           # External comparison data (Eastern US)
-│   │   ├── flux_chamber_corrections/ # Chamber dimension corrections
-│   │   └── field_data/         # iPad field data, soil measurements
-│   │       └── black_oak/      # Felled oak flux, GC, and standards data
-│   ├── processed/              # Cleaned/derived datasets (regenerable from raw)
-│   │   ├── flux/               # Calculated CH4/CO2 flux results
-│   │   ├── molecular/          # Processed ddPCR data + methanotroph definitions
-│   │   ├── tree_data/          # DBH consensus, tree ID mapping
-│   │   ├── tree_cores/         # Processed wood property data
-│   │   ├── internal_gas/       # Processed GC/isotope data
-│   │   ├── integrated/         # Multi-source merged datasets
-│   │   └── metadata/           # Phylogenetic data (PhytoPhylo)
-│   └── compiled/               # Analysis-ready datasets for Zenodo (not in git)
-├── code/                       # Numbered pipeline (see "Pipeline" below)
-│   └── revision/               #   Manuscript-revision scripts (Rscript code/revision/run_all.R)
-├── outputs/
-│   ├── figures/                # All generated figures
-│   │   ├── main/               #   Main text figures
-│   │   └── supplementary/      #   Supplementary figures
-│   ├── tables/                 # Summary statistics & model tables
-│   ├── models/                 # Saved RF model objects (.RData)
-│   ├── flux_predictions/       # Upscaled monthly/annual flux estimates
-│   └── revision/               # Revision outputs + numbered manuscript figure set (figures/main, figures/SI)
-└── deprecated/                 # Superseded scripts and data (not tracked)
+├── data/                       # Zenodo drop-in; git tracks only .gitkeep
+│   ├── raw/                    #   Unprocessed instrument and field data
+│   ├── processed/              #   Cleaned/derived datasets (regenerable)
+│   └── compiled/               #   20 analysis-ready datasets (see README_data.md)
+├── code/
+│   ├── 01_import/              # raw -> tidy per source (tree IDs, cores, gas, ddPCR, inventory)
+│   ├── 02_flux/                # chamber geometry -> goFlux -> flux datasets; QC, detection limits
+│   │   ├── semirigid/          #   semi-rigid chamber track (2020-2021)
+│   │   └── static/             #   static chamber track (2021, 2023)
+│   ├── 03_merge/               # harmonisation -> merged_tree_dataset_final.csv
+│   ├── 04_drivers/             # reference ET, moisture climatology + surface, soil temperature
+│   ├── 05_model/               # RF feature build, model fit (FROZEN), CV, calibration
+│   ├── 06_upscale/             # spatial interpolation, per-stem prediction, budget, scaling grid
+│   ├── 07_molecular/           # gene-flux models, ddPCR, 16S, PICRUSt, FAPROTAX
+│   │   ├── methanogens/        #   mcrA-specific analyses
+│   │   └── methanotrophs/      #   pmoA / mmoX analyses
+│   ├── 08_figures/             # every figure generator + the assembler
+│   ├── 09_tables_stats/        # manuscript statistics, referee-facing audits
+│   ├── lib/                    # single definitions, sourced not retyped
+│   ├── zenodo/                 # compile the archive
+│   ├── archive/                # superseded scripts, kept for history, never run
+│   ├── make_figures.R          # ALL publication figures and tables
+│   ├── run_all.R               # stages 01-09 end to end
+│   └── check_consistency.R     # 28 invariants; the acceptance gate
+└── outputs/                    # not tracked; git keeps only the folder skeleton
+    ├── figures/{main,SI}/      #   the assembled numbered manuscript set
+    ├── figures/{generated,legacy,qc,photos,tables}/
+    ├── data/                   #   canonical CSVs (budget, scaling grid, ...)
+    ├── audit/                  #   referee-facing transcripts
+    ├── logs/, models/, scratch/
 ```
+
+### Shared definitions (`code/lib/`)
+
+Sourced, never retyped. Seven scripts once loaded the stem list independently and
+five copy-pasted the height allometry; the duplicates silently disagreed.
+
+| File | Provides |
+|------|----------|
+| `rev_geometry.R` | Stand area (37,200 m2), canonical inventory (8,006 stems), height allometry |
+| `rev_species_levels.R` | species -> model level mapping |
+| `rev_prep_species_data.R` | species-level analysis frame |
+| `load_methanotroph_definitions.R` | `classify_methanotrophs()`, `identify_methanotrophs()` |
+| `build_phyloseq.R` | `build_16s_phyloseq()` + `RAREFY_SEED`/`RAREFY_DEPTH` |
+| `outputs.R` | `out_path()` — routes an output to `data/`, `audit/` or `figures/` by kind |
 
 ## Pipeline
 
-Scripts are numbered within each folder to indicate execution order. Scripts prefixed `util_` are optional utilities/diagnostics.
+Run from the repository root. Stages are numbered in dependency order; scripts are
+numbered within each stage. Scripts prefixed `util_` are optional diagnostics.
 
-### Stage 1: Raw Data Processing (parallel tracks)
+```bash
+Rscript code/run_all.R           # stages 01-09 end to end
+Rscript code/make_figures.R      # all publication figures + tables
+Rscript code/check_consistency.R # 28 invariants, seconds, non-zero on failure
+```
 
-These scripts process raw instrument data into analysis-ready datasets. The four tracks below can be run independently.
+**The model is not built by `run_all.R`.** `code/05_model/01_load_and_prep_data.R`
+then `02_rf_models.R` build `outputs/models/RF_MODELS.RData` and are run by hand
+from `code/05_model/` — they retrain (~10 min) and the specification is frozen.
+`run_all.R` checks for their output and fails early with the command if missing.
 
-#### Track A — Tree metadata (`code/03_tree_data/`)
-| # | Script | Produces |
-|---|--------|----------|
-| 01 | `01_tree_id_consensus.R` | `tree_id_comprehensive_mapping.csv`, `tree_dbh_consensus_comprehensive.csv` |
-| 02 | `02_process_wood_cores.R` | `tree_core_filled_complete.csv` |
-| 03 | `03_process_internal_gas.R` | `sample_data_only.csv` |
+| Stage | Does | Key outputs |
+|-------|------|-------------|
+| `01_import` | Tree-ID consensus, wood cores, internal gas, ddPCR import/QC, stem inventory | `tree_id_comprehensive_mapping.csv`, `processed_ddpcr_data.csv`, `inventory_stems.csv` |
+| `02_flux` | Chamber geometry, goFlux processing, C0 screen, detection limits | `semirigid_tree_final_complete_dataset.csv`, `methanogen_tree_flux_complete_dataset.csv` |
+| `03_merge` | Soil-flux correction, harmonisation, soil environment | **`merged_tree_dataset_final.csv`** |
+| `04_drivers` | Reference ET, moisture climatology + surface, soil-temperature climatology | `moisture_surface_grid.csv`, `*_climatology_monthly.csv` |
+| `05_model` | RF fit (by hand), grouped CV, predictor selection, calibration sensitivity | `RF_MODELS.RData`, `rf_grouped_cv.csv` |
+| `06_upscale` | Spatial interpolation, per-stem and soil prediction, budget, WAI, scaling grid | **`canonical_budget.csv`**, `scaling_full_grid.csv`, `wai_bottomup.csv` |
+| `07_molecular` | Gene–flux models, 16S composition, PICRUSt, FAPROTAX | gene–flux model tables, FAPROTAX exports |
+| `08_figures` | Every figure generator, then `rev_00_assemble_figures.R` | `outputs/figures/{main,SI}/` |
+| `09_tables_stats` | Manuscript statistics, campaign counts, referee audits | `outputs/audit/`, `outputs/tables/` |
 
-#### Track B — Molecular data (`code/02_ddpcr/`)
-| # | Script | Produces |
-|---|--------|----------|
-| 01 | `01_import_and_align.R` | `processed_ddpcr_data.csv` |
-| 02-03 | `02_check_completeness.R`, `03_confirm_import.R` | QC validation |
+### Manuscript verification
 
-#### Track C — Semi-rigid flux (`code/01_flux_processing/semirigid/`)
-| # | Script | Produces |
-|---|--------|----------|
-| 01 | `01_calc_chamber_dims.R` | Chamber geometry calculations |
-| 02 | `02_join_flux_geometry.R` | `flux_with_geometry_fixed.csv` |
-| 03 | `03_prep_tree_auxfile.R` / `03_prep_soil_auxfile.R` | goFlux auxfiles |
-| 04 | `04_goflux_trees.R` / `04_goflux_soils.R` | `semirigid_tree_final_complete_dataset.csv`, `*_soil.csv` |
-| 05 | `05_fix_december.R` | Updates flux files with Dec 2020 data |
+`code/09_tables_stats/manuscript_statistics.R` recomputes every quantitative result
+in the manuscript from the underlying data, organised by manuscript section.
 
-#### Track D — Static chamber flux (`code/01_flux_processing/static/`)
-| # | Script | Produces |
-|---|--------|----------|
-| 01 | `01_prep_auxfile.R` / `01_prep_auxfile_2023.R` | goFlux auxfiles |
-| 02 | `02_goflux_trees_2021.R` / `02_goflux_trees_2023.R` | `methanogen_tree_flux_complete_dataset.csv` |
-| 03 | `03_fix_failed.R` | Corrected flux identifications |
-
-### Stage 2: Data Integration (`code/00_harmonization/`)
-
-Run **after** all Stage 1 tracks complete.
-
-| # | Script | Produces |
-|---|--------|----------|
-| 01 | `01_fix_soil_flux.R` | Corrected soil flux dataset |
-| 02 | `02_harmonize_all_data.R` | **`merged_tree_dataset_final.csv`** (master dataset) |
-| — | `load_methanotroph_definitions.R` | Shared utility (see [Methanotroph Definitions](#methanotroph-definitions) below) |
-
-### Stage 3: Analysis & Upscaling
-
-#### Random Forest workflow (`code/04_scaling/`)
-| # | Script | Produces |
-|---|--------|----------|
-| 01 | `01_load_and_prep_data.R` | `rf_workflow_input_data_with_2023.RData` |
-| 02 | `02_rf_models.R` | `RF_MODELS.RData`, `TAXONOMY_PRIORS.RData`, flux tables |
-| 03 | `03_predict_tree_flux.R` | `tree_monthly_predictions.RData` |
-| 03 | `03_predict_soil_flux.R` | `soil_monthly_predictions.RData` |
-
-#### Gene-flux analysis (`code/05_gene_flux_analysis/`)
-These scripts can be run in any order after Stage 2. Cross-group scripts analyzing all three genes (mcrA, pmoA, mmoX) live in the parent directory: `01_gene_flux_linear_models.R` (main gene-flux models), `02_scale_dependent_gene_patterns.R` (individual vs. species-level patterns), `03_radial_gene_plots.R` (radial cross-sections), `04_species_gene_flux.R` (species comparison figure), and `07_picrust_pathway_associations.R` (PICRUSt2 pathway–gene associations). The `methanotrophs/` and `methanogens/` subfolders contain organism-specific analyses.
-
-### Manuscript Verification
-
-| Script | Purpose |
-|--------|---------|
-| `code/manuscript_statistics.R` | Recomputes **all** quantitative results from the manuscript (means, ranges, p-values, R², detection rates, correlations, model metrics) from underlying data. Organized by manuscript section for cross-referencing. Also verifies taxa and pathway names from 16S/FAPROTAX/PICRUSt analyses. Run after all pipeline stages. |
-
-### Stage 4: Figures & Maps
-
-These scripts generate publication figures. Run after Stages 2-3.
-
-**Master runner:** `Rscript code/generate_all_figures.R` regenerates all 24 publication figures (Fig 1–9, S1–S15) in dependency order with pass/fail tracking. Must be run from the project root.
-
-| Folder | Key scripts |
-|--------|-------------|
-| `code/04_scaling/` | `04`-`09_*.R` (diagnostics, maps, publication plots) |
-| `code/06_figures/` | `01`-`12_*.R` (correlation, radial, variance, timeseries, heatmaps) |
-| `code/07_maps/` | `01`-`05_*.R` (spatial interpolation, seasonal maps) |
-| `code/01_flux_processing/static/` | `04_height_effect_analysis.R` (Figure 2) |
-| `code/02_ddpcr/` | `04_species_barplots.R` (Figure 4) |
-
-See `code/04_scaling/RF_CH4_workflow_spec.md` for the detailed RF technical specification.
+`code/check_consistency.R` is the acceptance gate: it asserts 28 invariants across
+the canonical outputs (budget recomputes from the per-stem file, monthly sums to
+annual, the grid's measured band equals the canonical tree term, OOB exceeds
+grouped CV, and so on) in seconds and exits non-zero on failure. Run it after any
+change that touches numbers.
 
 ## Figure-Script Reference
 
-> **Two figure sets.** The table below maps the **as-submitted** manuscript figures (Fig 1–9, S1–S15)
-> to the original pipeline scripts — this is what `Rscript code/generate_all_figures.R` produces.
-> The **revised** manuscript figure set (Fig 1–9, **S01–S23**) is produced by
-> `Rscript code/run_all.R`, assembled by `rev_00_assemble_figures.R`, and inventoried in
-> [`code/revision/notes/REVISION_INVENTORY.md`](code/revision/notes/REVISION_INVENTORY.md). Key changes in
-> the revision: Fig 6 → convergent-hydrogenotrophy synthesis (old PICRUSt-mcrA heatmap demoted to the SI);
-> **Fig 7 → decay–methanogenesis (fungal decay + felled-oak profiles; replaces the felled-oak-only figure)**;
-> Fig 9 → CH₄ budget (maps + seasonal + net waterfall); new SI figs (ddPCR probe validation, ddPCR–16S
-> concordance, stem deterioration) added and the SI resequenced to follow the main-text citation order.
-> Field photo plates (cross-sections, chamber) live in `outputs/figures/photos/`, separate from SI data figures.
+**The assembler is the authoritative map, not this file.**
+`code/08_figures/rev_00_assemble_figures.R` holds one explicit
+`Figure_N_slug <- source path` entry for every figure in the manuscript set, and
+writes `outputs/figures/MANIFEST.md` listing what it produced on the last run.
+A duplicate table here would drift the moment a figure is renumbered — which is
+exactly what happened to the previous version of this section.
 
-| Figure | Output File | Description | Script |
-|--------|------------|-------------|--------|
-| Fig 1 | `fig1_temporal_flux_timeseries.png` | Temporal flux across hydrological gradient | `06_figures/06_soil_tree_timeseries.R` |
-| Fig 2 | `fig2_height_dependent_flux.png` | Height-dependent flux patterns | `01_flux_processing/static/04_height_effect_analysis.R` |
-| Fig 3 | `fig3_variance_partitioning.png` | Variance partitioning | `06_figures/04_variance_partition.R` |
-| Fig 4 | `fig4_methanogen_methanotroph_abundance.png` | Methanogen/methanotroph abundance | `02_ddpcr/util_combined_plot.R` |
-| Fig 5 | `fig5_combined_methane_cycling_composition.png` | Combined methane-cycling 16S composition | `06_figures/08c_combined_methane_cycling_composition.R` |
-| Fig 6 | `fig6_picrust_mcra_no_mcra_heatmap.png` | MetaCyc pathway × mcrA associations (no-mcrA ASV) | `06_figures/12b_picrust_pathway_heatmap.R` |
-| Fig 7 | `fig7_felled_oak_profiles.png` | Felled oak vertical profiles | `06_figures/09_felled_oak_profiles.R` |
-| Fig 8 | `fig8_radial_species_comparison.png` | Radial cross-sections + species comparison | `05_gene_flux_analysis/04_species_gene_flux.R` |
-| Fig 9 | `fig9_upscaled_flux_seasonal.png` | Upscaled seasonal flux overview | `04_scaling/09_upscale_publication_plots.R` |
-| S1 | `figS1_moisture_overlay.png` | Moisture interpolation overlay with stem map | `07_maps/05_methods_figure_map.R` |
-| S2 | `figS2_taxonomy_pmoa_heatmap.png` | Family-level 16S × pmoA associations | `06_figures/12c_taxonomy_pmoa_heatmap.R` |
-| S3 | `figS3_faprotax_heatmaps.png` | FAPROTAX functional heatmaps | `06_figures/08d_faprotax_heatmaps.R` |
-| S4 | `figS4_picrust_mcra_all_heatmap.png` | MetaCyc pathway × mcrA (full FDR < 0.01 set) | `06_figures/12b_picrust_pathway_heatmap.R` |
-| S5 | `figS5_picrust_pmoa_heatmap.png` | MetaCyc pathway × pmoA associations (no-pmoA ASV) | `06_figures/12b_picrust_pathway_heatmap.R` |
-| S6 | `figS6_taxonomy_mcra_heatmap.png` | Family-level 16S × mcrA associations | `06_figures/12a_taxonomy_mcra_heatmap.R` |
-| S7 | `figS7_internal_gas_beeswarm.png` | Internal gas beeswarm by species | `06_figures/05_internal_gas_plots.R` |
-| S8 | `figS8_internal_gas_profiles.png` | Internal gas multi-panel profiles | `06_figures/05_internal_gas_plots.R` |
-| S9 | `figS9_d13ch4_rainfall.png` | δ¹³CH₄ vs rainfall | `06_figures/11a_isotope_d13ch4_single.R` |
-| S10 | `figS10_methanotroph_abundance_patterns.png` | pmoA vs mmoX + ratio analysis | `05_gene_flux_analysis/methanotrophs/03_pmoa_mmox_analysis.R` |
-| S11 | `figS11_scale_dependent_genes.png` | Scale-dependent gene–flux patterns | `05_gene_flux_analysis/02_scale_dependent_gene_patterns.R` |
-| S12 | `figS12_black_oak_methanome.png` | Black oak methanome heatmap | `06_figures/10_black_oak_methanome_heatmap.R` |
-| S13 | `figS13_tree_radial_sections.png` | Tree radial mcrA cross-sections | `06_figures/02_radial_cross_sections.R` |
-| S14 | `figS14_mcra_vs_methanotroph.png` | mcrA vs methanotroph independence | `05_gene_flux_analysis/02_scale_dependent_gene_patterns.R` |
-| S15 | `figS15_rf_predictions.png` | RF model predictions (3-row layout) | `04_scaling/08_rf_publication_plots.R` |
+```bash
+Rscript code/make_figures.R   # generators -> assembler -> outputs/figures/{main,SI}/
+```
+
+The current set is **9 main + 25 SI**, plus photo plates and 5 tables. Sources are
+of two kinds: `outputs/figures/generated/` (revision generators, `rev_fig*`) and
+`outputs/figures/legacy/` (original-pipeline generators still producing figures the
+revision reuses unchanged). Both are rebuilt by `make_figures.R`.
+
+Two guards exist because both have failed in the past:
+
+- **Staleness.** The assembler compares each source against the run marker
+  `outputs/.pipeline_run_started` and reports any figure older than the run.
+  Without it, a generator that aborted left its previous PNG in place and the
+  assembler copied it while reporting success — `file.exists()` cannot tell a
+  stale figure from a current one.
+- **Process isolation.** `make_figures.R` runs each generator in its own R
+  process. Under the previous `source()`-into-one-session runner, a generator
+  that errored with a graphics device open left that device current, and a later
+  script's plot was written into the earlier script's file — which put the
+  moisture map into the PICRUSt heatmap's file and shipped it as SI S12.
 
 ## Key Datasets
 
+### Inputs and intermediates
+
 | File | Location | Description |
 |------|----------|-------------|
-| `merged_tree_dataset_final.csv` | `data/processed/integrated/` | Master dataset merging all tree-level measurements |
-| `rf_workflow_input_data_with_2023.RData` | `data/processed/integrated/` | Integrated data ready for RF modeling |
-| `processed_ddpcr_data.csv` | `data/processed/molecular/` | ddPCR gene quantification results |
-| `methanotroph_definitions.csv` | `data/compiled/` | Curated methanotroph taxonomy definitions (Knief 2015) |
-| `methanotroph_definitions_revised.csv` | `data/processed/molecular/` | Revised defs (Methylacidiphilaceae Known→Putative); used by the revision figures |
-| `methanogen_tree_flux_complete_dataset.csv` | `data/processed/flux/` | Tree flux + methanogen data combined |
-| `tree_id_comprehensive_mapping.csv` | `data/processed/tree_data/` | Authoritative tree ID cross-reference |
-| `RF_MODELS.RData` | `outputs/models/` | Trained tree and soil RF models |
-| `MONTHLY_FLUXES.csv` | `outputs/flux_predictions/` | RF-predicted monthly plot-level fluxes |
-| `ANNUAL_SUMMARY.csv` | `outputs/flux_predictions/` | Annual flux totals with uncertainty |
+| `merged_tree_dataset_final.csv` | `data/processed/integrated/` | Tree-attribute table, **one row per tree (235 trees, 2020–2021 multi-height campaign)** — a dimension table joined onto measurement-level flux by `tree_id`, not a all-campaign master |
+| `methanogen_tree_flux_complete_dataset.csv` | `data/processed/flux/` | Measurement-level static-chamber flux (2023) |
+| `semirigid_tree_final_complete_dataset.csv` | `data/processed/flux/` | Measurement-level semi-rigid flux (2020–2021) |
+| `rf_workflow_input_data_with_2023.RData` | `data/processed/integrated/` | Cross-campaign integrated frame used to fit the forests |
+| `processed_ddpcr_data.csv` | `data/processed/molecular/` | ddPCR gene quantification |
+| `methanotroph_definitions_revised.csv` | `data/processed/molecular/` | Revised definitions (Methylacidiphilaceae Known→Putative); **what every revision figure loads** |
+| `tree_id_comprehensive_mapping.csv` | `data/processed/tree_data/` | Authoritative tree-ID cross-reference |
+| `RF_MODELS.RData` | `outputs/models/` | The frozen tree and soil random forests |
+
+### Canonical results — one producer each
+
+Every stand-level number in the manuscript traces to one of these, and
+`code/check_consistency.R` asserts their mutual agreement.
+
+| File | Produced by | Carries |
+|------|-------------|---------|
+| `canonical_budget.csv` | `06_upscale/rev_budget_canonical.R` | Stand area, stem area, tree and soil terms, net budget, OOB and grouped-CV R2 |
+| `canonical_monthly.csv` | same | Monthly series, both terms, shared ground basis |
+| `scaling_full_grid.csv` | `06_upscale/rev_scaling_full_grid.R` | All 240 scenario combinations |
+| `scaling_headline.csv` | same | The single named scenario |
+| `wai_bottomup.csv` | `06_upscale/rev_wai_bottomup_and_rf_interactions.R` | Bottom-up woody area index |
+| `rf_grouped_cv.csv` | `05_model/rev_rf_grouped_cv.R` | Grouped CV by tree / by collar |
+| `inventory_stems.csv` | `01_import/rev_inventory_build.R` | One row per stem (8,006) for the censused stand |
+
+Canonical outputs are written to `outputs/data/` and archived as datasets 14–20 of
+the Zenodo release.
+
+> **Superseded, deliberately absent:** `MONTHLY_FLUXES.csv` and `ANNUAL_SUMMARY.csv`
+> (formerly `outputs/flux_predictions/`) were built over an fg19-only stem list of
+> 7,010 stems on the nominal 200×200 m square, and diverged from the canonical
+> budget by 38% (tree) and 29% (soil). They are not regenerated. Use
+> `canonical_budget.csv`.
 
 ## Methanotroph Definitions
 
@@ -216,7 +194,7 @@ Taxonomy-based methanotroph classification uses a centralized definitions system
 
 - **Definitions CSV:** `data/compiled/methanotroph_definitions.csv` — a curated 38-row lookup table mapping families and genera to Known, Putative, or Conditional methanotroph status, based on Knief (2015) with SILVA 138 taxonomy cross-referencing. Like all other data, it lives only in the Zenodo archive (git tracks the folder, not the file).
 - **Revised definitions (revision):** `data/processed/molecular/methanotroph_definitions_revised.csv` reclassifies Methylacidiphilaceae from Known to Putative (family-level, genus-unresolved). The revision figures (Fig 5, SI black-oak methanome) load this variant via `load_methanotroph_defs(path)`.
-- **Shared utility:** `code/00_harmonization/load_methanotroph_definitions.R` — provides `classify_methanotrophs()`, `identify_methanotrophs()`, and `assign_display_family()` functions used by figure scripts `08b`, `08c`, and `10`.
+- **Shared utility:** `code/lib/load_methanotroph_definitions.R` — provides `classify_methanotrophs()`, `identify_methanotrophs()`, and `assign_display_family()` functions used by figure scripts `08b`, `08c`, and `10`.
 
 **Classification hierarchy** (first match wins):
 1. **Known** — genus on the cultivated methanotroph whitelist (18 genera from Knief Tables 1–3), or ASV in an exclusive methanotroph family (Methylococcaceae, Methylothermaceae, Methylacidiphilaceae, Methylomonadaceae)
@@ -247,8 +225,8 @@ Key R packages (75 packages total; highlights below):
 
 ## Notes
 
-- Scripts use project-root-relative paths (run from the repository root or open `tree-methanogens.Rproj` in RStudio)
-- All input data is stored within `data/` — no external path dependencies
-- Data file *contents* are excluded from git tracking (archived on Zenodo); only `.gitkeep` files are tracked to preserve directory structure. This applies to **all** data files with no exceptions — including the curated methanotroph definitions — so the `data/` tree is a clean Zenodo drop-in
-- The `deprecated/` folder contains superseded script versions and old data (not tracked)
-- Scripts prefixed `util_` are optional diagnostics/utilities, not part of the core pipeline
+- **Run from the repository root** (or open `tree-methanogens.Rproj` in RStudio). Most scripts use repo-root-relative paths. Two stages are exceptions and must be run from their own directory: `code/05_model/` uses `../..`, and the nested `code/02_flux/{semirigid,static}/` and `code/07_molecular/{methanogens,methanotrophs}/` use `../../..`. The nesting is deliberate — flattening those directories would change what `..` resolves to in every path they contain.
+- **One known external dependency.** `code/08_figures/rev_figS17_plant-traits.R` reads a traits table from the sibling `tree-gas-traits` repository by absolute path, so **Figure S17 does not build from a clean clone**. Every other input lives under `data/`. (Tracked as an open item: vendor the CSV into `data/`.)
+- Neither `data/` nor `outputs/` contents are tracked; git keeps only `.gitkeep` so the folder skeleton — and therefore every path — is pre-wired. `data/` is a clean Zenodo drop-in; `outputs/` is regenerated by the pipeline. This applies to **all** data files with no exceptions, including the curated methanotroph definitions.
+- `code/archive/` holds superseded scripts, kept for history and never run by any runner. `deprecated/` holds old code and data and is not tracked.
+- Scripts prefixed `util_` are optional diagnostics/utilities, not part of the core pipeline.
