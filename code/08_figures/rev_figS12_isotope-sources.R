@@ -1,3 +1,4 @@
+source("code/lib/outputs.R")
 # ==============================================================================
 # REVISION — SI extended-isotope source composite (4 panels, 2x2).
 # Design (Jon): CH4 Keeling      | CO2 Keeling
@@ -68,7 +69,7 @@ pf <- pt(wt, ch4_ppm, eps_C) +
 fig <- (pa | pd) / (pc | pf) +          # top row = Keeling source plots; bottom = convergence
   plot_annotation(tag_levels = "a", tag_prefix = "(", tag_suffix = ")") &
   theme(plot.tag = element_text(face = "bold", size = 13))
-ggsave(file.path(out, "SI_isotopes_source_composite.png"), fig, width = 9.5, height = 8, dpi = 300, bg = "white")
+ggsave(out_path("SI_isotopes_source_composite.png"), fig, width = 9.5, height = 8, dpi = 300, bg = "white")
 cat(sprintf("CH4 Keeling %.0f | CO2 Keeling %.0f | source-based eps_C = %.0f | n=%d\n",
             s_kc, s_ko, s_ko - s_kc, nrow(wt)))
 cat("Wrote SI_isotopes_source_composite.png\n")

@@ -152,8 +152,8 @@ for (nm in c("rf", "rf_cal_species", "rf_cal_linear", "rf_cal_isotonic", "gam"))
 }
 
 dir.create("outputs/revision", showWarnings = FALSE, recursive = TRUE)
-write.csv(R, "outputs/revision/model_family_comparison.csv", row.names = FALSE)
-con <- file("outputs/revision/model_family_comparison.txt", "w")
+write.csv(R, "outputs/data/model_family_comparison.csv", row.names = FALSE)
+con <- file("outputs/audit/model_family_comparison.txt", "w")
 cat(sprintf("MODEL FAMILY COMPARISON\nbuilt %s\nrepeated %d-fold CV x %d\n\n",
             format(Sys.time(), "%Y-%m-%d %H:%M:%S"), K, REP), file = con)
 utils::write.table(round(as.data.frame(R %>% select(-model)), 4), con, sep = "\t", quote = FALSE)

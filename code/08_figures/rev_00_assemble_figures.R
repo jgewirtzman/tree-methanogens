@@ -68,11 +68,11 @@ SI <- c(
 # notes/primer_sequences.md), not assembled here. Dropped: pmoA/mmoX by compartment/species
 # (intermediate), pathway classification (method lives in code: 07_picrust_pathway_associations.R).
 TABLES <- c(
-  "Table_1_campaign-summary"             = "outputs/revision/campaign_counts.csv",
-  "Table_S2_known-putative-taxa"         = "outputs/revision/known_putative_taxa_table.csv",
-  "Table_S3_ddpcr-16s-concordance"       = "outputs/revision/tbl_ddpcr_16s_concordance.csv",
+  "Table_1_campaign-summary"             = "outputs/data/campaign_counts.csv",
+  "Table_S2_known-putative-taxa"         = "outputs/data/known_putative_taxa_table.csv",
+  "Table_S3_ddpcr-16s-concordance"       = "outputs/data/tbl_ddpcr_16s_concordance.csv",
   "Table_S3_ddpcr-16s-concordance-view"  = "outputs/revision/tbl_ddpcr_16s_concordance.png",
-  "Table_S4_dbh-by-species-campaign"     = "outputs/revision/dbh_by_species_campaign.csv")
+  "Table_S4_dbh-by-species-campaign"     = "outputs/data/dbh_by_species_campaign.csv")
 
 # Photo plates — separate section (NOT SI data figures); chamber photos to be added
 PHOTOS <- c(
@@ -133,5 +133,5 @@ sect <- function(title, map, dest) c(paste0("## ", title), "", "| Figure | Sourc
     if (!file.exists(map[[nm]])) " (missing — run generate_all_figures.R)" else ""), character(1)), "")
 man <- c(man, sect("Main", MAIN, mainD), sect("Supplementary", SI, siD),
          sect("Photo plates", PHOTOS, photoD), sect("Tables (data CSV + rendered)", TABLES, tableD))
-writeLines(man, "outputs/revision/figures/MANIFEST.md")
+writeLines(man, "outputs/audit/figures/MANIFEST.md")
 cat("Wrote outputs/revision/figures/MANIFEST.md\n")

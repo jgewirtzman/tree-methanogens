@@ -1,3 +1,4 @@
+source("code/lib/outputs.R")
 # ==============================================================================
 # REVISION — S11 rebuilt: 4-column scale-dependent gene-flux figure.
 # ALL columns on a common arcsinh flux scale (asinh(x/0.1)/log10; cofactor matches Fig 1/2/3),
@@ -91,6 +92,6 @@ hts <- c(0.13, 1, 1, 1, 1, 1, 0.92)
 P <- function(k, lv) res[[paste(k, lv)]]$panel
 mkcol <- function(cc) H[[cc]] / P("mcrA",levs[cc]) / P("pmoA",levs[cc]) / P("mmoX",levs[cc]) / P("methanotroph",levs[cc]) / P("ratio",levs[cc]) / bars[[cc]] + plot_layout(ncol=1, heights=hts)
 combined <- (mkcol(1) | mkcol(2) | mkcol(3) | mkcol(4)) / legend_panel + plot_layout(heights=c(1, 0.05))
-ggsave(file.path(out, "figS11_final.png"), combined, width=21, height=16, dpi=300, bg="white")
+ggsave(out_path("figS11_final.png"), combined, width=21, height=16, dpi=300, bg="white")
 for (lv in levs) cat(sprintf("%-4s gene R2: %s\n", lv, paste(sprintf("%s=%.3f(p%.3f)", D[[lv]]$Model, D[[lv]]$R2, D[[lv]]$P), collapse="  ")))
 cat("Wrote figS11_final.png\n")

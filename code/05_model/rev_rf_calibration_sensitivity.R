@@ -96,8 +96,8 @@ SM <- data.frame(sp = cal$sp[small], n = cal$n[small],
                  stringsAsFactors = FALSE)
 SM <- SM[order(-SM$mg), ]
 
-write.csv(SC, "outputs/revision/rf_calibration_sensitivity.csv", row.names = FALSE)
-con <- file("outputs/revision/rf_calibration_sensitivity.txt", "w")
+write.csv(SC, "outputs/data/rf_calibration_sensitivity.csv", row.names = FALSE)
+con <- file("outputs/audit/rf_calibration_sensitivity.txt", "w")
 wr <- function(...) cat(sprintf(...), file = con)
 wr("CALIBRATION SENSITIVITY OF THE STAND TREE TERM\n")
 wr("Ratios re-weighted only; nothing re-fitted. \"few\" = n <= %d measurements.\n\n", N_SMALL)
@@ -111,5 +111,5 @@ for (i in seq_len(nrow(SC))) with(SC[i, ], wr("%-16s %12.4f %12+.2f\n", scenario
 wr("\njackknife_lo/hi move EVERY small level to its extreme at once, so they bound what\n")
 wr("the low-n ratios can do rather than describing a likely outcome.\n")
 close(con)
-cat(readLines("outputs/revision/rf_calibration_sensitivity.txt"), sep = "\n")
+cat(readLines("outputs/audit/rf_calibration_sensitivity.txt"), sep = "\n")
 cat("\n  Written: outputs/revision/rf_calibration_sensitivity.{csv,txt}\n")

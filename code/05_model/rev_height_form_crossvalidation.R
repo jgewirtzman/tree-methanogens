@@ -1,3 +1,4 @@
+source("code/lib/outputs.R")
 #!/usr/bin/env Rscript
 # ==============================================================================
 # rev_height_form_crossvalidation.R
@@ -96,7 +97,7 @@ for (tn in names(TESTS)) {
   allres[[tn]] <- rr
 }
 res <- bind_rows(allres)
-write.csv(res, file.path(outdir,"height_form_crossvalidation.csv"), row.names=FALSE)
+write.csv(res, out_path("height_form_crossvalidation.csv"), row.names=FALSE)
 
 cat(sprintf("\n%s\n SUMMARY\n%s\n", strrep("=",78), strrep("=",78)))
 cat("
@@ -135,5 +136,5 @@ p <- ggplot(pd, aes(reorder(form,-rmse), rmse, fill=form)) +
        subtitle="each form fitted to two heights and used to predict the third; lower is better",
        x=NULL, y="RMSE (nmol m-2 s-1)") +
   theme_bw(base_size=9)
-ggsave(file.path(outdir,"fig_height_form_cv.png"), p, width=8, height=6, dpi=200, bg="white")
+ggsave(out_path("fig_height_form_cv.png"), p, width=8, height=6, dpi=200, bg="white")
 cat("\nWritten: outputs/revision/fig_height_form_cv.png\n")

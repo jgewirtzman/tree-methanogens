@@ -1,3 +1,4 @@
+source("code/lib/outputs.R")
 # ==============================================================================
 # REVISION — Trait x methane-cycling HEATMAP with TWO significance markers.
 # Supersedes traits_heatmap.png + the (misleading) traits_breakdown.png by folding
@@ -43,7 +44,7 @@ cat_of <- c(`Wood density`="Structure",`Bark density`="Structure",`Bark:wood rat
 
 traits <- read_csv(TRAITS, show_col_types=FALSE) %>% filter(spcode %in% resp$species_id) %>%
   group_by(species_id=spcode) %>% slice(1) %>% ungroup() %>% select(species_id, any_of(keep))
-niche <- read_csv("outputs/revision/tree_species_moisture_niche.csv", show_col_types=FALSE) %>%
+niche <- read_csv("outputs/data/tree_species_moisture_niche.csv", show_col_types=FALSE) %>%
   mutate(species_id = names(sp_map)[match(species, sp_map)]) %>% transmute(species_id, vwc_realized=vwc_mean)
 dat <- resp %>% left_join(traits, by="species_id") %>% left_join(niche, by="species_id")
 pred_cols <- c(keep, "vwc_realized"); resp_cols <- c("mcrA (methanogen)","Methanotroph","Balance (mcrA:MOB)","Stem CH4 flux")
@@ -73,7 +74,7 @@ grid <- grid %>% mutate(
   robust = !is.na(p_clade) & p_clade<0.05 & abs(rho)>=0.3,
   label = ifelse(is.na(rho),"", sprintf("%.2f%s", rho, stars)))
 write.csv(grid %>% select(category,trait_label,response,n,rho,p_uni,q_uni,p_clade),
-          file.path(out,"traits_heatmap_robust_matrix.csv"), row.names=FALSE)
+          out_path("traits_heatmap_robust_matrix.csv"), row.names=FALSE)
 
 row_order <- grid %>% filter(response=="Stem CH4 flux") %>%
   arrange(factor(category, levels=c("Structure","Chemistry","Roots","Moisture","Whole-plant")), rho) %>% pull(trait_label)
@@ -95,7 +96,7 @@ p <- ggplot(grid, aes(response, trait_label, fill=rho)) +
         strip.text.y.left=element_text(angle=0, face="bold", size=8), strip.placement="outside",
         panel.grid=element_blank(),
         plot.caption=element_text(size=7.8, hjust=0, margin=margin(t=12)), plot.margin=margin(t=40,r=45,b=8,l=6))
-ggsave(file.path(out,"traits_heatmap_robust.png"), p, width=9.2, height=7.6, dpi=300, bg="white")
+ggsave(out_path("traits_heatmap_robust.png"), p, width=9.2, height=7.6, dpi=300, bg="white")
 cat("clade-robust (dagger) cells:\n")
 print(grid %>% filter(!is.na(p_clade) & p_clade<0.05) %>% select(trait_label,response,rho,p_uni,p_clade), row.names=FALSE)
 cat("Wrote traits_heatmap_robust.png\n")

@@ -1,3 +1,4 @@
+source("code/lib/outputs.R")
 #!/usr/bin/env Rscript
 # ==============================================================================
 # rev_rf_model_diagnostics.R
@@ -155,5 +156,5 @@ for (nm in names(MODELS)) {
 }
 
 res <- bind_rows(summary_rows)
-write.csv(res, file.path(outdir, "rf_diagnostics_summary.csv"), row.names = FALSE)
+write.csv(res, out_path("rf_diagnostics_summary.csv"), row.names = FALSE)
 cat("\nWritten: outputs/revision/rf_diagnostics_summary.csv\n")

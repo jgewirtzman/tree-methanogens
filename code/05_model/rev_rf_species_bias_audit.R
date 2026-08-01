@@ -104,8 +104,8 @@ print(as.data.frame(eff %>% transmute(species, as_modelled = round(as_modelled,3
         pct_of_total = round(100*delta/TOT,1)) %>% head(10)), row.names = FALSE)
 
 dir.create("outputs/revision", showWarnings = FALSE, recursive = TRUE)
-write.csv(A, "outputs/revision/species_bias_audit.csv", row.names = FALSE)
-con <- file("outputs/revision/species_bias_audit.txt", "w")
+write.csv(A, "outputs/data/species_bias_audit.csv", row.names = FALSE)
+con <- file("outputs/audit/species_bias_audit.txt", "w")
 cat(sprintf("SPECIES BIAS AUDIT\nbuilt %s\ntree band budget %.3f mg CH4 m-2 yr-1; bias-corrected %.3f (%+.1f%%)\n\n",
             format(Sys.time(), "%Y-%m-%d %H:%M:%S"), TOT, TOT2, 100*(TOT2-TOT)/TOT), file = con)
 utils::write.table(as.data.frame(A %>% mutate(across(where(is.numeric), ~round(.x,4)))),

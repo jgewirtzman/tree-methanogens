@@ -177,7 +177,7 @@ cat(sprintf("\nwritten: %s  (%d rows)\n", OUT, nrow(INV)))
 # The built inventory lives under outputs/ and is therefore gitignored (the repo
 # tracks code, not regenerable products). Traceability comes from this record:
 # which raw files were read, their checksums, and exactly which rows were altered.
-PROV <- "outputs/revision/inventory_provenance.txt"
+PROV <- "outputs/audit/inventory_provenance.txt"
 dir.create(dirname(PROV), showWarnings = FALSE, recursive = TRUE)
 srcs <- file.path(RAW, c("ForestGEO_data2021UPDATE_6_21_DW_2019.csv",
                          "ForestGEO_data2021UPDATE_6_21_DW_bytag.csv"))

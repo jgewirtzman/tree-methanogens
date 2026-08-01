@@ -1,3 +1,4 @@
+source("code/lib/outputs.R")
 #!/usr/bin/env Rscript
 # ==============================================================================
 # rev_fig_scaling_heatmap.R
@@ -29,7 +30,7 @@
 # ==============================================================================
 suppressMessages({library(dplyr); library(ggplot2); library(tidyr); library(patchwork)})
 outdir <- "outputs/revision"
-R <- read.csv(file.path(outdir, "scaling_full_grid.csv"), stringsAsFactors = FALSE)
+R <- read.csv(out_path("scaling_full_grid.csv"), stringsAsFactors = FALSE)
 
 FO <- c("constant","exp_band_slope","power","exponential","linear_floored",
         "linear_bounded_median")
@@ -160,7 +161,7 @@ fig <- (pa | pb) / pc / pd + plot_layout(heights = c(1, 1.85, 0.62)) +
                        N_WAI, N_BOLE, N_BRANCH, N_FLUX, MEAS),
     theme = theme(plot.title = element_text(face = "bold", size = 12),
                   plot.subtitle = element_text(size = 8.4, colour = "grey25")))
-ggsave(file.path(outdir, "fig_scaling_heatmap.png"), fig,
+ggsave(out_path("fig_scaling_heatmap.png"), fig,
        width = 13, height = 15.5, dpi = 200, bg = "white")
 
 cat(sprintf("=== LEVERAGE: range spanned by each assumption, others held fixed (%d combinations) ===\n", N_COMB))

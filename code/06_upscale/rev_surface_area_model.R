@@ -1,3 +1,4 @@
+source("code/lib/outputs.R")
 #!/usr/bin/env Rscript
 # ==============================================================================
 # rev_surface_area_model.R
@@ -206,5 +207,5 @@ p <- ggplot(pd, aes(a, z, colour=scenario)) +
        subtitle=sprintf("canopy %d m, crown base %.0f m; WAI = %.2f imported from Gauci et al. 2024 (no LiDAR at this site)", H, zcb, WAI),
        x="relative area density a(z)", y="height (m)") +
   theme_bw(base_size=9)
-ggsave(file.path(outdir,"fig_surface_area_distribution.png"), p, width=7, height=5, dpi=200, bg="white")
+ggsave(out_path("fig_surface_area_distribution.png"), p, width=7, height=5, dpi=200, bg="white")
 cat("\nWritten: outputs/revision/fig_surface_area_distribution.png\n")

@@ -1,3 +1,4 @@
+source("code/lib/outputs.R")
 #!/usr/bin/env Rscript
 # ==============================================================================
 # rev_qc_c0_screen.R          TIER 1 HARD QC: chamber contamination screen
@@ -89,7 +90,7 @@ for (nm in names(SRC)) {
       sprintf("%.1fx->%d", m, sum(d$C0 > m*med, na.rm=TRUE))), collapse="  "), "\n")
 }
 EXCL <- bind_rows(EX)
-write.csv(EXCL, file.path(outdir,"qc_excluded_measurements.csv"), row.names=FALSE)
+write.csv(EXCL, out_path("qc_excluded_measurements.csv"), row.names=FALSE)
 cat(sprintf("\n  Canonical exclusion list: %d measurements -> outputs/revision/qc_excluded_measurements.csv\n",
             nrow(EXCL)))
 

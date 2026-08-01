@@ -141,7 +141,7 @@ dir.create("outputs/tables", showWarnings = FALSE, recursive = TRUE)
 write.csv(D, "outputs/tables/tower_daily_waterbalance.csv", row.names = FALSE)
 
 dir.create("outputs/revision", showWarnings = FALSE, recursive = TRUE)
-con <- file("outputs/revision/wb_reference_et.txt", "w")
+con <- file("outputs/audit/wb_reference_et.txt", "w")
 cat(sprintf("REFERENCE ET AND WATER BALANCE (rev_wb_reference_et.R)\nbuilt %s\n\n",
             format(Sys.time(), "%Y-%m-%d %H:%M:%S")), file = con)
 cat(sprintf("logger ETos column NOT used: 56.8%% of values outside [0, 1.5] mm/h\n"), file = con)

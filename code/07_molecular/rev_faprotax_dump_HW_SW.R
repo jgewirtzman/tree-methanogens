@@ -25,6 +25,6 @@ pc<-t$res_spe_func_perc
 df<-data.frame(func=colnames(pc), HW=as.numeric(pc["Inner",]), SW=as.numeric(pc["Outer",]))
 df$lr<-ifelse(df$SW>0,log2(df$HW/df$SW),NA)
 df<-df[order(-df$HW),]
-write.csv(df,"outputs/revision/FAPROTAX_all_functions_HW_SW.csv",row.names=FALSE)
+write.csv(df,"outputs/data/FAPROTAX_all_functions_HW_SW.csv",row.names=FALSE)
 cat("=== ALL FAPROTAX functions (HW=Inner, SW=Outer, % relative abundance) ===\n")
 for(i in seq_len(nrow(df))) cat(sprintf("%-52s HW=%6.2f SW=%6.2f lr=%s\n",df$func[i],df$HW[i],df$SW[i],ifelse(is.na(df$lr[i]),"  Inf",sprintf("%+.2f",df$lr[i]))))

@@ -1,3 +1,4 @@
+source("code/lib/outputs.R")
 # ==============================================================================
 # REVISION — S1/S2 tree- & species-level flux prediction, REDONE with an
 # arcsinh-transformed RESPONSE (asinh(flux/0.1)/log10; cofactor matches Fig 1/2/3).
@@ -14,7 +15,7 @@
 suppressWarnings(suppressMessages(source("code/07_molecular/02_scale_dependent_gene_patterns.R")))
 suppressPackageStartupMessages({ library(tidyverse); has_car <- requireNamespace("car", quietly = TRUE) })
 out <- "outputs/revision"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
-sink(file.path(out, "S1S2_arcsinh_report.txt"), split = TRUE)
+sink(out_path("S1S2_arcsinh_report.txt"), split = TRUE)
 asf <- function(x) asinh(x / 0.1) / log(10)
 species_mapping <- c("ACRU"="Acer rubrum","ACSA"="Acer saccharum","BEAL"="Betula alleghaniensis","BELE"="Betula lenta",
   "BEPA"="Betula papyrifera","FAGR"="Fagus grandifolia","FRAM"="Fraxinus americana","PIST"="Pinus strobus",

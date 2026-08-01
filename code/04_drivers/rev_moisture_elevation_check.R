@@ -99,7 +99,7 @@ p3 <- ggplot(G, aes(z_elev, z_moist)) +
 ggsave("outputs/revision/fig_moisture_elevation.png", p1 | p2 | p3,
        width = 12, height = 4.4, dpi = 190, bg = "white")
 
-con <- file("outputs/revision/moisture_elevation_check.txt", "w")
+con <- file("outputs/audit/moisture_elevation_check.txt", "w")
 cat(sprintf("MOISTURE vs ELEVATION -- independent check\nbuilt %s\n\n",
             format(Sys.time(), "%Y-%m-%d %H:%M:%S")), file = con)
 cat(sprintf("at survey points (n=%d): Pearson %+.3f, Spearman %+.3f\n", nrow(J),

@@ -88,9 +88,9 @@ if (length(sc)) {
   cat("NOTE: no collar identifier found in soil_train_complete; soil row omitted\n")
 }
 
-write.csv(RES, "outputs/revision/rf_grouped_cv.csv", row.names = FALSE)
+write.csv(RES, "outputs/data/rf_grouped_cv.csv", row.names = FALSE)
 
-con <- file("outputs/revision/rf_grouped_cv.txt", "w")
+con <- file("outputs/audit/rf_grouped_cv.txt", "w")
 wr <- function(...) cat(sprintf(...), file = con)
 wr("GROUPED CROSS-VALIDATION OF THE LOCKED FORESTS\n")
 wr("%d repeats x %d folds, folds assigned by sampling unit, not by row.\n", NREP, NFOLD)
@@ -107,5 +107,5 @@ wr("Report the grouped figure, or report both with the repeated-measures structu
 wr("stated. OOB alone is not defensible where one tree contributes up to 13 rows.\n")
 close(con)
 
-cat(readLines("outputs/revision/rf_grouped_cv.txt"), sep = "\n")
+cat(readLines("outputs/audit/rf_grouped_cv.txt"), sep = "\n")
 cat("\n  Written: outputs/revision/rf_grouped_cv.{csv,txt}\n")

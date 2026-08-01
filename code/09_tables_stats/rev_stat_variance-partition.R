@@ -1,3 +1,4 @@
+source("code/lib/outputs.R")
 # ==============================================================================
 # REVISION — Variance partition review: reconcile 82.9% vs 91.3% + mixed-model ICC
 # ==============================================================================
@@ -71,7 +72,7 @@ icc_psl <- icc(psl(combined$CH4_flux))
 # --- also the simple species-only lm residual (the earlier ~91%) ---------------
 species_only_unexpl <- (1 - summary(m_sp)$r.squared) * 100
 
-sink(file.path(out_dir, "variance_partition_review.txt"))
+sink(out_path("variance_partition_review.txt"))
 cat("=====================================================================\n")
 cat("VARIANCE PARTITION REVIEW — what each number means, and what's correct\n")
 cat("=====================================================================\n\n")
@@ -110,4 +111,4 @@ cat(sprintf("    ~%.0f%% (raw) / ~%.0f%% (arcsinh) of INDIVIDUAL flux variance i
 cat("    species; the large within-species remainder is exactly the point-\n")
 cat("    sampling heterogeneity that motivates species-level aggregation.\n")
 sink()
-cat(readLines(file.path(out_dir,"variance_partition_review.txt")), sep="\n")
+cat(readLines(out_path("variance_partition_review.txt")), sep="\n")

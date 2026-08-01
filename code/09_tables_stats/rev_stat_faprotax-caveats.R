@@ -1,3 +1,4 @@
+source("code/lib/outputs.R")
 # ==============================================================================
 # REVISION — FAPROTAX/PICRUSt caveat metrics (Referee 2 #3)
 # ==============================================================================
@@ -84,7 +85,7 @@ genus_asv_pct <- 100 * mean(!unresolved)
 # ---- report ------------------------------------------------------------------
 p <- tf$res_spe_func_perc                        # compartments x functions (%)
 getf <- function(f, grp) if (f %in% colnames(p)) p[grp, f] else NA
-sink(file.path(out, "faprotax_caveat_metrics.txt"))
+sink(out_path("faprotax_caveat_metrics.txt"))
 cat("=================================================================\n")
 cat("FAPROTAX caveat metrics (Referee 2 #3) — heartwood=Inner, sapwood=Outer\n")
 cat("=================================================================\n\n")
@@ -117,4 +118,4 @@ cat("       + OUR internal CH4~O2 negative correlation (Fig S8). NOTE: paired de
 cat("       O2 PROFILES are the companion Nature paper (Arnold & Gewirtzman 2025), NOT measured\n")
 cat("       here; this study has single internal (bark-to-pith) gas per tree, ~1-22%% O2, variable.\n")
 sink()
-cat(readLines(file.path(out, "faprotax_caveat_metrics.txt")), sep = "\n")
+cat(readLines(out_path("faprotax_caveat_metrics.txt")), sep = "\n")

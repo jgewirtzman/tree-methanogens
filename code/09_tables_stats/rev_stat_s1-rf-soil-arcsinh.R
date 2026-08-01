@@ -1,3 +1,4 @@
+source("code/lib/outputs.R")
 # ==============================================================================
 # REVISION — S1 area-weighted RANDOM FOREST + SOIL-gene additions, redone with an
 # arcsinh RESPONSE (asinh(flux/0.1)/log10). Companion to R_S1S2_arcsinh.R.
@@ -15,7 +16,7 @@
 suppressWarnings(suppressMessages(source("code/07_molecular/02_scale_dependent_gene_patterns.R")))
 suppressPackageStartupMessages({ library(tidyverse); library(randomForest) })
 out <- "outputs/revision"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
-sink(file.path(out, "S1_rf_soil_arcsinh_report.txt"), split = TRUE)
+sink(out_path("S1_rf_soil_arcsinh_report.txt"), split = TRUE)
 asf <- function(x) asinh(x / 0.1) / log(10)
 line <- function() cat(strrep("-", 78), "\n")
 

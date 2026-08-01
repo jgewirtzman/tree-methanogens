@@ -1,3 +1,4 @@
+source("code/lib/outputs.R")
 # ==============================================================================
 # REVISION — Fig 4 final: methanogen (mcrA) / methanotroph (pmoA,mmoX) gene
 # abundance by compartment (heartwood/sapwood/soil), (a) species barplot + (b) scatter.
@@ -33,5 +34,5 @@ combined_plot <- plot_grid(barplot_improved, scatterplot, ncol = 2,
                            labels = c("(a)", "(b)"), label_size = 11, label_fontface = "bold",
                            rel_widths = c(1.3, 1)) +
   theme(plot.background = element_rect(fill = "white", color = NA))
-ggsave(file.path(out, "fig4_final.png"), combined_plot, width = 12, height = 7, dpi = 300, bg = "white")
+ggsave(out_path("fig4_final.png"), combined_plot, width = 12, height = 7, dpi = 300, bg = "white")
 cat("Wrote fig4_final.png (DILUTION_10X =", DILUTION_10X, ")\n")

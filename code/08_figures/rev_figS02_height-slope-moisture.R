@@ -1,3 +1,4 @@
+source("code/lib/outputs.R")
 # ==============================================================================
 # REVISION — Does the flux-decline-with-height correspond to soil moisture?
 # ==============================================================================
@@ -73,11 +74,11 @@ p2 <- ggplot(birch, aes(VWC_mean, flux_base)) +
   labs(x = "Soil VWC (%)", y = "Base-height CH4 flux") + theme_bw(base_size = 10)
 
 if (requireNamespace("gridExtra", quietly = TRUE))
-  ggsave(file.path(out_dir, "height_slope_vs_moisture.png"),
+  ggsave(out_path("height_slope_vs_moisture.png"),
          gridExtra::arrangeGrob(p1, p2, nrow = 1), width = 12, height = 5, dpi = 150)
 
 # ---- Summary -----------------------------------------------------------------
-sink(file.path(out_dir, "height_slope_moisture_summary.txt"))
+sink(out_path("height_slope_moisture_summary.txt"))
 cat("=================================================================\n")
 cat("HEIGHT-DECLINE SLOPE vs SOIL MOISTURE (Referee 3's logical gap)\n")
 cat("=================================================================\n\n")
@@ -103,4 +104,4 @@ cat("slope-vs-VWC correlation is weak, concede R3's point that height-decline al
 cat("not establish a soil source, and lean on the cross-species height-effect vs soil-\n")
 cat("methanogen correlation (r=-0.76, manuscript L302-304) instead.\n")
 sink()
-cat(readLines(file.path(out_dir,"height_slope_moisture_summary.txt")), sep="\n")
+cat(readLines(out_path("height_slope_moisture_summary.txt")), sep="\n")

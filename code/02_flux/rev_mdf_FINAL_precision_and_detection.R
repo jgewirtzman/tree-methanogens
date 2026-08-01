@@ -1,3 +1,4 @@
+source("code/lib/outputs.R")
 #!/usr/bin/env Rscript
 # ==============================================================================
 # rev_mdf_FINAL_precision_and_detection.R
@@ -71,7 +72,7 @@ G <- bind_rows(G, data.frame(UniqueID=st$UniqueID, camp="Monthly survey", type="
   LM.p.val=gc("LM.p.val"), LM.r2=gc("LM.r2"), stringsAsFactors=FALSE)) %>%
   filter(is.finite(best.flux),is.finite(flux.term),is.finite(nb.obs),nb.obs>2) %>%
   distinct(UniqueID,.keep_all=TRUE)
-excl <- read.csv(file.path(outdir,"qc_excluded_measurements.csv"),stringsAsFactors=FALSE)$UniqueID
+excl <- read.csv(out_path("qc_excluded_measurements.csv"),stringsAsFactors=FALSE)$UniqueID
 G <- G[!(G$UniqueID %in% excl),]
 G$sigma <- SIGMA[G$camp]
 G$MDF   <- Z*G$sigma/G$nb.obs*G$flux.term
@@ -124,5 +125,5 @@ cat(sprintf("    deepest in the lowest-sigma campaign: %s\n",
 cat(sprintf("    median detected soil uptake %.4f  -> stem uptake is %.1f%% of it\n",
   median(su), 100*abs(median(u))/abs(median(su))))
 cat(sprintf("\n  >>> BOUND = %.4f nmol m-2 s-1 (median detected stem uptake)\n", median(u)))
-write.csv(G, file.path(outdir,"flux_FINAL.csv"), row.names=FALSE)
+write.csv(G, out_path("flux_FINAL.csv"), row.names=FALSE)
 cat("\n  Written: outputs/revision/flux_FINAL.csv\n")

@@ -1,3 +1,4 @@
+source("code/lib/outputs.R")
 #!/usr/bin/env Rscript
 # ==============================================================================
 # rev_fig_scaling_profiles.R
@@ -38,11 +39,11 @@
 # ==============================================================================
 suppressMessages({library(dplyr); library(ggplot2); library(tidyr); library(patchwork)})
 outdir <- "outputs/revision"
-FX <- read.csv(file.path(outdir, "scaling_flux_shapes.csv"),   stringsAsFactors = FALSE)
-BP <- read.csv(file.path(outdir, "scaling_band_profile.csv"),  stringsAsFactors = FALSE)
-KN <- read.csv(file.path(outdir, "scaling_shape_kernels.csv"), stringsAsFactors = FALSE)
-AR <- read.csv(file.path(outdir, "scaling_area_profiles.csv"), stringsAsFactors = FALSE)
-GR <- read.csv(file.path(outdir, "scaling_full_grid.csv"),     stringsAsFactors = FALSE)
+FX <- read.csv(out_path("scaling_flux_shapes.csv"),   stringsAsFactors = FALSE)
+BP <- read.csv(out_path("scaling_band_profile.csv"),  stringsAsFactors = FALSE)
+KN <- read.csv(out_path("scaling_shape_kernels.csv"), stringsAsFactors = FALSE)
+AR <- read.csv(out_path("scaling_area_profiles.csv"), stringsAsFactors = FALSE)
+GR <- read.csv(out_path("scaling_full_grid.csv"),     stringsAsFactors = FALSE)
 source("code/lib/rev_geometry.R")
 
 FO <- c("constant","exp_band_slope","power","exponential","linear_floored",
@@ -87,7 +88,7 @@ bandrect <- annotate("rect", xmin = -Inf, xmax = Inf, ymin = 0, ymax = BAND,
 # of the top one, so the band's own decline is not compressed against the anchor.
 # Absolute is the only version in which a reader can see that all of this concerns
 # fluxes of order 0.05-0.1 nmol m-2 s-1.
-AN   <- read.csv(file.path(outdir, "scaling_flux_anchors.csv"))
+AN   <- read.csv(out_path("scaling_flux_anchors.csv"))
 BPag <- BP %>% filter(series == "all stems (area-weighted)")
 BPsp <- BP %>% filter(series != "all stems (area-weighted)")
 FXa  <- FX %>% filter(z >= BAND)
@@ -216,7 +217,7 @@ pc2 <- ggplot(ONE2, aes(y = z)) +
 # flux form, our own bottom-up WAI for this stand, a crown centred at 0.75H, and
 # the bole shape that makes no difference. Both forms are shown, because the RANGE
 # is the result and a single bar would read as an estimate.
-HL <- read.csv(file.path(outdir, "scaling_headline.csv"), stringsAsFactors = FALSE)
+HL <- read.csv(out_path("scaling_headline.csv"), stringsAsFactors = FALSE)
 MEAS_BAND <- unique(GR$measured_mg)[1]
 mkP <- function(form) {
   AR %>% filter(WAI == REP_WAI, bole == REP_BOLE, branch == REP_BRANCH) %>%
@@ -262,7 +263,7 @@ fig <- (pa | pc1 | pc2) / (pb | pd) + plot_layout(widths = c(1.45, 1, 1)) +
                        nrow(GR)),
     theme = theme(plot.title = element_text(face = "bold", size = 12),
                   plot.subtitle = element_text(size = 8.2, colour = "grey25")))
-ggsave(file.path(outdir, "fig_scaling_profiles.png"), fig,
+ggsave(out_path("fig_scaling_profiles.png"), fig,
        width = 16.5, height = 15, dpi = 200, bg = "white")
 
 cat(sprintf("one tree: H %g m, DBH %.3f m, conic stem surface %.1f m2\n", H_TREE, D_TREE, CONIC))

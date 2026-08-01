@@ -127,7 +127,7 @@ inv_live <- sum(inv$status=="LI", na.rm=TRUE); inv_spp <- uq(inv$species_code)
 inv_area <- round(diff(range(inv$x_m,na.rm=TRUE))*diff(range(inv$y_m,na.rm=TRUE))/1e4, 2)
 
 # ================================================================== REPORT =====
-sink("outputs/revision/campaign_counts.txt")
+sink("outputs/audit/campaign_counts.txt")
 cat("CAMPAIGN / SAMPLE-SIZE ACCOUNTING\n")
 cat("Rule: keep all fluxes (non-NA best.flux, no QC). Black oak = separate section.\n")
 cat("Source: code/09_tables_stats/rev_stat_campaign_counts.R\n"); cat(strrep("=",78),"\n\n")
@@ -183,7 +183,7 @@ P("      extent-based area ~%s ha (CONFIRM censused plot area)", inv_area)
 cat("\nNOTE: covariates (VWC, DBH, air/soil/stem temp) are recorded per flux measurement / per tree\n")
 cat("      as attributes — a Methods sentence, not a separate sample-size stream.\n")
 sink()
-cat(readLines("outputs/revision/campaign_counts.txt"), sep="\n")
+cat(readLines("outputs/audit/campaign_counts.txt"), sep="\n")
 
 # machine-readable
 write.csv(data.frame(
@@ -196,5 +196,5 @@ write.csv(data.frame(
   ddpcr=c(NA,dd_surv,bo_ddpcr,NA,NA), s16=c(NA,s16_w+s16_s,s16_oak,NA,NA),
   gas=c(NA,n_gas,bo_gas,NA,NA), isotopes=c(NA,iso_samp,NA,NA,NA),
   covariates=c("merged in Fig1","VWC/DBH/temp+wood","tree","VWC/DBH/temp",NA)
-), "outputs/revision/campaign_counts.csv", row.names=FALSE)
+), "outputs/data/campaign_counts.csv", row.names=FALSE)
 cat("\n\nWrote outputs/revision/campaign_counts.{txt,csv}\n")
