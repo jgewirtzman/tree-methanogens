@@ -129,7 +129,7 @@ SUPPORT <- c(
   "code/05_model/rev_rf_species_fallback_loso.R",
   "code/05_model/rev_rf_species_pooling.R",
   "code/05_model/rev_rf_species_bias_audit.R",
-  "code/08_figures/rev_fig_model_findings.R",
+  "code/08_figures/rev_figS21_rf-model-summary.R",   # absorbed rev_fig_model_findings.R
   "code/05_model/rev_model_family_comparison.R",
   "code/05_model/rev_rf_height_extrapolation.R",
   "code/06_upscale/rev_scaling_assumptions_audit.R",
