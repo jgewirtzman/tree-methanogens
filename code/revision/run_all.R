@@ -141,9 +141,65 @@ SUPPORT <- SUPPORT[file.exists(SUPPORT)]
 cat(sprintf("\n== SUPPORTING ANALYSES (%d) ==\n", length(SUPPORT)))
 for (f in SUPPORT) run(f)
 
-# --- 3) everything else matching the historical patterns ---------------------
-rest <- sort(list.files("code/revision", "^rev_(stat|tbl|fig).*\\.R$", full.names = TRUE))
+# --- 3) stats, tables and figures --------------------------------------------
+# NAMED, NOT GLOBBED. This was list.files("code/revision", "^rev_(stat|tbl|fig)")
+# until the reorg. A glob that selects on a filename prefix silently empties when
+# the prefix changes: retiring "rev_" -- an explicit goal of the reorg -- would
+# have dropped all 41 scripts below while this file still exited 0. The gate would
+# not have caught it either, because rev_check_consistency.R asserts agreement
+# BETWEEN outputs, not that they were regenerated, so the stale CSVs already on
+# disk keep all 28 invariants passing. Select on meaning, never on spelling.
+# This list was generated from the glob it replaces and verified set-identical.
+rest <- c(
+  "code/revision/rev_fig01_temporal-flux.R",
+  "code/revision/rev_fig02_height-flux.R",
+  "code/revision/rev_fig02a_axis-support.R",
+  "code/revision/rev_fig03_variance-partition.R",
+  "code/revision/rev_fig04_gene-abundance.R",
+  "code/revision/rev_fig05_methane-cycling.R",
+  "code/revision/rev_fig06_hydrogenotrophy.R",
+  "code/revision/rev_fig07_decay-methanogenesis.R",
+  "code/revision/rev_fig07b_copies-per-g.R",
+  "code/revision/rev_fig07c_flux-unit.R",
+  "code/revision/rev_fig09_budget.R",
+  "code/revision/rev_figS02_height-slope-moisture.R",
+  "code/revision/rev_figS04_pmoa-mmox-coupling.R",
+  "code/revision/rev_figS11_scale-dependent.R",
+  "code/revision/rev_figS12_isotope-sources.R",
+  "code/revision/rev_figS15_black-oak-methanome.R",
+  "code/revision/rev_figS17_plant-traits.R",
+  "code/revision/rev_figS19_mcra-probe-validation.R",
+  "code/revision/rev_figS20_stem-deterioration.R",
+  "code/revision/rev_figSI_detection.R",
+  "code/revision/rev_figS_black-oak-cross-sections.R",
+  "code/revision/rev_figS_rf-calibration.R",
+  "code/revision/rev_fig_height_curves.R",
+  "code/revision/rev_fig_scaling_diagnostics.R",
+  "code/revision/rev_fig_scaling_heatmap.R",
+  "code/revision/rev_fig_scaling_profiles.R",
+  "code/revision/rev_stat_campaign_counts.R",
+  "code/revision/rev_stat_copies-per-gram.R",
+  "code/revision/rev_stat_dbh_by_species_campaign.R",
+  "code/revision/rev_stat_faprotax-caveats.R",
+  "code/revision/rev_stat_isotopes-canonical.R",
+  "code/revision/rev_stat_known-putative-table.R",
+  "code/revision/rev_stat_multigene-models.R",
+  "code/revision/rev_stat_pmoa-mmox-robustness.R",
+  "code/revision/rev_stat_s1-rf-soil-arcsinh.R",
+  "code/revision/rev_stat_s1s2-arcsinh.R",
+  "code/revision/rev_stat_species-aggregation-rma.R",
+  "code/revision/rev_stat_tree-distribution.R",
+  "code/revision/rev_stat_tree_flux_merged.R",
+  "code/revision/rev_stat_variance-partition.R",
+  "code/revision/rev_tbl_ddpcr-16s-concordance.R"
+)
 rest <- setdiff(rest, c(CORE, SUPPORT))
+local({
+  missing <- rest[!file.exists(rest)]
+  if (length(missing))
+    stop("named script(s) not found -- did a move miss this list?\n  ",
+         paste(missing, collapse = "\n  "), call. = FALSE)
+})
 cat(sprintf("\n== STATS, TABLES AND FIGURES (%d) ==\n", length(rest)))
 for (f in rest) run(f)
 
