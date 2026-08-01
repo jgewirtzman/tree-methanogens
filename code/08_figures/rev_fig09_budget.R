@@ -1,3 +1,4 @@
+source("code/lib/outputs.R")
 # ==============================================================================
 # REVISION — NEW main figure: plot CH4 budget (maps + seasonal + net waterfall)
 # Redesign: color = PROCESS (sink cool / source warm), consistent across panels.
@@ -39,21 +40,21 @@ soil_map$mean_flux_nmol <- soil_map$flux_nmol_m2_s
 # ---- budget numbers: READ, never hardcoded ----------------------------------
 # All values come from rev_budget_canonical.R, which computes them from the locked
 # models and the inventory. Run that script first if any input has changed.
-B <- read.csv("outputs/revision/canonical_budget.csv", stringsAsFactors = FALSE)
+B <- read.csv("outputs/data/canonical_budget.csv", stringsAsFactors = FALSE)
 val <- function(q) { v <- B$value[B$quantity == q]
   if (!length(v)) stop("canonical_budget.csv is missing: ", q); v }
 soil_ann  <- val("soil_mg_m2_yr")
 tree_meas <- val("tree_measured_mg_m2_yr")
 
 # whole-woody-surface scenarios, from the sensitivity grid
-GR <- read.csv("outputs/revision/scaling_full_grid.csv", stringsAsFactors = FALSE)
+GR <- read.csv("outputs/data/scaling_full_grid.csv", stringsAsFactors = FALSE)
 # THE SCENARIO BAR IS THE HEADLINE SCENARIO, and its error bar is the WHOLE grid.
 # It previously drew the constant-flux case at WAI 2.11 with a bar spanning only
 # the WAI axis (56-115), which understated the uncertainty badly: varying WAI is
 # the second-smallest of the four assumptions, and the flux form -- which the bar
 # held fixed -- moves the answer six times further. Showing that interval as "the"
 # uncertainty implied the geometry was the open question when it is not.
-HLF <- read.csv("outputs/revision/scaling_headline.csv", stringsAsFactors = FALSE)
+HLF <- read.csv("outputs/data/scaling_headline.csv", stringsAsFactors = FALSE)
 tree_scen <- HLF$total_mg
 # excluding the uptake form, which is contradicted by the climbed tree; the full
 # range including it is reported in the caption line below
@@ -192,7 +193,7 @@ pa <- add_ctx(pa); pb <- add_ctx(pb)
 # ---- (c) MONTHLY series: soil (blue) + tree (red), points joined by lines --------
 # Reads the canonical monthly series, which uses the height-integrated 0-2 m band for
 # the tree term. MONTHLY_FLUXES.csv carries the superseded single-value tree scaling.
-CM <- read.csv("outputs/revision/canonical_monthly.csv", stringsAsFactors = FALSE)
+CM <- read.csv("outputs/data/canonical_monthly.csv", stringsAsFactors = FALSE)
 # The tree series is MEAN FLUX AT BREAST HEIGHT, per m2 of woody surface -- a
 # measured quantity, directly comparable to the map in panel (b). It used to be
 # the 0-2 m band's contribution per m2 of GROUND, which exists only because we
@@ -286,7 +287,7 @@ pd <- ggplot(wf) +
 # ---- assemble (net-sink / RF-R2 / basis notes go in the figure CAPTION) -------
 fig <- (pa | pb) / (pc | pd) + plot_layout(heights = c(1.05, 1)) +
   plot_annotation(tag_levels = 'a', tag_prefix = "(", tag_suffix = ")") & theme(plot.tag = element_text(face = "bold", size = 13))
-ggsave(file.path(out, "fig_budget_maps.png"), fig, width = 10.5, height = 9, dpi = 300, bg = "white")
+ggsave(out_path("fig_budget_maps.png"), fig, width = 10.5, height = 9, dpi = 300, bg = "white")
 cat("Wrote fig_budget_maps.png\n")
 cat(sprintf("Soil %.1f | tree measured %.2f (%.2f%% of soil) | tree scenario %.1f (%.1f%%, %.0f%% extrapolated)\n",
             soil_ann, tree_meas, off(tree_meas), tree_scen, off(tree_scen), pct_extrapolated))

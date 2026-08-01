@@ -1,3 +1,4 @@
+source("code/lib/outputs.R")
 # ==============================================================================
 # REVISION — Gene copies per gram (real mass) + dry/wet weight basis
 # ==============================================================================
@@ -48,7 +49,7 @@ comp <- d %>% filter(target_gene %in% c("mcra","mcra_probe")) %>%
             median_proxy = median(copies_per_g_proxy100, na.rm = TRUE),
             median_real  = median(copies_per_g_fresh, na.rm = TRUE),
             mass_median_mg = median(sample_mass_mg), .groups = "drop")
-write.csv(comp, file.path(out_dir, "copies_per_g_compartment.csv"), row.names = FALSE)
+write.csv(comp, out_path("copies_per_g_compartment.csv"), row.names = FALSE)
 
 hw <- comp$median_real[comp$compartment == "Heartwood"]
 soil_real  <- max(comp$median_real[grepl("Soil", comp$compartment)], na.rm = TRUE)
@@ -85,10 +86,10 @@ if (!is.null(bo_sm)) {
     fresh_to_dry_factor = c(1 + gwc_org, 1 + gwc_min),
     copies_g_fresh = c(soil_org_fresh, soil_min_fresh),
     copies_g_dry_est = c(soil_org_fresh * (1 + gwc_org), soil_min_fresh * (1 + gwc_min)))
-  write.csv(soil_dry, file.path(out_dir, "copies_per_g_soil_dry_estimate.csv"), row.names = FALSE)
+  write.csv(soil_dry, out_path("copies_per_g_soil_dry_estimate.csv"), row.names = FALSE)
 }
 
-sink(file.path(out_dir, "copies_per_g_summary.txt"))
+sink(out_path("copies_per_g_summary.txt"))
 cat("=================================================================\n")
 cat("GENE COPIES PER GRAM — real mass vs proxy, and dry/wet basis\n")
 cat("=================================================================\n\n")
@@ -143,4 +144,4 @@ cat("Fig 7b needs the height-resolved molecular source file located (flag Jon).\
 cat("Once located, apply the same copies/g formula (it has mass) to replace\n")
 cat("copies/uL with copies/g.\n")
 sink()
-cat(readLines(file.path(out_dir,"copies_per_g_summary.txt")), sep="\n")
+cat(readLines(out_path("copies_per_g_summary.txt")), sep="\n")

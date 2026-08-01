@@ -1,3 +1,4 @@
+source("code/lib/outputs.R")
 # ==============================================================================
 # REVISION — S10: pmoA/mmoX coupling & composition, WOOD (focus) vs SOIL (contrast).
 # Tree-focused; four compartments (BrBG palette): Heartwood, Sapwood (wood) /
@@ -111,6 +112,6 @@ pc <- comp_panel(WOODC); pd <- comp_panel(SOILC)
 fig <- (pa | pb) / (pc | pd) +
   plot_annotation(tag_levels = "a", tag_prefix = "(", tag_suffix = ")") &
   theme(plot.tag = element_text(face = "bold", size = 13))
-ggsave(file.path(out, "figS10_final.png"), fig, width = 9.4, height = 9.4, dpi = 300, bg = "white")
+ggsave(out_path("figS10_final.png"), fig, width = 9.4, height = 9.4, dpi = 300, bg = "white")
 print(decstat); print(compstat[, c("comp","slope","r2","permp","n")])
 cat("Wrote figS10_final.png\n")

@@ -1,3 +1,4 @@
+source("code/lib/outputs.R")
 # ==============================================================================
 # REVISION — Fig 7b fix: black-oak mcrA in copies per gram (was copies/uL)
 # ==============================================================================
@@ -32,7 +33,7 @@ d <- mcra %>%
   mutate(copies_per_g = conc_uL * ELUTION_UL / (mass_mg/1000))
 
 matched <- sum(!is.na(d$mass_mg)); total <- nrow(d)
-write.csv(d, file.path(out_dir, "fig7b_copies_per_gram.csv"), row.names = FALSE)
+write.csv(d, out_path("fig7b_copies_per_gram.csv"), row.names = FALSE)
 
 # ---- Figure: copies/uL vs copies/g profiles (show the fix) --------------------
 p_uL <- ggplot(d, aes(conc_uL, height_cm/100, color = component)) +
@@ -46,7 +47,7 @@ p_g <- ggplot(d %>% filter(!is.na(copies_per_g)), aes(copies_per_g, height_cm/10
   labs(title = "Fig 7b (fixed): mcrA copies/g dry wood", x = "mcrA (copies / g dry)",
        y = "Height (m)", color = NULL) + theme_bw(base_size = 10)
 if (requireNamespace("gridExtra", quietly = TRUE))
-  ggsave(file.path(out_dir, "fig7b_copies_per_gram.png"),
+  ggsave(out_path("fig7b_copies_per_gram.png"),
          gridExtra::arrangeGrob(p_uL, p_g, nrow = 1), width = 11, height = 5, dpi = 150)
 
 cat(sprintf("Matched %d/%d black-oak mcrA samples to extraction mass.\n", matched, total))

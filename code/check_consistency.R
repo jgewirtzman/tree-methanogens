@@ -26,14 +26,14 @@ chk <- function(label, ok, detail = "") {
 near <- function(a, b, tol = 1e-6) is.finite(a) && is.finite(b) && abs(a - b) <= tol * max(1, abs(b))
 rd <- function(p) if (file.exists(p)) utils::read.csv(p, stringsAsFactors = FALSE) else NULL
 
-B   <- rd("outputs/revision/canonical_budget.csv")
+B   <- rd("outputs/data/canonical_budget.csv")
 TRP <- rd("outputs/tables/tree_flux_predictions.csv")
 SOA <- rd("outputs/tables/soil_surface_annual.csv")
-G   <- rd("outputs/revision/scaling_full_grid.csv")
-H   <- rd("outputs/revision/scaling_headline.csv")
-W   <- rd("outputs/revision/wai_bottomup.csv")
+G   <- rd("outputs/data/scaling_full_grid.csv")
+H   <- rd("outputs/data/scaling_headline.csv")
+W   <- rd("outputs/data/wai_bottomup.csv")
 PRF <- rd("outputs/tables/tree_band_profile.csv")
-GCV <- rd("outputs/revision/rf_grouped_cv.csv")
+GCV <- rd("outputs/data/rf_grouped_cv.csv")
 if (is.null(B)) stop("no canonical_budget.csv -- nothing to check")
 v <- function(q) { x <- B$value[B$quantity == q]; if (length(x)) x[1] else NA_real_ }
 
@@ -80,7 +80,7 @@ chk("net = tree + soil", near(v("tree_measured_mg_m2_yr") + v("soil_mg_m2_yr"), 
 # stayed per-m2-of-soil while the tree column beside it was per-m2-of-ground, and
 # rev_fig09_budget.R plots that series labelled "per sq.m ground". 0.45%, and invisible
 # to every other check here, which is why this one exists.
-MON <- rd("outputs/revision/canonical_monthly.csv")
+MON <- rd("outputs/data/canonical_monthly.csv")
 if (!is.null(MON)) {
   DPM <- 365.25/12
   chk("monthly soil sums to the annual soil term",

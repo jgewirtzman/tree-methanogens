@@ -1,3 +1,4 @@
+source("code/lib/outputs.R")
 # ==============================================================================
 # REVISION — Robustness of the central gene-flux results to splitting pmoA/mmoX
 # ==============================================================================
@@ -42,7 +43,7 @@ rows <- tribble(~model, ~term, ~stats,
   mutate(R2 = round(map_dbl(stats, "R2"), 3), p = round(map_dbl(stats, "p"), 3)) %>%
   dplyr::select(model, term, R2, p)
 
-sink(file.path(out, "pmoa_mmox_robustness.txt"))
+sink(out_path("pmoa_mmox_robustness.txt"))
 cat("Robustness of central gene-flux results to pmoA/mmoX split (n =", nrow(d), "species)\n")
 cat("=====================================================================\n")
 print(as.data.frame(rows), row.names = FALSE)
@@ -57,4 +58,4 @@ cat("   using mcrA:pmoA  R2 =", rows$R2[rows$term=="mcrA : pmoA"],
 cat("   using mcrA:mmoX  R2 =", rows$R2[rows$term=="mcrA : mmoX"],
     "(p =", rows$p[rows$term=="mcrA : mmoX"], ")\n")
 sink()
-cat(readLines(file.path(out, "pmoa_mmox_robustness.txt")), sep = "\n")
+cat(readLines(out_path("pmoa_mmox_robustness.txt")), sep = "\n")

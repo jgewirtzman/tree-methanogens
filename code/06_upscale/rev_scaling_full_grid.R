@@ -1,3 +1,4 @@
+source("code/lib/outputs.R")
 #!/usr/bin/env Rscript
 # ==============================================================================
 # rev_scaling_full_grid.R
@@ -82,7 +83,7 @@ need <- c(inv="outputs/tables/inventory_stems.csv",
           tree="outputs/tables/tree_flux_predictions.csv",
           prof="outputs/tables/tree_band_profile.csv",
           pedge="outputs/tables/tree_band_profile_edges.csv",
-          bud="outputs/revision/canonical_budget.csv")
+          bud="outputs/data/canonical_budget.csv")
 miss <- need[!file.exists(need)]
 if (length(miss)) stop("missing inputs:\n  ", paste(miss, collapse="\n  "),
   "\nrun rev_inventory_build.R, rev_predict_tree_flux_current.R, rev_predict_soil_surface.R, rev_budget_canonical.R first")
@@ -184,7 +185,7 @@ BRANCH <- list(uniform_all=function(u) rep(1,length(u)),
 # reached the headline -- and WAI multiplies the extrapolated term, which is ~70% of it.
 # The two literature bounds stay literal: they are citations, not derived quantities.
 WAI_BU <- local({
-  f <- file.path(outdir, "wai_bottomup.csv")
+  f <- out_path("wai_bottomup.csv")
   if (!file.exists(f))
     stop("missing ", f, " -- run: Rscript code/06_upscale/rev_wai_bottomup_and_rf_interactions.R")
   w <- read.csv(f, stringsAsFactors = FALSE)
@@ -308,7 +309,7 @@ for (bn in names(BOLE)) for (rn in names(BRANCH)) {
   }
 }
 R <- bind_rows(res)
-write.csv(R, file.path(outdir,"scaling_full_grid.csv"), row.names=FALSE)
+write.csv(R, out_path("scaling_full_grid.csv"), row.names=FALSE)
 
 # ---- THE HEADLINE SCENARIO, named once ---------------------------------------
 # One combination is quoted in the text and drawn in the figures, so it is defined
@@ -375,7 +376,7 @@ hr <- R[R$flux == HEADLINE$flux & R$branch == HEADLINE$branch &
         R$bole == HEADLINE$bole & R$WAI == HEADLINE$WAI, ]
 write.csv(cbind(as.data.frame(HEADLINE), hr[, c("measured_mg","extrapolated_mg",
           "total_mg","pct_extrapolated","pct_of_soil","net_mg")]),
-          file.path(outdir,"scaling_headline.csv"), row.names=FALSE)
+          out_path("scaling_headline.csv"), row.names=FALSE)
 cat(sprintf("\n=== HEADLINE SCENARIO ===\n  %s | %s | %s | %s\n",
             HEADLINE$flux, HEADLINE$WAI, HEADLINE$branch, HEADLINE$bole))
 cat(sprintf("  total %.1f mg CH4 m-2 yr-1 (%.1f%% of soil uptake, %.0f%% extrapolated)\n",
@@ -398,7 +399,7 @@ fx_prof <- bind_rows(lapply(FORMS, function(fm) {
   } else r <- shape_ratio(fm, zmid)
   data.frame(flux = fm, z = zmid, ratio = as.numeric(r))
 }))
-write.csv(fx_prof, file.path(outdir,"scaling_flux_shapes.csv"), row.names=FALSE)
+write.csv(fx_prof, out_path("scaling_flux_shapes.csv"), row.names=FALSE)
 
 # RAW SHAPE KERNELS, before any application to the inventory. The stand profiles
 # below are the sum over thousands of stems of differing height, so trees drop out
@@ -413,7 +414,7 @@ kern <- bind_rows(
     w <- BRANCH[[b]](u); data.frame(part = "branch", shape = b, u = u, w = w/sum(w)) })))
 # W&W branch:stem 3.35, so the bole carries 1/4.35 of woody area and branches 3.35/4.35
 kern$part_fraction <- ifelse(kern$part == "bole", 1/4.35, 3.35/4.35)
-write.csv(kern, file.path(outdir,"scaling_shape_kernels.csv"), row.names=FALSE)
+write.csv(kern, out_path("scaling_shape_kernels.csv"), row.names=FALSE)
 
 # THE MEASURED BAND PROFILE, 0-2 m, as a ratio to each stem's own 2 m value. This
 # is what the model actually uses below 2 m -- the RF's own height response, a step
@@ -449,13 +450,13 @@ for (sp in sp_big) {
   band_prof$absolute[j] <- sapply(kk, function(k) v[k])
   band_prof$rel125[j]   <- sapply(kk, function(k) v[k]/v[k125])
 }
-write.csv(band_prof, file.path(outdir,"scaling_band_profile.csv"), row.names=FALSE)
+write.csv(band_prof, out_path("scaling_band_profile.csv"), row.names=FALSE)
 
 # the stand-mean ABSOLUTE 2 m flux, so the extrapolation forms can be shown in
 # absolute units as well as as ratios
 write.csv(data.frame(f2_stand_mean = sum(f2*wgt)/sum(wgt),
                      f125_stand_mean = sum(PROFI[, k125]*wgt)/sum(wgt)),
-          file.path(outdir,"scaling_flux_anchors.csv"), row.names=FALSE)
+          out_path("scaling_flux_anchors.csv"), row.names=FALSE)
 ag <- band_prof[band_prof$series == "all stems (area-weighted)", ]
 cat(sprintf("  band profile 0-2 m: aggregate %.2f at base -> 1.00 at 2 m (steps at %s cm)\n",
             ag$ratio[1], paste(head(edges[-1], -1), collapse=", ")))
@@ -493,7 +494,7 @@ for (bn in names(BOLE)) for (rn in names(BRANCH)) {
   }
 }
 ar_prof <- bind_rows(ar_prof)
-write.csv(ar_prof, file.path(outdir,"scaling_area_profiles.csv"), row.names=FALSE)
+write.csv(ar_prof, out_path("scaling_area_profiles.csv"), row.names=FALSE)
 cat(sprintf("  exported shape profiles: %d flux rows, %d area rows (bins 0-%g m)\n",
             nrow(fx_prof), nrow(ar_prof), max(ZB)))
 
@@ -582,7 +583,7 @@ p2 <- ggplot(R, aes(total_mg, pct_extrapolated, colour=flux, shape=WAI)) +
        x=expression(mg~CH[4]~m^-2~yr^-1), y="% from above 2 m", colour=NULL, shape=NULL) +
   theme_bw(base_size=8) + theme(legend.position="bottom", legend.text=element_text(size=6),
                                 legend.box="vertical", legend.key.height=unit(7,"pt"))
-ggsave(file.path(outdir,"fig_scaling_full_grid.png"), p1/p2 +
+ggsave(out_path("fig_scaling_full_grid.png"), p1/p2 +
   plot_annotation(title="Full stem-CH4 scaling sensitivity",
     subtitle=sprintf("%d combinations; soil uptake %.0f mg CH4 m-2 yr-1 for reference",
                      nrow(R), SOIL_ANN),

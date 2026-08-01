@@ -32,12 +32,12 @@ BEGIN <- "<!-- BEGIN GENERATED: headline -- rev_write_parameter_record.R -->"
 END   <- "<!-- END GENERATED -->"
 
 rd <- function(p) if (file.exists(p)) utils::read.csv(p, stringsAsFactors = FALSE) else NULL
-B  <- rd("outputs/revision/canonical_budget.csv")
-G  <- rd("outputs/revision/scaling_full_grid.csv")
-H  <- rd("outputs/revision/scaling_headline.csv")
-W  <- rd("outputs/revision/wai_bottomup.csv")
-GC <- rd("outputs/revision/rf_grouped_cv.csv")
-CS <- rd("outputs/revision/rf_calibration_sensitivity.csv")
+B  <- rd("outputs/data/canonical_budget.csv")
+G  <- rd("outputs/data/scaling_full_grid.csv")
+H  <- rd("outputs/data/scaling_headline.csv")
+W  <- rd("outputs/data/wai_bottomup.csv")
+GC <- rd("outputs/data/rf_grouped_cv.csv")
+CS <- rd("outputs/data/rf_calibration_sensitivity.csv")
 if (is.null(B) || is.null(G) || is.null(H))
   stop("missing canonical outputs -- run the CORE chain first")
 v <- function(q) { x <- B$value[B$quantity == q]; if (!length(x)) stop("no ", q); x[1] }

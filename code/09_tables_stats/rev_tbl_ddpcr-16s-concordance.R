@@ -37,7 +37,7 @@ row1<-function(gene,func,glab,mat){
 combos<-list(c("mcra","mg16","mcrA"),c("pmoa","mt16","pmoA"),c("mmox","mt16","mmoX"))
 tab<-do.call(rbind,lapply(c("Wood","Soil"),function(mat) do.call(rbind,lapply(combos,function(x) row1(x[1],x[2],x[3],mat)))))
 tab<-tab[order(tab$Gene,tab$Compartment),]
-write.csv(tab,"outputs/revision/tbl_ddpcr_16s_concordance.csv",row.names=FALSE)
+write.csv(tab,"outputs/data/tbl_ddpcr_16s_concordance.csv",row.names=FALSE)
 th<-ttheme_minimal(base_size=10,core=list(fg_params=list(hjust=0.5,x=0.5)),
   colhead=list(fg_params=list(fontface="bold")))
 g<-tableGrob(tab,rows=NULL,theme=th)

@@ -28,6 +28,7 @@
 
 suppressPackageStartupMessages({
   library(tidyverse)
+source("code/lib/outputs.R")
 })
 
 out_dir <- "outputs/revision"
@@ -231,7 +232,7 @@ slope_table <- imap_dfr(fits, function(f, nm) {
   )
 })
 
-write.csv(slope_table, file.path(out_dir, "rma_species_slope_table.csv"), row.names = FALSE)
+write.csv(slope_table, out_path("rma_species_slope_table.csv"), row.names = FALSE)
 
 # ------------------------------------------------------------------------------
 # Leave-one-species-out jackknife on the RATIO regression
@@ -246,7 +247,7 @@ jack <- map_dfr(seq_len(nrow(ar)), function(i) {
          OLS_slope = round(f$b_ols, 4), SMA_slope = round(f$b_sma, 4))
 })
 full <- sma_fit(ar$x, ar$y)
-write.csv(jack, file.path(out_dir, "rma_ratio_jackknife.csv"), row.names = FALSE)
+write.csv(jack, out_path("rma_ratio_jackknife.csv"), row.names = FALSE)
 
 # ------------------------------------------------------------------------------
 # Variance partition: between-species share of INDIVIDUAL chamber flux variance
@@ -272,12 +273,12 @@ vp <- tryCatch({
     "spatially heterogeneous stem), which is what motivates species-level",
     "aggregation. Reconcile the exact % against the manuscript's flux subset.")
 }, error = function(e) c(vp_lines, paste("ERROR:", conditionMessage(e))))
-writeLines(vp, file.path(out_dir, "rma_variance_partition.txt"))
+writeLines(vp, out_path("rma_variance_partition.txt"))
 
 # ------------------------------------------------------------------------------
 # Human-readable summary
 # ------------------------------------------------------------------------------
-sink(file.path(out_dir, "rma_summary.txt"))
+sink(out_path("rma_summary.txt"))
 cat("================================================================\n")
 cat("SPECIES-LEVEL AGGREGATION: OLS vs SMA/RMA ROBUSTNESS\n")
 cat("Revision analysis for NPH-MS-2026-56441 (R3 L664/L668-674; Mark)\n")

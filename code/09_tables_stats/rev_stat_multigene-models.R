@@ -1,3 +1,4 @@
+source("code/lib/outputs.R")
 # ==============================================================================
 # REVISION — species-level multi-gene flux models (does adding a methanotroph term
 # to mcrA improve the fit?). Companion to R_S1S2_arcsinh.R / R_figS11_final.R.
@@ -14,7 +15,7 @@
 suppressWarnings(suppressMessages(source("code/07_molecular/02_scale_dependent_gene_patterns.R")))
 suppressPackageStartupMessages(library(tidyverse))
 out <- "outputs/revision"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
-sink(file.path(out, "species_multigene_models.txt"), split = TRUE)
+sink(out_path("species_multigene_models.txt"), split = TRUE)
 asf <- function(x) asinh(x / 0.1) / log(10)
 
 # species aggregates: transform THEN aggregate (median & mean), arcsinh flux + log genes

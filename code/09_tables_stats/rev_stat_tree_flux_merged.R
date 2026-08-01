@@ -20,7 +20,7 @@ orig<-qc(read.csv(file.path(fd,"semirigid_tree_final_complete_dataset.csv")))
 merg<-qc(read.csv(file.path(fd,"semirigid_tree_final_complete_dataset_with_untagged.csv")))
 if(!"dead"%in%names(merg)) merg$dead<-FALSE; merg$dead[is.na(merg$dead)]<-FALSE
 
-out<-file("outputs/revision/tree_flux_merged_stats.txt","w"); P<-function(...) {s<-sprintf(...); cat(s,"\n"); writeLines(s,out)}
+out<-file("outputs/audit/tree_flux_merged_stats.txt","w"); P<-function(...) {s<-sprintf(...); cat(s,"\n"); writeLines(s,out)}
 P("=== TREE-FLUX STATS: manuscript-statistics.R §1 recomputed on MERGED monthly ===")
 P("QC filter identical to main text. ORIGINAL = tagged only; MERGED = + 7 untagged/dead-snag trees.\n")
 P("%-38s %10s %10s %8s","metric","original","merged","delta")

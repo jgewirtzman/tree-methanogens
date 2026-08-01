@@ -1,3 +1,4 @@
+source("code/lib/outputs.R")
 #!/usr/bin/env Rscript
 # ==============================================================================
 # rev_fig_height_curves.R
@@ -97,10 +98,10 @@ p <- ggplot() +
        y = expression(CH[4]~flux~(nmol~m^-2~s^-1)~", pseudo-log")) +
   theme_minimal(base_size = 9) + theme(legend.position = "top")
 
-ggsave(file.path(outdir, "fig_height_curves.png"), p, width = 10, height = 7, dpi = 200, bg = "white")
+ggsave(out_path("fig_height_curves.png"), p, width = 10, height = 7, dpi = 200, bg = "white")
 write.csv(pd %>% rename(rf_flux = flux) %>%
             left_join(lmm_pred %>% rename(lmm_flux = flux), by = c("species", "height_cm")),
-          file.path(outdir, "height_curves_rf_vs_lmm.csv"), row.names = FALSE)
+          out_path("height_curves_rf_vs_lmm.csv"), row.names = FALSE)
 
 # ---- is the RF shape actually non-linear? ----------------------------------
 cat("\n=== curvature: does the RF depart from the LMM straight line? ===\n")

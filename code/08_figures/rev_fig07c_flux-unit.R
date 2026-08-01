@@ -1,3 +1,4 @@
+source("code/lib/outputs.R")
 # ==============================================================================
 # REVISION — Fig 7c with the CH4 flux UNIT added (Referee 2 #6)
 # ==============================================================================
@@ -74,8 +75,8 @@ p3 <- ggplot(flux_df, aes(y = flux, x = height, fill = ch4)) +
   scale_x_continuous(breaks = height_breaks, minor_breaks = NULL) +
   guides(fill = guide_colorbar(barwidth = 8, barheight = 0.5, title.position = "top"))
 
-ggsave(file.path(out, "fig7c_flux_unit_fixed.png"), p3, width = 4.2, height = 5.1,
+ggsave(out_path("fig7c_flux_unit_fixed.png"), p3, width = 4.2, height = 5.1,
        dpi = 300, bg = "white")
-cat("Wrote", file.path(out, "fig7c_flux_unit_fixed.png"), "\n")
+cat("Wrote", out_path("fig7c_flux_unit_fixed.png"), "\n")
 cat("Fix: y-axis label 'CH4 Flux' -> 'CH4 flux (nmol m-2 s-1)'.\n")
 cat("Apply in code/08_figures/09_felled_oak_profiles.R:221 (with approval).\n")

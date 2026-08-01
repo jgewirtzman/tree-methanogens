@@ -1,3 +1,4 @@
+source("code/lib/outputs.R")
 #!/usr/bin/env Rscript
 # ==============================================================================
 # rev_budget_canonical.R  --  THE canonical budget.
@@ -88,7 +89,7 @@ M <- data.frame(month = 1:12) %>%
          soil_mg_m2_d = soil_nmol_m2_s*SEC_PER_DAY*NMOL_TO_MG*(A_soil/STAND_AREA_M2),
          plot_mg_m2_d = tree_mg_m2_d + soil_mg_m2_d)
 stopifnot(all(is.finite(M$tree_nmol_m2_s)), all(is.finite(M$soil_nmol_m2_s)))
-write.csv(M, file.path(outdir, "canonical_monthly.csv"), row.names = FALSE)
+write.csv(M, out_path("canonical_monthly.csv"), row.names = FALSE)
 
 tree_ann <- sum(M$tree_mg_m2_d)*DAYS_PER_MONTH
 # BOTH TERMS ON THE SAME BASIS: per m2 of GROUND.
@@ -110,7 +111,7 @@ tree_ann_2m <- sum(B_tree$flux_2m_nmol_m2_s*B_tree$A_stem_m2)/STAND_AREA_M2*SEC_
 # script or paragraph quoting model skill has both numbers in front of it and cannot
 # reach for the flattering one by default. NA if rev_rf_grouped_cv.R has not run.
 GCV <- local({
-  f <- "outputs/revision/rf_grouped_cv.csv"
+  f <- "outputs/data/rf_grouped_cv.csv"
   if (!file.exists(f)) { cat("NOTE: rf_grouped_cv.csv absent -- run rev_rf_grouped_cv.R\n")
                          return(c(tree = NA_real_, soil = NA_real_)) }
   g <- read.csv(f, stringsAsFactors = FALSE)
@@ -132,7 +133,7 @@ B <- data.frame(
             tree_ann + soil_ann, 100*abs(tree_ann)/abs(soil_ann),
             TreeRF$r.squared, SoilRF$r.squared,
             GCV[["tree"]], GCV[["soil"]]))
-write.csv(B, file.path(outdir, "canonical_budget.csv"), row.names = FALSE)
+write.csv(B, out_path("canonical_budget.csv"), row.names = FALSE)
 
 cat("\nCANONICAL BUDGET\n")
 for (i in seq_len(nrow(B))) cat(sprintf("  %-28s %14.4f\n", B$quantity[i], B$value[i]))

@@ -52,7 +52,7 @@ dead_tags<-unique(tfn$PT[grepl("^[0-9]+$",tfn$PT)&grepl("dead|snag",tfn$NO,ignor
 mon$status<-ifelse(mon$tag %in% dead_tags,"Dead","Live")
 t1<-transmute(mon, campaign="2020-2021 monthly", location, code, dbh, status)
 # recovered untagged/dead-snag monthly trees (7) -> same campaign (breast-ht dia)
-utr<-read.csv("outputs/revision/untagged_monthly_trees.csv",check.names=FALSE)
+utr<-read.csv("outputs/data/untagged_monthly_trees.csv",check.names=FALSE)
 t1u<-transmute(utr, campaign="2020-2021 monthly",
     location=dplyr::recode(Plot_Type, U="Upland", I="Intermediate", W="Wetland"),
     code=species, dbh=num(dbh), status=ifelse(dead,"Dead","Live"))
@@ -93,7 +93,7 @@ tab<-allt %>% group_by(Campaign=campaign,Location=location,Species,Status=status
   summarise(n=n(), m=mean(dbh,na.rm=TRUE), s=sd(dbh,na.rm=TRUE), .groups="drop") %>%
   mutate(`DBH cm (mean +/- sd)`=ifelse(is.nan(m),"-",ifelse(is.na(s)|n<2, sprintf("%.1f",m), sprintf("%.1f +/- %.1f",m,s)))) %>%
   select(Campaign,Location,Species,Status,n,`DBH cm (mean +/- sd)`) %>% arrange(Campaign,Location,Species,Status)
-write.csv(tab,"outputs/revision/dbh_by_species_campaign.csv",row.names=FALSE)
+write.csv(tab,"outputs/data/dbh_by_species_campaign.csv",row.names=FALSE)
 g<-tableGrob(tab,rows=NULL,theme=ttheme_minimal(base_size=8,colhead=list(fg_params=list(fontface="bold"))))
 ggplot2::ggsave("outputs/revision/dbh_by_species_campaign.png",g,width=8,height=0.22*nrow(tab)+0.6,dpi=200,bg="white",limitsize=FALSE)
 cat("wrote dbh_by_species_campaign.{csv,png}; rows:",nrow(tab),"\n")

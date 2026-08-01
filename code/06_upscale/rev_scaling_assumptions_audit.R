@@ -1,3 +1,4 @@
+source("code/lib/outputs.R")
 #!/usr/bin/env Rscript
 # ==============================================================================
 # rev_scaling_assumptions_audit.R
@@ -246,5 +247,5 @@ p <- ggplot(both, aes(h, f, colour=src)) +
                       "\nspecies-specific profiles are weakly identified at these sample sizes"),
        x="measurement height (cm)", y=expression(CH[4]~flux~(nmol~m^-2~s^-1))) +
   theme_bw(base_size=8) + theme(legend.position="top")
-ggsave(file.path(outdir,"fig_height_profiles_by_species.png"), p, width=9, height=6, dpi=200, bg="white")
+ggsave(out_path("fig_height_profiles_by_species.png"), p, width=9, height=6, dpi=200, bg="white")
 cat("\nWritten: outputs/revision/fig_height_profiles_by_species.png\n")

@@ -124,8 +124,8 @@ ggsave("outputs/revision/fig_moisture_interpolation.png",
        wrap_plots(pl, ncol = 4), width = 13, height = 6.5, dpi = 180, bg = "white")
 
 dir.create("outputs/revision", showWarnings = FALSE, recursive = TRUE)
-write.csv(R, "outputs/revision/moisture_interpolation.csv", row.names = FALSE)
-con <- file("outputs/revision/moisture_interpolation.txt", "w")
+write.csv(R, "outputs/data/moisture_interpolation.csv", row.names = FALSE)
+con <- file("outputs/audit/moisture_interpolation.txt", "w")
 cat(sprintf("MOISTURE INTERPOLATION COMPARISON\nbuilt %s\n%d survey points\n\n",
             format(Sys.time(), "%Y-%m-%d %H:%M:%S"), nrow(D)), file = con)
 utils::write.table(round(as.data.frame(R %>% select(-method)), 4), con, sep = "\t", quote = FALSE)

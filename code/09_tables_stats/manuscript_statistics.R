@@ -120,7 +120,7 @@ ch4_flux <- read.csv("data/processed/flux/CH4_best_flux_lgr_results.csv")
 monthly_fluxes <- read.csv("outputs/tables/MONTHLY_FLUXES.csv")
 annual_summary <- read.csv("outputs/tables/ANNUAL_SUMMARY.csv")
 CANON <- local({
-  f <- "outputs/revision/canonical_budget.csv"
+  f <- "outputs/data/canonical_budget.csv"
   if (!file.exists(f))
     stop("manuscript_statistics.R needs ", f,
          " -- run code/06_upscale/rev_budget_canonical.R first")
@@ -1498,7 +1498,7 @@ record("plot_offset_pct", offset_pct)
 # rev_scaling_full_grid.R, which holds the measured 0-2 m band fixed and lets only the
 # area above 2 m absorb the WAI choice. Quote the RANGE; the named cell is one of 240.
 local({
-  f <- "outputs/revision/scaling_full_grid.csv"; h <- "outputs/revision/scaling_headline.csv"
+  f <- "outputs/data/scaling_full_grid.csv"; h <- "outputs/data/scaling_headline.csv"
   if (!file.exists(f) || !file.exists(h)) {
     cat("  [scaling grid absent -- run code/06_upscale/rev_scaling_full_grid.R]\n"); return(invisible())
   }

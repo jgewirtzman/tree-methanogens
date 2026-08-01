@@ -1,3 +1,4 @@
+source("code/lib/outputs.R")
 # ==============================================================================
 # REVISION — Known/Putative methanotroph & methanogen taxa table (Referee 2 #2)
 # ==============================================================================
@@ -68,13 +69,13 @@ tab <- tax %>% filter(!is.na(class_rev)) %>%
   left_join(defs %>% transmute(display_taxon = Taxon, source = Primary_source, note = Notes),
             by = "display_taxon") %>%
   arrange(classification, desc(mean_relabund_pct))
-write.csv(tab, file.path(out, "known_putative_taxa_table.csv"), row.names = FALSE)
+write.csv(tab, out_path("known_putative_taxa_table.csv"), row.names = FALSE)
 
 # ---- counts: original vs Methylacidiphilaceae-revised ------------------------
 cnt <- function(col) tax %>% filter(!is.na(.data[[col]])) %>% count(.data[[col]]) %>% deframe()
 c0 <- cnt("class_orig"); c1 <- cnt("class_rev")
 
-sink(file.path(out, "kp_counts.txt"))
+sink(out_path("kp_counts.txt"))
 cat("=================================================================\n")
 cat("Known/Putative methanotroph & methanogen classification (R2 #2)\n")
 cat("=================================================================\n\n")
@@ -99,4 +100,4 @@ cat("\nNOTE: Methylacidiphilaceae now PUTATIVE (was Known) per R2 -- verified me
 cat("is restricted to thermoacidophilic geothermal members; mesophilic forest members are not\n")
 cat("known to oxidize CH4 (peatland & tree-stem genomes lack methanotrophy genes).\n")
 sink()
-cat(readLines(file.path(out,"kp_counts.txt")), sep="\n")
+cat(readLines(out_path("kp_counts.txt")), sep="\n")

@@ -1,3 +1,4 @@
+source("code/lib/outputs.R")
 #!/usr/bin/env Rscript
 # ==============================================================================
 # rev_area_distribution_scenarios.R
@@ -148,7 +149,7 @@ Per-tree area = bole (pi*DBH*H/2 x taper) + branch (bole x branch:stem).
   nrow(INV), median(INV$H), R$WAI[1], TAPER, BRSTEM))
 cat("\n=== AREA DISTRIBUTION SCENARIOS ===\n\n")
 print(R %>% mutate(across(where(is.numeric), ~round(.x,3))), row.names=FALSE)
-write.csv(R, file.path(outdir,"area_distribution_scenarios.csv"), row.names=FALSE)
+write.csv(R, out_path("area_distribution_scenarios.csv"), row.names=FALSE)
 
 cat(sprintf("
   Share of woody area above 2 m ranges %.3f - %.3f across shapes.
@@ -186,7 +187,7 @@ p2 <- ggplot(RL, aes(reorder(combo,mg), mg, fill=branch)) +
        x=NULL, y=expression(mg~CH[4]~m^-2~yr^-1), fill="branch shape") +
   theme_bw(base_size=7) + theme(legend.position="bottom",
     legend.text=element_text(size=6), legend.key.height=unit(7,"pt"))
-ggsave(file.path(outdir,"fig_area_distribution_scenarios.png"), p1/p2 +
+ggsave(out_path("fig_area_distribution_scenarios.png"), p1/p2 +
   plot_layout(heights=c(1,1.15)) +
   plot_annotation(title="Vertical distribution of woody surface area: scenarios",
     subtitle="no shape is supported by data from this site; these bracket plausible geometries",

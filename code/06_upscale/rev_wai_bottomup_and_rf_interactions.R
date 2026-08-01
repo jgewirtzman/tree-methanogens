@@ -1,3 +1,4 @@
+source("code/lib/outputs.R")
 #!/usr/bin/env Rscript
 # ==============================================================================
 # rev_wai_bottomup_and_rf_interactions.R
@@ -124,7 +125,7 @@ WAI_OUT <- data.frame(
                   S_conic, A_PLOT, CONIC_CORR[1], CONIC_CORR[2],
                   BRANCH_STEM[1], BRANCH_STEM[2]),
   n_stems = nrow(INV), stand_area_m2 = A_PLOT, stringsAsFactors = FALSE)
-write.csv(WAI_OUT, file.path(outdir, "wai_bottomup.csv"), row.names = FALSE)
+write.csv(WAI_OUT, out_path("wai_bottomup.csv"), row.names = FALSE)
 cat(sprintf("\n  written: %s/wai_bottomup.csv  (%.2f / %.2f / %.2f from %d stems)\n",
             outdir, wai_lo, (wai_lo+wai_hi)/2, wai_hi, nrow(INV)))
 

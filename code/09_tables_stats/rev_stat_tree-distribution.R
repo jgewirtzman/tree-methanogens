@@ -1,3 +1,4 @@
+source("code/lib/outputs.R")
 # ==============================================================================
 # REVISION — Tree species distribution: DBH x landscape table + moisture niches
 # ==============================================================================
@@ -41,14 +42,14 @@ dbh_tab <- tp %>% filter(!is.na(landscape_position)) %>%
   mutate(dbh_summary = ifelse(is.na(dbh_sd), sprintf("%.1f", dbh_mean),
                               sprintf("%.1f +/- %.1f", dbh_mean, dbh_sd))) %>%
   arrange(group, species, landscape_position)
-write.csv(dbh_tab, file.path(out_dir, "tree_dbh_landscape_table.csv"), row.names = FALSE)
+write.csv(dbh_tab, out_path("tree_dbh_landscape_table.csv"), row.names = FALSE)
 
 # wide version (species rows, landscape columns) — closer to a manuscript table
 dbh_wide <- dbh_tab %>%
   mutate(cell = sprintf("n=%d, DBH %s", n, dbh_summary)) %>%
   dplyr::select(species, group, landscape_position, cell) %>%
   pivot_wider(names_from = landscape_position, values_from = cell)
-write.csv(dbh_wide, file.path(out_dir, "tree_dbh_landscape_table_wide.csv"), row.names = FALSE)
+write.csv(dbh_wide, out_path("tree_dbh_landscape_table_wide.csv"), row.names = FALSE)
 
 # ---- Species moisture niche (VWC) --------------------------------------------
 niche <- tp %>% filter(!is.na(VWC_mean)) %>%
@@ -57,7 +58,7 @@ niche <- tp %>% filter(!is.na(VWC_mean)) %>%
             vwc_q25 = quantile(VWC_mean, .25), vwc_q75 = quantile(VWC_mean, .75),
             .groups = "drop") %>%
   arrange(desc(vwc_median))
-write.csv(niche, file.path(out_dir, "tree_species_moisture_niche.csv"), row.names = FALSE)
+write.csv(niche, out_path("tree_species_moisture_niche.csv"), row.names = FALSE)
 
 # ---- Figures -----------------------------------------------------------------
 sp_order <- niche %>% arrange(vwc_median) %>% pull(species)
@@ -90,11 +91,11 @@ p_dbh <- ggplot(tp %>% filter(!is.na(dbh), !is.na(landscape_position)),
 if (requireNamespace("gridExtra", quietly = TRUE)) {
   g <- gridExtra::arrangeGrob(p_niche, gridExtra::arrangeGrob(p_comp, p_dbh, ncol = 1), ncol = 2,
                               widths = c(1.3, 1))
-  ggsave(file.path(out_dir, "tree_distribution_panels.png"), g, width = 13, height = 7, dpi = 140)
+  ggsave(out_path("tree_distribution_panels.png"), g, width = 13, height = 7, dpi = 140)
 }
 # panel A (species soil-moisture niches) standalone -> SI figure (R3 L286)
 # title/subtitle stripped for publication (moves to caption)
-ggsave(file.path(out_dir, "tree_species_moisture_niche.png"),
+ggsave(out_path("tree_species_moisture_niche.png"),
        p_niche + labs(title = NULL, subtitle = NULL), width = 6.8, height = 6.2, dpi = 200)
 
 # ---- Forest-inventory context (full census) ----------------------------------
@@ -103,7 +104,7 @@ fi_summary <- fi %>% mutate(species = sp_map[species_code]) %>%
   group_by(species_code) %>%
   summarise(n_stems = n(), dbh_mean_mm = mean(dbh_mm, na.rm = TRUE), .groups = "drop") %>%
   arrange(desc(n_stems))
-write.csv(fi_summary, file.path(out_dir, "forest_inventory_species_summary.csv"), row.names = FALSE)
+write.csv(fi_summary, out_path("forest_inventory_species_summary.csv"), row.names = FALSE)
 
 # ---- Console summary ---------------------------------------------------------
 cat("=== R3 L286 species x landscape x DBH table (head) ===\n")

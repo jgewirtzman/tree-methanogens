@@ -1,3 +1,4 @@
+source("code/lib/outputs.R")
 #!/usr/bin/env Rscript
 # ==============================================================================
 # rev_fig_model_findings.R  --  main-text panel: what the models actually learned
@@ -171,7 +172,7 @@ r2 <- 1 - sum((cal$o - cal$pc)^2)/sum((cal$o - mean(cal$o))^2)
 # rows come from 478 trees, so quoting OOB alone in a main-text panel overstates the
 # model by ~2x. rev_rf_grouped_cv.R writes this.
 R2G <- local({
-  f <- "outputs/revision/rf_grouped_cv.csv"
+  f <- "outputs/data/rf_grouped_cv.csv"
   if (!file.exists(f)) return(NA_real_)
   g <- read.csv(f, stringsAsFactors = FALSE); g$grouped_r2[g$model == "TreeRF"][1]
 })
@@ -189,7 +190,7 @@ pc <- ggplot(cal, aes(slog(pc), slog(o))) +
 
 fig <- (pa | pb | pc) + plot_layout(widths = c(1, 0.95, 0.85)) +
   plot_annotation(theme = theme(plot.margin = margin(4, 4, 4, 4)))
-ggsave(file.path(outdir, "fig_model_findings.png"), fig, width = 11, height = 5.2, dpi = 200, bg = "white")
+ggsave(out_path("fig_model_findings.png"), fig, width = 11, height = 5.2, dpi = 200, bg = "white")
 
 cat("=== grouped permutation importance (held-out), share within model ===\n")
 cat("=== TreeRF ===\n")

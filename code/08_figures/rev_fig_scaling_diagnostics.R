@@ -1,3 +1,4 @@
+source("code/lib/outputs.R")
 #!/usr/bin/env Rscript
 # ==============================================================================
 # rev_fig_scaling_diagnostics.R
@@ -132,7 +133,7 @@ p1d <- ggplot(fdf,aes(z,f,colour=form)) +
        x="height (m)", y=NULL, colour=NULL) + theme_bw(base_size=8) +
   theme(legend.text=element_text(size=6), legend.key.height=unit(8,"pt"))
 
-ggsave(file.path(outdir,"fig_diag1_height_profiles.png"),
+ggsave(out_path("fig_diag1_height_profiles.png"),
   (p1a|p1b)/(p1c|p1d) + plot_annotation(title="Height-flux profiles: observed, learned, and modelled",
    theme=theme(plot.title=element_text(size=10,face="bold"))),
   width=10,height=7,dpi=200,bg="white")
@@ -176,7 +177,7 @@ p2d <- ggplot(data.frame(z=zg,c=cum),aes(z,c)) + geom_line(colour="#2166AC",line
   labs(title="d  cumulative woody area below a height", x="height (m)", y="share of woody area") +
   theme_bw(base_size=8)
 
-ggsave(file.path(outdir,"fig_diag2_area_height.png"), (p2a|p2b)/(p2c|p2d) +
+ggsave(out_path("fig_diag2_area_height.png"), (p2a|p2b)/(p2c|p2d) +
   plot_annotation(title="Vertical distribution of woody surface area",
    theme=theme(plot.title=element_text(size=10,face="bold"))),
   width=10,height=7,dpi=200,bg="white")
@@ -203,7 +204,7 @@ p3b <- ggplot(cumf,aes(z,c,colour=form)) + geom_line(linewidth=.7) +
        subtitle="everything right of the dashed line is extrapolated",
        x="height (m)", y="share of budget", colour=NULL) + theme_bw(base_size=8) +
   theme(legend.text=element_text(size=6), legend.key.height=unit(8,"pt"))
-ggsave(file.path(outdir,"fig_diag3_budget_by_height.png"), p3a/p3b +
+ggsave(out_path("fig_diag3_budget_by_height.png"), p3a/p3b +
   plot_annotation(title="Where the whole-surface budget comes from",
    theme=theme(plot.title=element_text(size=10,face="bold"))),
   width=8,height=7,dpi=200,bg="white")

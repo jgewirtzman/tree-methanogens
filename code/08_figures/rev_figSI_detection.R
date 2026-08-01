@@ -1,3 +1,4 @@
+source("code/lib/outputs.R")
 #!/usr/bin/env Rscript
 # ==============================================================================
 # rev_figSI_detection.R
@@ -14,7 +15,7 @@
 # ==============================================================================
 suppressMessages({library(dplyr);library(ggplot2);library(tidyr);library(patchwork)})
 outdir <- "outputs/revision"
-G <- read.csv(file.path(outdir,"flux_FINAL.csv"), stringsAsFactors=FALSE)
+G <- read.csv(out_path("flux_FINAL.csv"), stringsAsFactors=FALSE)
 G$camp <- factor(G$camp, levels=c("Height+molecular","Cross-species","Monthly survey"))
 G$class <- factor(G$class, levels=c("uptake","below detection","emission"))
 CL <- c(uptake="#B2182B", `below detection`="grey70", emission="#2166AC")
@@ -69,7 +70,7 @@ pd <- D %>% pivot_longer(c(pct_kept,pct_uptake,bias)) %>%
        subtitle="an r2 threshold removes nearly all apparent uptake and inflates the mean",
        x=NULL, y=NULL) + theme_bw(base_size=7.5)
 
-ggsave(file.path(outdir,"fig_SI_detection.png"), pa/(pb|pc)/pd +
+ggsave(out_path("fig_SI_detection.png"), pa/(pb|pc)/pd +
   plot_layout(heights=c(1,1.25,0.9)) +
   plot_annotation(title="Detection limits and the interpretation of negative stem fluxes",
     theme=theme(plot.title=element_text(size=11,face="bold"))),

@@ -40,7 +40,7 @@ load("outputs/models/TRAINING_DATA.RData")        # tree_train_complete, X_tree,
 ## Panels (g)/(h) built from them therefore showed a superseded model, and the block
 ## died outright once the schema drifted. canonical_monthly.csv is written by
 ## rev_budget_canonical.R from the locked model, with both terms per m2 of GROUND.
-monthly_canon <- read.csv("outputs/revision/canonical_monthly.csv", stringsAsFactors = FALSE)
+monthly_canon <- read.csv("outputs/data/canonical_monthly.csv", stringsAsFactors = FALSE)
 stopifnot(nrow(monthly_canon) == 12,
           all(c("tree_nmol_m2_s","tree_bh_nmol_m2_s","soil_nmol_m2_s") %in% names(monthly_canon)))
 

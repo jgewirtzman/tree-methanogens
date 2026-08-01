@@ -1,3 +1,4 @@
+source("code/lib/outputs.R")
 # ==============================================================================
 # REVISION — Synthesis figure: hydrogenotrophic, syntrophy-fed methanogenesis.
 # Reproduces existing figures' EXACT data/filters (S6 strict, FAPROTAX/S3, Fig6, S9),
@@ -54,7 +55,7 @@ pa <- ggplot(fa, aes(t, family, color = group)) +
 # host-association/pathogen/phototrophy and redundant parent annotations (generic chemoheterotrophy,
 # generic/CO2/methyl methanogenesis) excluded; hydrogenotrophic_methanogenesis shown as the
 # representative methanogenesis route. See panel_b_faprotax_selection.md.
-fap_all <- read.csv("outputs/revision/FAPROTAX_all_functions_HW_SW.csv")
+fap_all <- read.csv("outputs/data/FAPROTAX_all_functions_HW_SW.csv")
 fap_sel <- tribble(~func, ~disp,
   "hydrogenotrophic_methanogenesis", "Hydrogenotrophic methanogenesis",
   "dark_hydrogen_oxidation",         "Dark hydrogen oxidation",
@@ -117,7 +118,7 @@ pc <- ggplot(pwc, aes(t, lab, color = cat)) +
 
 # ---- (d) ISOTOPES (Fig-S9 raincloud) + Keeling source; points sized by CH4 ----
 XLO <- -118; XHI <- 28
-iso <- read.csv("outputs/revision/ISOTOPES_sample_table.csv") %>%
+iso <- read.csv("outputs/data/ISOTOPES_sample_table.csv") %>%
   filter(is.finite(d13CH4), d13CH4 > -115, d13CH4 < 25, ch4_ppm >= 1.5)
 dens <- density(iso$d13CH4); dd <- data.frame(x = dens$x, y = dens$y/max(dens$y)*0.55) %>% filter(x >= XLO, x <= XHI)
 set.seed(42); iso$jy <- runif(nrow(iso), -0.30, -0.06); iso$lc <- log10(iso$ch4_ppm)
@@ -150,7 +151,7 @@ pd <- ggplot() +
 
 fig <- (pa | pb) / (pc | pd) + plot_layout(heights = c(1, 1.25)) +
   plot_annotation(tag_levels = 'a', tag_prefix = "(", tag_suffix = ")") & theme(plot.tag = element_text(face = "bold", size = 18))
-ggsave(file.path(out, "fig_hydrogenotrophy.png"), fig, width = 13.5, height = 11, dpi = 300, bg = "white")
+ggsave(out_path("fig_hydrogenotrophy.png"), fig, width = 13.5, height = 11, dpi = 300, bg = "white")
 cat("Wrote fig_hydrogenotrophy.png (semantic palette; base_size 11)\n")
 cat("(a) families:", paste(as.character(fa$family), collapse=", "), "\n")
 cat("(c) categories:", paste(levels(droplevels(pwc$cat)), collapse=" | "), "\n")

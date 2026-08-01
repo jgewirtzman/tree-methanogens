@@ -121,8 +121,8 @@ cat("\nwins by species (lowest RMSE):\n")
 print(table(BY %>% group_by(species) %>% slice_min(rmse, n = 1) %>% pull(scheme)))
 
 dir.create("outputs/revision", showWarnings = FALSE, recursive = TRUE)
-write.csv(BY, "outputs/revision/species_fallback_loso.csv", row.names = FALSE)
-con <- file("outputs/revision/species_fallback_loso.txt", "w")
+write.csv(BY, "outputs/data/species_fallback_loso.csv", row.names = FALSE)
+con <- file("outputs/audit/species_fallback_loso.txt", "w")
 cat(sprintf("SPECIES FALLBACK, LEAVE-ONE-SPECIES-OUT\nbuilt %s\nheld out: %s\n\n",
             format(Sys.time(), "%Y-%m-%d %H:%M:%S"), paste(HOLD, collapse = ", ")), file = con)
 utils::write.table(round(as.data.frame(OVER %>% select(-scheme)), 4), con, sep = "\t", quote = FALSE)

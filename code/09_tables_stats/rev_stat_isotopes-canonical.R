@@ -1,3 +1,4 @@
+source("code/lib/outputs.R")
 # ==============================================================================
 # ISOTOPES — FINAL settled workflow (NPH-MS-2026-56441 revision)
 # ==============================================================================
@@ -43,7 +44,7 @@ d <- raw %>%
 wt <- d %>% filter(!is.na(d13CO2), co2_ppm > 0) %>%
   mutate(alpha_C = (d13CO2 + 1000)/(d13CH4 + 1000), eps_C = (alpha_C - 1)*1000,
          invCH4 = 1/ch4_ppm)
-write.csv(wt, file.path(out, "ISOTOPES_sample_table.csv"), row.names = FALSE)
+write.csv(wt, out_path("ISOTOPES_sample_table.csv"), row.names = FALSE)
 
 # ---- 2. BULK DESCRIPTIVES ----------------------------------------------------
 med <- function(x) median(x, na.rm = TRUE)
@@ -101,7 +102,7 @@ p_conv_eps <- ggplot(wt, aes(ch4_ppm, eps_C)) + geom_point(alpha=.5, size=1.3) +
   coord_cartesian(ylim=c(-50,120)) +
   labs(title="(c) apparent fractionation convergence", subtitle=sprintf("plateau eps_C ~ %.0f-%.0f permil", eps_src_atm, eps_src_keel),
        x="internal CH4 (ppm, log)", y=expression(epsilon[C]~"(permil)")) + theme_bw(base_size=10)
-ggsave(file.path(out,"ISOTOPES_fig1_source.png"), arrangeGrob(p_keel, p_conv_ch4, p_conv_eps, nrow=1),
+ggsave(out_path("ISOTOPES_fig1_source.png"), arrangeGrob(p_keel, p_conv_ch4, p_conv_eps, nrow=1),
        width=13.5, height=4.3, dpi=150)
 
 # Fig 2: d13CH4 vs d13CO2 crossplot with constant-alpha (eps) isolines
@@ -119,7 +120,7 @@ p_cross <- ggplot(wt, aes(d13CO2, d13CH4)) +
   labs(title="d13C-CH4 vs d13C-CO2 with apparent-fractionation (eps_C) isolines",
        subtitle=sprintf("CO2-CH4 coupling r=%.2f (>=10 ppm), p=%.3f -> weak: bulk CO2 mostly respiration", cpl_hi$estimate, cpl_hi$p.value),
        x=expression(delta^13*C-CO[2]~"(permil)"), y=expression(delta^13*C-CH[4]~"(permil)"))
-ggsave(file.path(out,"ISOTOPES_fig2_crossplot.png"), p_cross, width=8, height=6, dpi=150)
+ggsave(out_path("ISOTOPES_fig2_crossplot.png"), p_cross, width=8, height=6, dpi=150)
 
 # ---- 6. METHODS + RESULTS markdown ------------------------------------------
 methods <- c(
@@ -188,7 +189,7 @@ sprintf("apparent CO2-CH4 fractionation of ~%.0f-%.0f permil (at/into the CO2-re
 "eps_C is consistent-with, not diagnostic (respiration-dominated bulk CO2, d13C only,",
 "and possible oxidation shifting the apparent source).")
 
-writeLines(methods, file.path(out, "ISOTOPES_methods.md"))
-writeLines(res,     file.path(out, "ISOTOPES_results.md"))
+writeLines(methods, out_path("ISOTOPES_methods.md"))
+writeLines(res,     out_path("ISOTOPES_results.md"))
 cat(paste(res, collapse = "\n"), "\n\nWrote: ISOTOPES_methods.md, ISOTOPES_results.md,",
     "ISOTOPES_fig1_source.png, ISOTOPES_fig2_crossplot.png, ISOTOPES_sample_table.csv\n")

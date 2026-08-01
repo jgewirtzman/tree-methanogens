@@ -142,7 +142,7 @@ print(as.data.frame(OUT %>% mutate(across(where(is.numeric), ~round(.x, 4)))), r
 dir.create("outputs/tables", showWarnings = FALSE, recursive = TRUE)
 write.csv(OUT, "outputs/tables/moisture_climatology_monthly.csv", row.names = FALSE)
 dir.create("outputs/revision", showWarnings = FALSE, recursive = TRUE)
-con <- file("outputs/revision/moisture_climatology.txt", "w")
+con <- file("outputs/audit/moisture_climatology.txt", "w")
 cat(sprintf("MOISTURE CLIMATOLOGY (rev_moisture_climatology.R)\nbuilt %s\n\n",
             format(Sys.time(), "%Y-%m-%d %H:%M:%S")), file = con)
 cat(sprintf("index: bucket Smax = %d mm on rainfall and Penman-Monteith ET\n", SMAX), file = con)

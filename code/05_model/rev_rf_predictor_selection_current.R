@@ -110,9 +110,9 @@ RES$d_grouped_r2 <- RES$grouped_r2 - base$grouped_r2
 # is the change larger than the noise on the difference?
 RES$exceeds_se <- abs(RES$d_grouped_r2) > sqrt(RES$grouped_r2_se^2 + base$grouped_r2_se^2)
 RES <- RES[order(-RES$grouped_r2), ]
-write.csv(RES, "outputs/revision/rf_predictor_selection_current.csv", row.names = FALSE)
+write.csv(RES, "outputs/data/rf_predictor_selection_current.csv", row.names = FALSE)
 
-con <- file("outputs/revision/rf_predictor_selection_current.txt", "w")
+con <- file("outputs/audit/rf_predictor_selection_current.txt", "w")
 wr <- function(...) cat(sprintf(...), file = con)
 wr("PREDICTOR SELECTION, CURRENT SPECIFICATION\n")
 wr("Grouped CV by tree (%d rows from %d trees), %d repeats x %d folds.\n",
@@ -126,5 +126,5 @@ for (i in seq_len(nrow(RES))) with(RES[i, ],
 wr("\nRead the 'd>SE' column before the ranking: a difference smaller than the SE on\n")
 wr("the difference is not a result. The base specification is the locked model.\n")
 close(con)
-cat(readLines("outputs/revision/rf_predictor_selection_current.txt"), sep = "\n")
+cat(readLines("outputs/audit/rf_predictor_selection_current.txt"), sep = "\n")
 cat("\n  Written: outputs/revision/rf_predictor_selection_current.{csv,txt}\n")

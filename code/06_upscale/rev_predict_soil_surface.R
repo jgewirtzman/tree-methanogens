@@ -142,7 +142,7 @@ print(as.data.frame(mon %>% mutate(soil_nmol_m2_s = round(soil_nmol_m2_s, 4))))
 # is set by construction rather than emerging from the choice of domain. Clipping
 # still governs the map and the tree term.
 
-con <- file("outputs/revision/soil_surface_summary.txt", "w")
+con <- file("outputs/audit/soil_surface_summary.txt", "w")
 cat(sprintf("SOIL SURFACE (rev_predict_soil_surface.R)\nbuilt %s\n\n",
             format(Sys.time(), "%Y-%m-%d %H:%M:%S")), file = con)
 cat(sprintf("grid cells (in stand): %d\nstand area: %d m2 (%.2f ha)\n",

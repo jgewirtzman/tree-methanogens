@@ -29,6 +29,7 @@
 
 suppressPackageStartupMessages({
   library(ggplot2); library(dplyr); library(scales); library(gghalves)
+source("code/lib/outputs.R")
 })
 out <- "outputs/revision"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
 
@@ -93,10 +94,10 @@ p <- ggplot(d, aes(x = factor(height_m), y = CH4_best.flux)) +
         panel.border = element_rect(color = "gray40", fill = NA, linewidth = 0.4),
         panel.spacing = unit(0.4, "lines"))
 
-ggsave(file.path(out, "fig2a_consistent_axis.png"), p,
+ggsave(out_path("fig2a_consistent_axis.png"), p,
        width = 10, height = 6.2, dpi = 300, bg = "white")
 
-cat("Wrote", file.path(out, "fig2a_consistent_axis.png"), "\n")
+cat("Wrote", out_path("fig2a_consistent_axis.png"), "\n")
 cat("Shared signed pseudo-log axis (sigma =", sig, "), identical breaks on every panel:\n  ",
     paste(brks, collapse = ", "), "\n")
 cat("Dashed line = zero net flux (left = net uptake, right = net emission).\n")
