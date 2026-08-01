@@ -123,7 +123,7 @@ CANON <- local({
   f <- "outputs/revision/canonical_budget.csv"
   if (!file.exists(f))
     stop("manuscript_statistics.R needs ", f,
-         " -- run code/revision/rev_budget_canonical.R first")
+         " -- run code/06_upscale/rev_budget_canonical.R first")
   b <- read.csv(f, stringsAsFactors = FALSE)
   setNames(b$value, b$quantity)
 })
@@ -1500,7 +1500,7 @@ record("plot_offset_pct", offset_pct)
 local({
   f <- "outputs/revision/scaling_full_grid.csv"; h <- "outputs/revision/scaling_headline.csv"
   if (!file.exists(f) || !file.exists(h)) {
-    cat("  [scaling grid absent -- run code/revision/rev_scaling_full_grid.R]\n"); return(invisible())
+    cat("  [scaling grid absent -- run code/06_upscale/rev_scaling_full_grid.R]\n"); return(invisible())
   }
   G <- read.csv(f, stringsAsFactors = FALSE); H <- read.csv(h, stringsAsFactors = FALSE)
   stat("Whole-surface range, all 240 combinations",

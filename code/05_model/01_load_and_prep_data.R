@@ -46,7 +46,7 @@ paths <- list(
   # Master per-collar soil temperature + VWC campaign (Date, Site, Plot, Subplot).
   # Resolves to the individual collar, unlike soilmoisture_total.csv which only
   # resolves to the plot, and covers 197 of 288 soil flux records vs 104.
-  # Compiled by code/revision/rev_compile_soil_env.R from every per-date iPad sheet
+  # Compiled by code/03_merge/rev_compile_soil_env.R from every per-date iPad sheet
   # PLUS the master workbook: 97% coverage of soil flux records (279/288) with
   # genuinely measured per-collar temperature and VWC, vs 39% before.
   soil_env_collar_csv = "../../data/processed/environmental/soil_env_by_collar.csv",
