@@ -94,7 +94,7 @@ if(is.null(lgr3_data_tz)) lgr3_data_tz <- ""
 cat("LGR3 data timezone:", ifelse(lgr3_data_tz == "", "UTC (default)", lgr3_data_tz), "\n")
 
 # Load LGR3 auxfile
-lgr3_auxfile <- read_csv("auxfile_goFlux_with_weather.csv") %>%
+lgr3_auxfile <- read_csv("../../../data/processed/flux/auxfile_goFlux_with_weather.csv") %>%
   mutate(start.time = as.POSIXct(start.time, tz = ifelse(lgr3_data_tz == "", "UTC", lgr3_data_tz)))
 
 cat("Auxfile loaded:", nrow(lgr3_auxfile), "measurements\n")
@@ -457,7 +457,7 @@ cat("Plots saved successfully\n")
 cat("\n=== STEP 7: CREATING FINAL DATASET ===\n")
 
 # Load original tree data
-original_data <- read_csv("auxfile_goFlux_with_weather_formatted_datetime.csv")
+original_data <- read_csv("../../../data/processed/flux/auxfile_goFlux_with_weather_formatted_datetime.csv")
 
 # Filter for LGR3 only
 lgr3_original <- original_data #%>% filter(analyzer_id == "LGR3")

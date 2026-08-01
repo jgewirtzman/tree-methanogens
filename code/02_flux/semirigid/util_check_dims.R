@@ -13,7 +13,7 @@ library(gridExtra)
 library(viridis)
 
 # Read the combined results
-#data <- read_excel("combined_corrected_results.xlsx", sheet = "all_data")
+#data <- read_excel("../../../data/raw/flux_chamber_corrections/Chamber vol corr/corrected/combined_corrected_results.xlsx", sheet = "all_data")
 data <- results
 
 # Clean and prepare data
@@ -221,7 +221,7 @@ library(ggplot2)
 library(knitr)
 
 # Read the data
-data <- read_excel("combined_corrected_results.xlsx", sheet = "all_data")
+data <- read_excel("../../../data/raw/flux_chamber_corrections/Chamber vol corr/corrected/combined_corrected_results.xlsx", sheet = "all_data")
 
 # Create unique combination identifier
 consistency_data <- data %>%

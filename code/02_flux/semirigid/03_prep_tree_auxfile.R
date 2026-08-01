@@ -20,7 +20,7 @@ library(readr)
 library(lubridate)
 
 # Read the CSV file
-flux_data <- read_csv("flux_with_geometry_fixed.csv")
+flux_data <- read_csv("../../../data/processed/flux/flux_with_geometry_fixed.csv")
 
 # Read the weather data
 ymf_met <- read.csv("../../../data/raw/weather/ymf_clean_sorted.csv")
@@ -223,7 +223,7 @@ write.table(auxfile, "auxfile_goFlux_with_weather.txt",
             sep = "\t", row.names = FALSE, quote = FALSE)
 
 # Also save as CSV for easier viewing
-write_csv(auxfile, "auxfile_goFlux_with_weather.csv")
+write_csv(auxfile, "../../../data/processed/flux/auxfile_goFlux_with_weather.csv")
 
 # ADDITIONAL: Create a human-readable version showing the datetime formatting
 auxfile_readable <- auxfile %>%
@@ -231,7 +231,7 @@ auxfile_readable <- auxfile %>%
     start.time_formatted = format(start.time, "%Y-%m-%d %H:%M:%S %Z")
   )
 
-write_csv(auxfile_readable, "auxfile_goFlux_with_weather_formatted_datetime.csv")
+write_csv(auxfile_readable, "../../../data/processed/flux/auxfile_goFlux_with_weather_formatted_datetime.csv")
 
 # Print summary information
 cat("\n=== SUMMARY ===\n")

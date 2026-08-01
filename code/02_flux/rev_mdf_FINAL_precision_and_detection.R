@@ -59,7 +59,9 @@ G <- bind_rows(
     mutate(camp="Height+molecular", type="stem"),
   read.csv("data/processed/flux/CH4_best_flux_lgr_results_soil.csv",stringsAsFactors=FALSE) %>%
     mutate(camp="Monthly survey", type="soil"),
-  read.csv("deprecated/static-chambers/2023/CH4_best_flux_lgr_results.csv",stringsAsFactors=FALSE) %>%
+  # 2023 cross-species campaign. Same basename as the height+molecular file above
+  # but a different campaign (338 rows vs 441), so it is stored under a distinct name.
+  read.csv("data/processed/flux/CH4_best_flux_lgr_results_2023_cross_species.csv",stringsAsFactors=FALSE) %>%
     mutate(camp="Cross-species", type="stem")) %>%
   filter(is.finite(best.flux),is.finite(flux.term),is.finite(nb.obs),nb.obs>2)
 st <- read.csv("data/processed/flux/semirigid_tree_final_complete_dataset_with_untagged.csv",
