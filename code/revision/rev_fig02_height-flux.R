@@ -17,7 +17,7 @@
 #   - outputs/figures/main/fig2_height_dependent_flux.png
 # ==============================================================================
 
-# REVISION — Fig 2 FINAL: copy of code/01_flux_processing/static/04_height_effect_analysis.R
+# REVISION — Fig 2 FINAL: copy of code/02_flux/static/04_height_effect_analysis.R
 # with ONE change — panel a uses a shared signed pseudo-log x-axis across all species
 # (R2 Fig 2a), preserving the original grid layout and 7x7.5 dimensions. NEW file;
 # edits nothing existing. Output: outputs/revision/fig2_final.png

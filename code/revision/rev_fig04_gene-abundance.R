@@ -6,7 +6,7 @@
 # confirms the dropped template->reaction dilution (A1). Original scripts untouched.
 #
 # UNITS: the ddpcr_*_loose columns are ALREADY copies g^-1 — the harmonization step
-# (code/00_harmonization/02_harmonize_all_data.R:317) applies concentration_per_g =
+# (code/03_merge/02_harmonize_all_data.R:317) applies concentration_per_g =
 # copies/uL * 75 / sample_mass * 1000 (elution / sample mass). Basis: DRY for wood
 # (freeze-dried cores); soil uses fresh sample mass (the pending A2 dry-basis
 # harmonization would move soil to a dry basis and needs soil moisture we don't have).

@@ -64,7 +64,7 @@ run_figure_script <- function(script_path, figure_names) {
 cat("=== Main figures ===\n\n")
 
 run_figure_script("code/06_figures/06_soil_tree_timeseries.R",          "fig1")
-run_figure_script("code/01_flux_processing/static/04_height_effect_analysis.R", "fig2")
+run_figure_script("code/02_flux/static/04_height_effect_analysis.R", "fig2")
 run_figure_script("code/06_figures/04_variance_partition.R",             "fig3")
 run_figure_script("code/02_ddpcr/util_combined_plot.R",                  "fig4")
 run_figure_script("code/06_figures/08c_combined_methane_cycling_composition.R", "fig5")

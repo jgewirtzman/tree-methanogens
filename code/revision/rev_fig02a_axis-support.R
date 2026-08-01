@@ -6,7 +6,7 @@
 # ovata does not); outliers (Acer rubrum, Quercus rubra) distort the panels; and
 # the dashed line is undefined."
 #
-# DIAGNOSIS (from code/01_flux_processing/static/04_height_effect_analysis.R):
+# DIAGNOSIS (from code/02_flux/static/04_height_effect_analysis.R):
 #   The original panel (a) drew each species on its OWN free LINEAR x-axis whose
 #   three ticks were literally that species' (min, midpoint, max). So (i) every
 #   panel had a different scale, (ii) a single outlier maximum stretched the whole
