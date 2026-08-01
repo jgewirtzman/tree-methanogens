@@ -413,7 +413,7 @@ cat("  Sample inventory tree IDs (first 10):", paste(head(unique(INVENTORY$tree_
 #
 # a single hardcoded date stamped onto every row of the 2021 campaign. The
 # campaign did not happen in a day: goflux_auxfile.csv -- this pipeline's OWN
-# product, written by code/01_flux_processing/static/01_prep_auxfile.R -- records
+# product, written by code/02_flux/static/01_prep_auxfile.R -- records
 # 461 measurements from 2021-07-19 13:45 to 2021-08-12 14:09 across 19 field days,
 # a median of 8 and at most 15 trees a day.
 #
