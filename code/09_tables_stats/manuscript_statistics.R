@@ -30,7 +30,7 @@ library(phyloseq)
 library(microeco)
 
 # --- Set up output file ---
-output_file <- "outputs/manuscript_statistics.txt"
+output_file <- "outputs/audit/manuscript_statistics.txt"
 if (!dir.exists(dirname(output_file))) dir.create(dirname(output_file), recursive = TRUE)
 sink(output_file, split = TRUE)  # write to file AND console
 

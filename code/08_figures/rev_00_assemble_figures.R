@@ -133,5 +133,5 @@ sect <- function(title, map, dest) c(paste0("## ", title), "", "| Figure | Sourc
     if (!file.exists(map[[nm]])) " (missing — run generate_all_figures.R)" else ""), character(1)), "")
 man <- c(man, sect("Main", MAIN, mainD), sect("Supplementary", SI, siD),
          sect("Photo plates", PHOTOS, photoD), sect("Tables (data CSV + rendered)", TABLES, tableD))
-writeLines(man, "outputs/audit/figures/MANIFEST.md")
+writeLines(man, "outputs/figures/MANIFEST.md")
 cat("Wrote outputs/figures/MANIFEST.md\n")
