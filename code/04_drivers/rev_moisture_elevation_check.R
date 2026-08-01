@@ -26,8 +26,8 @@
 # topography to VALIDATE an independently built surface is sound; using it to
 # fit one here is the overfitting route already rejected.
 #
-# Output: outputs/revision/moisture_elevation_check.txt
-#         outputs/revision/fig_moisture_elevation.png
+# Output: outputs/audit/moisture_elevation_check.txt
+#         outputs/figures/generated/fig_moisture_elevation.png
 # ==============================================================================
 suppressPackageStartupMessages({library(dplyr); library(fields); library(ggplot2)
                                 library(patchwork)})
@@ -96,7 +96,7 @@ p3 <- ggplot(G, aes(z_elev, z_moist)) +
   geom_smooth(method = "lm", formula = y ~ x, colour = "white", linewidth = 0.6, se = FALSE) +
   labs(title = sprintf("(c) z-scores, r = %+.3f", cor(G$z_moist, G$z_elev)),
        x = "elevation (z)", y = "moisture (z)") + theme_bw(base_size = 9)
-ggsave("outputs/revision/fig_moisture_elevation.png", p1 | p2 | p3,
+ggsave("outputs/figures/generated/fig_moisture_elevation.png", p1 | p2 | p3,
        width = 12, height = 4.4, dpi = 190, bg = "white")
 
 con <- file("outputs/audit/moisture_elevation_check.txt", "w")
@@ -109,4 +109,4 @@ cat(sprintf("interpolated surfaces (n=%d cells): Pearson %+.3f, Spearman %+.3f\n
             nrow(G), cor(G$z_moist, G$z_elev),
             cor(G$z_moist, G$z_elev, method = "spearman")), file = con)
 close(con)
-cat("\nwritten: outputs/revision/moisture_elevation_check.txt and fig_moisture_elevation.png\n")
+cat("\nwritten: outputs/audit/moisture_elevation_check.txt and fig_moisture_elevation.png\n")

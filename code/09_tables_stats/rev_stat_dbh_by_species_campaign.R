@@ -11,7 +11,7 @@
 #   * 2021 summer height -> unique (plot,tree_id) w/ flux; DBH from merged 2021 table;
 #                           ungrouped (adjacent to inventory plot; no destructive sampling in plot)
 #   * 2023 cross-species -> unique Tree.Tag w/ flux; ungrouped (in inventory plot)
-# Writes outputs/revision/dbh_by_species_campaign.csv (+ .png).
+# Writes outputs/data/dbh_by_species_campaign.csv (+ .png).
 # ==============================================================================
 suppressPackageStartupMessages({library(tidyverse);library(gridExtra);library(grid)}); options(warn=-1)
 num<-function(x) suppressWarnings(as.numeric(x)); uq<-function(x) length(unique(x[!is.na(x)]))
@@ -95,5 +95,5 @@ tab<-allt %>% group_by(Campaign=campaign,Location=location,Species,Status=status
   select(Campaign,Location,Species,Status,n,`DBH cm (mean +/- sd)`) %>% arrange(Campaign,Location,Species,Status)
 write.csv(tab,"outputs/data/dbh_by_species_campaign.csv",row.names=FALSE)
 g<-tableGrob(tab,rows=NULL,theme=ttheme_minimal(base_size=8,colhead=list(fg_params=list(fontface="bold"))))
-ggplot2::ggsave("outputs/revision/dbh_by_species_campaign.png",g,width=8,height=0.22*nrow(tab)+0.6,dpi=200,bg="white",limitsize=FALSE)
+ggplot2::ggsave("outputs/figures/generated/dbh_by_species_campaign.png",g,width=8,height=0.22*nrow(tab)+0.6,dpi=200,bg="white",limitsize=FALSE)
 cat("wrote dbh_by_species_campaign.{csv,png}; rows:",nrow(tab),"\n")

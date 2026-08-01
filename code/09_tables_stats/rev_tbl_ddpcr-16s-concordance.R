@@ -4,7 +4,7 @@
 # Same data/definitions as rev_figS21 (taxonomy-based, Fig 5 defs), summarized as
 # a concordance table: per gene x compartment, the 4 detection categories, ddPCR
 # vs 16S detection rates, and the quantitative fit (r, p) where both detect.
-# Writes outputs/revision/tbl_ddpcr_16s_concordance.csv + .png
+# Writes outputs/data/tbl_ddpcr_16s_concordance.csv + .png
 # ==============================================================================
 suppressMessages({library(gridExtra);library(grid)}); options(warn=-1,stringsAsFactors=FALSE)
 num<-function(x) suppressWarnings(as.numeric(x))
@@ -41,5 +41,5 @@ write.csv(tab,"outputs/data/tbl_ddpcr_16s_concordance.csv",row.names=FALSE)
 th<-ttheme_minimal(base_size=10,core=list(fg_params=list(hjust=0.5,x=0.5)),
   colhead=list(fg_params=list(fontface="bold")))
 g<-tableGrob(tab,rows=NULL,theme=th)
-ggplot2::ggsave("outputs/revision/tbl_ddpcr_16s_concordance.png",g,width=11,height=2.6,dpi=200,bg="white")
-cat("wrote outputs/revision/tbl_ddpcr_16s_concordance.{csv,png}\n"); print(tab,row.names=FALSE)
+ggplot2::ggsave("outputs/figures/generated/tbl_ddpcr_16s_concordance.png",g,width=11,height=2.6,dpi=200,bg="white")
+cat("wrote outputs/tbl_ddpcr_16s_concordance.{csv,png}\n"); print(tab,row.names=FALSE)

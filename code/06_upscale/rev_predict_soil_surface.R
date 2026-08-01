@@ -40,7 +40,7 @@
 #
 # Output: outputs/tables/soil_surface_monthly.csv  (cell x month)
 #         outputs/tables/soil_surface_annual.csv   (cell, annual mean)
-#         outputs/revision/soil_surface_summary.txt
+#         outputs/audit/soil_surface_summary.txt
 # ==============================================================================
 suppressPackageStartupMessages({library(ranger); library(dplyr)})
 set.seed(42)

@@ -74,7 +74,7 @@
 #    unbiased in the mean by construction.
 #
 # Output: outputs/tables/moisture_climatology_monthly.csv
-#         outputs/revision/moisture_climatology.txt
+#         outputs/audit/moisture_climatology.txt
 # ==============================================================================
 suppressPackageStartupMessages({library(dplyr)})
 
@@ -141,7 +141,7 @@ print(as.data.frame(OUT %>% mutate(across(where(is.numeric), ~round(.x, 4)))), r
 
 dir.create("outputs/tables", showWarnings = FALSE, recursive = TRUE)
 write.csv(OUT, "outputs/tables/moisture_climatology_monthly.csv", row.names = FALSE)
-dir.create("outputs/revision", showWarnings = FALSE, recursive = TRUE)
+dir.create("outputs", showWarnings = FALSE, recursive = TRUE)
 con <- file("outputs/audit/moisture_climatology.txt", "w")
 cat(sprintf("MOISTURE CLIMATOLOGY (rev_moisture_climatology.R)\nbuilt %s\n\n",
             format(Sys.time(), "%Y-%m-%d %H:%M:%S")), file = con)
@@ -151,4 +151,4 @@ cat(sprintf("transfer R2 %.3f | LOO-CV R2 %.3f | shape r %.3f\n",
 cat(sprintf("years averaged: %s\n\n", paste(range(YEARS), collapse = "-")), file = con)
 utils::write.table(round(as.data.frame(OUT), 4), con, sep = "\t", row.names = FALSE, quote = FALSE)
 close(con)
-cat("\nwritten: outputs/tables/moisture_climatology_monthly.csv, outputs/revision/moisture_climatology.txt\n")
+cat("\nwritten: outputs/tables/moisture_climatology_monthly.csv, outputs/audit/moisture_climatology.txt\n")

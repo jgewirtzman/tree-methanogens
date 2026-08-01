@@ -2,7 +2,7 @@
 # REVISION — Fig 5 FINAL. Copy of code/08_figures/08c with ONE change: loads the
 # revised methanotroph definitions (R2 #2) in which family-level Methylacidiphilaceae
 # is Putative not Known (genus Methylacidiphilum stays Known). NEW file; edits
-# nothing existing. Output: outputs/revision/fig5_final.png
+# nothing existing. Output: outputs/figures/generated/fig5_final.png
 # ==============================================================================
 # Combined Methanogen + Methanotroph Composition (4-panel layout)
 # ==============================================================================
@@ -397,7 +397,7 @@ fig_combined <- p_mg_a / p_mg_b / p_mt_a / p_mt_b +
 
 print(fig_combined)
 
-ggsave("outputs/revision/fig5_final.png",
+ggsave("outputs/figures/generated/fig5_final.png",
        fig_combined, width = 14, height = 12, dpi = 300)
 
-cat("Wrote outputs/revision/fig5_final.png (revised methanotroph defs: Methylacidiphilaceae family -> Putative)\n")
+cat("Wrote outputs/figures/generated/fig5_final.png (revised methanotroph defs: Methylacidiphilaceae family -> Putative)\n")

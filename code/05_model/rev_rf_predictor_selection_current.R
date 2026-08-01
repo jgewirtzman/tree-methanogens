@@ -31,7 +31,7 @@
 # Both with a standard error across repeats, so differences can be read against
 # their own noise instead of ranked on the third decimal.
 #
-# Output: outputs/revision/rf_predictor_selection_current.csv / .txt
+# Output: outputs/data/rf_predictor_selection_current.csv / .txt
 # ==============================================================================
 suppressPackageStartupMessages({library(ranger)})
 
@@ -127,4 +127,4 @@ wr("\nRead the 'd>SE' column before the ranking: a difference smaller than the S
 wr("the difference is not a result. The base specification is the locked model.\n")
 close(con)
 cat(readLines("outputs/audit/rf_predictor_selection_current.txt"), sep = "\n")
-cat("\n  Written: outputs/revision/rf_predictor_selection_current.{csv,txt}\n")
+cat("\n  Written: outputs/rf_predictor_selection_current.{csv,txt}\n")

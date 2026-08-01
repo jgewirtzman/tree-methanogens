@@ -13,11 +13,11 @@ source("code/lib/outputs.R")
 # occur in WETTER soils (more soil CH4 source). We test per-tree height slope vs VWC.
 #
 # NEW file; edits nothing. Run: Rscript code/revision/R_height_slope_vs_moisture.R
-# Outputs: outputs/revision/height_slope_vs_moisture.png, height_slope_moisture_summary.txt
+# Outputs: outputs/figures/generated/height_slope_vs_moisture.png, height_slope_moisture_summary.txt
 # ==============================================================================
 
 suppressPackageStartupMessages({ library(tidyverse) })
-out_dir <- "outputs/revision"; dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
+out_dir <- "outputs"; dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
 
 sp_map <- c(ACRU="Acer rubrum",ACSA="Acer saccharum",BEAL="Betula alleghaniensis",
   BELE="Betula lenta",BEPA="Betula papyrifera",CAOV="Carya ovata",FAGR="Fagus grandifolia",

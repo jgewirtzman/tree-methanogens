@@ -16,8 +16,8 @@ source("code/lib/outputs.R")
 #                           to nmol m-2 s-1 so the y axis is interpretable
 #   4. observed vs predicted, and residuals vs each predictor
 #
-# Outputs: outputs/revision/rf_diagnostics_{tree,soil}.png
-#          outputs/revision/rf_diagnostics_summary.csv
+# Outputs: outputs/rf_diagnostics_{tree,soil}.png
+#          outputs/data/rf_diagnostics_summary.csv
 #
 # Run from repo root:  Rscript code/05_model/rev_rf_model_diagnostics.R
 # ==============================================================================
@@ -27,7 +27,7 @@ set.seed(42)
 
 load("outputs/models/RF_MODELS.RData")
 load("outputs/models/TRAINING_DATA.RData")
-outdir <- "outputs/revision"; dir.create(outdir, showWarnings = FALSE, recursive = TRUE)
+outdir <- "outputs"; dir.create(outdir, showWarnings = FALSE, recursive = TRUE)
 
 # NOTE: columns named *_umol_m2_s hold nmol m-2 s-1 (long-standing upstream misnomer).
 MODELS <- list(
@@ -157,4 +157,4 @@ for (nm in names(MODELS)) {
 
 res <- bind_rows(summary_rows)
 write.csv(res, out_path("rf_diagnostics_summary.csv"), row.names = FALSE)
-cat("\nWritten: outputs/revision/rf_diagnostics_summary.csv\n")
+cat("\nWritten: outputs/data/rf_diagnostics_summary.csv\n")

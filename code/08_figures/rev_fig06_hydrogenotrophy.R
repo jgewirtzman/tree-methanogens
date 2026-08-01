@@ -10,7 +10,7 @@ source("code/lib/outputs.R")
 # ==============================================================================
 
 suppressPackageStartupMessages({ library(tidyverse); library(patchwork) })
-out <- "outputs/revision"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
+out <- "outputs"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
 
 # ---- palette: red/blue diverging (as in the map figure) + orange + grey ------
 RED  <- "#b2182b"   # methanogen (a) / C1 (c) / mcrA-associated, positive (b)
@@ -50,7 +50,7 @@ pa <- ggplot(fa, aes(t, family, color = group)) +
         axis.text.y = element_text(face = "italic", size = 10))
 
 # ---- (b) FUNCTION (FAPROTAX HW/SW) — documented energy/redox-metabolism set ----
-# Values reproduced from the FAPROTAX pipeline (outputs/revision/FAPROTAX_all_functions_HW_SW.csv).
+# Values reproduced from the FAPROTAX pipeline (outputs/data/FAPROTAX_all_functions_HW_SW.csv).
 # Inclusion rule: energy/redox functions with mean rel. abundance >= 0.1% in a compartment;
 # host-association/pathogen/phototrophy and redundant parent annotations (generic chemoheterotrophy,
 # generic/CO2/methyl methanogenesis) excluded; hydrogenotrophic_methanogenesis shown as the

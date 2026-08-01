@@ -5,10 +5,10 @@ source("code/lib/outputs.R")
 #               d13CH4 convergence | eps_C convergence
 # (Miller-Tans dropped: leverage-biased, redundant with Keeling.)
 # Data load replicated verbatim from ISOTOPES_final.R (settled QC). NEW file.
-# Output: outputs/revision/SI_isotopes_source_composite.png
+# Output: outputs/figures/generated/SI_isotopes_source_composite.png
 # ==============================================================================
 suppressPackageStartupMessages({ library(tidyverse); library(patchwork) })
-out <- "outputs/revision"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
+out <- "outputs"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
 RED <- "#b2182b"; BLU <- "#2166ac"
 
 # ---- data (verbatim from ISOTOPES_final.R) -----------------------------------

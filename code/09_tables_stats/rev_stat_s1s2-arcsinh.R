@@ -10,11 +10,11 @@ source("code/lib/outputs.R")
 # DEFERRED (separate pass): soil-gene additions; random forests (variance-reduction
 # splits are also not transform-invariant — redo, but rankings expected stable).
 # NEW file; originals untouched (02_scale sourced for data only, its 2 outputs
-# git-restored by the wrapper). Output: outputs/revision/S1S2_arcsinh_report.txt
+# git-restored by the wrapper). Output: outputs/audit/S1S2_arcsinh_report.txt
 # ==============================================================================
 suppressWarnings(suppressMessages(source("code/07_molecular/02_scale_dependent_gene_patterns.R")))
 suppressPackageStartupMessages({ library(tidyverse); has_car <- requireNamespace("car", quietly = TRUE) })
-out <- "outputs/revision"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
+out <- "outputs"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
 sink(out_path("S1S2_arcsinh_report.txt"), split = TRUE)
 asf <- function(x) asinh(x / 0.1) / log(10)
 species_mapping <- c("ACRU"="Acer rubrum","ACSA"="Acer saccharum","BEAL"="Betula alleghaniensis","BELE"="Betula lenta",

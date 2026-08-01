@@ -20,11 +20,11 @@ source("code/lib/outputs.R")
 #   (4) Redox-implausibility flag: aerobic_chemoheterotrophy in (hypoxic) heartwood.
 #
 # NEW file. Run: Rscript code/revision/R_faprotax_caveat_metrics.R
-# Output: outputs/revision/faprotax_caveat_metrics.txt
+# Output: outputs/audit/faprotax_caveat_metrics.txt
 # ==============================================================================
 
 suppressPackageStartupMessages({ library(phyloseq); library(microeco); library(dplyr) })
-out <- "outputs/revision"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
+out <- "outputs"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
 
 # ---- reproduce the pipeline (verbatim logic from 08d_faprotax_heatmaps.R) -----
 ddpcr <- read.csv("data/raw/ddpcr/ddPCR_meta_all_data.csv")

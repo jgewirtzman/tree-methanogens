@@ -60,15 +60,15 @@ source("code/lib/outputs.R")
 # area above 2 m; a(z) cancels. The vertical distribution enters only when flux is
 # allowed to vary with height. This is reported explicitly below.
 #
-# Output: outputs/revision/surface_area_model.txt
-#         outputs/revision/fig_surface_area_distribution.png
+# Output: outputs/audit/surface_area_model.txt
+#         outputs/figures/generated/fig_surface_area_distribution.png
 # ==============================================================================
 
 suppressMessages({library(dplyr); library(ggplot2); library(tidyr); library(ranger)})
 source("code/lib/rev_geometry.R")
 source("code/lib/rev_species_levels.R")
 set.seed(42)
-outdir <- "outputs/revision"; dir.create(outdir, showWarnings = FALSE, recursive = TRUE)
+outdir <- "outputs"; dir.create(outdir, showWarnings = FALSE, recursive = TRUE)
 
 load("outputs/models/RF_MODELS.RData"); load("outputs/models/TRAINING_DATA.RData")
 load("data/processed/integrated/rf_workflow_input_data_with_2023.RData")
@@ -208,4 +208,4 @@ p <- ggplot(pd, aes(a, z, colour=scenario)) +
        x="relative area density a(z)", y="height (m)") +
   theme_bw(base_size=9)
 ggsave(out_path("fig_surface_area_distribution.png"), p, width=7, height=5, dpi=200, bg="white")
-cat("\nWritten: outputs/revision/fig_surface_area_distribution.png\n")
+cat("\nWritten: outputs/figures/generated/fig_surface_area_distribution.png\n")

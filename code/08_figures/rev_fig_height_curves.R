@@ -20,8 +20,8 @@ source("code/lib/outputs.R")
 #   precisely the claim the whole-woody-surface scenario turns on. The felled oak
 #   profile (to 10 m) remains the only evidence above 2 m.
 #
-# Output: outputs/revision/fig_height_curves.png
-#         outputs/revision/height_curves_rf_vs_lmm.csv
+# Output: outputs/figures/generated/fig_height_curves.png
+#         outputs/data/height_curves_rf_vs_lmm.csv
 # ==============================================================================
 
 suppressMessages({library(ranger); library(dplyr); library(ggplot2); library(lme4)})
@@ -29,7 +29,7 @@ set.seed(42)
 
 load("outputs/models/RF_MODELS.RData")
 load("outputs/models/TRAINING_DATA.RData")
-outdir <- "outputs/revision"; dir.create(outdir, showWarnings = FALSE, recursive = TRUE)
+outdir <- "outputs"; dir.create(outdir, showWarnings = FALSE, recursive = TRUE)
 
 X <- as.data.frame(X_tree); d <- tree_train_complete
 stopifnot("height_cm" %in% names(X))
@@ -111,4 +111,4 @@ for (sp in species) {
   a <- q$flux[which.min(q$height_cm)]; b <- q$flux[which.max(q$height_cm)]
   cat(sprintf("  %-26s %10.4f %10.4f %9.0f%%\n", sp, a, b, 100 * (b / a - 1)))
 }
-cat("\nWritten: outputs/revision/fig_height_curves.png\n")
+cat("\nWritten: outputs/figures/generated/fig_height_curves.png\n")

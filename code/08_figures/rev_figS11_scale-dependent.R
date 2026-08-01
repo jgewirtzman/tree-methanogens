@@ -15,13 +15,13 @@ source("code/lib/outputs.R")
 # Sources the original generator for data/theme/palette/pseudolog only; builds ALL
 # panels fresh. ORIGINAL UNTOUCHED; its two re-rendered outputs git-restored by the
 # wrapper. Tags a..t (row-major) + u,v,w,x bars.
-# Output: outputs/revision/figS11_final.png
+# Output: outputs/figures/generated/figS11_final.png
 # ==============================================================================
 suppressWarnings(suppressMessages(
   source("code/07_molecular/02_scale_dependent_gene_patterns.R")
 ))
 suppressPackageStartupMessages({ library(tidyverse); library(patchwork); library(grid) })
-out <- "outputs/revision"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
+out <- "outputs"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
 COFAC <- 0.1                             # arcsinh cofactor — matches Fig 1/2/3; conclusions robust across 0.05-2 (sweep)
 asf <- function(x) asinh(x / COFAC) / log(10)
 ybrk <- asf(c(0, 0.1, 1))

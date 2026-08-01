@@ -21,7 +21,7 @@ source("code/lib/outputs.R")
 # ==============================================================================
 
 suppressPackageStartupMessages({ library(dplyr); library(tidyr); library(car); library(lme4) })
-out_dir <- "outputs/revision"; dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
+out_dir <- "outputs"; dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
 
 ymf2023 <- read.csv("data/processed/flux/methanogen_tree_flux_complete_dataset.csv")
 ymf2021 <- read.csv("data/processed/integrated/merged_tree_dataset_final.csv")

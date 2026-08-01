@@ -30,7 +30,7 @@ source("code/lib/outputs.R")
 
 suppressMessages({library(ranger);library(dplyr);library(ggplot2);library(tidyr);library(patchwork)})
 set.seed(42)
-outdir <- "outputs/revision"; dir.create(outdir, showWarnings=FALSE, recursive=TRUE)
+outdir <- "outputs"; dir.create(outdir, showWarnings=FALSE, recursive=TRUE)
 source("code/lib/rev_geometry.R")
 source("code/lib/rev_species_levels.R")
 load("outputs/models/RF_MODELS.RData"); load("outputs/models/TRAINING_DATA.RData")

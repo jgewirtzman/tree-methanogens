@@ -45,10 +45,10 @@ source("code/lib/outputs.R")
 #   errors to within 2%. We retain the conventional form deliberately, and report the
 #   regression test (p < 0.05) alongside it.
 #
-# Output: outputs/revision/FINAL_detection.txt, flux_FINAL.csv
+# Output: outputs/audit/FINAL_detection.txt, flux_FINAL.csv
 # ==============================================================================
 suppressMessages({library(dplyr)})
-outdir <- "outputs/revision"
+outdir <- "outputs"
 rule <- function(s) cat("\n",strrep("=",78),"\n ",s,"\n",strrep("=",78),"\n",sep="")
 
 SIGMA <- c(`Height+molecular`=1.200, `Cross-species`=1.725, `Monthly survey`=2.181)
@@ -126,4 +126,4 @@ cat(sprintf("    median detected soil uptake %.4f  -> stem uptake is %.1f%% of i
   median(su), 100*abs(median(u))/abs(median(su))))
 cat(sprintf("\n  >>> BOUND = %.4f nmol m-2 s-1 (median detected stem uptake)\n", median(u)))
 write.csv(G, out_path("flux_FINAL.csv"), row.names=FALSE)
-cat("\n  Written: outputs/revision/flux_FINAL.csv\n")
+cat("\n  Written: outputs/data/flux_FINAL.csv\n")

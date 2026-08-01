@@ -14,7 +14,7 @@
 # distinct from the single 2022 FELLED black oak, which is a separate section.
 #
 # Run from repo root:  Rscript code/09_tables_stats/rev_stat_campaign_counts.R
-# Writes: outputs/revision/campaign_counts.txt  (+ .csv table)
+# Writes: outputs/audit/campaign_counts.txt  (+ .csv table)
 # ==============================================================================
 suppressMessages(library(dplyr)); options(warn = -1, stringsAsFactors = FALSE)
 nn <- function(x) sum(!is.na(x)); uq <- function(x) length(unique(x[!is.na(x) & x != ""]))
@@ -197,4 +197,4 @@ write.csv(data.frame(
   gas=c(NA,n_gas,bo_gas,NA,NA), isotopes=c(NA,iso_samp,NA,NA,NA),
   covariates=c("merged in Fig1","VWC/DBH/temp+wood","tree","VWC/DBH/temp",NA)
 ), "outputs/data/campaign_counts.csv", row.names=FALSE)
-cat("\n\nWrote outputs/revision/campaign_counts.{txt,csv}\n")
+cat("\n\nWrote outputs/campaign_counts.{txt,csv}\n")

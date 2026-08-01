@@ -1056,7 +1056,7 @@ final_fig_3row_alt <- (pA | pC | tree_pd_panel) /
 
 # ggsave("outputs/figures/Figure_Final_3Rows_alt.pdf", final_fig_3row_alt, 
 #        width = 15, height = 11, dpi = 300)
-ggsave("outputs/figures/supplementary/figS15_rf_predictions.png", final_fig_3row_alt,
+ggsave("outputs/figures/legacy/supplementary/figS15_rf_predictions.png", final_fig_3row_alt,
        width = 12, height = 8.8, dpi = 300)
 
 # Option 3: Single combined monthly plot (both on same panel)

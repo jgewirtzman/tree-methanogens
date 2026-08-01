@@ -24,7 +24,7 @@
 #   shrunk            ratio shrunk toward 1 by n/(n + K), the standard remedy
 #   clamped           the [0.2, 5] clamp that an earlier version applied
 #
-# Output: outputs/revision/rf_calibration_sensitivity.csv / .txt
+# Output: outputs/data/rf_calibration_sensitivity.csv / .txt
 # ==============================================================================
 suppressPackageStartupMessages({library(ranger); library(dplyr)})
 source("code/lib/rev_geometry.R")
@@ -112,4 +112,4 @@ wr("\njackknife_lo/hi move EVERY small level to its extreme at once, so they bou
 wr("the low-n ratios can do rather than describing a likely outcome.\n")
 close(con)
 cat(readLines("outputs/audit/rf_calibration_sensitivity.txt"), sep = "\n")
-cat("\n  Written: outputs/revision/rf_calibration_sensitivity.{csv,txt}\n")
+cat("\n  Written: outputs/rf_calibration_sensitivity.{csv,txt}\n")

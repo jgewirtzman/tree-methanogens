@@ -14,13 +14,13 @@
 #   - tree_id_comprehensive_mapping.csv (from data/processed/tree_data/)
 #
 # Outputs:
-#   - outputs/figures/main/fig2_height_dependent_flux.png
+#   - outputs/figures/legacy/main/fig2_height_dependent_flux.png
 # ==============================================================================
 
 # REVISION — Fig 2 FINAL: copy of code/02_flux/static/04_height_effect_analysis.R
 # with ONE change — panel a uses a shared signed pseudo-log x-axis across all species
 # (R2 Fig 2a), preserving the original grid layout and 7x7.5 dimensions. NEW file;
-# edits nothing existing. Output: outputs/revision/fig2_final.png
+# edits nothing existing. Output: outputs/figures/generated/fig2_final.png
 library(ggplot2)
 library(dplyr)
 library(purrr)
@@ -506,7 +506,7 @@ combined_plot <- (p_top_gg / p_middle / p_bottom) +
 
 print(combined_plot)
 
-out_fn <- if (PANEL_A_STYLE == "meanSE") "outputs/revision/fig2_final_meanSE.png" else "outputs/revision/fig2_final.png"
+out_fn <- if (PANEL_A_STYLE == "meanSE") "outputs/figures/generated/fig2_final_meanSE.png" else "outputs/figures/generated/fig2_final.png"
 ggsave(out_fn, plot = combined_plot, width = 7, height = 7.5, units = "in", dpi = 300)
 cat("Wrote", out_fn, "(panel-a style:", PANEL_A_STYLE, ")\n")
 

@@ -10,14 +10,14 @@ source("code/lib/outputs.R")
 # Inputs: data/compiled/tree_properties.csv (measured trees: species, dbh, VWC,
 #         landscape_position), data/compiled/forest_inventory.csv (full census).
 # Run: Rscript code/revision/R_tree_distribution.R
-# Outputs (outputs/revision/):
+# Outputs (outputs/):
 #   tree_dbh_landscape_table.csv     R3 L286 table
 #   tree_species_moisture_niche.csv  median VWC per species (niche summary)
 #   tree_distribution_panels.png     DBH-by-landscape + species-VWC niche figure
 # ==============================================================================
 
 suppressPackageStartupMessages({ library(tidyverse) })
-out_dir <- "outputs/revision"; dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
+out_dir <- "outputs"; dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
 
 sp_map <- c(ACRU="Acer rubrum",ACSA="Acer saccharum",BEAL="Betula alleghaniensis",
   BELE="Betula lenta",BEPA="Betula papyrifera",CAOV="Carya ovata",FAGR="Fagus grandifolia",

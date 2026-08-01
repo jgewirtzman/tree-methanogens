@@ -29,12 +29,12 @@ source("code/lib/outputs.R")
 #     and Figure 9 drew one stacked on the other. The grid now consumes
 #     `tree_measured_mg_m2_yr` from this file instead of recomputing it.
 #
-# Output: outputs/revision/canonical_budget.csv   (one row per quantity)
-#         outputs/revision/canonical_monthly.csv  (monthly series, both terms)
+# Output: outputs/data/canonical_budget.csv   (one row per quantity)
+#         outputs/data/canonical_monthly.csv  (monthly series, both terms)
 # ==============================================================================
 suppressPackageStartupMessages({library(dplyr)})
 source("code/lib/rev_geometry.R")
-outdir <- "outputs/revision"; dir.create(outdir, showWarnings = FALSE, recursive = TRUE)
+outdir <- "outputs"; dir.create(outdir, showWarnings = FALSE, recursive = TRUE)
 
 need <- c(inv  = "outputs/tables/inventory_stems.csv",
           tree = "outputs/tables/tree_flux_predictions.csv",

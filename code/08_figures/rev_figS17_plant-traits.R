@@ -14,10 +14,10 @@ source("code/lib/outputs.R")
 # PLANT LONGEVITY -> balance/methanotroph is robust (univariate + angiosperm-only +
 # clade-controlled). n<=10, EXPLORATORY / hypothesis-generating.
 # NEW file; original traits_heatmap.R untouched.
-# Output: outputs/revision/traits_heatmap_robust.png
+# Output: outputs/figures/generated/traits_heatmap_robust.png
 # ==============================================================================
 suppressPackageStartupMessages({ library(tidyverse) })
-out <- "outputs/revision"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
+out <- "outputs"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
 TRAITS <- "/Users/jongewirtzman/My Drive/Research/YMF Tree Microbiomes & Methane/tree-gas-traits/data/processed/ymf_with_traits.csv"
 sp_map <- c(ACRU="Acer rubrum",ACSA="Acer saccharum",BEAL="Betula alleghaniensis",BELE="Betula lenta",
   BEPA="Betula papyrifera",CAOV="Carya ovata",FAGR="Fagus grandifolia",FRAM="Fraxinus americana",

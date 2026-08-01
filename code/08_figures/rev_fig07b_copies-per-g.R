@@ -12,11 +12,11 @@ source("code/lib/outputs.R")
 # Wood was freeze-dried before weighing, so black-oak wood copies/g is DRY-weight.
 #
 # NEW file; edits nothing existing. Run: Rscript code/revision/R_fig7b_copies_per_gram.R
-# Outputs: outputs/revision/fig7b_copies_per_gram.png, fig7b_copies_per_gram.csv
+# Outputs: outputs/figures/generated/fig7b_copies_per_gram.png, fig7b_copies_per_gram.csv
 # ==============================================================================
 
 suppressPackageStartupMessages({ library(tidyverse) })
-out_dir <- "outputs/revision"; dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
+out_dir <- "outputs"; dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
 ELUTION_UL <- 75   # CANONICAL pipeline value (02_harmonize_all_data.R:317: Conc*75/mass*1000).
                    # Earlier draft used 37.5 (=75/2) -> 2x low; corrected to match manuscript.
 

@@ -37,13 +37,13 @@ source("code/lib/outputs.R")
 #              branch = bole * branch:stem ratio (W&W: 2.7 Smokies deciduous, 4.0
 #                       Brookhaven oak-pine)
 #
-# Output: outputs/revision/area_distribution_scenarios.csv / .txt
-#         outputs/revision/fig_area_distribution_scenarios.png
+# Output: outputs/data/area_distribution_scenarios.csv / .txt
+#         outputs/figures/generated/fig_area_distribution_scenarios.png
 # ==============================================================================
 
 suppressMessages({library(ranger);library(dplyr);library(ggplot2);library(tidyr);library(patchwork)})
 set.seed(42)
-outdir <- "outputs/revision"; dir.create(outdir, showWarnings=FALSE, recursive=TRUE)
+outdir <- "outputs"; dir.create(outdir, showWarnings=FALSE, recursive=TRUE)
 source("code/lib/rev_geometry.R")
 source("code/lib/rev_species_levels.R")
 load("outputs/models/RF_MODELS.RData"); load("outputs/models/TRAINING_DATA.RData")
@@ -194,4 +194,4 @@ ggsave(out_path("fig_area_distribution_scenarios.png"), p1/p2 +
     theme=theme(plot.title=element_text(size=10,face="bold"),
                 plot.subtitle=element_text(size=8))),
   width=11,height=8.5,dpi=200,bg="white")
-cat("\nWritten: outputs/revision/fig_area_distribution_scenarios.png\n")
+cat("\nWritten: outputs/figures/generated/fig_area_distribution_scenarios.png\n")

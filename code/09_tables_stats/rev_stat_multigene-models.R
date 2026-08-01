@@ -10,11 +10,11 @@ source("code/lib/outputs.R")
 # oxidation term improves adj-R2 under MEDIAN (mcrA enters +, methanotroph -), but not
 # under MEAN, and no methanotroph term is individually significant at n=10.
 # Sources 02_scale for data only (outputs git-restored by wrapper). NEW file.
-# Output: outputs/revision/species_multigene_models.txt
+# Output: outputs/audit/species_multigene_models.txt
 # ==============================================================================
 suppressWarnings(suppressMessages(source("code/07_molecular/02_scale_dependent_gene_patterns.R")))
 suppressPackageStartupMessages(library(tidyverse))
-out <- "outputs/revision"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
+out <- "outputs"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
 sink(out_path("species_multigene_models.txt"), split = TRUE)
 asf <- function(x) asinh(x / 0.1) / log(10)
 

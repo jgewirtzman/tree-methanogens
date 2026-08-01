@@ -11,11 +11,11 @@ source("code/lib/outputs.R")
 # script swapping the response to asf(flux). RF variable-importance rankings are
 # permutation-based and expected stable to a monotonic response transform.
 # NEW file; 02_scale sourced for data only (2 outputs git-restored by wrapper).
-# Output: outputs/revision/S1_rf_soil_arcsinh_report.txt
+# Output: outputs/audit/S1_rf_soil_arcsinh_report.txt
 # ==============================================================================
 suppressWarnings(suppressMessages(source("code/07_molecular/02_scale_dependent_gene_patterns.R")))
 suppressPackageStartupMessages({ library(tidyverse); library(randomForest) })
-out <- "outputs/revision"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
+out <- "outputs"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
 sink(out_path("S1_rf_soil_arcsinh_report.txt"), split = TRUE)
 asf <- function(x) asinh(x / 0.1) / log(10)
 line <- function() cat(strrep("-", 78), "\n")

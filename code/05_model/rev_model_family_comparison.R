@@ -39,7 +39,7 @@
 #                       still bend
 #   lm                  least squares, the unbiased-but-blind baseline
 #
-# Output: outputs/revision/model_family_comparison.csv / .txt
+# Output: outputs/data/model_family_comparison.csv / .txt
 # ==============================================================================
 suppressPackageStartupMessages({library(dplyr); library(ranger); library(mgcv)})
 set.seed(42)
@@ -151,11 +151,11 @@ for (nm in c("rf", "rf_cal_species", "rf_cal_linear", "rf_cal_isotonic", "gam"))
               paste(rr(q_dbh[ok]), collapse = " "), paste(rr(q_moi[ok]), collapse = " ")))
 }
 
-dir.create("outputs/revision", showWarnings = FALSE, recursive = TRUE)
+dir.create("outputs", showWarnings = FALSE, recursive = TRUE)
 write.csv(R, "outputs/data/model_family_comparison.csv", row.names = FALSE)
 con <- file("outputs/audit/model_family_comparison.txt", "w")
 cat(sprintf("MODEL FAMILY COMPARISON\nbuilt %s\nrepeated %d-fold CV x %d\n\n",
             format(Sys.time(), "%Y-%m-%d %H:%M:%S"), K, REP), file = con)
 utils::write.table(round(as.data.frame(R %>% select(-model)), 4), con, sep = "\t", quote = FALSE)
 close(con)
-cat("\nwritten: outputs/revision/model_family_comparison.{csv,txt}\n")
+cat("\nwritten: outputs/model_family_comparison.{csv,txt}\n")

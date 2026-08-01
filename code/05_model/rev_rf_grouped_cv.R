@@ -19,8 +19,8 @@
 #
 # It does NOT refit or change either model. It scores the locked specification.
 #
-# Output: outputs/revision/rf_grouped_cv.csv   (read by rev_budget_canonical.R)
-#         outputs/revision/rf_grouped_cv.txt
+# Output: outputs/data/rf_grouped_cv.csv   (read by rev_budget_canonical.R)
+#         outputs/audit/rf_grouped_cv.txt
 # ==============================================================================
 suppressPackageStartupMessages({library(ranger)})
 
@@ -108,4 +108,4 @@ wr("stated. OOB alone is not defensible where one tree contributes up to 13 rows
 close(con)
 
 cat(readLines("outputs/audit/rf_grouped_cv.txt"), sep = "\n")
-cat("\n  Written: outputs/revision/rf_grouped_cv.{csv,txt}\n")
+cat("\n  Written: outputs/rf_grouped_cv.{csv,txt}\n")

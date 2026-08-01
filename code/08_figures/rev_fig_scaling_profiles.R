@@ -35,10 +35,10 @@ source("code/lib/outputs.R")
 #
 # Shapes are read from exports of rev_scaling_full_grid.R, never re-derived here.
 #
-# Output: outputs/revision/fig_scaling_profiles.png
+# Output: outputs/figures/generated/fig_scaling_profiles.png
 # ==============================================================================
 suppressMessages({library(dplyr); library(ggplot2); library(tidyr); library(patchwork)})
-outdir <- "outputs/revision"
+outdir <- "outputs"
 FX <- read.csv(out_path("scaling_flux_shapes.csv"),   stringsAsFactors = FALSE)
 BP <- read.csv(out_path("scaling_band_profile.csv"),  stringsAsFactors = FALSE)
 KN <- read.csv(out_path("scaling_shape_kernels.csv"), stringsAsFactors = FALSE)
@@ -281,4 +281,4 @@ cat(sprintf("  grid total %.1f mg CH4 m-2 yr-1 (%.1f%% of soil, %.0f%% extrapola
 cat("\n  inventory sums reproduced by this figure:\n")
 print(as.data.frame(LAB %>% transmute(form, total_mg = round(tot,1),
                                       pct_above_2m = round(above))), row.names = FALSE)
-cat("\nwritten: outputs/revision/fig_scaling_profiles.png\n")
+cat("\nwritten: outputs/figures/generated/fig_scaling_profiles.png\n")

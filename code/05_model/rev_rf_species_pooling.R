@@ -22,7 +22,7 @@
 #   rare-species BIAS       signed; the brief is to err toward unbiased
 #   stand tree budget       what it does to the number that ends up in the paper
 #
-# Output: outputs/revision/species_pooling_cv.csv / .txt
+# Output: outputs/data/species_pooling_cv.csv / .txt
 # ==============================================================================
 suppressPackageStartupMessages({library(ranger); library(dplyr)})
 set.seed(42)
@@ -140,11 +140,11 @@ cat("\nranking by rare-species RMSE:  ", paste(R$scheme[order(R$rmse_rare)], col
 cat("ranking by |rare-species bias|: ", paste(R$scheme[order(abs(R$bias_rare))], collapse = " < "), "\n")
 cat("ranking by overall RMSE:        ", paste(R$scheme[order(R$rmse_all)], collapse = " < "), "\n")
 
-dir.create("outputs/revision", showWarnings = FALSE, recursive = TRUE)
+dir.create("outputs", showWarnings = FALSE, recursive = TRUE)
 write.csv(R, "outputs/data/species_pooling_cv.csv", row.names = FALSE)
 con <- file("outputs/audit/species_pooling_cv.txt", "w")
 cat(sprintf("SPECIES POOLING, REPEATED %d-FOLD CV x %d\nbuilt %s\nrare cut: < %d records\n\n",
             K_FOLD, N_REP, format(Sys.time(), "%Y-%m-%d %H:%M:%S"), RARE_CUT), file = con)
 utils::write.table(round(as.data.frame(R %>% select(-scheme)), 4), con, sep = "\t", quote = FALSE)
 close(con)
-cat("\nwritten: outputs/revision/species_pooling_cv.{csv,txt}\n")
+cat("\nwritten: outputs/species_pooling_cv.{csv,txt}\n")

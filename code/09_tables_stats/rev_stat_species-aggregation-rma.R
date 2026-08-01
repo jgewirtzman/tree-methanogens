@@ -17,7 +17,7 @@
 #   - data/processed/flux/methanogen_tree_flux_complete_dataset.csv
 #   - data/processed/integrated/merged_tree_dataset_final.csv
 #
-# Outputs (outputs/revision/):
+# Outputs (outputs/):
 #   - rma_species_slope_table.csv     one row per predictor: OLS vs SMA slopes, r, CI
 #   - rma_ratio_jackknife.csv         leave-one-species-out on the ratio regression
 #   - rma_variance_partition.txt      between-species share of individual flux variance
@@ -31,7 +31,7 @@ suppressPackageStartupMessages({
 source("code/lib/outputs.R")
 })
 
-out_dir <- "outputs/revision"
+out_dir <- "outputs"
 dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
 
 # ------------------------------------------------------------------------------

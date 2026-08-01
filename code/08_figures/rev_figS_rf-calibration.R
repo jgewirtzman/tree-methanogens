@@ -7,7 +7,7 @@
 # A reliability check that can fail; modest point-level OOB R2 but calibrated across the
 # range and near-unbiased in the mean. (Per-species / per-moisture aggregations were
 # dropped as near-circular: species and moisture are model predictors.)
-# Reads outputs/models/TRAINING_DATA.RData. Writes outputs/revision/figS_rf_calibration.png.
+# Reads outputs/models/TRAINING_DATA.RData. Writes outputs/figures/generated/figS_rf_calibration.png.
 # ==============================================================================
 suppressPackageStartupMessages({library(ggplot2); library(dplyr)})
 has_patch <- requireNamespace("patchwork", quietly=TRUE); if (has_patch) library(patchwork)
@@ -52,5 +52,5 @@ pa <- cal(e$tree_train_complete,"(a) Stem flux","#b2182b",c(0,0.05,0.1,0.2,0.4))
 pb <- cal(e$soil_train_complete,"(b) Soil flux","#2166ac",c(-3,-1,-0.3,0))
 
 g <- if (has_patch) pa|pb else gridExtra::arrangeGrob(pa,pb,ncol=2)
-ggsave("outputs/revision/figS_rf_calibration.png", g, width=8.8, height=4.6, dpi=200, bg="white")
-cat("wrote outputs/revision/figS_rf_calibration.png\n")
+ggsave("outputs/figures/generated/figS_rf_calibration.png", g, width=8.8, height=4.6, dpi=200, bg="white")
+cat("wrote outputs/figures/generated/figS_rf_calibration.png\n")

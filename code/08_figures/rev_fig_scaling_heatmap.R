@@ -29,7 +29,7 @@ source("code/lib/outputs.R")
 # 240 and 6, the same failure as the hardcoded "216" in the Figure 9 caption.
 # ==============================================================================
 suppressMessages({library(dplyr); library(ggplot2); library(tidyr); library(patchwork)})
-outdir <- "outputs/revision"
+outdir <- "outputs"
 R <- read.csv(out_path("scaling_full_grid.csv"), stringsAsFactors = FALSE)
 
 FO <- c("constant","exp_band_slope","power","exponential","linear_floored",
@@ -176,4 +176,4 @@ print(as.data.frame(R %>% group_by(branch) %>%
   summarise(median_total = round(median(total_mg), 1),
             lo = round(min(total_mg), 1), hi = round(max(total_mg), 1), .groups = "drop")),
   row.names = FALSE)
-cat("\nwritten: outputs/revision/fig_scaling_heatmap.png\n")
+cat("\nwritten: outputs/figures/generated/fig_scaling_heatmap.png\n")
