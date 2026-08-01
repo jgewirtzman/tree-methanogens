@@ -18,7 +18,10 @@ source("code/lib/outputs.R")
 # ==============================================================================
 suppressPackageStartupMessages({ library(tidyverse) })
 out <- "outputs"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
-TRAITS <- "/Users/jongewirtzman/My Drive/Research/YMF Tree Microbiomes & Methane/tree-gas-traits/data/processed/ymf_with_traits.csv"
+# Species-level trait table, one row per species. Vendored from the companion
+# tree-gas-traits repository so this figure builds from a clean checkout;
+# regenerate with code/zenodo/vendor_traits.R if the upstream table changes.
+TRAITS <- "data/processed/traits/ymf_species_traits.csv"
 sp_map <- c(ACRU="Acer rubrum",ACSA="Acer saccharum",BEAL="Betula alleghaniensis",BELE="Betula lenta",
   BEPA="Betula papyrifera",CAOV="Carya ovata",FAGR="Fagus grandifolia",FRAM="Fraxinus americana",
   KALA="Kalmia latifolia",PIST="Pinus strobus",PRSE="Prunus serotina",QUAL="Quercus alba",

@@ -31,12 +31,12 @@ cat("Starting at:", format(Sys.time()), "\n\n")
 cat("Loading saved prediction data...\n")
 
 # Load soil predictions
-load("soil_monthly_predictions.RData")
+load("../../outputs/models/soil_monthly_predictions.RData")
 soil_predictions <- monthly_predictions
 rm(monthly_predictions)  # Clear to avoid confusion
 
 # Load tree predictions  
-load("tree_monthly_predictions.RData")
+load("../../outputs/models/tree_monthly_predictions.RData")
 tree_predictions <- monthly_predictions
 rm(monthly_predictions)
 

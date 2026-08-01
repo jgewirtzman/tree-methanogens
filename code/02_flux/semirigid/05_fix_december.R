@@ -87,7 +87,7 @@ cat("LGR3 data loaded:", dim(lgr3_data_complete), "\n")
 cat("\n=== STEP 2: FILTERING FOR DECEMBER DATES ===\n")
 
 # Load auxfile to identify December measurements
-lgr3_auxfile_full <- read_csv("auxfile_goFlux_soilflux_with_weather.csv") %>%
+lgr3_auxfile_full <- read_csv("../../../data/processed/flux/auxfile_goFlux_soilflux_with_weather.csv") %>%
   mutate(start.time = as.POSIXct(start.time, tz = "UTC"),
          month = month(start.time))
 

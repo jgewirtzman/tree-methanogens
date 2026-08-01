@@ -23,7 +23,7 @@ library(dplyr)
 flux_data <- read_excel("../../../data/raw/field_data/ipad_data/treeflux_total.xlsx", sheet = "Sheet1")
 
 # Read geometry data
-geometry_data <- read_excel("combined_corrected_results.xlsx", sheet = "all_data")
+geometry_data <- read_excel("../../../data/raw/flux_chamber_corrections/Chamber vol corr/corrected/combined_corrected_results.xlsx", sheet = "all_data")
 geometry_data <- results
 
 # Clean and examine flux identifiers
@@ -163,7 +163,7 @@ cat("\nFAILED JOINS (sample):\n")
 print(failed_joins)
 
 # Export the best result
-write_csv(final_joined, "flux_with_geometry_fixed.csv")
+write_csv(final_joined, "../../../data/processed/flux/flux_with_geometry_fixed.csv")
 #cat("\nExported fixed join as 'flux_with_geometry_fixed.xlsx'\n")
 
 # Summary of issues and recommendations
