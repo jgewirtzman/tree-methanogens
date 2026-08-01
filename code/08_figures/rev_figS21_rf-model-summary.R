@@ -50,7 +50,9 @@ suppressMessages({library(dplyr); library(ranger); library(ggplot2)
 set.seed(42)
 load("outputs/models/RF_MODELS.RData"); load("outputs/models/TRAINING_DATA.RData")
 
-TREE_COL <- "#756BB1"; SOIL_COL <- "#2166ac"
+# Original figure's palette, kept deliberately: tree green / soil brown are used
+# across the SI, and the hexbin count scale is magma on a log10 scale.
+TREE_COL <- "#2E7D32"; SOIL_COL <- "#8B4513"
 
 Xt <- as.data.frame(X_tree); yt <- tree_train_complete$stem_flux_corrected
 Xs <- as.data.frame(X_soil); ys <- soil_train_complete$y_asinh[seq_len(nrow(Xs))]
@@ -125,29 +127,31 @@ R2G <- local({
   c(g$grouped_r2[g$model == "TreeRF"][1], g$grouped_r2[g$model == "SoilRF"][1])
 })
 
-obs_panel <- function(D, o, p, ttl, col, r2g, nlab) {
+obs_panel <- function(D, o, p, ttl, col, r2g) {
   r2 <- 1 - sum((D[[o]] - D[[p]])^2) / sum((D[[o]] - mean(D[[o]]))^2)
-  sub <- sprintf("CCC %.3f | R2 %.3f out-of-bag, %.3f grouped CV | n = %d",
+  # Stats annotated inside the panel, top-left, as in the original.
+  # Plain "R2", not a superscript-2 glyph: the original wrote "R²" here and the
+  # device font dropped it, so the shipped SI panel read "R.. = 0.236". ASCII
+  # renders on every device.
+  lab <- sprintf("CCC = %.3f\nR2 = %.3f (OOB)\nR2 = %.3f (grouped CV)\nn = %d",
                  ccc(D[[o]], D[[p]]), r2, r2g, nrow(D))
-  # Hexbin with a count scale, as in the figure this replaces: the response is
-  # heavily zero-concentrated, so plain points hide the density that carries the
-  # fit and show only the handful of large-flux outliers.
   ggplot(D, aes(.data[[p]], .data[[o]])) +
-    geom_abline(slope = 1, intercept = 0, colour = "grey55", linetype = "dashed") +
-    geom_hex(bins = 34) +
-    scale_fill_viridis_c(option = "magma", trans = "log10", name = "count") +
-    labs(title = ttl, subtitle = sub,
-         x = expression("predicted (nmol m"^-2*" s"^-1*")"),
-         y = expression("observed (nmol m"^-2*" s"^-1*")")) +
+    geom_hex(bins = 40) +
+    geom_abline(slope = 1, intercept = 0, color = "red", linewidth = 0.8, alpha = 0.8) +
+    annotate("text", x = -Inf, y = Inf, hjust = -0.1, vjust = 1.2,
+             label = lab, size = 2.7, lineheight = 1.05) +
+    scale_fill_viridis_c(name = "Count", trans = "log10", option = "magma") +
+    labs(title = ttl,
+         x = expression("Predicted (nmol m"^-2*" s"^-1*")"),
+         y = expression("Observed (nmol m"^-2*" s"^-1*")")) +
     theme_bw(base_size = 9) +
     theme(panel.grid.minor = element_blank(),
-          legend.key.width = unit(0.22, "cm"), legend.key.height = unit(0.42, "cm"),
-          legend.title = element_text(size = 7), legend.text = element_text(size = 6.5),
-          plot.title = element_text(face = "bold", size = 10),
-          plot.subtitle = element_text(size = 7.0, colour = "grey30"))
+          legend.key.width = unit(0.25, "cm"), legend.key.height = unit(0.5, "cm"),
+          legend.title = element_text(size = 7.5), legend.text = element_text(size = 6.8),
+          plot.title = element_text(face = "bold", size = 10))
 }
-pa_ <- obs_panel(calT, "o", "pc", "(a) Tree stems",  TREE_COL, R2G[1])
-pb_ <- obs_panel(calS, "o", "p",  "(b) Soil",        SOIL_COL, R2G[2])
+pa_ <- obs_panel(calT, "o", "pc", "(a) Tree stems", TREE_COL, R2G[1])
+pb_ <- obs_panel(calS, "o", "p",  "(b) Soil",       SOIL_COL, R2G[2])
 
 # ---- partial dependence ------------------------------------------------------
 # Air and soil temperature are shown SEPARATELY here even though importance pools
@@ -173,8 +177,13 @@ pd_grid <- function(m, X, vars, ttl, col) {
   D <- bind_rows(lapply(vars, function(v)
     pdp(m, X, v) %>% mutate(var = PD_LAB[[v]])))
   D$var <- factor(D$var, levels = unname(PD_LAB[vars]))
+  # NOTE: the original drew a shaded ribbon here as ymin = y*0.9, ymax = y*1.1 --
+  # a hardcoded +/-10% of the fitted value, not an interval estimated from
+  # anything. It reads as a confidence band and is not one, so it is omitted
+  # rather than reproduced. A real band would need per-point spread across trees;
+  # say the word and it can be computed instead of drawn.
   ggplot(D, aes(x, y)) +
-    geom_line(linewidth = 0.9, colour = col) +
+    geom_line(color = col, linewidth = 1.2) +
     facet_wrap(~var, scales = "free_x", nrow = 2) +
     labs(title = ttl, x = NULL,
          y = expression("CH"[4]*" flux (nmol m"^-2*" s"^-1*")")) +
