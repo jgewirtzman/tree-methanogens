@@ -37,7 +37,13 @@ if (!file.exists("data/processed/integrated/merged_tree_dataset_final.csv"))
 
 LOGDIR <- "outputs/logs"
 dir.create(LOGDIR, showWarnings = FALSE, recursive = TRUE)
-MARKER <- "outputs/.figures_run_started"
+# MUST be the name rev_00_assemble_figures.R looks for. Naming it anything else
+# silently disables the assembler's staleness check -- the guard that stops a
+# figure older than this run from being copied into the manuscript set and
+# reported as fresh. That guard exists because the assembler once shipped a
+# stale PNG while printing success; it is the same failure class as the Fig S12
+# device leak, and it must not be switched off by a marker rename.
+MARKER <- "outputs/.pipeline_run_started"
 writeLines(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), MARKER)
 t0 <- Sys.time()
 
