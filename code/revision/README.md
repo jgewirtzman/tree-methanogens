@@ -47,7 +47,7 @@ specific curated inputs were added there, alongside the existing files:
 ## Outputs
 - `outputs/revision/` — all generated figures, reports, tables (CSV/TXT/PNG).
 - `outputs/scratch/` — outputs of the exploratory scripts (incl. `explore_*.png`).
-- `outputs/figures/legacy/main/`, `.../SI/`, `.../photos/` — the numbered manuscript figure set
+- `outputs/figures/original/main/`, `.../SI/`, `.../photos/` — the numbered manuscript figure set
   (photos = field plates, e.g. cross-sections + chamber photos; separate from SI data figures).
 - Some assembled figures are original-pipeline figures (unchanged); run `generate_all_figures.R`
   first to populate them, else the assembler reports them MISSING.

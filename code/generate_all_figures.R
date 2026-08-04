@@ -8,8 +8,8 @@
 #   (must be run from the project root directory)
 #
 # Outputs:
-#   - outputs/figures/legacy/main/fig1-fig9
-#   - outputs/figures/legacy/supplementary/figS1-figS15
+#   - outputs/figures/original/main/fig1-fig9
+#   - outputs/figures/original/supplementary/figS1-figS15
 # ==============================================================================
 
 cat("============================================================\n")

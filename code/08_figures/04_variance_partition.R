@@ -359,7 +359,7 @@ cat(sprintf("Full additive model: %.1f%%\n", r2_full * 100))
 cat(sprintf("With interactions: %.1f%%\n", r2_interaction * 100))
 
 # Save plot
-ggsave("outputs/figures/legacy/main/fig3_variance_partitioning.png", plot = combined_plot, width = 10, height = 7, dpi = 300)
+ggsave("outputs/figures/original/main/fig3_variance_partitioning.png", plot = combined_plot, width = 10, height = 7, dpi = 300)
 
 
 

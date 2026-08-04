@@ -11,7 +11,7 @@
 #   - data/processed/integrated/merged_tree_dataset_final.csv
 #
 # Outputs:
-#   - outputs/figures/legacy/main/fig4_methanogen_methanotroph_abundance.png
+#   - outputs/figures/original/main/fig4_methanogen_methanotroph_abundance.png
 # ==============================================================================
 
 library(tidyverse)
@@ -64,7 +64,7 @@ combined_plot <- plot_grid(barplot_improved, scatterplot, ncol = 2,
 print(combined_plot)
 
 # Save combined figure
-ggsave("outputs/figures/legacy/main/fig4_methanogen_methanotroph_abundance.png",
+ggsave("outputs/figures/original/main/fig4_methanogen_methanotroph_abundance.png",
        combined_plot, width = 12, height = 7, dpi = 300)
 
 

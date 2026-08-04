@@ -29,9 +29,9 @@
 #   - data/raw/picrust/16S_tree_sample_table_with_meta.csv (metadata)
 #
 # Outputs:
-#   - outputs/figures/legacy/main/fig6_picrust_mcra_no_mcra_heatmap.png
-#   - outputs/figures/legacy/supplementary/figS4_picrust_mcra_all_heatmap.png
-#   - outputs/figures/legacy/supplementary/figS5_picrust_pmoa_heatmap.png
+#   - outputs/figures/original/main/fig6_picrust_mcra_no_mcra_heatmap.png
+#   - outputs/figures/original/supplementary/figS4_picrust_mcra_all_heatmap.png
+#   - outputs/figures/original/supplementary/figS5_picrust_pmoa_heatmap.png
 #
 # Required packages: tidyverse, pheatmap
 # ==============================================================================
@@ -254,7 +254,7 @@ make_pathway_heatmap(
   gene_col = "mcra_probe_loose",
   gene_label = "mcrA",
   ann_colors = ann_colors_mcra,
-  output_file = "outputs/figures/legacy/main/fig6_picrust_mcra_no_mcra_heatmap.png",
+  output_file = "outputs/figures/original/main/fig6_picrust_mcra_no_mcra_heatmap.png",
   fdr_threshold = 0.001,
   max_gene_contrib = 0.10,
   contrib_file = file.path(results_dir, "pathway_associations_combined.csv"),
@@ -273,7 +273,7 @@ make_pathway_heatmap(
   gene_col = "mcra_probe_loose",
   gene_label = "mcrA",
   ann_colors = ann_colors_mcra,
-  output_file = "outputs/figures/legacy/supplementary/figS4_picrust_mcra_all_heatmap.png",
+  output_file = "outputs/figures/original/supplementary/figS4_picrust_mcra_all_heatmap.png",
   fdr_threshold = 0.01,
   contrib_file = file.path(results_dir, "pathway_associations_combined.csv"),
   contrib_col = "mean_percent_from_mcra",
@@ -294,7 +294,7 @@ make_pathway_heatmap(
   gene_col = "pmoa_loose",
   gene_label = "pmoA",
   ann_colors = ann_colors_pmoa,
-  output_file = "outputs/figures/legacy/supplementary/figS5_picrust_pmoa_heatmap.png",
+  output_file = "outputs/figures/original/supplementary/figS5_picrust_pmoa_heatmap.png",
   fdr_threshold = 0.01,
   contrib_file = file.path(results_dir, "pathway_associations_pmoa_combined.csv"),
   contrib_col = "mean_percent_from_pmoa",
@@ -314,7 +314,7 @@ sig_mmox <- make_pathway_heatmap(
   gene_col = "mmox_loose",
   gene_label = "mmoX",
   ann_colors = ann_colors_mmox,
-  output_file = "outputs/figures/legacy/supplementary/picrust_mmox_heatmap.png",
+  output_file = "outputs/figures/original/supplementary/picrust_mmox_heatmap.png",
   fdr_threshold = 0.01,
   cellheight = 12,
   fontsize_row = 8
@@ -328,7 +328,7 @@ if (is.null(sig_mmox)) {
     gene_col = "mmox_loose",
     gene_label = "mmoX",
     ann_colors = ann_colors_mmox,
-    output_file = "outputs/figures/legacy/supplementary/picrust_mmox_heatmap.png",
+    output_file = "outputs/figures/original/supplementary/picrust_mmox_heatmap.png",
     fdr_threshold = 0.05,
     cellheight = 12,
     fontsize_row = 8

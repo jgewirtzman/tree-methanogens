@@ -14,7 +14,7 @@
 #   - tree_id_comprehensive_mapping.csv (from data/processed/tree_data/)
 #
 # Outputs:
-#   - outputs/figures/legacy/main/fig2_height_dependent_flux.png
+#   - outputs/figures/original/main/fig2_height_dependent_flux.png
 # ==============================================================================
 
 library(ggplot2)
@@ -473,7 +473,7 @@ combined_plot <- (p_top_gg / p_middle / p_bottom) +
 
 print(combined_plot)
 
-ggsave("outputs/figures/legacy/main/fig2_height_dependent_flux.png",
+ggsave("outputs/figures/original/main/fig2_height_dependent_flux.png",
        plot = combined_plot,
        width = 7, height = 7.5,
        units = "in", dpi = 300)
