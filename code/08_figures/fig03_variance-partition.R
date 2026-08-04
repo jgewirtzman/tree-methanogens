@@ -7,12 +7,37 @@
 # Pipeline stage: 4 — Publication Figures
 #
 # Inputs:
-#   - methanogen_tree_flux_complete_dataset.csv (from data/processed/flux/)
-#   - merged_tree_dataset_final.csv (from data/processed/integrated/)
+#   - data/compiled/flux_measurements_tree.csv (the merged measurement-level table)
+#
+# THREE CHANGES FROM THE PREVIOUS VERSION, all in the same direction: partition the
+# variance on the scale the data actually live on, and account for the fact that
+# measurements repeat within a stem.
+#
+# 1. RESPONSE IS TRANSFORMED. The previous version partitioned raw nmol, where the
+#    top 1% of measurements carry 80% of the total variance and the top 5% carry
+#    95%. That decomposition described about ten extreme fluxes, not the
+#    population, and reported ~83% unexplained as a result. Panel (a) was already
+#    drawn on an arcsinh axis for exactly this reason -- the figure displayed one
+#    scale and analysed another. Both are now arcsinh.
+#
+# 2. TREE IDENTITY IS A RANDOM EFFECT. 188 of 478 trees contribute more than one
+#    measurement (up to 13, across heights and dates), so treating rows as
+#    independent inflated the environment-by-species interaction. Fitting
+#    (1|tree_id) removes that and names the variance it was hiding.
+#
+# 3. ALL THREE CAMPAIGNS. The previous version took 2021 from the tree-level wide
+#    table at 125 cm, where the environmental columns are per-tree summaries, and
+#    omitted the 2020 monthly campaign entirely. Soil-temperature spread was 2.5
+#    against 4.0 in the measurement-level data, so environment was being tested on
+#    a fraction of its observed range. It is still weak with the full range, which
+#    is now a result rather than an artefact of the input.
+#
+# Partition is Nakagawa & Schielzeth marginal/conditional R2: marginal is the
+# fixed effects, conditional adds the tree random effect, the remainder is
+# within-stem residual.
 # ==============================================================================
 
-ymf2023<-read.csv("data/processed/flux/methanogen_tree_flux_complete_dataset.csv")
-ymf2021<-read.csv('data/processed/integrated/merged_tree_dataset_final.csv')
+flux_all <- read.csv("data/compiled/flux_measurements_tree.csv")
 
 library(ggplot2)
 library(ggridges)
@@ -22,6 +47,8 @@ library(broom)
 library(patchwork)
 library(viridis)
 library(car)
+library(lme4)
+library(lmerTest)
 
 # Species name mapping
 species_mapping <- c(
@@ -43,48 +70,30 @@ species_mapping <- c(
   "SAAL" = "Sassafras albidum"
 )
 
-# Prepare 2023 data
-data_2023 <- ymf2023 %>%
-  select(
-    Species.Code,
-    DBH = DBH..cm.,
+# ---- one measurement-level table, all three campaigns -----------------------
+# ASINH_SIGMA matches the axis transform panel (a) already uses, so the analysis
+# and the display are on the same scale.
+ASINH_SIGMA <- 0.1
+asinh_t <- function(x) asinh(x / ASINH_SIGMA)
+
+combined_data <- flux_all %>%
+  transmute(
+    tree_id,
+    Species.Code = species_code,
+    DBH      = dbh_m * 100,                  # m -> cm, as the old wide table held it
     Air_temp = air_temp_C,
-    Stem_temp = stem_temp_C,
-    Soil_temp = Soil.Temp....C.,
-    VWC = vwc_mean,
-    CH4_flux = CH4_best.flux
+    Soil_temp = soil_temp_C,
+    VWC      = soil_moisture_abs * 100,      # m3 m-3 -> %, as panel (a) labels it
+    CH4_flux = stem_flux_nmol_m2_s,
+    Year     = as.character(year)
   ) %>%
-  mutate(
-    Year = "2023",
-    Species_Latin = species_mapping[Species.Code]
-  ) %>%
-  drop_na(CH4_flux)
-
-# Prepare 2021 data - use only 125cm height
-data_2021 <- ymf2021 %>%
-  select(
-    Species.Code = species_id,
-    DBH = dbh,
-    Air_temp = Temp_Air_125cm,
-    Soil_temp = SoilTemp_mean,
-    VWC = VWC_mean,
-    CH4_flux = CH4_best.flux_125cm
-  ) %>%
-  mutate(
-    Year = "2021",
-    Species_Latin = species_mapping[Species.Code],
-    Stem_temp = NA
-  ) %>%
-  drop_na(CH4_flux) %>%
-  filter(!is.nan(CH4_flux))
-
-# Combine datasets
-combined_data <- bind_rows(data_2023, data_2021) %>%
+  mutate(Species_Latin = species_mapping[Species.Code]) %>%
   filter(!is.na(Species_Latin)) %>%
-  group_by(Species_Latin) %>%
-  filter(n() > 3) %>%
-  ungroup() %>%
-  mutate(Species_Latin = reorder(Species_Latin, CH4_flux, mean, na.rm = TRUE))
+  drop_na(CH4_flux, DBH, Air_temp, Soil_temp, VWC) %>%
+  filter(is.finite(CH4_flux)) %>%
+  group_by(Species_Latin) %>% filter(n() > 3) %>% ungroup() %>%
+  mutate(CH4_asinh = asinh_t(CH4_flux),
+         Species_Latin = reorder(Species_Latin, CH4_flux, mean, na.rm = TRUE))
 
 # Standardize environmental variables
 env_vars <- c("DBH", "Air_temp", "Stem_temp", "Soil_temp", "VWC")
@@ -108,24 +117,33 @@ cat("\n")
 # FIT ALL MODELS
 # ========================================
 
-# Simple models
-model_env_only <- lm(CH4_flux ~ DBH_std + Air_temp_std + Soil_temp_std + VWC_std, 
-                     data = combined_data)
-model_species_only <- lm(CH4_flux ~ Species_Latin, data = combined_data)
+# ---- mixed models: fixed effects + tree identity ----------------------------
+# Nakagawa & Schielzeth R2 computed directly (MuMIn is not a project dependency).
+# marginal = fixed effects; conditional = fixed + tree random effect.
+r2_nakagawa <- function(m) {
+  vf <- var(as.vector(model.matrix(m) %*% lme4::fixef(m)))
+  vr <- sum(as.numeric(lme4::VarCorr(m)))
+  ve <- attr(lme4::VarCorr(m), "sc")^2
+  c(marginal = vf / (vf + vr + ve), conditional = (vf + vr) / (vf + vr + ve))
+}
+.ctl <- lmerControl(check.conv.singular = "ignore")
 
-# Full additive model
-model_full <- lm(CH4_flux ~ DBH_std + Air_temp_std + Soil_temp_std + VWC_std + Species_Latin, 
-                 data = combined_data)
+model_env_only     <- lmer(CH4_asinh ~ DBH_std + Air_temp_std + Soil_temp_std + VWC_std + (1|tree_id),
+                           data = combined_data, REML = FALSE, control = .ctl)
+model_species_only <- lmer(CH4_asinh ~ Species_Latin + (1|tree_id),
+                           data = combined_data, REML = FALSE, control = .ctl)
+model_full         <- lmer(CH4_asinh ~ DBH_std + Air_temp_std + Soil_temp_std + VWC_std + Species_Latin + (1|tree_id),
+                           data = combined_data, REML = FALSE, control = .ctl)
+model_interaction  <- lmer(CH4_asinh ~ (DBH_std + Air_temp_std + Soil_temp_std + VWC_std) * Species_Latin + (1|tree_id),
+                           data = combined_data, REML = FALSE, control = .ctl)
 
-# Interaction model
-model_interaction <- lm(CH4_flux ~ (DBH_std + Air_temp_std + Soil_temp_std + VWC_std) * Species_Latin, 
-                        data = combined_data)
-
-# Get R-squared values
-r2_env <- summary(model_env_only)$r.squared
-r2_species <- summary(model_species_only)$r.squared
-r2_full <- summary(model_full)$r.squared
-r2_interaction <- summary(model_interaction)$r.squared
+R2 <- sapply(list(env = model_env_only, species = model_species_only,
+                  full = model_full, interaction = model_interaction), r2_nakagawa)
+r2_env         <- R2["marginal", "env"]
+r2_species     <- R2["marginal", "species"]
+r2_full        <- R2["marginal", "full"]
+r2_interaction <- R2["marginal", "interaction"]
+r2_conditional <- R2["conditional", "interaction"]
 
 # Get reference species
 ref_species <- levels(factor(combined_data$Species_Latin))[1]
@@ -135,13 +153,16 @@ ref_species <- levels(factor(combined_data$Species_Latin))[1]
 # ========================================
 
 variance_method2 <- data.frame(
-  Component = factor(c("Environment", "Species", "Env × Species\nInteraction", "Unexplained"),
-                     levels = c("Unexplained", "Env × Species\nInteraction", "Species", "Environment")),
+  Component = factor(c("Environment", "Species", "Env × Species\nInteraction",
+                       "Tree identity", "Unexplained"),
+                     levels = c("Unexplained", "Tree identity", "Env × Species\nInteraction",
+                                "Species", "Environment")),
   Variance = c(
-    max(0, r2_full - r2_species) * 100,      # Unique environment
-    max(0, r2_full - r2_env) * 100,          # Unique species  
-    max(0, r2_interaction - r2_full) * 100,  # Interaction
-    (1 - r2_interaction) * 100               # Unexplained
+    max(0, r2_full - r2_species) * 100,            # unique environment
+    max(0, r2_full - r2_env) * 100,                # unique species
+    max(0, r2_interaction - r2_full) * 100,        # interaction
+    max(0, r2_conditional - r2_interaction) * 100, # between-stem, beyond species and environment
+    (1 - r2_conditional) * 100                     # within-stem residual
   )
 )
 
@@ -149,20 +170,12 @@ variance_method2 <- data.frame(
 # VARIANCE PARTITIONING - METHOD 3
 # ========================================
 
-anova_type3 <- Anova(model_full, type = "III")
-ss_total <- sum(anova_type3$`Sum Sq`)
-ss_env <- sum(anova_type3$`Sum Sq`[grepl("DBH|Air_temp|Soil_temp|VWC", rownames(anova_type3))])
-ss_species <- anova_type3$`Sum Sq`[rownames(anova_type3) == "Species_Latin"]
-ss_residual <- anova_type3$`Sum Sq`[rownames(anova_type3) == "Residuals"]
-
+# Reported alongside the partition rather than plotted: the R2 ladder, so the
+# components in panel (b) can be traced back to the models they came from.
 variance_method3 <- data.frame(
-  Component = factor(c("Environment", "Species", "Unexplained"),
-                     levels = c("Unexplained", "Species", "Environment")),
-  Variance = c(
-    ss_env / ss_total * 100,
-    ss_species / ss_total * 100,
-    ss_residual / ss_total * 100
-  )
+  Model = c("environment only", "species only", "full additive",
+            "with interactions", "+ tree identity"),
+  R2_pct = round(100 * c(r2_env, r2_species, r2_full, r2_interaction, r2_conditional), 1)
 )
 
 # ========================================
@@ -170,7 +183,7 @@ variance_method3 <- data.frame(
 # ========================================
 
 # Extract coefficients for effects plot
-all_coef <- tidy(model_full, conf.int = TRUE) %>%
+all_coef <- broom.mixed::tidy(model_full, conf.int = TRUE, effects = "fixed") %>%
   filter(term != "(Intercept)")
 
 # Process environmental coefficients
@@ -310,7 +323,9 @@ p_effects <- ggplot(all_effects, aes(x = estimate, y = reorder(term_clean, estim
                      labels = c(expression(p >= 0.05), expression(p < 0.05)),
                      name = "Significance") +
   facet_grid(category ~ ., scales = "free_y", space = "free_y") +
-  labs(x = expression("Standardized effect size (nmol " * m^{-2} * " " * s^{-1} * ")"),
+  # Effects are on the arcsinh scale the models are fitted on, NOT nmol m-2 s-1.
+  # Labelling them in flux units would misstate them by the transform.
+  labs(x = expression("Standardized effect size (arcsinh CH"[4]*" flux)"),
        y = "") +
   theme_bw() +
   theme(
@@ -396,5 +411,7 @@ cat("Environment alone:", round(variance_method2$Variance[variance_method2$Compo
 
 # Total observations
 cat("\nTotal observations pooled:", nrow(combined_data), "\n")
-cat("From 2021:", sum(combined_data$Year == "2021"), "\n")
-cat("From 2023:", sum(combined_data$Year == "2023"), "\n")
+for (y in sort(unique(combined_data$Year)))
+  cat(sprintf("  from %s: %d\n", y, sum(combined_data$Year == y)))
+cat("  trees:", dplyr::n_distinct(combined_data$tree_id), "\n")
+cat("  tree identity:", round(variance_method2$Variance[variance_method2$Component == "Tree identity"], 1), "%\n")
