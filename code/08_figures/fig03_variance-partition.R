@@ -9,9 +9,9 @@
 # Inputs:
 #   - data/compiled/flux_measurements_tree.csv (the merged measurement-level table)
 #
-# THREE CHANGES FROM THE PREVIOUS VERSION, all in the same direction: partition the
-# variance on the scale the data actually live on, and account for the fact that
-# measurements repeat within a stem.
+# FOUR CHANGES FROM THE PREVIOUS VERSION, all in the same direction: partition the
+# variance on the scale the data actually live on, account for measurements
+# repeating within a stem, and hold the measurement height fixed.
 #
 # 1. RESPONSE IS TRANSFORMED. The previous version partitioned raw nmol, where the
 #    top 1% of measurements carry 80% of the total variance and the top 5% carry
@@ -25,12 +25,14 @@
 #    independent inflated the environment-by-species interaction. Fitting
 #    (1|tree_id) removes that and names the variance it was hiding.
 #
-# 3. ALL THREE CAMPAIGNS. The previous version took 2021 from the tree-level wide
-#    table at 125 cm, where the environmental columns are per-tree summaries, and
-#    omitted the 2020 monthly campaign entirely. Soil-temperature spread was 2.5
-#    against 4.0 in the measurement-level data, so environment was being tested on
-#    a fraction of its observed range. It is still weak with the full range, which
-#    is now a result rather than an artefact of the input.
+# 3. ALL THREE CAMPAIGNS, FROM MEASUREMENT-LEVEL DATA. The previous version took
+#    2021 from the tree-level wide table, where the environmental columns are
+#    per-tree summaries, and omitted the 2020 monthly campaign entirely.
+#    Soil-temperature spread was 2.5 against 4.0 in the measurement-level data, so
+#    environment was being tested on a fraction of its observed range. It is still
+#    weak with the full range, which makes that a result rather than an artefact.
+#
+# 4. BREAST HEIGHT ONLY, plus a chamber-design covariate -- see the data block.
 #
 # Partition is Nakagawa & Schielzeth marginal/conditional R2: marginal is the
 # fixed effects, conditional adds the tree random effect, the remainder is
@@ -76,7 +78,21 @@ species_mapping <- c(
 ASINH_SIGMA <- 0.1
 asinh_t <- function(x) asinh(x / ASINH_SIGMA)
 
+# BREAST HEIGHT ONLY. The measurement-level table mixes the 2021 multi-height
+# campaign (50 / 125 / 200 cm) with campaigns that recorded no height. Height is
+# Figure 2's subject, so including 50 and 200 cm here would put vertical structure
+# into a figure about species and environment, where -- since height is not a term
+# -- it would be absorbed by tree identity and the residual. The unlabelled rows
+# are the monthly and 2023 campaigns, measured at breast height (confirmed with
+# Jon); they are kept, and the 50 cm and 200 cm rows are dropped. This costs
+# little: the partition moves by 1-2 points either way.
+#
+# chamber_type is carried as a nuisance covariate. The campaigns differ ~6-fold in
+# median flux, so pooling designs is the obvious referee question; including the
+# term answers it, and it changes the partition by under a point, which says the
+# difference is between the trees measured rather than between chamber designs.
 combined_data <- flux_all %>%
+  filter(is.na(measurement_height_cm) | measurement_height_cm == 125) %>%
   transmute(
     tree_id,
     Species.Code = species_code,
@@ -85,11 +101,12 @@ combined_data <- flux_all %>%
     Soil_temp = soil_temp_C,
     VWC      = soil_moisture_abs * 100,      # m3 m-3 -> %, as panel (a) labels it
     CH4_flux = stem_flux_nmol_m2_s,
-    Year     = as.character(year)
+    Year     = as.character(year),
+    Chamber  = chamber_type
   ) %>%
   mutate(Species_Latin = species_mapping[Species.Code]) %>%
   filter(!is.na(Species_Latin)) %>%
-  drop_na(CH4_flux, DBH, Air_temp, Soil_temp, VWC) %>%
+  drop_na(CH4_flux, DBH, Air_temp, Soil_temp, VWC, Chamber) %>%
   filter(is.finite(CH4_flux)) %>%
   group_by(Species_Latin) %>% filter(n() > 3) %>% ungroup() %>%
   mutate(CH4_asinh = asinh_t(CH4_flux),
@@ -107,9 +124,13 @@ for(var in env_vars) {
 cat("========================================\n")
 cat("COMBINED DATASET SUMMARY\n")
 cat("========================================\n")
-cat(sprintf("Total observations: %d\n", nrow(combined_data)))
-cat(sprintf("2021 observations: %d\n", sum(combined_data$Year == "2021")))
-cat(sprintf("2023 observations: %d\n", sum(combined_data$Year == "2023")))
+cat(sprintf("Total observations: %d from %d trees\n",
+            nrow(combined_data), n_distinct(combined_data$tree_id)))
+for (y in sort(unique(combined_data$Year)))
+  cat(sprintf("  %s: %d\n", y, sum(combined_data$Year == y)))
+cat(sprintf("Chamber designs: %s\n",
+            paste(sprintf("%s=%d", names(table(combined_data$Chamber)),
+                          table(combined_data$Chamber)), collapse = "  ")))
 cat(sprintf("Number of species: %d\n", n_distinct(combined_data$Species_Latin)))
 cat("\n")
 
@@ -128,13 +149,13 @@ r2_nakagawa <- function(m) {
 }
 .ctl <- lmerControl(check.conv.singular = "ignore")
 
-model_env_only     <- lmer(CH4_asinh ~ DBH_std + Air_temp_std + Soil_temp_std + VWC_std + (1|tree_id),
+model_env_only     <- lmer(CH4_asinh ~ DBH_std + Air_temp_std + Soil_temp_std + VWC_std + Chamber + (1|tree_id),
                            data = combined_data, REML = FALSE, control = .ctl)
-model_species_only <- lmer(CH4_asinh ~ Species_Latin + (1|tree_id),
+model_species_only <- lmer(CH4_asinh ~ Species_Latin + Chamber + (1|tree_id),
                            data = combined_data, REML = FALSE, control = .ctl)
-model_full         <- lmer(CH4_asinh ~ DBH_std + Air_temp_std + Soil_temp_std + VWC_std + Species_Latin + (1|tree_id),
+model_full         <- lmer(CH4_asinh ~ DBH_std + Air_temp_std + Soil_temp_std + VWC_std + Species_Latin + Chamber + (1|tree_id),
                            data = combined_data, REML = FALSE, control = .ctl)
-model_interaction  <- lmer(CH4_asinh ~ (DBH_std + Air_temp_std + Soil_temp_std + VWC_std) * Species_Latin + (1|tree_id),
+model_interaction  <- lmer(CH4_asinh ~ (DBH_std + Air_temp_std + Soil_temp_std + VWC_std) * Species_Latin + Chamber + (1|tree_id),
                            data = combined_data, REML = FALSE, control = .ctl)
 
 R2 <- sapply(list(env = model_env_only, species = model_species_only,
