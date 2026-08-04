@@ -94,9 +94,39 @@ cat("\n== ORIGINAL-PIPELINE GENERATORS ==\n")
 for (p in names(ORIGINAL)) run_one(p, ORIGINAL[[p]])
 
 # --- 2) revision generators ---------------------------------------------------
-# Named, not globbed. A glob on "rev_fig" empties the moment the prefix is
-# retired, and the runner would still exit 0 -- see the de-glob of run_all.R.
-REVISION <- sort(list.files("code/08_figures", "^rev_fig.*\\.R$", full.names = TRUE))
+# NAMED, NOT GLOBBED. A glob on "^rev_fig" empties the moment that prefix is
+# retired, and this runner would still exit 0 having generated nothing --
+# the assembler would then copy the previous run's figures and report success.
+# The list below was generated from the glob and asserted set-identical to it.
+REVISION <- c(
+  "code/08_figures/rev_fig01_temporal-flux.R",
+  "code/08_figures/rev_fig02_height-flux.R",
+  "code/08_figures/rev_fig02a_axis-support.R",
+  "code/08_figures/rev_fig03_variance-partition.R",
+  "code/08_figures/rev_fig04_gene-abundance.R",
+  "code/08_figures/rev_fig05_methane-cycling.R",
+  "code/08_figures/rev_fig06_hydrogenotrophy.R",
+  "code/08_figures/rev_fig07_decay-methanogenesis.R",
+  "code/08_figures/rev_fig07b_copies-per-g.R",
+  "code/08_figures/rev_fig07c_flux-unit.R",
+  "code/08_figures/rev_fig09_budget.R",
+  "code/08_figures/rev_figS02_height-slope-moisture.R",
+  "code/08_figures/rev_figS04_pmoa-mmox-coupling.R",
+  "code/08_figures/rev_figS11_scale-dependent.R",
+  "code/08_figures/rev_figS12_isotope-sources.R",
+  "code/08_figures/rev_figS15_black-oak-methanome.R",
+  "code/08_figures/rev_figS17_plant-traits.R",
+  "code/08_figures/rev_figS19_mcra-probe-validation.R",
+  "code/08_figures/rev_figS20_stem-deterioration.R",
+  "code/08_figures/rev_figS21_rf-model-summary.R",
+  "code/08_figures/rev_figSI_detection.R",
+  "code/08_figures/rev_figS_black-oak-cross-sections.R",
+  "code/08_figures/rev_figS_rf-calibration.R",
+  "code/08_figures/rev_fig_height_curves.R",
+  "code/08_figures/rev_fig_scaling_diagnostics.R",
+  "code/08_figures/rev_fig_scaling_heatmap.R",
+  "code/08_figures/rev_fig_scaling_profiles.R")
+stopifnot(all(file.exists(REVISION)))
 cat(sprintf("\n== REVISION GENERATORS (%d) ==\n", length(REVISION)))
 for (p in REVISION) run_one(p, "revision")
 
