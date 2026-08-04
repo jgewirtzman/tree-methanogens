@@ -216,7 +216,14 @@ source("code/08_figures/rev_00_assemble_figures.R")
 SOURCED <- c("code/lib/rev_geometry.R",        # sourced by others, not run alone
              "code/lib/rev_species_levels.R",  # ditto -- the species->level mapping
              "code/lib/rev_prep_species_data.R")
-allR  <- list.files("code/revision", "\\.R$", full.names = TRUE)
+# Scans the whole live tree, not one directory. This used to read
+# list.files("code/revision", ...); the 2026-08 reorg emptied that directory of
+# scripts, so the reachability check silently matched nothing and reported a
+# clean bill on every run -- the exact failure it exists to catch, applied to
+# itself. archive/ is excluded by design; lib/ is covered by SOURCED below.
+allR <- setdiff(
+  list.files("code", "\\.R$", recursive = TRUE, full.names = TRUE),
+  list.files("code/archive", "\\.R$", recursive = TRUE, full.names = TRUE))
 never <- setdiff(allR, c(CORE, SUPPORT, rest, SOURCED,
                          "code/run_all.R",
                          "code/08_figures/rev_00_assemble_figures.R",
