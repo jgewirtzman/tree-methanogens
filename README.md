@@ -8,8 +8,8 @@ Analysis code and data processing pipeline for a study of methane fluxes from tr
 
 The project combines:
 
-- **Flux measurements** — 1,148 stem CH₄ flux measurements from 482 trees plus 276 soil measurements (2020–2023), using semi-rigid and rigid chambers with an LGR3 off-axis ICOS analyzer
-- **Molecular quantification** — ddPCR of *mcrA* (methanogens) and *pmoA*/*mmoX* (methanotrophs) from 564 wood and soil samples
+- **Flux measurements** — 1,200 stem CH₄ flux measurements from 500 trees plus 288 soil measurements (2020–2023), using semi-rigid and rigid chambers with an LGR3 off-axis ICOS analyzer
+- **Molecular quantification** — ddPCR of *mcrA* (methanogens) and *pmoA*/*mmoX* (methanotrophs) from 593 wood and soil samples
 - **Community characterization** — 16S rRNA amplicon sequencing, PICRUSt2, FAPROTAX
 - **Spatial scaling** — random forest models upscaling plot-level CH₄ flux across the forest inventory
 
