@@ -433,7 +433,7 @@ cat(sprintf("  -> Wrote methanotroph_definitions.csv (%d taxa)\n\n", nrow(methan
 # them, and each has exactly one producer (see the repo README).
 #
 # Copied verbatim rather than recomputed: the point is to archive precisely what
-# the manuscript quotes. rev_check_consistency.R asserts their mutual agreement.
+# the manuscript quotes. check_consistency.R asserts their mutual agreement.
 cat("--- 10b. Forest inventory (merged build + census attributes) ---\n")
 # One inventory: the 8,014-stem fg19 + bytag build, carrying the census-only
 # columns for the stems the 2019 census covered. bytag stems are NA in those

@@ -45,14 +45,14 @@ SOIL_YEAR <- rf_workflow_data$PLACEHOLDER_SOIL_YEAR
 # fg19-only: 7,010 stems with the entire 961-stem bytag survey missing, and unlocated
 # stems dropped. That is what made MONTHLY_FLUXES.csv / ANNUAL_SUMMARY.csv diverge from
 # the canonical budget by 38% (tree) and 29% (soil).
-local({ g <- "code/lib/rev_geometry.R"; if (!file.exists(g)) g <- "../../code/lib/rev_geometry.R"
+local({ g <- "code/lib/geometry.R"; if (!file.exists(g)) g <- "../../code/lib/geometry.R"
         source(g, local = FALSE)
-        sl <- "code/lib/rev_species_levels.R"; if (!file.exists(sl)) sl <- "../../code/lib/rev_species_levels.R"
+        sl <- "code/lib/species_levels.R"; if (!file.exists(sl)) sl <- "../../code/lib/species_levels.R"
         source(sl, local = FALSE) })
 INVENTORY <- canonical_inventory()
 # Column names the legacy block below expects. canonical_inventory() speaks the
 # inventory's own vocabulary (tag, PX, PY in plot-local metres); geo_transforms() is
-# the same lon/lat conversion rev_predict_tree_flux_current.R uses, so the two agree.
+# the same lon/lat conversion predict_tree_flux_current.R uses, so the two agree.
 INVENTORY$tree_id <- as.character(INVENTORY$tag)   # character, as everywhere else
 local({ ll <- geo_transforms()$fwd(INVENTORY$PX, INVENTORY$PY)
         INVENTORY$x <<- ll$lon; INVENTORY$y <<- ll$lat })
@@ -62,13 +62,13 @@ DRIVERS <- rf_workflow_data$PLACEHOLDER_DRIVERS
 TAXONOMY <- rf_workflow_data$PLACEHOLDER_TAXONOMY
 # CENSUSED STAND, not the nominal square. PLACEHOLDER_PLOT_AREA is 40,000 m2
 # (200 x 200); seven of the 100 ForestGEO quadrats were never censused, so the stand is
-# 37,200 m2 (rev_geometry.R, the single definition). Everything below that divides by
+# 37,200 m2 (geometry.R, the single definition). Everything below that divides by
 # this -- Phi_tree, A_soil, MONTHLY_FLUXES.csv, ANNUAL_SUMMARY.csv -- was 7.0% low:
 # annual_tree_mg_m2 came out 2.4999 against the canonical 3.7395.
 local({
-  g <- "code/lib/rev_geometry.R"
-  if (!file.exists(g)) g <- "../../code/lib/rev_geometry.R"
-  if (!file.exists(g)) stop("cannot find rev_geometry.R to get the stand area")
+  g <- "code/lib/geometry.R"
+  if (!file.exists(g)) g <- "../../code/lib/geometry.R"
+  if (!file.exists(g)) stop("cannot find geometry.R to get the stand area")
   source(g, local = FALSE)
 })
 PLOT_AREA <- STAND_AREA_M2
@@ -80,7 +80,7 @@ cat("Note: Using GPS coordinates throughout (x = longitude, y = latitude)\n")
 # =============================================================================
 
 # DBH repair removed. canonical_inventory() returns diameters already unit-checked and
-# typo-repaired by rev_inventory_build.R under ONE documented rule (shift the decimal
+# typo-repaired by inventory_build.R under ONE documented rule (shift the decimal
 # until the value is <= 100 cm), replacing this stack of species-specific thresholds
 # which over-corrected and used species == "..." rather than %in%, so the 41 stems with
 # species = NA fell through unpredictably. The n_dbh_corrected line that followed
@@ -735,7 +735,7 @@ build_features_tree <- function(df, drivers, Mhat_fn, SI_table, taxonomy, taxon_
   # This is a bias-variance choice and it was settled by repeated 5-fold CV over
   # observations, with the rare-species rows scored separately because an overall
   # RMSE is dominated by the abundant species and will always favour pooling
-  # (rev_rf_species_pooling.R):
+  # (rf_species_pooling.R):
   #
   #   scheme               RMSE all   RMSE rare   bias rare   ratio rare
   #   genus_then_pool       0.3110      0.1218      0.0245       1.23
@@ -763,7 +763,7 @@ build_features_tree <- function(df, drivers, Mhat_fn, SI_table, taxonomy, taxon_
   # heights -- now joins Quercus rather than being treated as unmeasured.
   #
   # For a species with NO records nothing works: leave-one-species-out gives
-  # negative R2 for every scheme (rev_rf_species_fallback_loso.R). That is a
+  # negative R2 for every scheme (rf_species_fallback_loso.R). That is a
   # stated limitation, not something to engineer around.
   # ---------------------------------------------------------------------------
   sp_raw <- as.character(df$species)
@@ -951,7 +951,7 @@ cat("  Species×moisture:", nrow(species_moisture_full), "rows,", ncol(species_m
 # on these data the two metrics give opposite answers (impurity called the soil model
 # a temperature model at 88% soil temp, permutation calls it a moisture model at 44%).
 # The models are still FIT with importance = "impurity" for continuity with the
-# stored objects; rev_fig_model_findings.R refits with permutation to report it.
+# stored objects; fig_model_findings.R refits with permutation to report it.
 # =============================================================================
 X_tree_species_first <- data.frame(
   species       = factor(tree_train_complete$species_clean),
@@ -1698,7 +1698,7 @@ diagnostics <- list(
     soil = sort(unique(soil_train_complete$month))
   ),
   training_chambers = as.list(table(tree_train_complete$chamber_type)),
-  dbh_corrections_applied = NA_integer_,  # repairs now happen in rev_inventory_build.R
+  dbh_corrections_applied = NA_integer_,  # repairs now happen in inventory_build.R
   coordinate_system = "GPS (x = longitude, y = latitude)"  # ADDED
 )
 
