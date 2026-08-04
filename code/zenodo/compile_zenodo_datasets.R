@@ -174,19 +174,19 @@ height_flux_clean <- height_flux %>%
     CH4_best_flux_nmol_m2_s = best.flux,
     CH4_model        = model,
     CH4_quality      = quality.check,
-    CH4_LM_flux      = LM.flux,
+    CH4_LM_flux_nmol_m2_s = LM.flux,
     CH4_LM_r2        = LM.r2,
     CH4_LM_pval      = LM.p.val,
-    CH4_LM_RMSE      = LM.RMSE,
-    CH4_LM_SE        = LM.SE,
-    CH4_HM_flux      = HM.flux,
+    CH4_LM_RMSE_ppm  = LM.RMSE,
+    CH4_LM_SE_nmol_m2_s = LM.SE,
+    CH4_HM_flux_nmol_m2_s = HM.flux,
     CH4_HM_r2        = HM.r2,
-    CH4_HM_RMSE      = HM.RMSE,
-    CH4_C0           = C0,
-    CH4_Ct           = Ct,
-    CH4_MDF          = MDF,
-    CH4_flux_term    = flux.term,
-    CH4_precision    = prec
+    CH4_HM_RMSE_ppm  = HM.RMSE,
+    CH4_C0_ppm       = C0,
+    CH4_Ct_ppm       = Ct,
+    CH4_MDF_nmol_m2_s = MDF,
+    CH4_flux_term_nmol_m2_s = flux.term,
+    CH4_precision_ppm = prec
   )
 write_csv(height_flux_clean, file.path(out_dir, "height_chamber_flux.csv"))
 cat(sprintf("  -> Wrote height_chamber_flux.csv (%d rows)\n\n", nrow(height_flux_clean)))
