@@ -69,10 +69,15 @@ run_one <- function(path, label) {
 }
 
 # --- 1) original-pipeline generators -----------------------------------------
+# 04_variance_partition.R is deliberately absent. It is the pre-revision Figure 3
+# -- raw-scale OLS on measurement rows, no growing-season restriction -- and the
+# assembler takes Figure 3 from fig03_variance-partition.R instead. Left in the
+# runner it regenerated outputs/figures/original/main/fig3_variance_partitioning.png
+# on every pass: a file that looks authoritative, is named like Figure 3, and
+# reports 82.9% unexplained against the current 65.3%. Archived.
 ORIGINAL <- c(
   "code/08_figures/06_soil_tree_timeseries.R"                  = "fig1",
   "code/02_flux/static/04_height_effect_analysis.R"            = "fig2",
-  "code/08_figures/04_variance_partition.R"                    = "fig3",
   "code/08_figures/util_combined_plot.R"                       = "fig4",
   "code/08_figures/08c_combined_methane_cycling_composition.R" = "fig5",
   "code/08_figures/12b_picrust_pathway_heatmap.R"              = "fig6",
