@@ -43,10 +43,11 @@
 # 4. BREAST HEIGHT ONLY, plus a chamber-design covariate -- see the data block.
 #
 # The three campaigns were designed around different axes -- 2020 across time,
-# 2021 across height, 2023 across species. Averaging to the tree is what lets them
-# be pooled for a question about species and environment: the monthly campaign
-# contributes a better-estimated mean per tree rather than repeated rows, and its
-# temporal axis stays the subject of Figure 1, as height stays that of Figure 2.
+# 2021 across height, 2023 across species. Averaging to the tree, within the
+# growing season, is what lets them be pooled for a question about species and
+# environment: the monthly campaign contributes a better-estimated growing-season
+# mean per tree rather than repeated rows, and its temporal axis stays the subject
+# of Figure 1, as height stays that of Figure 2.
 #
 # Partition is Nakagawa & Schielzeth marginal/conditional R2: marginal is the
 # fixed effects, conditional adds the tree random effect, the remainder is
@@ -105,8 +106,25 @@ asinh_t <- function(x) asinh(x / ASINH_SIGMA)
 # median flux, so pooling designs is the obvious referee question; including the
 # term answers it, and it changes the partition by under a point, which says the
 # difference is between the trees measured rather than between chamber designs.
+# GROWING SEASON ONLY (May-September). Averaging a tree's measurements assumes
+# they are comparable, and across the full year they are not: outside the growing
+# season median flux is 0.0019 against 0.0173 nmol m-2 s-1 inside it, roughly
+# ninefold. 411 of the 450 trees were measured only in the growing season, so
+# averaging over all months would drag down the means of the 39 monthly-survey
+# trees relative to everyone else -- a sampling artefact that would read as a
+# tree-level difference. Restricting first makes the means comparable.
+#
+# It costs nothing structural: all 446 trees and all 13 species are retained, only
+# 95 of 726 measurements are dropped, and the partition moves by about 0.2 points.
+# It also costs no environmental range, because the range this figure uses is
+# BETWEEN trees standing in different parts of the moisture and temperature
+# gradient, not within a tree across the year: soil-temperature SD 2.77 -> 2.49,
+# VWC SD 10.28 -> 10.29. The seasonal axis belongs to Figure 1.
+GROWING_SEASON <- 5:9
+
 combined_data <- flux_all %>%
-  filter(is.na(measurement_height_cm) | measurement_height_cm == 125) %>%
+  filter(is.na(measurement_height_cm) | measurement_height_cm == 125,
+         month %in% GROWING_SEASON) %>%
   transmute(
     tree_id,
     Species.Code = species_code,
