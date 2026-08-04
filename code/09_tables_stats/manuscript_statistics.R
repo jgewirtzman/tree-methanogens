@@ -123,7 +123,7 @@ CANON <- local({
   f <- "outputs/data/canonical_budget.csv"
   if (!file.exists(f))
     stop("manuscript_statistics.R needs ", f,
-         " -- run code/06_upscale/rev_budget_canonical.R first")
+         " -- run code/06_upscale/budget_canonical.R first")
   b <- read.csv(f, stringsAsFactors = FALSE)
   setNames(b$value, b$quantity)
 })
@@ -1495,12 +1495,12 @@ record("plot_offset_pct", offset_pct)
 # is per m2 of woody surface per m2 of ground -- the two are not composable that way,
 # and the error was recorded as open in code/revision/notes/STATUS.md. The scaling is
 # now a 240-combination grid (6 flux forms x 5 WAI x 4 branch x 2 bole) produced by
-# rev_scaling_full_grid.R, which holds the measured 0-2 m band fixed and lets only the
+# scaling_full_grid.R, which holds the measured 0-2 m band fixed and lets only the
 # area above 2 m absorb the WAI choice. Quote the RANGE; the named cell is one of 240.
 local({
   f <- "outputs/data/scaling_full_grid.csv"; h <- "outputs/data/scaling_headline.csv"
   if (!file.exists(f) || !file.exists(h)) {
-    cat("  [scaling grid absent -- run code/06_upscale/rev_scaling_full_grid.R]\n"); return(invisible())
+    cat("  [scaling grid absent -- run code/06_upscale/scaling_full_grid.R]\n"); return(invisible())
   }
   G <- read.csv(f, stringsAsFactors = FALSE); H <- read.csv(h, stringsAsFactors = FALSE)
   stat("Whole-surface range, all 240 combinations",

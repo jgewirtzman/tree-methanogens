@@ -37,7 +37,7 @@ if (!file.exists("data/processed/integrated/merged_tree_dataset_final.csv"))
 
 LOGDIR <- "outputs/logs"
 dir.create(LOGDIR, showWarnings = FALSE, recursive = TRUE)
-# MUST be the name rev_00_assemble_figures.R looks for. Naming it anything else
+# MUST be the name 00_assemble_figures.R looks for. Naming it anything else
 # silently disables the assembler's staleness check -- the guard that stops a
 # figure older than this run from being copied into the manuscript set and
 # reported as fresh. That guard exists because the assembler once shipped a
@@ -99,40 +99,40 @@ for (p in names(ORIGINAL)) run_one(p, ORIGINAL[[p]])
 # the assembler would then copy the previous run's figures and report success.
 # The list below was generated from the glob and asserted set-identical to it.
 REVISION <- c(
-  "code/08_figures/rev_fig01_temporal-flux.R",
-  "code/08_figures/rev_fig02_height-flux.R",
-  "code/08_figures/rev_fig02a_axis-support.R",
-  "code/08_figures/rev_fig03_variance-partition.R",
-  "code/08_figures/rev_fig04_gene-abundance.R",
-  "code/08_figures/rev_fig05_methane-cycling.R",
-  "code/08_figures/rev_fig06_hydrogenotrophy.R",
-  "code/08_figures/rev_fig07_decay-methanogenesis.R",
-  "code/08_figures/rev_fig07b_copies-per-g.R",
-  "code/08_figures/rev_fig07c_flux-unit.R",
-  "code/08_figures/rev_fig09_budget.R",
-  "code/08_figures/rev_figS02_height-slope-moisture.R",
-  "code/08_figures/rev_figS04_pmoa-mmox-coupling.R",
-  "code/08_figures/rev_figS11_scale-dependent.R",
-  "code/08_figures/rev_figS12_isotope-sources.R",
-  "code/08_figures/rev_figS15_black-oak-methanome.R",
-  "code/08_figures/rev_figS17_plant-traits.R",
-  "code/08_figures/rev_figS19_mcra-probe-validation.R",
-  "code/08_figures/rev_figS20_stem-deterioration.R",
-  "code/08_figures/rev_figS21_rf-model-summary.R",
-  "code/08_figures/rev_figSI_detection.R",
-  "code/08_figures/rev_figS_black-oak-cross-sections.R",
-  "code/08_figures/rev_figS_rf-calibration.R",
-  "code/08_figures/rev_fig_height_curves.R",
-  "code/08_figures/rev_fig_scaling_diagnostics.R",
-  "code/08_figures/rev_fig_scaling_heatmap.R",
-  "code/08_figures/rev_fig_scaling_profiles.R")
+  "code/08_figures/fig01_temporal-flux.R",
+  "code/08_figures/fig02_height-flux.R",
+  "code/08_figures/fig02a_axis-support.R",
+  "code/08_figures/fig03_variance-partition.R",
+  "code/08_figures/fig04_gene-abundance.R",
+  "code/08_figures/fig05_methane-cycling.R",
+  "code/08_figures/fig06_hydrogenotrophy.R",
+  "code/08_figures/fig07_decay-methanogenesis.R",
+  "code/08_figures/fig07b_copies-per-g.R",
+  "code/08_figures/fig07c_flux-unit.R",
+  "code/08_figures/fig09_budget.R",
+  "code/08_figures/figS02_height-slope-moisture.R",
+  "code/08_figures/figS04_pmoa-mmox-coupling.R",
+  "code/08_figures/figS11_scale-dependent.R",
+  "code/08_figures/figS12_isotope-sources.R",
+  "code/08_figures/figS15_black-oak-methanome.R",
+  "code/08_figures/figS17_plant-traits.R",
+  "code/08_figures/figS19_mcra-probe-validation.R",
+  "code/08_figures/figS20_stem-deterioration.R",
+  "code/08_figures/figS21_rf-model-summary.R",
+  "code/08_figures/figSI_detection.R",
+  "code/08_figures/figS_black-oak-cross-sections.R",
+  "code/08_figures/figS_rf-calibration.R",
+  "code/08_figures/fig_height_curves.R",
+  "code/08_figures/fig_scaling_diagnostics.R",
+  "code/08_figures/fig_scaling_heatmap.R",
+  "code/08_figures/fig_scaling_profiles.R")
 stopifnot(all(file.exists(REVISION)))
 cat(sprintf("\n== REVISION GENERATORS (%d) ==\n", length(REVISION)))
 for (p in REVISION) run_one(p, "revision")
 
 # --- 3) assemble --------------------------------------------------------------
 cat("\n== ASSEMBLE ==\n")
-run_one("code/08_figures/rev_00_assemble_figures.R", "assemble")
+run_one("code/08_figures/00_assemble_figures.R", "assemble")
 
 # --- 4) report ----------------------------------------------------------------
 st  <- vapply(results, function(r) r$status, character(1))

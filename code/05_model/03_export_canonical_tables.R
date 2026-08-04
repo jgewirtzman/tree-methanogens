@@ -11,7 +11,7 @@
 #
 # That merged table existed only inside outputs/models/TRAINING_DATA.RData, so
 # every other consumer rebuilt its own version from the component files:
-# rev_stat_campaign_counts.R reads five, 04_variance_partition.R reads two and
+# stat_campaign_counts.R reads five, 04_variance_partition.R reads two and
 # covers 2023 only, and the Zenodo archive was compiled from a different subset
 # again -- it carried the 2020-2021 semi-rigid and 2023 campaigns but not the
 # 2021 rigid one, so 328 of the 1,130 measurements the model uses had no

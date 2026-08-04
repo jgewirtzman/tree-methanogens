@@ -22,17 +22,17 @@ to `outputs/figures/` (originals) and `outputs/revision/`.
 ```
 code/revision/
 ├── run_all.R                  # one-command reproduce (globs rev_stat_*/rev_fig*)
-├── rev_00_assemble_figures.R  # copies finals -> outputs/figures/{main,SI,photos}/ (numbered)
-├── rev_prep_species_data.R    # shared, side-effect-free species-level data prep (sourced)
+├── 00_assemble_figures.R  # copies finals -> outputs/figures/{main,SI,photos}/ (numbered)
+├── prep_species_data.R    # shared, side-effect-free species-level data prep (sourced)
 ├── rev_fig01_*.R … rev_fig09_*.R    # main-figure generators (by manuscript number)
 │     rev_fig06_hydrogenotrophy      #   NEW synthesis main fig
 │     rev_fig07_decay-methanogenesis #   NEW expanded Fig 7 (decay + fungi + felled-oak; replaces felled-oak-only)
 ├── rev_figS02/04/11/12/15/17/19/20/21_*.R   # SI-figure generators
 │     rev_figS19 probe validation · rev_figS20 stem deterioration · rev_figS21 ddPCR-16S concordance  # NEW
-├── rev_figS_black-oak-cross-sections.R      # NEW felled-oak cross-section photo plate (-> photos/)
+├── figS_black-oak-cross-sections.R      # NEW felled-oak cross-section photo plate (-> photos/)
 ├── rev_fig02a/07b/07c_*.R     # supporting panel scripts
 ├── rev_stat_*.R               # final analyses / tables (campaign counts, RMA, multigene, isotopes, …)
-├── rev_bo-funguild-saprotroph.R  # exploratory FUNGuild on felled-oak ITS (not wired into a figure)
+├── bo-funguild-saprotroph.R  # exploratory FUNGuild on felled-oak ITS (not wired into a figure)
 ├── exploratory/               # superseded / provenance scripts (NOT run by run_all)
 └── notes/                     # REVISION_INVENTORY.md, response-to-referees, captions, findings, planning
 ```

@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 # ==============================================================================
-# rev_check_consistency.R   --   fast invariant check over the canonical outputs
+# check_consistency.R   --   fast invariant check over the canonical outputs
 # ------------------------------------------------------------------------------
 # run_all.R takes ~40 minutes and is the only end-to-end check the repo has, which
 # means in practice it does not get run and inconsistencies survive. This script
@@ -15,7 +15,7 @@
 #
 #   Rscript code/check_consistency.R
 # ==============================================================================
-source("code/lib/rev_geometry.R")
+source("code/lib/geometry.R")
 
 FAILS <- 0L
 chk <- function(label, ok, detail = "") {
@@ -43,7 +43,7 @@ CONV <- SEC_YR * NMOL_TO_MG
 cat("\n== geometry ==\n")
 chk("stand = nominal - gap", near(v("stand_area_m2"), v("plot_nominal_area_m2") - v("notch_area_m2")),
     sprintf("%.0f = %.0f - %.0f", v("stand_area_m2"), v("plot_nominal_area_m2"), v("notch_area_m2")))
-chk("budget stand area == rev_geometry.R", near(v("stand_area_m2"), STAND_AREA_M2),
+chk("budget stand area == geometry.R", near(v("stand_area_m2"), STAND_AREA_M2),
     sprintf("%.0f vs %.0f", v("stand_area_m2"), STAND_AREA_M2))
 chk("soil area = stand - basal area", near(v("soil_area_m2"), v("stand_area_m2") - v("basal_area_m2")),
     sprintf("%.3f", v("soil_area_m2")))
@@ -78,7 +78,7 @@ chk("net = tree + soil", near(v("tree_measured_mg_m2_yr") + v("soil_mg_m2_yr"), 
 # The MONTHLY series must be on the same basis as the annual scalars. It was not: the
 # soil-fraction rescaling was applied to the annual term only, so canonical_monthly.csv
 # stayed per-m2-of-soil while the tree column beside it was per-m2-of-ground, and
-# rev_fig09_budget.R plots that series labelled "per sq.m ground". 0.45%, and invisible
+# fig09_budget.R plots that series labelled "per sq.m ground". 0.45%, and invisible
 # to every other check here, which is why this one exists.
 MON <- rd("outputs/data/canonical_monthly.csv")
 if (!is.null(MON)) {
