@@ -1,0 +1,320 @@
+dataset,column,type,unit,description
+black_oak_experiment.csv,CH4_LM_flux,numeric,nmol m-2 s-1,Linear model CH4 flux
+black_oak_experiment.csv,CH4_LM_r2,numeric,NA,Linear model R-squared
+black_oak_experiment.csv,CH4_best_flux_nmol_m2_s,numeric,nmol m-2 s-1,Best-fit CH4 flux
+black_oak_experiment.csv,CH4_model,character,NA,Selected model
+black_oak_experiment.csv,CH4_quality,character,NA,Quality flag
+black_oak_experiment.csv,CO2_best_flux_nmol_m2_s,numeric,nmol m-2 s-1,Best-fit CO2 flux
+black_oak_experiment.csv,CO2_model,character,NA,Selected CO2 model
+black_oak_experiment.csv,CO2_quality,character,NA,Quality flag
+black_oak_experiment.csv,air_temp_C,numeric,C,Air temperature
+black_oak_experiment.csv,chamber,character,NA,Chamber identifier
+black_oak_experiment.csv,height_m,numeric,m,Measurement height on stem
+black_oak_experiment.csv,notes,character,NA,Field notes
+black_oak_experiment.csv,obs_length_s,numeric,s,Observation length
+black_oak_experiment.csv,stem_diam_mm,numeric,mm,Stem diameter at measurement point
+black_oak_experiment.csv,stem_temp_C,numeric,C,Stem temperature
+black_oak_experiment.csv,unique_id,character,NA,Measurement identifier
+black_oak_its_load.csv,ITS_copies_uL,numeric,copies uL-1,ITS copy concentration in the extract
+black_oak_its_load.csv,material,character,NA,Tissue type (heartwood / sapwood)
+black_oak_its_load.csv,sample_id,character,NA,Sample identifier
+ddpcr_gene_abundances.csv,accepted_droplets,integer,NA,Number of accepted droplets in partition
+ddpcr_gene_abundances.csv,analysis_type,character,NA,Analysis classification (loose/strict threshold)
+ddpcr_gene_abundances.csv,concentration_copies_per_uL,numeric,copies/uL,Gene concentration
+ddpcr_gene_abundances.csv,copies_per_20uL_well,numeric,copies/well,Copies per 20 uL reaction well
+ddpcr_gene_abundances.csv,core_type,character,NA,Core type
+ddpcr_gene_abundances.csv,extraction_plate,character,NA,DNA extraction plate identifier
+ddpcr_gene_abundances.csv,material,character,NA,"Sample material (inner bark, outer bark, mineral soil, organic soil)"
+ddpcr_gene_abundances.csv,negatives,integer,NA,Number of negative droplets
+ddpcr_gene_abundances.csv,plate_id,character,NA,ddPCR plate identifier
+ddpcr_gene_abundances.csv,positives,integer,NA,Number of positive droplets
+ddpcr_gene_abundances.csv,sample_id,character,NA,Inner core sample identifier
+ddpcr_gene_abundances.csv,sample_mass_mg,numeric,mg,Sample mass added to extraction tube
+ddpcr_gene_abundances.csv,species,character,NA,Tree species
+ddpcr_gene_abundances.csv,status,character,NA,QC status
+ddpcr_gene_abundances.csv,target_gene,character,NA,"Target gene: mcrA, pmoA, mmoxY, 16S_arc, 16S_bact, mcrA_probe"
+environmental_timeseries.csv,ET_ref,numeric,mm,Reference evapotranspiration
+environmental_timeseries.csv,air_temp_C,numeric,C,Instantaneous air temperature
+environmental_timeseries.csv,air_temp_avg_C,numeric,C,Average air temperature
+environmental_timeseries.csv,air_temp_max_C,numeric,C,Maximum air temperature
+environmental_timeseries.csv,air_temp_min_C,numeric,C,Minimum air temperature
+environmental_timeseries.csv,day,integer,NA,Date/time components
+environmental_timeseries.csv,dewpoint_C,numeric,C,Dew point temperature
+environmental_timeseries.csv,hour,integer,NA,Date/time components
+environmental_timeseries.csv,month,integer,NA,Date/time components
+environmental_timeseries.csv,precip_mm,numeric,mm,Total precipitation
+environmental_timeseries.csv,relative_humidity_pct,numeric,%,Relative humidity
+environmental_timeseries.csv,soil_temp_avg_C,numeric,C,Average soil temperature
+environmental_timeseries.csv,solar_rad_avg_kW,numeric,kW/m2,Average solar radiation
+environmental_timeseries.csv,solar_rad_total_MJ,numeric,MJ/m2,Total solar radiation
+environmental_timeseries.csv,timestamp,datetime,NA,Measurement timestamp
+environmental_timeseries.csv,vwc,numeric,m3/m3,Instantaneous volumetric water content
+environmental_timeseries.csv,vwc_avg,numeric,m3/m3,Average volumetric water content
+environmental_timeseries.csv,wind_dir_deg,numeric,degrees,Wind direction
+environmental_timeseries.csv,wind_speed_avg_ms,numeric,m/s,Average wind speed
+environmental_timeseries.csv,wind_speed_max_ms,numeric,m/s,Maximum wind speed
+environmental_timeseries.csv,year,integer,NA,Date/time components
+flux_measurements_soil.csv,Date,date,YYYY-MM-DD,Measurement date
+flux_measurements_soil.csv,SI,numeric,NA,Engineered seasonality index (model feature)
+flux_measurements_soil.csv,air_temp_C,numeric,C,Air temperature at the time of measurement
+flux_measurements_soil.csv,air_temp_C_mean,numeric,C,Monthly mean air temperature (model driver)
+flux_measurements_soil.csv,moisture_x_airT,numeric,NA,Moisture x air-temperature interaction (model feature)
+flux_measurements_soil.csv,moisture_x_soilT,numeric,NA,Moisture x soil-temperature interaction (model feature)
+flux_measurements_soil.csv,month,integer,NA,Calendar month
+flux_measurements_soil.csv,month_cos,numeric,NA,Cosine of month angle (model feature)
+flux_measurements_soil.csv,month_sin,numeric,NA,Sine of month angle (model feature)
+flux_measurements_soil.csv,site_id,character,NA,Soil collar identifier
+flux_measurements_soil.csv,soil_flux_nmol_m2_s,numeric,nmol m-2 s-1,Soil CH4 flux per m2 of ground; negative values are uptake
+flux_measurements_soil.csv,soil_moisture_abs,numeric,m3 m-3,Volumetric soil moisture at the measurement location
+flux_measurements_soil.csv,soil_moisture_at_site,numeric,m3 m-3,Interpolated soil moisture at the collar (model predictor)
+flux_measurements_soil.csv,soil_temp_C,numeric,C,Soil temperature at the time of measurement
+flux_measurements_soil.csv,soil_temp_C_mean,numeric,C,Monthly mean soil temperature (model driver)
+flux_measurements_soil.csv,x,numeric,m,Plot-local easting
+flux_measurements_soil.csv,y,numeric,m,Plot-local northing
+flux_measurements_soil.csv,year,integer,NA,Calendar year
+flux_measurements_tree.csv,Date,date,YYYY-MM-DD,Measurement date
+flux_measurements_tree.csv,SI,numeric,NA,Engineered seasonality index (model feature)
+flux_measurements_tree.csv,air_temp_C,numeric,C,Air temperature at the time of measurement
+flux_measurements_tree.csv,air_temp_C_mean,numeric,C,Monthly mean air temperature (model driver)
+flux_measurements_tree.csv,chamber_rigid,integer,NA,Indicator for rigid chamber (model feature)
+flux_measurements_tree.csv,chamber_semirigid,integer,NA,Indicator for semi-rigid chamber (model feature)
+flux_measurements_tree.csv,chamber_type,character,NA,rigid or semirigid
+flux_measurements_tree.csv,dbh_m,numeric,m,Diameter at breast height
+flux_measurements_tree.csv,dbh_within_z,numeric,NA,Within-species DBH z-score (engineered feature; not a predictor of the fitted model)
+flux_measurements_tree.csv,family,character,NA,Family
+flux_measurements_tree.csv,genus,character,NA,Genus
+flux_measurements_tree.csv,measurement_height_cm,numeric,cm,Height on the stem of the chamber
+flux_measurements_tree.csv,month,integer,NA,Calendar month
+flux_measurements_tree.csv,month_cos,numeric,NA,Cosine of month angle (model feature)
+flux_measurements_tree.csv,month_sin,numeric,NA,Sine of month angle (model feature)
+flux_measurements_tree.csv,soil_moisture_abs,numeric,m3 m-3,Volumetric soil moisture at the measurement location
+flux_measurements_tree.csv,soil_moisture_at_tree,numeric,m3 m-3,Interpolated soil moisture at the tree (model predictor)
+flux_measurements_tree.csv,soil_temp_C,numeric,C,Soil temperature at the time of measurement
+flux_measurements_tree.csv,soil_temp_C_mean,numeric,C,Monthly mean soil temperature (model driver)
+flux_measurements_tree.csv,species,character,NA,Species name
+flux_measurements_tree.csv,species_clean,character,NA,Species name harmonised to the model levels
+flux_measurements_tree.csv,species_code,character,NA,Four-letter species code
+flux_measurements_tree.csv,species_factor,factor,NA,Species as a model factor
+flux_measurements_tree.csv,stem_flux_corrected,numeric,nmol m-2 s-1,Chamber-corrected stem flux; the response the model is fitted on
+flux_measurements_tree.csv,stem_flux_nmol_m2_s,numeric,nmol m-2 s-1,Stem CH4 flux per m2 of bark; the model response before calibration
+flux_measurements_tree.csv,taxon_prior_asinh,numeric,NA,arcsinh taxon prior (engineered feature; not a predictor of the fitted model)
+flux_measurements_tree.csv,tree_id,character,NA,Tree identifier
+flux_measurements_tree.csv,x,numeric,m,Plot-local easting
+flux_measurements_tree.csv,y,numeric,m,Plot-local northing
+flux_measurements_tree.csv,year,integer,NA,Calendar year
+flux_measurements_tree.csv,z,numeric,nmol m-2 s-1,Working response column used during model assembly
+flux_measurements_tree.csv,z_corr,numeric,nmol m-2 s-1,Response after chamber correction
+flux_measurements_tree.csv,z_raw,numeric,nmol m-2 s-1,Response before chamber correction
+forest_inventory_census_fg19.csv,codes,character,NA,Census condition codes
+forest_inventory_census_fg19.csv,dbh_mm,numeric,mm,Diameter at breast height
+forest_inventory_census_fg19.csv,latitude,numeric,degrees,WGS84 latitude
+forest_inventory_census_fg19.csv,longitude,numeric,degrees,WGS84 longitude
+forest_inventory_census_fg19.csv,notes,character,NA,Census field notes
+forest_inventory_census_fg19.csv,pom,numeric,m,Point of measurement height on the stem
+forest_inventory_census_fg19.csv,quadrat,integer,NA,20 x 20 m census quadrat number
+forest_inventory_census_fg19.csv,secondary,character,NA,Secondary census annotation
+forest_inventory_census_fg19.csv,section_id,character,NA,ForestGEO section identifier
+forest_inventory_census_fg19.csv,species_code,character,NA,Four-letter species code
+forest_inventory_census_fg19.csv,status,character,NA,"Census status code (LI = live, etc.)"
+forest_inventory_census_fg19.csv,stem_tag,character,NA,Stem identifier within a multi-stemmed tree
+forest_inventory_census_fg19.csv,sub_quadrat,character,NA,5 x 5 m subquadrat within the quadrat
+forest_inventory_census_fg19.csv,tag,character,NA,ForestGEO tree tag
+forest_inventory_census_fg19.csv,x_m,numeric,m,Plot-local easting
+forest_inventory_census_fg19.csv,y_m,numeric,m,Plot-local northing
+forest_inventory_stems.csv,PX,numeric,m,Plot-local easting
+forest_inventory_stems.csv,PY,numeric,m,Plot-local northing
+forest_inventory_stems.csv,basal_area_m2,numeric,m2,Stem basal area
+forest_inventory_stems.csv,dbh_cm,numeric,cm,Diameter after shift correction
+forest_inventory_stems.csv,dbh_cm_raw,numeric,cm,"Diameter as recorded, before shift correction"
+forest_inventory_stems.csv,dbh_m,numeric,m,Diameter in metres
+forest_inventory_stems.csv,dbh_shifts,integer,count,Number of point-of-measurement shifts applied
+forest_inventory_stems.csv,in_notch,logical,NA,Stem falls in the uncensused notch
+forest_inventory_stems.csv,in_square,logical,NA,Stem falls in the nominal 200 x 200 m square
+forest_inventory_stems.csv,in_stand,logical,NA,"Stem is in the censused stand (the 37,200 m2 basis for the budget)"
+forest_inventory_stems.csv,located,logical,NA,Stem has plot coordinates
+forest_inventory_stems.csv,source,character,NA,Census source: fg19 (2019 ForestGEO) or bytag (supplementary by-tag survey)
+forest_inventory_stems.csv,species,character,NA,Species name
+forest_inventory_stems.csv,species_code,character,NA,Four-letter species code
+forest_inventory_stems.csv,stem,character,NA,Stem identifier within the tree
+forest_inventory_stems.csv,tag,character,NA,ForestGEO tree tag
+height_chamber_flux.csv,CH4_C0_ppm,numeric,ppm,Initial chamber CH4 concentration
+height_chamber_flux.csv,CH4_Ct_ppm,numeric,ppm,Final chamber CH4 concentration
+height_chamber_flux.csv,CH4_HM_RMSE_ppm,numeric,ppm,Hutchinson-Mosier residual RMSE
+height_chamber_flux.csv,CH4_HM_flux_nmol_m2_s,numeric,nmol m-2 s-1,Hutchinson-Mosier flux
+height_chamber_flux.csv,CH4_HM_r2,numeric,NA,Hutchinson-Mosier R-squared
+height_chamber_flux.csv,CH4_LM_RMSE_ppm,numeric,ppm,Linear-model residual RMSE
+height_chamber_flux.csv,CH4_LM_SE_nmol_m2_s,numeric,nmol m-2 s-1,Linear-model flux standard error
+height_chamber_flux.csv,CH4_LM_flux_nmol_m2_s,numeric,nmol m-2 s-1,Linear-model flux
+height_chamber_flux.csv,CH4_LM_pval,numeric,NA,Linear-model p-value
+height_chamber_flux.csv,CH4_LM_r2,numeric,NA,Linear-model R-squared
+height_chamber_flux.csv,CH4_MDF_nmol_m2_s,numeric,nmol m-2 s-1,Minimum detectable flux
+height_chamber_flux.csv,CH4_best_flux_nmol_m2_s,numeric,nmol m-2 s-1,Best-fit CH4 flux (goFlux model selection)
+height_chamber_flux.csv,CH4_flux_term_nmol_m2_s,numeric,nmol m-2 s-1,Flux conversion term
+height_chamber_flux.csv,CH4_model,character,NA,Selected model: LM or HM
+height_chamber_flux.csv,CH4_precision_ppm,numeric,ppm,Analyzer precision
+height_chamber_flux.csv,CH4_quality,character,NA,goFlux quality flag
+height_chamber_flux.csv,chamber_area_m2,numeric,m2,Chamber surface area
+height_chamber_flux.csv,chamber_id,character,NA,Chamber identifier
+height_chamber_flux.csv,chamber_press_kPa,numeric,kPa,Chamber pressure
+height_chamber_flux.csv,chamber_temp_C,numeric,C,Chamber air temperature
+height_chamber_flux.csv,chamber_vol_L,numeric,L,Total system volume
+height_chamber_flux.csv,measurement_height_raw,character,NA,Field height label; mixes numeric heights in cm with categories such as Root Crown
+height_chamber_flux.csv,nb_obs,integer,count,Number of analyzer observations in the fit
+height_chamber_flux.csv,obs_length_s,numeric,s,Observation length
+height_chamber_flux.csv,plot,character,NA,Plot identifier
+height_chamber_flux.csv,species,character,NA,Species name
+height_chamber_flux.csv,start_time,datetime,NA,Measurement start time
+height_chamber_flux.csv,temp_source,character,NA,Origin of the temperature value
+height_chamber_flux.csv,tree_id,character,NA,Tree identifier
+height_chamber_flux.csv,unique_id,character,NA,Unique measurement identifier
+methanotroph_definitions.csv,Category,character,NA,"Known, Putative or Conditional"
+methanotroph_definitions.csv,Include_known,logical,NA,Counts toward Known methanotrophs
+methanotroph_definitions.csv,Include_putative,logical,NA,Counts toward Putative methanotrophs
+methanotroph_definitions.csv,Notes,character,NA,Rationale
+methanotroph_definitions.csv,Primary_source,character,NA,Literature source (Knief 2015 and references therein)
+methanotroph_definitions.csv,Taxon,character,NA,Family or genus name
+methanotroph_definitions.csv,Taxon_rank,character,NA,Taxonomic rank the rule applies to
+picrust_pathway_associations.csv,FDR_all,numeric,NA,"Benjamini-Hochberg adjusted p-value, all ASVs"
+picrust_pathway_associations.csv,FDR_no_mcra,numeric,NA,"Adjusted p-value, mcrA-carrying ASVs removed"
+picrust_pathway_associations.csv,description,character,NA,MetaCyc pathway description
+picrust_pathway_associations.csv,mean_counts_per_million,numeric,CPM,Mean predicted pathway abundance
+picrust_pathway_associations.csv,mean_percent_from_mcra,numeric,fraction,Share of pathway abundance contributed by mcrA-carrying ASVs
+picrust_pathway_associations.csv,p_value_all,numeric,NA,"p-value, association with mcrA across all ASVs"
+picrust_pathway_associations.csv,p_value_no_mcra,numeric,NA,p-value with mcrA-carrying ASVs removed
+picrust_pathway_associations.csv,pathway,character,NA,MetaCyc pathway identifier
+picrust_pathway_associations.csv,t_stat_all,numeric,NA,"t statistic, all ASVs"
+picrust_pathway_associations.csv,t_stat_no_mcra,numeric,NA,"t statistic, mcrA-carrying ASVs removed"
+sample_metadata_16S.csv,16S_per_ul,numeric,copies uL-1,qPCR 16S copy concentration in the extract
+sample_metadata_16S.csv,Material,character,NA,Wood or Soil
+sample_metadata_16S.csv,Sample ID,character,NA,Sample identifier
+sample_metadata_16S.csv,Well,character,NA,Plate well
+sample_metadata_16S.csv,core_type,character,NA,"Wood core position (Inner, Outer) or soil horizon"
+sample_metadata_16S.csv,seq_id,character,NA,Cleaned sequencing identifier
+sample_metadata_16S.csv,seq_id_raw,character,NA,Sequencing identifier as submitted
+semirigid_chamber_flux.csv,CH4_LM_pval,numeric,NA,Linear model p-value
+semirigid_chamber_flux.csv,CH4_LM_r2,numeric,NA,Linear model R-squared
+semirigid_chamber_flux.csv,CH4_best_flux_nmol_m2_s,numeric,nmol m-2 s-1,Best-fit CH4 flux (goFlux model selection)
+semirigid_chamber_flux.csv,CH4_model,character,NA,Selected model: LM (linear) or HM (Hutchinson-Mosier)
+semirigid_chamber_flux.csv,CH4_quality,character,NA,Quality flag from goFlux
+semirigid_chamber_flux.csv,CO2_best_flux_nmol_m2_s,numeric,nmol m-2 s-1,Best-fit CO2 flux
+semirigid_chamber_flux.csv,CO2_model,character,NA,Selected CO2 model
+semirigid_chamber_flux.csv,CO2_quality,character,NA,CO2 quality flag
+semirigid_chamber_flux.csv,chamber_area_m2,numeric,m2,Chamber surface area
+semirigid_chamber_flux.csv,chamber_id,character,NA,Chamber identifier
+semirigid_chamber_flux.csv,chamber_temp_C,numeric,C,Chamber air temperature
+semirigid_chamber_flux.csv,chamber_vol_L,numeric,L,Total system volume (chamber + tubing + analyzer)
+semirigid_chamber_flux.csv,date,date,YYYY-MM-DD,Measurement date
+semirigid_chamber_flux.csv,landscape_position,character,NA,"Landscape position: U (upland), I (intermediate), W (wetland)"
+semirigid_chamber_flux.csv,measurement_type,character,NA,"""tree_stem"" or ""soil"""
+semirigid_chamber_flux.csv,notes,character,NA,Field notes
+semirigid_chamber_flux.csv,tree_tag,character,NA,ForestGEO tree tag number
+semirigid_chamber_flux.csv,unique_id,character,NA,Unique measurement identifier (date_tag_position_chamber)
+static_chamber_flux.csv,CH4_LM_pval,numeric,NA,Linear model p-value
+static_chamber_flux.csv,CH4_LM_r2,numeric,NA,Linear model R-squared
+static_chamber_flux.csv,CH4_best_flux_nmol_m2_s,numeric,nmol m-2 s-1,Best-fit CH4 flux
+static_chamber_flux.csv,CH4_model,character,NA,Selected model
+static_chamber_flux.csv,CH4_quality,character,NA,Quality flag
+static_chamber_flux.csv,CO2_best_flux_nmol_m2_s,numeric,nmol m-2 s-1,Best-fit CO2 flux
+static_chamber_flux.csv,CO2_model,character,NA,Selected CO2 model
+static_chamber_flux.csv,CO2_quality,character,NA,CO2 quality flag
+static_chamber_flux.csv,air_temp_C,numeric,C,Air temperature
+static_chamber_flux.csv,bark_missing,character,NA,Bark condition notes
+static_chamber_flux.csv,bole_damage,character,NA,Bole damage severity (1-3 scale)
+static_chamber_flux.csv,chamber_area_m2,numeric,m2,Chamber surface area
+static_chamber_flux.csv,chamber_id,character,NA,Chamber identifier
+static_chamber_flux.csv,chamber_temp_C,numeric,C,Chamber temperature
+static_chamber_flux.csv,chamber_vol_L,numeric,L,Total system volume
+static_chamber_flux.csv,date,date,YYYY-MM-DD,Measurement date
+static_chamber_flux.csv,dbh_cm,numeric,cm,Diameter at breast height
+static_chamber_flux.csv,notes,character,NA,Field notes
+static_chamber_flux.csv,obs_length_s,numeric,s,Observation length
+static_chamber_flux.csv,soil_temp_C,numeric,C,Soil temperature
+static_chamber_flux.csv,species,character,NA,Full species name
+static_chamber_flux.csv,species_code,character,NA,"USDA species code (e.g., ACRU, QURU)"
+static_chamber_flux.csv,stem_temp_C,numeric,C,Stem surface temperature
+static_chamber_flux.csv,tree_tag,character,NA,ForestGEO tree tag number
+static_chamber_flux.csv,unique_id,character,NA,Unique measurement identifier
+static_chamber_flux.csv,visible_fungus,character,NA,Fungal presence observed
+static_chamber_flux.csv,vwc_mean_pct,numeric,%,Mean volumetric water content (3 probes)
+taxonomy_key_16S.csv,class,character,NA,Class
+taxonomy_key_16S.csv,family,character,NA,Family
+taxonomy_key_16S.csv,feature_id,character,NA,"ASV identifier, matches the first column of otu_table_16S.csv"
+taxonomy_key_16S.csv,genus,character,NA,Genus
+taxonomy_key_16S.csv,kingdom,character,NA,Kingdom
+taxonomy_key_16S.csv,order,character,NA,Order
+taxonomy_key_16S.csv,phylum,character,NA,Phylum
+taxonomy_key_16S.csv,species,character,NA,Species (usually unresolved for 16S)
+taxonomy_key_16S.csv,taxonomy,character,NA,Full SILVA 138 taxonomy string
+tree_properties.csv,CH4_best.flux_125cm,numeric,nmol m-2 s-1,CH4 flux measured at 125 cm on the stem
+tree_properties.csv,CH4_best.flux_200cm,numeric,nmol m-2 s-1,CH4 flux measured at 200 cm on the stem
+tree_properties.csv,CH4_best.flux_50cm,numeric,nmol m-2 s-1,CH4 flux measured at 50 cm on the stem
+tree_properties.csv,CH4_best.flux_75cm,numeric,nmol m-2 s-1,CH4 flux measured at 75 cm on the stem
+tree_properties.csv,CH4_best.flux_RootCrowncm,numeric,nmol m-2 s-1,CH4 flux measured at root crown on the stem
+tree_properties.csv,CH4_concentration,numeric,ppm,Internal stem gas CH4
+tree_properties.csv,CO2_best.flux_125cm,numeric,nmol m-2 s-1,CO2 flux measured at 125 cm on the stem
+tree_properties.csv,CO2_best.flux_200cm,numeric,nmol m-2 s-1,CO2 flux measured at 200 cm on the stem
+tree_properties.csv,CO2_best.flux_50cm,numeric,nmol m-2 s-1,CO2 flux measured at 50 cm on the stem
+tree_properties.csv,CO2_best.flux_75cm,numeric,nmol m-2 s-1,CO2 flux measured at 75 cm on the stem
+tree_properties.csv,CO2_best.flux_RootCrowncm,numeric,nmol m-2 s-1,CO2 flux measured at root crown on the stem
+tree_properties.csv,CO2_concentration,numeric,ppm,Internal stem gas CO2
+tree_properties.csv,MineralDepth_mean,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,N2O_concentration,numeric,ppm,Internal stem gas N2O
+tree_properties.csv,O2_concentration,numeric,ppm,Internal stem gas O2
+tree_properties.csv,ORP_mean,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,OrganicDepth_mean,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,SoilTemp_mean,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,Temp_Air_125cm,numeric,C,Air temperature at 125 cm
+tree_properties.csv,Temp_Air_200cm,numeric,C,Air temperature at 200 cm
+tree_properties.csv,Temp_Air_50cm,numeric,C,Air temperature at 50 cm
+tree_properties.csv,Temp_Air_75cm,numeric,C,Air temperature at 75 cm
+tree_properties.csv,Temp_Air_RootCrowncm,numeric,C,Air temperature at root crown
+tree_properties.csv,VWC_mean,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,dbh,numeric,cm,Diameter at breast height
+tree_properties.csv,ddpcr_16s_arc_Inner_loose,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,ddpcr_16s_arc_Inner_strict,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,ddpcr_16s_arc_Outer_loose,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,ddpcr_16s_arc_Outer_strict,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,ddpcr_16s_bact_Inner_loose,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,ddpcr_16s_bact_Inner_strict,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,ddpcr_16s_bact_Outer_loose,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,ddpcr_16s_bact_Outer_strict,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,ddpcr_mcra_Inner_loose,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,ddpcr_mcra_Inner_strict,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,ddpcr_mcra_Outer_loose,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,ddpcr_mcra_Outer_strict,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,ddpcr_mcra_probe_Inner_loose,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,ddpcr_mcra_probe_Inner_strict,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,ddpcr_mcra_probe_Mineral_loose,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,ddpcr_mcra_probe_Mineral_strict,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,ddpcr_mcra_probe_Organic_loose,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,ddpcr_mcra_probe_Organic_strict,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,ddpcr_mcra_probe_Outer_loose,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,ddpcr_mcra_probe_Outer_strict,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,ddpcr_mmox_Inner_loose,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,ddpcr_mmox_Inner_strict,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,ddpcr_mmox_Mineral_loose,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,ddpcr_mmox_Mineral_strict,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,ddpcr_mmox_Organic_loose,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,ddpcr_mmox_Organic_strict,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,ddpcr_mmox_Outer_loose,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,ddpcr_mmox_Outer_strict,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,ddpcr_pmoa_Inner_loose,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,ddpcr_pmoa_Inner_strict,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,ddpcr_pmoa_Mineral_loose,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,ddpcr_pmoa_Mineral_strict,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,ddpcr_pmoa_Organic_loose,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,ddpcr_pmoa_Organic_strict,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,ddpcr_pmoa_Outer_loose,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,ddpcr_pmoa_Outer_strict,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,inner_density_final,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,inner_moisture_dry_percent,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,inner_moisture_fresh_percent,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,landscape_position,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,middle_density_final,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,middle_moisture_dry_percent,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,middle_moisture_fresh_percent,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,outer_density_final,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,outer_moisture_dry_percent,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,outer_moisture_fresh_percent,character,NA,Tree-level attribute carried through from the merged tree dataset
+tree_properties.csv,species_id,character,NA,Four-letter species code
+tree_properties.csv,tree_id,character,NA,Tree identifier

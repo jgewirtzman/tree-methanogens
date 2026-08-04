@@ -47,6 +47,16 @@ drop_pred <- function(d) d[, !names(d) %in%
 tree_out <- drop_pred(tree)
 soil_out <- drop_pred(soil)
 
+# UNIT MISNOMER, corrected at the archive boundary. stem_flux_umol_m2_s and
+# soil_flux_umol_m2_s hold nmol m-2 s-1, not umol; manuscript_statistics.R:1447
+# records this for the equivalent Phi_* columns. Verified against the budget:
+# the mean stem flux read as nmol gives 6.0 mg CH4 m-2 ground yr-1 against the
+# canonical 4.912, while reading it as umol gives 6,005 -- three orders out.
+# Internally the misnomer is survivable because the comment sits beside the code.
+# In a published dataset it is not: nothing travels with the column but its name.
+names(tree_out)[names(tree_out) == "stem_flux_umol_m2_s"] <- "stem_flux_nmol_m2_s"
+names(soil_out)[names(soil_out) == "soil_flux_umol_m2_s"] <- "soil_flux_nmol_m2_s"
+
 write.csv(tree_out, out_path("flux_measurements_tree.csv"), row.names = FALSE)
 write.csv(soil_out, out_path("flux_measurements_soil.csv"), row.names = FALSE)
 
