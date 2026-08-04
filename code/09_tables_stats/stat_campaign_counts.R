@@ -9,6 +9,15 @@
 # flux value (non-NA best.flux). **No quality filtering** — QC exclusions are a
 # separate, downstream analysis concern. Applied identically to all campaigns.
 #
+# WHY THIS READS THE CAMPAIGN FILES AND NOT data/compiled/flux_measurements_tree.csv.
+# That table is the model's training set: complete-cased on the model covariates
+# (soil temperature, soil moisture, species), which drops 409 of the 1,539
+# deployments. It is the right source for anything reproducing the model or the
+# budget, and the wrong source here, where the question is how many measurements
+# were taken rather than how many were modellable. Pointing this script at it
+# would silently shrink the study-design table by about a third. The campaign
+# files remain the source of record for deployment counts.
+#
 # NOTE: the 2021 survey includes black-oak individuals (tree_ids bo1/bo2/bowser,
 # species QUVE) — these are SURVEY trees and stay in the survey totals. They are
 # distinct from the single 2022 FELLED black oak, which is a separate section.
@@ -121,10 +130,21 @@ bo_tiss <- table(s16$core_type[s16$Material=="QUVE"])
 tp <- read.csv(file.path(comp,"tree_properties.csv"), check.names=FALSE)
 wood_dens <- sum(apply(!is.na(tp[,grep("density_final",names(tp))]),1,any))
 wood_moist<- sum(apply(!is.na(tp[,grep("moisture_dry_percent",names(tp))]),1,any))
-inv <- read.csv(file.path(comp,"forest_inventory.csv"))
-inv_stems <- nrow(inv); inv_dbh <- sum(!is.na(inv$dbh_mm)); inv_indiv <- uq(inv$tag)
-inv_live <- sum(inv$status=="LI", na.rm=TRUE); inv_spp <- uq(inv$species_code)
-inv_area <- round(diff(range(inv$x_m,na.rm=TRUE))*diff(range(inv$y_m,na.rm=TRUE))/1e4, 2)
+# forest_inventory_stems.csv is the whole stand: the 2019 ForestGEO census merged
+# with the supplementary by-tag survey. It replaced a census-only file that
+# omitted the by-tag stems and so did not describe the stand. Census-only
+# attributes (status, quadrat, point of measurement) are present as census_*
+# columns and are NA for by-tag stems, so counts over them are reported against
+# the census subset rather than the stand, and labelled as such.
+inv <- read.csv(file.path(comp,"forest_inventory_stems.csv"))
+inv_stems <- nrow(inv); inv_dbh <- sum(!is.na(inv$dbh_cm)); inv_indiv <- uq(inv$tag)
+inv_spp <- uq(inv$species_code)
+inv_area <- round(diff(range(inv$PX,na.rm=TRUE))*diff(range(inv$PY,na.rm=TRUE))/1e4, 2)
+# census subset, where status is recorded
+inv_census   <- sum(inv$source == "fg19", na.rm = TRUE)
+inv_bytag    <- sum(inv$source == "bytag", na.rm = TRUE)
+inv_live     <- sum(inv$census_status == "LI", na.rm = TRUE)
+inv_in_stand <- sum(inv$in_stand, na.rm = TRUE)
 
 # ================================================================== REPORT =====
 sink("outputs/audit/campaign_counts.txt")
@@ -177,7 +197,10 @@ P("  Internal gas measured for CH4, CO2, N2O, O2 (the 157 survey samples)")
 
 cat("\nF. INVENTORY / UPSCALING (all censused stems)\n")
 P("  Total stems: %d (%d with DBH) | %d individuals | %d species", inv_stems, inv_dbh, inv_indiv, inv_spp)
-P("      of which live (LI): %d; status not recorded: %d", inv_live, inv_stems - inv_live)
+P("      sources: %d from the 2019 census, %d from the by-tag survey", inv_census, inv_bytag)
+P("      in the censused stand (the budget basis): %d", inv_in_stand)
+P("      live (LI) among census stems: %d of %d; by-tag stems carry no census status",
+  inv_live, inv_census)
 P("      extent-based area ~%s ha (CONFIRM censused plot area)", inv_area)
 
 cat("\nNOTE: covariates (VWC, DBH, air/soil/stem temp) are recorded per flux measurement / per tree\n")
