@@ -4,7 +4,7 @@ black_oak_experiment.csv,CH4_LM_r2,numeric,NA,Linear model R-squared
 black_oak_experiment.csv,CH4_best_flux_nmol_m2_s,numeric,nmol m-2 s-1,Best-fit CH4 flux
 black_oak_experiment.csv,CH4_model,character,NA,Selected model
 black_oak_experiment.csv,CH4_quality,character,NA,Quality flag
-black_oak_experiment.csv,CO2_best_flux_nmol_m2_s,numeric,nmol m-2 s-1,Best-fit CO2 flux
+black_oak_experiment.csv,CO2_best_flux_umol_m2_s,numeric,umol m-2 s-1,Best-fit CO2 flux
 black_oak_experiment.csv,CO2_model,character,NA,Selected CO2 model
 black_oak_experiment.csv,CO2_quality,character,NA,Quality flag
 black_oak_experiment.csv,air_temp_C,numeric,C,Air temperature
@@ -105,25 +105,16 @@ flux_measurements_tree.csv,year,integer,NA,Calendar year
 flux_measurements_tree.csv,z,numeric,nmol m-2 s-1,Working response column used during model assembly
 flux_measurements_tree.csv,z_corr,numeric,nmol m-2 s-1,Response after chamber correction
 flux_measurements_tree.csv,z_raw,numeric,nmol m-2 s-1,Response before chamber correction
-forest_inventory_census_fg19.csv,codes,character,NA,Census condition codes
-forest_inventory_census_fg19.csv,dbh_mm,numeric,mm,Diameter at breast height
-forest_inventory_census_fg19.csv,latitude,numeric,degrees,WGS84 latitude
-forest_inventory_census_fg19.csv,longitude,numeric,degrees,WGS84 longitude
-forest_inventory_census_fg19.csv,notes,character,NA,Census field notes
-forest_inventory_census_fg19.csv,pom,numeric,m,Point of measurement height on the stem
-forest_inventory_census_fg19.csv,quadrat,integer,NA,20 x 20 m census quadrat number
-forest_inventory_census_fg19.csv,secondary,character,NA,Secondary census annotation
-forest_inventory_census_fg19.csv,section_id,character,NA,ForestGEO section identifier
-forest_inventory_census_fg19.csv,species_code,character,NA,Four-letter species code
-forest_inventory_census_fg19.csv,status,character,NA,"Census status code (LI = live, etc.)"
-forest_inventory_census_fg19.csv,stem_tag,character,NA,Stem identifier within a multi-stemmed tree
-forest_inventory_census_fg19.csv,sub_quadrat,character,NA,5 x 5 m subquadrat within the quadrat
-forest_inventory_census_fg19.csv,tag,character,NA,ForestGEO tree tag
-forest_inventory_census_fg19.csv,x_m,numeric,m,Plot-local easting
-forest_inventory_census_fg19.csv,y_m,numeric,m,Plot-local northing
 forest_inventory_stems.csv,PX,numeric,m,Plot-local easting
 forest_inventory_stems.csv,PY,numeric,m,Plot-local northing
 forest_inventory_stems.csv,basal_area_m2,numeric,m2,Stem basal area
+forest_inventory_stems.csv,census_codes,character,NA,Census condition codes (2019 census; NA for by-tag stems)
+forest_inventory_stems.csv,census_notes,character,NA,Census field notes (2019 census; NA for by-tag stems)
+forest_inventory_stems.csv,census_pom_m,numeric,m,Point of measurement height on the stem (2019 census; NA for by-tag stems)
+forest_inventory_stems.csv,census_quadrat,integer,NA,20 x 20 m census quadrat number (2019 census; NA for by-tag stems)
+forest_inventory_stems.csv,census_section_id,character,NA,ForestGEO section identifier (2019 census; NA for by-tag stems)
+forest_inventory_stems.csv,census_status,character,NA,"Census status code (LI = live, etc.) (2019 census; NA for by-tag stems)"
+forest_inventory_stems.csv,census_sub_quadrat,character,NA,5 x 5 m subquadrat within the quadrat (2019 census; NA for by-tag stems)
 forest_inventory_stems.csv,dbh_cm,numeric,cm,Diameter after shift correction
 forest_inventory_stems.csv,dbh_cm_raw,numeric,cm,"Diameter as recorded, before shift correction"
 forest_inventory_stems.csv,dbh_m,numeric,m,Diameter in metres
@@ -131,7 +122,9 @@ forest_inventory_stems.csv,dbh_shifts,integer,count,Number of point-of-measureme
 forest_inventory_stems.csv,in_notch,logical,NA,Stem falls in the uncensused notch
 forest_inventory_stems.csv,in_square,logical,NA,Stem falls in the nominal 200 x 200 m square
 forest_inventory_stems.csv,in_stand,logical,NA,"Stem is in the censused stand (the 37,200 m2 basis for the budget)"
+forest_inventory_stems.csv,latitude,numeric,degrees,WGS84 latitude (2019 census; NA for by-tag stems)
 forest_inventory_stems.csv,located,logical,NA,Stem has plot coordinates
+forest_inventory_stems.csv,longitude,numeric,degrees,WGS84 longitude (2019 census; NA for by-tag stems)
 forest_inventory_stems.csv,source,character,NA,Census source: fg19 (2019 ForestGEO) or bytag (supplementary by-tag survey)
 forest_inventory_stems.csv,species,character,NA,Species name
 forest_inventory_stems.csv,species_code,character,NA,Four-letter species code
@@ -196,7 +189,7 @@ semirigid_chamber_flux.csv,CH4_LM_r2,numeric,NA,Linear model R-squared
 semirigid_chamber_flux.csv,CH4_best_flux_nmol_m2_s,numeric,nmol m-2 s-1,Best-fit CH4 flux (goFlux model selection)
 semirigid_chamber_flux.csv,CH4_model,character,NA,Selected model: LM (linear) or HM (Hutchinson-Mosier)
 semirigid_chamber_flux.csv,CH4_quality,character,NA,Quality flag from goFlux
-semirigid_chamber_flux.csv,CO2_best_flux_nmol_m2_s,numeric,nmol m-2 s-1,Best-fit CO2 flux
+semirigid_chamber_flux.csv,CO2_best_flux_umol_m2_s,numeric,umol m-2 s-1,Best-fit CO2 flux
 semirigid_chamber_flux.csv,CO2_model,character,NA,Selected CO2 model
 semirigid_chamber_flux.csv,CO2_quality,character,NA,CO2 quality flag
 semirigid_chamber_flux.csv,chamber_area_m2,numeric,m2,Chamber surface area
@@ -214,7 +207,7 @@ static_chamber_flux.csv,CH4_LM_r2,numeric,NA,Linear model R-squared
 static_chamber_flux.csv,CH4_best_flux_nmol_m2_s,numeric,nmol m-2 s-1,Best-fit CH4 flux
 static_chamber_flux.csv,CH4_model,character,NA,Selected model
 static_chamber_flux.csv,CH4_quality,character,NA,Quality flag
-static_chamber_flux.csv,CO2_best_flux_nmol_m2_s,numeric,nmol m-2 s-1,Best-fit CO2 flux
+static_chamber_flux.csv,CO2_best_flux_umol_m2_s,numeric,umol m-2 s-1,Best-fit CO2 flux
 static_chamber_flux.csv,CO2_model,character,NA,Selected CO2 model
 static_chamber_flux.csv,CO2_quality,character,NA,CO2 quality flag
 static_chamber_flux.csv,air_temp_C,numeric,C,Air temperature
@@ -251,11 +244,11 @@ tree_properties.csv,CH4_best.flux_50cm,numeric,nmol m-2 s-1,CH4 flux measured at
 tree_properties.csv,CH4_best.flux_75cm,numeric,nmol m-2 s-1,CH4 flux measured at 75 cm on the stem
 tree_properties.csv,CH4_best.flux_RootCrowncm,numeric,nmol m-2 s-1,CH4 flux measured at root crown on the stem
 tree_properties.csv,CH4_concentration,numeric,ppm,Internal stem gas CH4
-tree_properties.csv,CO2_best.flux_125cm,numeric,nmol m-2 s-1,CO2 flux measured at 125 cm on the stem
-tree_properties.csv,CO2_best.flux_200cm,numeric,nmol m-2 s-1,CO2 flux measured at 200 cm on the stem
-tree_properties.csv,CO2_best.flux_50cm,numeric,nmol m-2 s-1,CO2 flux measured at 50 cm on the stem
-tree_properties.csv,CO2_best.flux_75cm,numeric,nmol m-2 s-1,CO2 flux measured at 75 cm on the stem
-tree_properties.csv,CO2_best.flux_RootCrowncm,numeric,nmol m-2 s-1,CO2 flux measured at root crown on the stem
+tree_properties.csv,CO2_best.flux_125cm,numeric,umol m-2 s-1,CO2 flux measured at 125 cm on the stem
+tree_properties.csv,CO2_best.flux_200cm,numeric,umol m-2 s-1,CO2 flux measured at 200 cm on the stem
+tree_properties.csv,CO2_best.flux_50cm,numeric,umol m-2 s-1,CO2 flux measured at 50 cm on the stem
+tree_properties.csv,CO2_best.flux_75cm,numeric,umol m-2 s-1,CO2 flux measured at 75 cm on the stem
+tree_properties.csv,CO2_best.flux_RootCrowncm,numeric,umol m-2 s-1,CO2 flux measured at root crown on the stem
 tree_properties.csv,CO2_concentration,numeric,ppm,Internal stem gas CO2
 tree_properties.csv,MineralDepth_mean,character,NA,Tree-level attribute carried through from the merged tree dataset
 tree_properties.csv,N2O_concentration,numeric,ppm,Internal stem gas N2O

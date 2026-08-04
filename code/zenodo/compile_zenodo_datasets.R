@@ -39,7 +39,7 @@ tree_flux_clean <- tree_flux %>%
     CH4_quality      = CH4_quality.check.y,
     CH4_LM_r2        = CH4_LM.r2.y,
     CH4_LM_pval      = CH4_LM.p.val.y,
-    CO2_best_flux_nmol_m2_s = CO2_best.flux,
+    CO2_best_flux_umol_m2_s = CO2_best.flux,
     CO2_model        = CO2_model,
     CO2_quality      = CO2_quality.check,
     measurement_type = "tree_stem",
@@ -70,7 +70,7 @@ soil_flux_clean <- soil_flux %>%
     CH4_quality      = CH4_quality.check,
     CH4_LM_r2        = CH4_LM.r2,
     CH4_LM_pval      = CH4_LM.p.val,
-    CO2_best_flux_nmol_m2_s = CO2_best.flux,
+    CO2_best_flux_umol_m2_s = CO2_best.flux,
     CO2_model        = CO2_model,
     CO2_quality      = CO2_quality.check,
     measurement_type = "soil",
@@ -126,7 +126,7 @@ static_flux_clean <- static_flux %>%
     CH4_quality      = CH4_quality.check,
     CH4_LM_r2        = CH4_LM.r2,
     CH4_LM_pval      = CH4_LM.p.val,
-    CO2_best_flux_nmol_m2_s = CO2_best.flux,
+    CO2_best_flux_umol_m2_s = CO2_best.flux,
     CO2_model        = CO2_model,
     CO2_quality      = CO2_quality.check,
     bark_missing     = Bark_Missing,
@@ -319,8 +319,13 @@ inventory_clean <- inventory %>%
 # the 961-stem bytag survey, so it is not the stand. Analyses use
 # forest_inventory_stems.csv, which merges both sources. Named for its scope so
 # the two cannot be confused.
-write_csv(inventory_clean, file.path(out_dir, "forest_inventory_census_fg19.csv"))
-cat(sprintf("  -> Wrote forest_inventory_census_fg19.csv (%d stems)\n\n", nrow(inventory_clean)))
+# NOT written as its own dataset. It is 7,053 fg19 stems -- 98% of them also in
+# the merged build -- so shipping both invited a reanalyst to pick the one
+# missing the 961-stem bytag survey. Its census-only columns (quadrat, status,
+# pom, codes, lat/lon) are folded into forest_inventory_stems.csv below, so the
+# archive carries one inventory that is both complete and fully attributed.
+census_fg19 <- inventory_clean
+cat(sprintf("  -- fg19 census held for merge (%d stems)\n\n", nrow(census_fg19)))
 
 
 # ============================================================================
@@ -380,7 +385,7 @@ black_oak_clean <- black_oak %>%
     CH4_quality      = CH4_quality.check,
     CH4_LM_flux      = CH4_LM.flux,
     CH4_LM_r2        = CH4_LM.r2,
-    CO2_best_flux_nmol_m2_s = CO2_best.flux,
+    CO2_best_flux_umol_m2_s = CO2_best.flux,
     CO2_model        = CO2_model,
     CO2_quality      = CO2_quality.check,
     notes            = Notes
@@ -429,6 +434,25 @@ cat(sprintf("  -> Wrote methanotroph_definitions.csv (%d taxa)\n\n", nrow(methan
 #
 # Copied verbatim rather than recomputed: the point is to archive precisely what
 # the manuscript quotes. rev_check_consistency.R asserts their mutual agreement.
+cat("--- 10b. Forest inventory (merged build + census attributes) ---\n")
+# One inventory: the 8,014-stem fg19 + bytag build, carrying the census-only
+# columns for the stems the 2019 census covered. bytag stems are NA in those
+# columns, which is the honest representation -- they were never in that census.
+inv_stems <- read_csv("outputs/tables/inventory_stems.csv", show_col_types = FALSE)
+census_join <- census_fg19 %>%
+  transmute(tag = as.character(tag), stem = as.character(stem_tag),
+            census_section_id = section_id, census_quadrat = quadrat,
+            census_sub_quadrat = sub_quadrat, census_status = status,
+            census_pom_m = pom, census_codes = codes, census_notes = notes,
+            latitude = latitude, longitude = longitude) %>%
+  distinct(tag, stem, .keep_all = TRUE)
+inventory_full <- inv_stems %>%
+  mutate(tag = as.character(tag), stem = as.character(stem)) %>%
+  left_join(census_join, by = c("tag", "stem"))
+write_csv(inventory_full, file.path(out_dir, "forest_inventory_stems.csv"))
+cat(sprintf("  -> Wrote forest_inventory_stems.csv (%d stems, %d cols; %d with census attributes)\n\n",
+            nrow(inventory_full), ncol(inventory_full), sum(!is.na(inventory_full$census_quadrat))))
+
 cat("--- 11. Revision results ---\n")
 # Results, not input data, so they are archived from outputs/data/ where the
 # pipeline writes them rather than copied into data/compiled/. scaling_headline.csv
@@ -436,7 +460,6 @@ cat("--- 11. Revision results ---\n")
 # scenario == "exp_band_slope" & WAI == 2.82, and check_consistency.R asserts that
 # containment. A pointer is documentation, not a dataset.
 REVISION_OUTPUTS <- c(
-  "forest_inventory_stems.csv" = "outputs/tables/inventory_stems.csv", # one row per stem, all sources
   # The measurement-level flux table the model is actually fitted on: 1,130 stem
   # measurements from 478 trees over 2020, 2021 and 2023, with drivers joined.
   # Without it the archive carried the 2020-21 semi-rigid and 2023 campaigns but
