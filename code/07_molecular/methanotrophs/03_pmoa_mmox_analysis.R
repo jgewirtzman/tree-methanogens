@@ -371,6 +371,6 @@ p1_labeled <- p1 + labs(tag = "(a)") + theme(plot.tag = element_text(size = 11, 
 p2_labeled <- p2 + labs(tag = "(b)") + theme(plot.tag = element_text(size = 11, face = "bold"))
 
 ## Save
-ggsave("outputs/figures/legacy/supplementary/figS10_methanotroph_abundance_patterns.png",
+ggsave("outputs/figures/original/supplementary/figS10_methanotroph_abundance_patterns.png",
        arrangeGrob(p1_labeled, p2_labeled, ncol = 2),
        width = 11, height = 5)

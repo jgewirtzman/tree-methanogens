@@ -351,7 +351,7 @@ side_by_side
 #        height = 10,
 #        limitsize = FALSE)
 
-ggsave("outputs/figures/legacy/main/fig8_radial_species_comparison.png",
+ggsave("outputs/figures/original/main/fig8_radial_species_comparison.png",
        side_by_side,
        width = 16.5,
        height = 10,

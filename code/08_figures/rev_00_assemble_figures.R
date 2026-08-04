@@ -26,38 +26,38 @@ MAIN <- c(
   "Figure_5_methane-cycling-composition" = "outputs/figures/generated/fig5_final.png",
   "Figure_6_hydrogenotrophy"             = "outputs/figures/generated/fig_hydrogenotrophy.png",
   "Figure_7_decay-methanogenesis"        = "outputs/figures/generated/fig7_decay_methanogenesis.png",  # NEW expanded Fig 7 (folds old felled-oak)
-  "Figure_8_radial-species"              = "outputs/figures/legacy/main/fig8_radial_species_comparison.png",  # unchanged (orig pipeline); central takeaway
+  "Figure_8_radial-species"              = "outputs/figures/original/main/fig8_radial_species_comparison.png",  # unchanged (orig pipeline); central takeaway
   "Figure_9_ch4-budget"                  = "outputs/figures/generated/fig_budget_maps.png")
 
 # SI — reference order (each cited near its main-text section)
 SI <- c(
   # Flux & environment (Figs 1-2)
-  "Figure_S01_moisture-overlay"          = "outputs/figures/legacy/supplementary/figS1_moisture_overlay.png",
+  "Figure_S01_moisture-overlay"          = "outputs/figures/original/supplementary/figS1_moisture_overlay.png",
   "Figure_S02_species-moisture-niche"    = "outputs/figures/generated/tree_species_moisture_niche.png",  # panel A of tree-distribution (R3 L286)
   "Figure_S03_height-slope-moisture"     = "outputs/figures/generated/height_slope_vs_moisture.png",
   # Genes & abundance (Fig 4). ddPCR-16S concordance is now an SI TABLE (see TABLES), not a figure.
   "Figure_S04_ddpcr-mcra-probe-validation" = "outputs/figures/generated/figS19_mcra_probe_validation.png",
-  "Figure_S05_mcra-vs-methanotroph"      = "outputs/figures/legacy/supplementary/figS14_mcra_vs_methanotroph.png",
+  "Figure_S05_mcra-vs-methanotroph"      = "outputs/figures/original/supplementary/figS14_mcra_vs_methanotroph.png",
   "Figure_S06_pmoa-mmox-coupling"        = "outputs/figures/generated/figS10_final.png",
   "Figure_S07_pmoa-mmox-by-compartment"  = "outputs/figures/generated/SI_fig_pmoa_mmox_separate.png",
   # Composition / taxonomy (Fig 5)
-  "Figure_S08_taxonomy-mcra"             = "outputs/figures/legacy/supplementary/figS6_taxonomy_mcra_heatmap.png",
-  "Figure_S09_taxonomy-pmoa"             = "outputs/figures/legacy/supplementary/figS2_taxonomy_pmoa_heatmap.png",
+  "Figure_S08_taxonomy-mcra"             = "outputs/figures/original/supplementary/figS6_taxonomy_mcra_heatmap.png",
+  "Figure_S09_taxonomy-pmoa"             = "outputs/figures/original/supplementary/figS2_taxonomy_pmoa_heatmap.png",
   # Function / pathway (Fig 6)
-  "Figure_S10_faprotax"                  = "outputs/figures/legacy/supplementary/figS3_faprotax_heatmaps.png",
-  "Figure_S11_picrust-mcra-all"          = "outputs/figures/legacy/supplementary/figS4_picrust_mcra_all_heatmap.png",
-  "Figure_S12_picrust-mcra-no-mcra"      = "outputs/figures/legacy/main/fig6_picrust_mcra_no_mcra_heatmap.png",  # demoted old main Fig 6
-  "Figure_S13_picrust-pmoa"              = "outputs/figures/legacy/supplementary/figS5_picrust_pmoa_heatmap.png",
+  "Figure_S10_faprotax"                  = "outputs/figures/original/supplementary/figS3_faprotax_heatmaps.png",
+  "Figure_S11_picrust-mcra-all"          = "outputs/figures/original/supplementary/figS4_picrust_mcra_all_heatmap.png",
+  "Figure_S12_picrust-mcra-no-mcra"      = "outputs/figures/original/main/fig6_picrust_mcra_no_mcra_heatmap.png",  # demoted old main Fig 6
+  "Figure_S13_picrust-pmoa"              = "outputs/figures/original/supplementary/figS5_picrust_pmoa_heatmap.png",
   # Within-tree gas + isotopes (Fig 7 / Fig 6). raincloud dropped (now covered in main Fig 6).
-  "Figure_S14_internal-gas-beeswarm"     = "outputs/figures/legacy/supplementary/figS7_internal_gas_beeswarm.png",
-  "Figure_S15_internal-gas-profiles"     = "outputs/figures/legacy/supplementary/figS8_internal_gas_profiles.png",
+  "Figure_S14_internal-gas-beeswarm"     = "outputs/figures/original/supplementary/figS7_internal_gas_beeswarm.png",
+  "Figure_S15_internal-gas-profiles"     = "outputs/figures/original/supplementary/figS8_internal_gas_profiles.png",
   "Figure_S16_isotope-sources"           = "outputs/figures/generated/SI_isotopes_source_composite.png",  # moved up: right after gas profiles
   # Within-tree / decay (Fig 7)
   "Figure_S17_black-oak-methanome"       = "outputs/figures/generated/black_oak_methanome_revised.png",  # PLACEMENT TBC
   "Figure_S18_stem-deterioration"        = "outputs/figures/generated/figS20_stem_deterioration.png",    # supports Fig 7a
   # Gene-flux scaling (Fig 8)
   "Figure_S19_scale-dependent-genes"     = "outputs/figures/generated/figS11_final.png",
-  "Figure_S20_radial-sections"           = "outputs/figures/legacy/supplementary/figS13_tree_radial_sections.png",  # PLACEMENT TBC
+  "Figure_S20_radial-sections"           = "outputs/figures/original/supplementary/figS13_tree_radial_sections.png",  # PLACEMENT TBC
   # Upscaling (Fig 9)
   "Figure_S21_rf-model-summary"          = "outputs/figures/generated/figS21_rf_model_summary.png",  # merged: S21 layout + grouped permutation importance (absorbs fig_model_findings)
   "Figure_S22_rf-calibration"            = "outputs/figures/generated/figS_rf_calibration.png",  # OOB budget calibration (R3.3)

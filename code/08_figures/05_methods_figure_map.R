@@ -564,7 +564,7 @@ final_extended_plot <- ggplot() +
 print(final_extended_plot)
 
 # Save figS1 publication figure
-ggsave("outputs/figures/legacy/supplementary/figS1_moisture_overlay.png", final_extended_plot, width = 15, height = 9, dpi = 300)
+ggsave("outputs/figures/original/supplementary/figS1_moisture_overlay.png", final_extended_plot, width = 15, height = 9, dpi = 300)
 
 # Store the best interpolation for future use
 best_moisture_df <- best_df

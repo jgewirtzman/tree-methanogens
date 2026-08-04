@@ -291,7 +291,7 @@ combined <- p_a / p_b +
 
 print(combined)
 
-ggsave("outputs/figures/legacy/supplementary/figS3_faprotax_heatmaps.png",
+ggsave("outputs/figures/original/supplementary/figS3_faprotax_heatmaps.png",
        combined, width = 14, height = 12, dpi = 300)
 
-cat("\nSaved figS3_faprotax_heatmaps.png to outputs/figures/legacy/supplementary/\n")
+cat("\nSaved figS3_faprotax_heatmaps.png to outputs/figures/original/supplementary/\n")

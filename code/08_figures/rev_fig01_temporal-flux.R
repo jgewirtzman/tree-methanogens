@@ -10,7 +10,7 @@
 #   - soilmoisture_total.csv (from data/raw/field_data/)
 #
 # Outputs:
-#   - outputs/figures/legacy/main/fig1_temporal_flux_timeseries.png
+#   - outputs/figures/original/main/fig1_temporal_flux_timeseries.png
 # ==============================================================================
 
 # Load required libraries

@@ -14,7 +14,7 @@
 #   - tree_id_comprehensive_mapping.csv (from data/processed/tree_data/)
 #
 # Outputs:
-#   - outputs/figures/legacy/main/fig2_height_dependent_flux.png
+#   - outputs/figures/original/main/fig2_height_dependent_flux.png
 # ==============================================================================
 
 # REVISION — Fig 2 FINAL: copy of code/02_flux/static/04_height_effect_analysis.R

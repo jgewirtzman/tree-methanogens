@@ -237,7 +237,7 @@ ordered_families <- pvals_ordered$family
 heatmap_data <- heatmap_data[, ordered_families]
 ann_row <- ann_row[ordered_families, , drop = FALSE]
 
-png("outputs/figures/legacy/supplementary/figS2_taxonomy_pmoa_heatmap.png",
+png("outputs/figures/original/supplementary/figS2_taxonomy_pmoa_heatmap.png",
     width = fig_width, height = fig_height, units = "in", res = 300)
 
 pheatmap(t(heatmap_data),
