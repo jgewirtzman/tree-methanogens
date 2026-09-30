@@ -6,8 +6,12 @@ source("code/lib/outputs.R")
 # methanotrophs and methanogens", and (R2 #2b) Methylacidiphilaceae: only geothermal
 # members are methanotrophic; mesophilic ones are not.
 #
-# CLASSIFICATION LOGIC (made explicit; from methanotroph_definitions.csv, Knief 2015
-# + SILVA 138 audit):
+# CLASSIFICATION LOGIC: the project's shared, genus-aware classifier
+# (code/lib/load_methanotroph_definitions.R, revised definitions file) -- the SAME
+# rule Figure 5 and the Results use. Until 2026-09-30 this script carried its own
+# classify(), which read the pre-revision definitions and marked every mixed-family
+# ASV Putative WITHOUT checking the genus, so resolved non-methanotroph genera
+# (Methylobacterium, Roseiarcus, Bosea, ...) were listed as putative methanotrophs:
 #   METHANOTROPH, "Known"    = ASV genus is a cultivated methanotroph genus, OR ASV
 #                              family is an EXCLUSIVE methanotroph family (all members
 #                              are methanotrophs) when genus is unresolved.
@@ -29,8 +33,14 @@ source("code/lib/outputs.R")
 suppressPackageStartupMessages({ library(tidyverse) })
 out <- "outputs"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
 
-defs <- read_csv("data/compiled/methanotroph_definitions.csv", show_col_types = FALSE) %>%
-  mutate(across(c(Include_known, Include_putative), ~toupper(trimws(.))))
+source("code/lib/load_methanotroph_definitions.R")
+defs_rev  <- load_methanotroph_defs()                                     # revised (current)
+# Pre-revision rule, for the R2 #2b comparison: Methylacidiphilaceae counted as an exclusive
+# (Known) family. Built from the revised file rather than read from
+# data/compiled/methanotroph_definitions.csv, which is now byte-identical to the revised file
+# and so made the comparison report "moves 0 ASVs".
+defs_orig <- defs_rev
+defs_orig$Include_known[defs_orig$Taxon_rank == "Family" & defs_orig$Taxon == "Methylacidiphilaceae"] <- "YES"
 tax  <- read_csv("data/compiled/taxonomy_key_16S.csv", show_col_types = FALSE)
 otu  <- read_csv("data/compiled/otu_table_16S.csv", show_col_types = FALSE)
 otu_mat <- otu %>% column_to_rownames(names(otu)[1])
@@ -39,34 +49,27 @@ otu_mat <- otu_mat[, sapply(otu_mat, is.numeric), drop = FALSE]   # keep numeric
 asv_relabund <- (rowSums(otu_mat, na.rm = TRUE) / sum(otu_mat, na.rm = TRUE)) * 100
 tax <- tax %>% mutate(relabund = asv_relabund[feature_id])
 
-known_genera <- defs %>% filter(Taxon_rank=="Genus", Include_known=="YES") %>% pull(Taxon)
-excl_families <- defs %>% filter(Taxon_rank=="Family", Include_known=="YES") %>% pull(Taxon)
-put_families  <- defs %>% filter(Taxon_rank=="Family", Include_putative %in% c("YES","CONDITIONAL")) %>% pull(Taxon)
 methanogen_families <- c("Methanobacteriaceae","Methanomassiliicoccaceae","Methanoregulaceae",
   "Methanocellaceae","Methanosaetaceae","Methanomicrobiaceae","Methanosarcinaceae",
   "Methanomethyliaceae","Methanocorpusculaceae")
 
-classify <- function(fam, gen, methylacidi_known = TRUE) {
-  excl <- excl_families; if (!methylacidi_known) excl <- setdiff(excl, "Methylacidiphilaceae")
-  put  <- union(put_families, if (!methylacidi_known) "Methylacidiphilaceae" else character(0))
-  if (!is.na(gen) & gen %in% known_genera) return("Methanotroph_Known")
-  if (!is.na(fam) & fam %in% excl)         return("Methanotroph_Known")
-  if (!is.na(fam) & fam %in% put)          return("Methanotroph_Putative")
-  if (!is.na(fam) & fam %in% methanogen_families) return("Methanogen")
-  NA_character_
+# shared classifier expects Family / Genus / Phylum
+tdf <- data.frame(Family = tax$family, Genus = tax$genus, Phylum = tax$phylum, stringsAsFactors = FALSE)
+label <- function(mt_status) {
+  out <- ifelse(is.na(mt_status), NA_character_, paste0("Methanotroph_", mt_status))
+  ifelse(is.na(out) & tax$family %in% methanogen_families, "Methanogen", out)
 }
-
-tax <- tax %>% rowwise() %>%
-  mutate(class_orig = classify(family, genus, TRUE),
-         class_rev  = classify(family, genus, FALSE)) %>% ungroup()
+tax$class_orig <- label(classify_methanotrophs(tdf, defs_orig))
+tax$class_rev  <- label(classify_methanotrophs(tdf, defs_rev))
 
 # ---- per-taxon supplementary table (detected taxa) ---------------------------
 tab <- tax %>% filter(!is.na(class_rev)) %>%
-  mutate(display_taxon = coalesce(na_if(genus,""), family),
-         level = if_else(!is.na(genus) & genus != "", "Genus", "Family")) %>%
+  mutate(genus_res = na_if(na_if(genus, ""), "none"),          # "none" = unresolved
+         display_taxon = coalesce(genus_res, family),
+         level = if_else(!is.na(genus_res), "Genus", "Family")) %>%
   group_by(classification = class_rev, family, display_taxon, level) %>%
   summarise(n_ASVs = n(), mean_relabund_pct = round(sum(relabund), 4), .groups = "drop") %>%
-  left_join(defs %>% transmute(display_taxon = Taxon, source = Primary_source, note = Notes),
+  left_join(defs_rev %>% transmute(display_taxon = Taxon, source = Primary_source, note = Notes),
             by = "display_taxon") %>%
   arrange(classification, desc(mean_relabund_pct))
 write.csv(tab, out_path("known_putative_taxa_table.csv"), row.names = FALSE)
