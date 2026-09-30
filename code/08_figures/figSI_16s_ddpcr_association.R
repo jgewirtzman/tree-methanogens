@@ -16,8 +16,8 @@ source("code/lib/outputs.R")
 #   multiple   Benjamini-Hochberg across every test drawn in the figure
 #   cells with fewer than 5 samples where the group is present are not tested
 #
-# Groups follow the three-tier scheme (OPEN_DECISIONS, 2026-09-30): Known,
-# Putative, and listed-not-counted, classified by code/lib/load_methanotroph_definitions.R.
+# Groups follow the capacity rule set (OPEN_DECISIONS, 2026-09-30): a taxon counts if it
+# carries methane monooxygenase genes; tiers Known / Putative / listed-not-counted, classified by code/lib/load_methanotroph_definitions.R.
 # Join of 16S and ddPCR samples as in code/09_tables_stats/tbl_ddpcr-16s-concordance.R.
 #
 # NEW file. Outputs: figSI_16s_ddpcr_association.png, 16s_ddpcr_association.csv
@@ -47,10 +47,10 @@ MG  <- c("Methanobacteriaceae","Methanomassiliicoccaceae","Methanoregulaceae","M
 
 # group, tier, the ASVs it covers, and which gene(s) it is tested against
 G <- list(
-  list("Known methanotrophs",                  "Known",                     st %in% "Known",                            c("pmoA","mmoX")),
-  list("Beijerinckiaceae, genus unresolved",   "Putative",                  st %in% "Putative" & fam("Beijerinckiaceae"), c("pmoA","mmoX")),
+  list("Known, aerobic (pMMO / sMMO)",          "Known",                     st %in% "Known" & !fam("Methylomirabilaceae"), c("pmoA","mmoX")),
+  list("NC10 (Methylomirabilaceae; anaerobic)", "Known",                     st %in% "Known" & fam("Methylomirabilaceae"),  c("pmoA","mmoX")),
+  list("Beijerinckiaceae, putative",           "Putative",                  st %in% "Putative" & fam("Beijerinckiaceae"), c("pmoA","mmoX")),
   list("Methylacidiphilaceae, genus unresolved","Putative",                 fam("Methylacidiphilaceae") & unr(tax$Genus), c("pmoA","mmoX")),
-  list("NC10 (Methylomirabilaceae)",           "Listed, not counted",       fam("Methylomirabilaceae"),                 c("pmoA","mmoX")),
   list("Lichenibacterium (1174-901-12)",       "Listed, not counted",       gen("1174-901-12"),                         c("pmoA","mmoX")),
   list("Roseiarcus",                           "Listed, not counted",       gen("Roseiarcus"),                          c("pmoA","mmoX")),
   list("Methylobacterium",                     "Listed, not counted",       gen("Methylobacterium-Methylorubrum"),      c("pmoA","mmoX")),
@@ -112,7 +112,8 @@ p <- ggplot(R, aes(compartment, group)) +
        title = "16S group abundance vs. the gene measured by ddPCR in the same sample",
        subtitle = paste0("Cells: ρ, significance after Benjamini-Hochberg across all ",
                          sum(R$tested), " tests (* q<.05, ** q<.01, *** q<.001; † p<.05 uncorrected only),\n",
-                         "[samples in which the group is present]. Dashed: group present in <5 samples, not tested.")) +
+                         "[samples in which the group is present]. Dashed: group present in <5 samples, not tested. ",
+                         "The pmoA primers do not amplify verrucomicrobial or NC10 pmoA.")) +
   theme_minimal(base_size = 8) +
   theme(panel.grid = element_blank(),
         strip.text.y = element_text(angle = 0, hjust = 0, face = "bold"),

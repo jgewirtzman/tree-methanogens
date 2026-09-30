@@ -160,7 +160,7 @@ height_chamber_flux.csv,start_time,datetime,NA,Measurement start time
 height_chamber_flux.csv,temp_source,character,NA,Origin of the temperature value
 height_chamber_flux.csv,tree_id,character,NA,Tree identifier
 height_chamber_flux.csv,unique_id,character,NA,Unique measurement identifier
-methanotroph_definitions.csv,Category,character,NA,"Known, Putative or Conditional"
+methanotroph_definitions.csv,Category,character,NA,Evidence for methane monooxygenase capacity (free text)
 methanotroph_definitions.csv,Include_known,logical,NA,Counts toward Known methanotrophs
 methanotroph_definitions.csv,Include_putative,logical,NA,Counts toward Putative methanotrophs
 methanotroph_definitions.csv,Notes,character,NA,Rationale

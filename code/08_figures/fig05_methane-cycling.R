@@ -109,7 +109,7 @@ for (fam in methanogen_families) {
 # ==============================================================================
 
 source("code/lib/load_methanotroph_definitions.R")
-mt_defs <- load_methanotroph_defs("data/processed/molecular/methanotroph_definitions_revised.csv")  # R2 #2: Methylacidiphilaceae family Known->Putative
+mt_defs <- load_methanotroph_defs()  # R2 #2: Methylacidiphilaceae family Known->Putative
 
 # Classify each ASV as Known, Putative, or NA
 tax_df$mt_status <- classify_methanotrophs(tax_df, mt_defs, include_conditional = TRUE)

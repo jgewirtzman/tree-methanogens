@@ -418,7 +418,7 @@ cat("--- 10. Methanotroph definitions ---\n")
 # figure loads the revised file via load_methanotroph_defs(). A reader
 # re-running the analysis from the archive would have got different methanotroph
 # classifications from the published figures.
-methano_def <- read_csv("data/processed/molecular/methanotroph_definitions_revised.csv",
+methano_def <- read_csv("code/lib/methanotroph_definitions.csv",
                          show_col_types = FALSE)
 write_csv(methano_def, file.path(out_dir, "methanotroph_definitions.csv"))
 cat(sprintf("  -> Wrote methanotroph_definitions.csv (%d taxa)\n\n", nrow(methano_def)))
