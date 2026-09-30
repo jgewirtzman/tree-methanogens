@@ -40,7 +40,7 @@ methanogen_families <- c(
 
 # Load REVISED methanotroph definitions (Methylacidiphilaceae family Known->Putative)
 source("code/lib/load_methanotroph_definitions.R")
-mt_defs <- load_methanotroph_defs("data/processed/molecular/methanotroph_definitions_revised.csv")
+mt_defs <- load_methanotroph_defs()
 
 # ==============================================================================
 # STEP 2: Filter and classify taxa

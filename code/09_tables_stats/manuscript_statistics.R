@@ -715,7 +715,7 @@ if (nrow(hw_with_mcra) > 5) {
 
 # Methanotroph composition (VERIFY taxonomy)
 sub_header("Methanotroph families detected (known/putative)")
-mt_defs <- read.csv("data/processed/molecular/methanotroph_definitions_revised.csv")  # revision R2 #2: Methylacidiphilaceae Known->Putative
+mt_defs <- read.csv("code/lib/methanotroph_definitions.csv")  # revision R2 #2: Methylacidiphilaceae Known->Putative
 known_families <- mt_defs %>% filter(Taxon_rank == "Family", Include_known == "YES") %>% pull(Taxon)
 known_genera <- mt_defs %>% filter(Taxon_rank == "Genus", Include_known == "YES") %>% pull(Taxon)
 putative_families <- mt_defs %>% filter(Taxon_rank == "Family", Include_putative == "YES") %>% pull(Taxon)

@@ -5,7 +5,10 @@
 #   definitions CSV and classifying ASVs/OTUs as Known, Putative, or
 #   non-methanotroph. Used by figure scripts 08b, 08c, and 10.
 #
-# Definitions file: data/processed/molecular/methanotroph_definitions_revised.csv
+# Definitions file: code/lib/methanotroph_definitions.csv (tracked; moved here 2026-09-30
+#   from the untracked data/processed/molecular/methanotroph_definitions_revised.csv).
+#   Capacity rule: a taxon counts if it carries methane monooxygenase genes (pMMO or
+#   sMMO); see manuscript OPEN_DECISIONS, 'capacity rule set'.
 #   Curated from Knief (2015) with SILVA 138 taxonomy mapping.
 #   Includes Known/Putative/Conditional flags per taxon.
 #   REVISED (2026 revision, R2 #2): Methylacidiphilaceae reclassified at family
@@ -23,7 +26,7 @@
 # load_methanotroph_defs: Read the canonical CSV
 # ------------------------------------------------------------------------------
 load_methanotroph_defs <- function(
-    path = "data/processed/molecular/methanotroph_definitions_revised.csv") {
+    path = "code/lib/methanotroph_definitions.csv") {
   mt_defs <- read.csv(path, stringsAsFactors = FALSE)
   mt_defs$Include_known    <- toupper(trimws(mt_defs$Include_known))
   mt_defs$Include_putative <- toupper(trimws(mt_defs$Include_putative))
@@ -100,8 +103,18 @@ classify_methanotrophs <- function(tax_df, mt_defs,
   # Methylobacterium-Methylorubrum) is a non-methanotroph, not putative.
   put_fams <- fam_defs$Taxon[fam_defs$Include_known != "YES" &
                                fam_defs$Include_putative == "YES"]
+  # Capacity rule (OPEN_DECISIONS, 2026-09-30): an uncultured PLACEHOLDER genus (SILVA
+  # names such as 1174-901-12, FFCH5858, Sh765B-TzT-35 -- they contain digits; named
+  # genera never do) has no genome to show it lacks a methane monooxygenase, so inside a
+  # mixed family it is Putative, like an unresolved genus -- unless a Genus row in the
+  # definitions records genome evidence against it (Include_known and Include_putative
+  # both NO, e.g. 1174-901-12 = Lichenibacterium).
+  is_placeholder <- has_genus & grepl("[0-9]", tax_df$Genus)
+  excluded_genera <- genus_defs$Taxon[genus_defs$Include_known == "NO" &
+                                        genus_defs$Include_putative == "NO"]
   if (length(put_fams) > 0) {
-    idx <- tax_df$Family %in% put_fams & !has_genus & is.na(status)
+    idx <- tax_df$Family %in% put_fams & (!has_genus | is_placeholder) &
+           !(tax_df$Genus %in% excluded_genera) & is.na(status)
     status[idx] <- "Putative"
   }
 
