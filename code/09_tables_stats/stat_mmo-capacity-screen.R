@@ -22,14 +22,15 @@ source("code/lib/outputs.R")
 #
 # Output: outputs/data/mmo_capacity_screen.csv
 #
-# STATUS 2026-09-30: NOT YET EXECUTED here -- pwalign is not installed. The snapshot was
-# produced by an equivalent Biopython run (same references, scoring and thresholds); run
-# this once pwalign is installed and confirm it reproduces the snapshot.
+# STATUS 2026-09-30: executed with pwalign 1.2.0 (Bioconductor 3.20); reproduces every
+# verdict in the snapshot and the primer mismatches (0/0 true mmoX; 9/8 AYO81047).
+# Identities are pwalign PID1 (gaps count against identity), so they read lower than the
+# Biopython figures quoted in the snapshot; the verdicts do not change.
 # ==============================================================================
 suppressMessages({library(jsonlite); library(Biostrings); library(pwalign)})
 E  <- "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
 eu <- function(path, ...) { Sys.sleep(0.4); paste(readLines(url(paste0(E, path, "?",
-        paste(names(list(...)), vapply(list(...), URLencode, "", reserved = TRUE), sep = "=", collapse = "&"))),
+        paste(names(list(...)), vapply(lapply(list(...), as.character), URLencode, "", reserved = TRUE), sep = "=", collapse = "&"))),
         warn = FALSE), collapse = "\n") }
 esearch <- function(db, term, retmax = 200) fromJSON(eu("/esearch.fcgi", db = db, term = term,
                                                          retmode = "json", retmax = retmax))$esearchresult
@@ -58,12 +59,15 @@ rows <- lapply(GENERA, function(g) {
     s <- fasta_aa(head(ids, 60))
     for (k in seq_along(s)) {
       p <- ident(s[[k]], REF$PmoA); m <- ident(s[[k]], REF$MmoX)
-      best <- pmax(best, c(p["pid"], m["pid"]))
+      # identity only counts over a meaningful alignment: very short local alignments
+      # (e.g. 12 aa) reach high % identity by chance and would mislead
+      if (p["len"] >= 50) best["PmoA"] <- max(best["PmoA"], p["pid"])
+      if (m["len"] >= 50) best["MmoX"] <- max(best["MmoX"], m["pid"])
       if ((p["pid"] >= 40 && p["len"] >= 150) || (m["pid"] >= 55 && m["len"] >= 300)) true_hit <- TRUE
     }
   }
   data.frame(genus = g, assemblies = asm, named_hits = length(ids),
-             best_pid_PmoA = round(best["PmoA"], 1), best_pid_MmoX = round(best["MmoX"], 1),
+             best_pid_PmoA_50aa = round(best["PmoA"], 1), best_pid_MmoX_50aa = round(best["MmoX"], 1),
              verified_mmo = if (asm == 0) "untested (no genome)" else if (true_hit) "yes" else "no")
 })
 R <- do.call(rbind, rows); rownames(R) <- NULL
