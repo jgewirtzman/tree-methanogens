@@ -7,7 +7,7 @@
 # Pipeline stage: 4 — Publication Figures
 #
 # Inputs:
-#   - data/compiled/flux_measurements_tree.csv (every stem deployment; in_rf_training flags the model's subset)
+#   - outputs/data/flux_measurements_tree.csv (every stem deployment; in_rf_training flags the model's subset)
 #
 # The unit of analysis is the TREE. Each tree contributes one row: the mean of its
 # breast-height measurements. Four changes from the previous version, all aimed at
@@ -54,7 +54,7 @@
 # within-stem residual.
 # ==============================================================================
 
-flux_all <- read.csv("data/compiled/flux_measurements_tree.csv")
+flux_all <- read.csv("outputs/data/flux_measurements_tree.csv")   # the pipeline product, not the archive copy
 
 library(ggplot2)
 library(ggridges)
