@@ -34,7 +34,7 @@ mon<-data.frame(tag=as.character(srt$Plot.Tag), pos=as.character(srt$Plot.Letter
 mon<-mon[mon$ok,]; mon<-mon[!duplicated(mon$tag),]
 ymt<-read.csv("data/raw/field_data/static_chamber_field/YM_trees_measured.csv.csv",check.names=FALSE)
 sp_lut<-setNames(as.character(ymt$Species),as.character(ymt$Label)); dbh_lut<-setNames(num(ymt$D_stem),as.character(ymt$Label))
-y23<-read.csv(file.path(fd,"methanogen_tree_flux_complete_dataset.csv"),check.names=FALSE)
+y23<-read.csv(file.path(fd,"tree_flux_2023_cross_species.csv"),check.names=FALSE)
 sp23<-setNames(as.character(y23$`Species Code`),as.character(y23$`Tree Tag`))
 mon$code<-ifelse(mon$tag %in% names(sp_lut), sp_lut[mon$tag], ifelse(mon$tag %in% names(sp23), sp23[mon$tag], NA))
 mon$dbh<-dbh_lut[mon$tag]
@@ -59,7 +59,7 @@ t1u<-transmute(utr, campaign="2020-2021 monthly",
 t1<-bind_rows(t1, t1u)
 
 ## 2021 summer height — unique (plot,tree_id) with valid flux (== campaign_counts 150)
-ch4<-read.csv(file.path(fd,"CH4_best_flux_lgr_results.csv")); aux<-read.csv(file.path(fd,"goflux_auxfile.csv"))
+ch4<-read.csv(file.path(fd,"CH4_best_flux_lgr_results_2021_multiheight.csv")); aux<-read.csv(file.path(fd,"goflux_auxfile.csv"))
 hd<-merge(ch4, aux[,c("UniqueID","measurement_height","tree_id","species","plot")], by="UniqueID", all.x=TRUE)
 hd<-hd[!is.na(hd$best.flux),]; hd<-hd[!duplicated(paste(hd$plot,hd$tree_id)),]
 mg<-read.csv("data/processed/integrated/merged_tree_dataset_final.csv",check.names=FALSE)

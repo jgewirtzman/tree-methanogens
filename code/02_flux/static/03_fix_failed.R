@@ -8,10 +8,10 @@
 # Run after: 02_goflux_trees_2021.R
 #
 # Inputs:
-#   - lgr_manual_identification_results.csv
+#   - lgr_manual_identification_2021_multiheight.csv (in memory as manID.lgr3)
 #
 # Outputs:
-#   - lgr_manual_identification_results_final.csv
+#   - lgr_manual_identification_2021_multiheight_final.csv
 # ==============================================================================
 
 cat("=== REPROCESSING SPECIFIC FAILED MEASUREMENTS ===\n")
@@ -122,14 +122,14 @@ if(length(failed_window_indices) > 0) {
   print(quality_stats)
   
   # Save updated results
-  write_csv(manID.lgr3, "../../../data/processed/flux/lgr_manual_identification_results_final.csv")
-  write_csv(final_summary, "../../../data/processed/flux/lgr_manual_identification_summary_final.csv")
+  write_csv(manID.lgr3, "../../../data/processed/flux/lgr_manual_identification_2021_multiheight_final.csv")
+  write_csv(final_summary, "../../../data/processed/flux/lgr_manual_identification_summary_2021_multiheight_final.csv")
   
   cat("\n=== REPROCESSING COMPLETE ===\n")
   cat("✓ Updated manID.lgr3 object with corrected measurements\n")
   cat("✓ Files saved:\n")
-  cat("  - flux_code/lgr_manual_identification_results_final.csv\n")
-  cat("  - flux_code/lgr_manual_identification_summary_final.csv\n")
+  cat("  - flux_code/lgr_manual_identification_2021_multiheight_final.csv\n")
+  cat("  - flux_code/lgr_manual_identification_summary_2021_multiheight_final.csv\n")
   cat("✓ Ready to continue with flux calculations!\n")
   
 } else {

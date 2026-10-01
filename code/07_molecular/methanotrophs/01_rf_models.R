@@ -8,7 +8,7 @@
 #
 # Inputs:
 #   - merged_tree_dataset_final.csv (from data/processed/integrated/)
-#   - methanogen_tree_flux_complete_dataset.csv (from data/processed/flux/)
+#   - tree_flux_2023_cross_species.csv (from data/processed/flux/)
 #
 # Outputs:
 #   - RF model objects, diagnostic plots (to outputs/)
@@ -1973,7 +1973,7 @@ library(gridExtra)
 library(boot)
 
 # Load data
-ymf2023 <- read.csv("../../../data/processed/flux/methanogen_tree_flux_complete_dataset.csv")
+ymf2023 <- read.csv("../../../data/processed/flux/tree_flux_2023_cross_species.csv")
 ymf2021 <- read.csv('../../../data/processed/integrated/merged_tree_dataset_final.csv')
 
 # Species mapping
@@ -2443,7 +2443,7 @@ library(ggrepel)
 library(scales)
 
 # Load data
-ymf2023 <- read.csv("../../../data/processed/flux/methanogen_tree_flux_complete_dataset.csv")
+ymf2023 <- read.csv("../../../data/processed/flux/tree_flux_2023_cross_species.csv")
 ymf2021 <- read.csv('../../../data/processed/integrated/merged_tree_dataset_final.csv')
 
 # Species mapping
@@ -2843,7 +2843,7 @@ library(ggrepel)
 library(scales)
 
 # Load data
-ymf2023 <- read.csv("../../../data/processed/flux/methanogen_tree_flux_complete_dataset.csv")
+ymf2023 <- read.csv("../../../data/processed/flux/tree_flux_2023_cross_species.csv")
 ymf2021 <- read.csv('../../../data/processed/integrated/merged_tree_dataset_final.csv')
 
 # Species mapping

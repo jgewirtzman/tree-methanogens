@@ -103,10 +103,10 @@ moisture_data  <- read.csv("data/raw/field_data/ipad_data/Cleaned data/soilmoist
                            fileEncoding = "UTF-8-BOM")
 
 ymf2021 <- read.csv("data/processed/integrated/merged_tree_dataset_final.csv")
-ymf2023 <- read.csv("data/processed/flux/methanogen_tree_flux_complete_dataset.csv")
+ymf2023 <- read.csv("data/processed/flux/tree_flux_2023_cross_species.csv")
 
 aux      <- read.csv("data/processed/flux/goflux_auxfile.csv")
-ch4_flux <- read.csv("data/processed/flux/CH4_best_flux_lgr_results.csv")
+ch4_flux <- read.csv("data/processed/flux/CH4_best_flux_lgr_results_2021_multiheight.csv")
 
 # CANONICAL BUDGET is authoritative for every stand-level number (2026-07-30).
 # This script is named "manuscript statistics" and was quoting the LEGACY

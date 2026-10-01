@@ -63,7 +63,7 @@ rule <- function(s) cat("\n",strrep("=",78),"\n ",s,"\n",strrep("=",78),"\n",sep
 # --- campaigns that carry C0 --------------------------------------------------
 SRC <- list(
   soil   = "data/processed/flux/CH4_best_flux_lgr_results_soil.csv",
-  height = "data/processed/flux/CH4_best_flux_lgr_results.csv")
+  height = "data/processed/flux/CH4_best_flux_lgr_results_2021_multiheight.csv")
 
 rule("C0 SCREEN")
 EX <- list()

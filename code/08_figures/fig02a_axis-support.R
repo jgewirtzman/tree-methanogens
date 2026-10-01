@@ -41,7 +41,7 @@ species_mapping <- c(ACRU="Acer rubrum",ACSA="Acer saccharum",BEAL="Betula alleg
 
 # ---- load exactly as the pipeline does ---------------------------------------
 aux <- read.csv("data/processed/flux/goflux_auxfile.csv")
-ch4 <- read.csv("data/processed/flux/CH4_best_flux_lgr_results.csv")
+ch4 <- read.csv("data/processed/flux/CH4_best_flux_lgr_results_2021_multiheight.csv")
 d <- merge(ch4, aux[, c("UniqueID","measurement_height","tree_id","species","plot")],
            by = "UniqueID", all.x = TRUE)
 names(d)[names(d) == "best.flux"] <- "CH4_best.flux"
