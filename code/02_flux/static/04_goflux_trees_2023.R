@@ -393,7 +393,7 @@ cat("Original rows:", nrow(CO2_best_lgr3), "-> Clean rows:", nrow(CO2_best_lgr3_
 cat("\n=== CREATING PLOTS WITH CLEAN DATA ===\n")
 
 # Method 1: Use cleaned data with best.model = TRUE
-CO2_plots_lgr3_method1 <- flux.plot(
+CO2_plots_lgr3_method1 <- maybe_flux_plot(
   flux.results = CO2_best_lgr3_clean,
   dataframe = manID.lgr3,
   gastype = "CO2dry_ppm",
@@ -408,7 +408,7 @@ CO2_plots_lgr3_method1 <- flux.plot(
 cat("Method 1 completed successfully!\n")
 
 # Method 2: Use original data but disable best.model highlighting
-CO2_plots_lgr3_method2 <- flux.plot(
+CO2_plots_lgr3_method2 <- maybe_flux_plot(
   flux.results = CO2_best_lgr3,
   dataframe = manID.lgr3,
   gastype = "CO2dry_ppm",
@@ -436,7 +436,7 @@ if(exists("CH4_best_lgr3")) {
     CH4_best_lgr3_clean <- CH4_best_lgr3
   }
   
-  CH4_plots_lgr3 <- flux.plot(
+  CH4_plots_lgr3 <- maybe_flux_plot(
     flux.results = CH4_best_lgr3_clean,
     dataframe = manID.lgr3,
     gastype = "CH4dry_ppb",
@@ -481,7 +481,7 @@ cat("Plot creation completed successfully!\n")
 # }
 # 
 # Save plots to PDF
-flux2pdf(
+maybe_flux2pdf(
   plot.list = all_plots_lgr3,
   outfile = "../../../data/processed/flux/LGR3_flux_plots_complete_ymf_2023.pdf",
   width = 11.6,
@@ -567,6 +567,7 @@ library(grid)
 
 # Custom function to replace flux2pdf
 save_flux_plots <- function(plot_list, outfile, width = 11.6, height = 8.2) {
+  if (!length(plot_list)) return(invisible())   # plots skipped (FLUX_PLOTS unset)
   
   pdf(outfile, width = width, height = height)
   

@@ -45,3 +45,14 @@ apply_model_choices <- function(best, gas, path) {
               gas, sum(has), changed))
   best
 }
+
+# Diagnostic plots (one PDF page per deployment) are slow and are not a data product:
+# made only with FLUX_PLOTS=1, and a plotting failure never stops a run.
+maybe_flux_plot <- function(...) {
+  if (Sys.getenv("FLUX_PLOTS") != "1") return(list())
+  tryCatch(goFlux::flux.plot(...), error = function(e) { message("flux.plot skipped: ", conditionMessage(e)); list() })
+}
+maybe_flux2pdf <- function(plot.list, ...) {
+  if (!length(plot.list)) { cat("diagnostic flux plots skipped (set FLUX_PLOTS=1 to make them)\n"); return(invisible()) }
+  tryCatch(goFlux::flux2pdf(plot.list = plot.list, ...), error = function(e) message("flux2pdf skipped: ", conditionMessage(e)))
+}
