@@ -77,7 +77,11 @@ repair_dbh <- function(cm) {
 num <- function(x) suppressWarnings(as.numeric(x))
 
 fg19 <- read.csv(file.path(RAW, "ForestGEO_data2021UPDATE_6_21_DW_2019.csv"), stringsAsFactors = FALSE)
-btag <- read.csv(file.path(RAW, "ForestGEO_data2021UPDATE_6_21_DW_bytag.csv"), stringsAsFactors = FALSE)
+# fileEncoding strips the byte-order mark the file starts with. Without it the first
+# column is "X...Quadrat" under a C locale and "Quadrat" under UTF-8, so the
+# uncensused-quadrat check below passed or failed depending on the shell's locale.
+btag <- read.csv(file.path(RAW, "ForestGEO_data2021UPDATE_6_21_DW_bytag.csv"), stringsAsFactors = FALSE,
+                 fileEncoding = "UTF-8-BOM")
 
 A <- fg19 %>% transmute(
   source = "fg19", tag = Tag,
@@ -118,7 +122,7 @@ stopifnot(max(INV$dbh_cm) <= MAX_DBH_CM, all(INV$dbh_m > 0))
 # that we are excluding would silently delete real ground.
 local({
   qn <- function(v) suppressWarnings(as.integer(v))
-  present <- sort(unique(na.omit(c(qn(fg19$Quadrat), qn(btag$X...Quadrat)))))
+  present <- sort(unique(na.omit(c(qn(fg19$Quadrat), qn(btag$Quadrat)))))
   grid <- expand.grid(row = 0:9, col = 0:9)
   grid$q <- grid$row*100 + grid$col
   got <- sort(grid$q[!(grid$q %in% present)])
