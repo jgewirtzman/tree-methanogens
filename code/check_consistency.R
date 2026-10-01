@@ -227,6 +227,27 @@ for (f in analysis) {
   hit <- grepl("[\"'](\\.\\./)*data/", w) | (length(vars) > 0 & grepl(paste0("\\b(", paste(vars, collapse = "|"), ")\\b"), w))
   if (any(hit)) writes_data <- c(writes_data, f)
 }
+# 1a. nothing writes into data/raw/ -- raw data are inputs only. Follows paths held in
+#     variables (output_dir <- "../data/raw/...") as well as literals.
+raw_writers <- character(0)
+for (f in live) {
+  L <- readLines(f, warn = FALSE); L <- L[!grepl("^\\s*#", L)]
+  vars <- sub("^\\s*([A-Za-z_.][A-Za-z0-9_.]*)\\s*<-.*$", "\\1",
+              grep("^\\s*[A-Za-z_.][A-Za-z0-9_.]*\\s*<-\\s*[\"'](\\.\\./)*data/raw/", L, value = TRUE))
+  for (k in 1:2) {                       # follow derived paths: out <- file.path(output_dir, ...)
+    if (!length(vars)) break
+    d <- grep(paste0("^\\s*[A-Za-z_.][A-Za-z0-9_.]*\\s*<-.*\\b(", paste(vars, collapse = "|"), ")\\b"), L, value = TRUE)
+    vars <- unique(c(vars, sub("^\\s*([A-Za-z_.][A-Za-z0-9_.]*)\\s*<-.*$", "\\1", d)))
+  }
+  W <- L[grepl(paste0(wpat, "|write_xlsx|write\\.xlsx|saveWorkbook|file\\.copy|writeLines"), L)]
+  W <- sub("^[^(]*\\([^,]*,", "", W)    # destination only: drop the first argument (the data, or file.copy's source)
+  hit <- any(grepl("[\"'](\\.\\./)*data/raw/", W)) ||
+         (length(vars) && any(grepl(paste0("\\b(", paste(vars, collapse = "|"), ")\\b"), W)))
+  if (hit) raw_writers <- c(raw_writers, f)
+}
+raw_writers <- setdiff(raw_writers, grep("^code/tools/", raw_writers, value = TRUE))
+chk("no pipeline script writes into data/raw/", !length(raw_writers), paste(raw_writers, collapse = "; "))
+
 chk("analysis scripts never write into data/", !length(writes_data), paste(writes_data, collapse = ", "))
 
 # 1c. no write to a bare filename. Such a file lands in whatever directory the script

@@ -23,8 +23,9 @@ library(dplyr)
 flux_data <- read_excel("../../../data/raw/field_data/ipad_data/treeflux_total.xlsx", sheet = "Sheet1")
 
 # Read geometry data
-geometry_data <- read_excel("../../../data/raw/flux_chamber_corrections/Chamber vol corr/corrected/combined_corrected_results.xlsx", sheet = "all_data")
-geometry_data <- results
+# Written by 01_calc_chamber_dims.R. (This line used to be followed by
+# `geometry_data <- results`, an object left in memory by that script's session.)
+geometry_data <- read_excel("../../../data/processed/flux/chamber_geometry/combined_corrected_results.xlsx", sheet = "all_data")
 
 # Clean and examine flux identifiers
 flux_clean <- flux_data %>%
