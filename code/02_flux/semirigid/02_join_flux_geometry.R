@@ -18,6 +18,7 @@
 library(readxl)
 library(writexl)
 library(dplyr)
+library(readr)   # write_csv; was available only from an earlier script in the same session
 
 # Read flux data
 flux_data <- read_excel("../../../data/raw/field_data/ipad_data/treeflux_total.xlsx", sheet = "Sheet1")
