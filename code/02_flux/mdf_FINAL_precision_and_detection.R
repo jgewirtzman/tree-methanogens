@@ -60,7 +60,7 @@ SIGMA <- c(`Height+molecular`=1.200, `Cross-species`=1.725, `Monthly survey`=2.1
 Z <- qnorm(0.95)
 
 G <- bind_rows(
-  read.csv("data/processed/flux/CH4_best_flux_lgr_results.csv",stringsAsFactors=FALSE) %>%
+  read.csv("data/processed/flux/CH4_best_flux_lgr_results_2021_multiheight.csv",stringsAsFactors=FALSE) %>%
     mutate(camp="Height+molecular", type="stem"),
   read.csv("data/processed/flux/CH4_best_flux_lgr_results_soil.csv",stringsAsFactors=FALSE) %>%
     mutate(camp="Monthly survey", type="soil"),

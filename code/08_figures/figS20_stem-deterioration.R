@@ -14,7 +14,7 @@ suppressMessages({library(ggplot2);library(patchwork);library(lme4);library(lmer
 options(warn=-1,stringsAsFactors=FALSE)
 asinh10<-function(x) asinh(x/0.1)/log(10)
 ord<-function(v){v<-tolower(trimws(as.character(v)));x<-suppressWarnings(as.numeric(v));x[v=="dead"]<-4;x}
-y<-read.csv("data/processed/flux/methanogen_tree_flux_complete_dataset.csv",check.names=FALSE)
+y<-read.csv("data/processed/flux/tree_flux_2023_cross_species.csv",check.names=FALSE)
 names(y)<-make.names(names(y)); y<-y[!is.na(y$CH4_best.flux),]
 y$fx<-asinh10(y$CH4_best.flux); y$sp<-as.factor(y$Species)
 y$bark<-ord(y$Bark.Missing); y$wound<-ord(y$Wounding.Holes)

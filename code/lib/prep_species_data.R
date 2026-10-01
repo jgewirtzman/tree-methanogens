@@ -14,13 +14,13 @@
 # Side-effect free (no writes, no plots). Sourced by revision analysis scripts.
 #
 # Inputs:
-#   data/processed/flux/methanogen_tree_flux_complete_dataset.csv
+#   data/processed/flux/tree_flux_2023_cross_species.csv
 #   data/processed/integrated/merged_tree_dataset_final.csv
 # ==============================================================================
 
 suppressPackageStartupMessages(library(tidyverse))
 
-ymf2023 <- read.csv("data/processed/flux/methanogen_tree_flux_complete_dataset.csv")
+ymf2023 <- read.csv("data/processed/flux/tree_flux_2023_cross_species.csv")
 ymf2021 <- read.csv("data/processed/integrated/merged_tree_dataset_final.csv")
 
 species_mapping <- c(

@@ -9,7 +9,7 @@
 #
 # Inputs:
 #   - merged_tree_dataset_final.csv (from data/processed/integrated/)
-#   - methanogen_tree_flux_complete_dataset.csv (from data/processed/flux/)
+#   - tree_flux_2023_cross_species.csv (from data/processed/flux/)
 #   - semirigid flux datasets (from data/processed/flux/)
 #   - ForestGEO inventory CSVs (from data/raw/inventory/)
 #   - weather and moisture data (from data/raw/field_data/)
@@ -35,7 +35,7 @@ cat("Started at:", format(Sys.time()), "\n\n")
 
 paths <- list(
   merged_tree = "../../data/processed/integrated/merged_tree_dataset_final.csv",
-  tree_2023 = "../../data/processed/flux/methanogen_tree_flux_complete_dataset.csv",
+  tree_2023 = "../../data/processed/flux/tree_flux_2023_cross_species.csv",
   # NOTE (2026 revision): use the dataset that includes the recovered untagged/dead-snag
   # monthly trees (+45 fluxes, +7 trees). The revision analyses all use this file.
   semirigid_tree = "../../data/processed/flux/semirigid_tree_final_complete_dataset_with_untagged.csv",

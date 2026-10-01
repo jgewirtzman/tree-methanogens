@@ -25,7 +25,7 @@ suppressPackageStartupMessages({
 
 # ---- Load data ----
 # Update these paths as needed
-ymf2023 <- read.csv("data/processed/flux/methanogen_tree_flux_complete_dataset.csv")
+ymf2023 <- read.csv("data/processed/flux/tree_flux_2023_cross_species.csv")
 ymf2021 <- read.csv("data/processed/integrated/merged_tree_dataset_final.csv")
 
 merged_final <- ymf2021  # Adjust if ddPCR data is elsewhere

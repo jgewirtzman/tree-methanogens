@@ -12,7 +12,7 @@ library(viridis)
 library(scales)
 
 # Load the datasets
-methanogen_data <- read.csv('../../../data/processed/flux/methanogen_tree_flux_complete_dataset.csv', stringsAsFactors = FALSE)
+methanogen_data <- read.csv('../../../data/processed/flux/tree_flux_2021_multiheight.csv', stringsAsFactors = FALSE)
 semirigid_data <- read.csv('../../../data/processed/flux/semirigid_tree_final_complete_dataset.csv', stringsAsFactors = FALSE)
 species_mapping <- read.csv('../../../data/raw/lgr/semirigid_2020-2021/Yale Myers Methane Project/spatial_data/YM_trees_measured.csv.csv', stringsAsFactors = FALSE)
 
@@ -363,7 +363,7 @@ library(lubridate)
 library(ggeffects)
 
 # Load the datasets
-methanogen_data <- read.csv('../../../data/processed/flux/methanogen_tree_flux_complete_dataset.csv', stringsAsFactors = FALSE)
+methanogen_data <- read.csv('../../../data/processed/flux/tree_flux_2021_multiheight.csv', stringsAsFactors = FALSE)
 semirigid_data <- read.csv('../../../data/processed/flux/semirigid_tree_final_complete_dataset.csv', stringsAsFactors = FALSE)
 species_mapping <- read.csv('../../../data/raw/lgr/semirigid_2020-2021/Yale Myers Methane Project/spatial_data/YM_trees_measured.csv.csv', stringsAsFactors = FALSE)
 
@@ -968,7 +968,7 @@ library(scales)
 library(lubridate)
 
 # Load the datasets with your file paths
-rigid_data <- read.csv('../../../data/processed/flux/methanogen_tree_flux_complete_dataset.csv', stringsAsFactors = FALSE)
+rigid_data <- read.csv('../../../data/processed/flux/tree_flux_2021_multiheight.csv', stringsAsFactors = FALSE)
 semirigid_data <- read.csv('../../../data/processed/flux/semirigid_tree_final_complete_dataset.csv', stringsAsFactors = FALSE)
 species_mapping <- read.csv('../../../data/raw/lgr/semirigid_2020-2021/Yale Myers Methane Project/spatial_data/YM_trees_measured.csv.csv', stringsAsFactors = FALSE)
 

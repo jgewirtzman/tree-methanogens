@@ -89,7 +89,7 @@ cat(sprintf("  -> Wrote semirigid_chamber_flux.csv (%d rows)\n\n", nrow(semirigi
 # 2. STATIC CHAMBER FLUX (2021 + 2023)
 # ============================================================================
 cat("--- 2. Static chamber flux ---\n")
-static_flux <- read_csv("data/processed/flux/methanogen_tree_flux_complete_dataset.csv",
+static_flux <- read_csv("data/processed/flux/tree_flux_2023_cross_species.csv",
                          show_col_types = FALSE)
 
 # Fix special-char column names (degree symbols, etc.)
@@ -148,7 +148,7 @@ cat("--- 2b. Height chamber flux (2021 multi-height campaign) ---\n")
 # no archived source and the model could not be refit from the archive. Keeps the
 # goFlux fit diagnostics and chamber geometry, which the merged model table drops
 # and which the detection-limit analysis needs.
-height_flux <- read_csv("data/processed/flux/CH4_best_flux_lgr_results.csv",
+height_flux <- read_csv("data/processed/flux/CH4_best_flux_lgr_results_2021_multiheight.csv",
                         show_col_types = FALSE)
 height_aux  <- read_csv("data/processed/flux/goflux_auxfile.csv", show_col_types = FALSE)
 

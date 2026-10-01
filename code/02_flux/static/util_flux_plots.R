@@ -7,7 +7,7 @@
 library(ggplot2)
 library(dplyr)
 
-final_dataset<-read.csv('../../../data/processed/flux/methanogen_tree_flux_complete_dataset.csv')
+final_dataset<-read.csv('../../../data/processed/flux/tree_flux_2021_multiheight.csv')
 
 # Prepare the data
 plot_data <- final_dataset %>%

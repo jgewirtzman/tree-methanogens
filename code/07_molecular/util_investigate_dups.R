@@ -130,7 +130,7 @@ if (nrow(gas_std_dups) > 0) {
 
 cat("\n=== CHECKING FLUX DUPLICATES ===\n")
 
-flux <- read_csv("../../data/processed/flux/methanogen_tree_flux_complete_dataset.csv")
+flux <- read_csv("../../data/processed/flux/tree_flux_2021_multiheight.csv")
 
 # Check raw duplicates
 flux_raw_dups <- flux %>%
