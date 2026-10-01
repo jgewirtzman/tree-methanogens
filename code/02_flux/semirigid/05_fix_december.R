@@ -129,8 +129,10 @@ MC_PATH <- "../../../data/processed/flux/flux_model_choices.csv"
 WIN <- "../../../data/processed/flux/lgr_manual_identification_results_december_soil.csv"
 # Saved hand-picked windows are the record; the picker below runs only without them
 # (or with FLUX_REPICK=1, interactively). See code/lib/flux_windows.R.
+source("../../lib/chamber_constants.R")   # SOIL_VTOT_L, SOIL_COLLAR_AREA_CM2
 if (use_saved_windows(WIN)) {
-  manID.lgr3.december <- load_windows(WIN)
+  # the saved December windows still carry the pre-correction collar volume
+  manID.lgr3.december <- load_windows(WIN) %>% mutate(Vtot = SOIL_VTOT_L, Area = SOIL_COLLAR_AREA_CM2)
 } else {
 
 # Process in batches of 20

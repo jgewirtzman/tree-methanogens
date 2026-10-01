@@ -10,6 +10,9 @@
 # If the two are uncorrelated, the surface is not describing the plot's hydrology
 # and should be treated as decoration.
 #
+# Reads outputs/tables/combined_elevation_data.csv, which helper_spatial_interpolation.R
+# writes when Figure S1 is built, so the manifest runs this after figS01 (stage E).
+#
 # Two tests, in increasing dependence on interpolation:
 #   1. AT THE SURVEY POINTS. Some rows of the elevation archive were recorded at
 #      the moisture survey locations themselves, so moisture and elevation can be

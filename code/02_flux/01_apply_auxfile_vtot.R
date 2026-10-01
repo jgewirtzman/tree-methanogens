@@ -40,9 +40,8 @@ RESC <- "data/processed/flux/untagged_rescue"   # the rescued untagged stems (02
 num  <- function(x) suppressWarnings(as.numeric(x))
 rd   <- function(f) read_csv(f, col_types = cols(.default = "c"), na = character(), progress = FALSE)
 
-# Soil collars: 04_goflux_soils.R overrides the auxfile with one fixed geometry,
-# so the target is that constant, not the auxfile. Must match that script.
-SOIL_VTOT_L <- (7.53 * 1000 + pi * (1/16)^2 * 12 * 12 * 16.387 + ANALYZER_VOLUME_CM3) / 1000
+# Soil collars: the soil fits use one fixed geometry (SOIL_VTOT_L, chamber_constants.R),
+# so the target is that constant, not the auxfile.
 
 # --- campaign -> where its old (state) and new (target) Vtot live ---------------
 CAMPAIGNS <- list(

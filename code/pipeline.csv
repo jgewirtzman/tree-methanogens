@@ -36,7 +36,6 @@ C,code/04_drivers/02_moisture_climatology.R,root,TRUE,monthly plot-wide soil-moi
 C,code/04_drivers/03_soil_temp_climatology.R,root,TRUE,monthly soil-temperature climatology
 C,code/04_drivers/04_moisture_surface.R,root,TRUE,relative soil-moisture pattern across the plot
 C,code/04_drivers/05_moisture_interpolation.R,root,FALSE,comparison of interpolation methods for the moisture surface
-C,code/04_drivers/06_moisture_elevation_check.R,root,FALSE,check: moisture against elevation
 C,code/06_upscale/01_predict_tree_flux.R,root,TRUE,per-stem predicted flux over the 0-2 m band
 C,code/06_upscale/02_predict_soil_surface.R,root,TRUE,soil flux surface across the stand
 C,code/06_upscale/03_budget_canonical.R,root,TRUE,measured-band budget; soil budget; monthly totals
@@ -88,6 +87,7 @@ E,code/08_figures/fig07_decay-methanogenesis.R,root,FALSE,Figure 7
 E,code/08_figures/fig08_radial-species.R,root,FALSE,Figure 8 (also writes Fig S23)
 E,code/08_figures/fig09_budget.R,root,FALSE,Figure 9
 E,code/08_figures/figS01_moisture-overlay.R,root,FALSE,Figure S1
+E,code/04_drivers/06_moisture_elevation_check.R,root,FALSE,check: moisture against elevation (reads the elevation table figS01 builds)
 E,code/08_figures/figS03_detection-limits.R,root,FALSE,Figure S3
 E,code/08_figures/figS04_mcra-probe-validation.R,root,FALSE,Figure S4
 E,code/08_figures/figS05_16s-ddpcr-association.R,root,FALSE,Figure S5

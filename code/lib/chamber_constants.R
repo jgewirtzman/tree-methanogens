@@ -20,3 +20,11 @@
 #   03_merge/01_fix_soil_flux.R
 # ==============================================================================
 ANALYZER_VOLUME_CM3 <- 28
+
+# Soil collars: one geometry for every collar (25.43 cm interior diameter, 7.53 L
+# headspace, 12 ft of 1/8" tubing). Fits from saved windows use these values,
+# not the Vtot stored in the window file: the December 2020 windows were picked
+# while the collar volume was still the pre-correction 17.75 L, and a fit that
+# kept it came out 2.35x too high until a later rescaling step caught it.
+SOIL_COLLAR_AREA_CM2 <- 507.7
+SOIL_VTOT_L <- (7.53 * 1000 + pi * (1/16)^2 * 12 * 12 * 16.387 + ANALYZER_VOLUME_CM3) / 1000
