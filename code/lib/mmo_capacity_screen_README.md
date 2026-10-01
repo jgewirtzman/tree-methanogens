@@ -4,7 +4,7 @@
 `methanotroph_definitions.csv` marked "Capacity rule 2026-09-30". NCBI changes over time,
 so the snapshot is committed rather than regenerated.
 
-Reproduce with `code/09_tables_stats/stat_mmo-capacity-screen.R` (live NCBI E-utilities;
+Reproduce with `code/tools/mmo_capacity_screen.R` (live NCBI E-utilities;
 needs network and the Bioconductor package `pwalign`).
 
 - `assemblies` — NCBI Assembly records for the genus.

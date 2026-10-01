@@ -16,7 +16,7 @@
 # and 1.8-6.8 % for the 0.5-2.3 L rigid chambers.
 #
 # Sourced by: 02_flux/semirigid/03_prep_{tree,soil}_auxfile.R, 04_goflux_soils.R,
-#   02_flux/static/01_prep_auxfile{,_2023}.R, 02_flux/apply_auxfile_vtot.R,
+#   02_flux/static/01_prep_auxfile{,_2023}.R, 02_flux/01_apply_auxfile_vtot.R,
 #   03_merge/01_fix_soil_flux.R
 # ==============================================================================
 ANALYZER_VOLUME_CM3 <- 28

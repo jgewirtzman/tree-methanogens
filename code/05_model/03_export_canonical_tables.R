@@ -11,7 +11,7 @@
 #
 # That merged table existed only inside outputs/models/TRAINING_DATA.RData, so
 # every other consumer rebuilt its own version from the component files:
-# stat_campaign_counts.R reads five, 04_variance_partition.R reads two and
+# 02_campaign_counts.R reads five, 04_variance_partition.R reads two and
 # covers 2023 only, and the Zenodo archive was compiled from a different subset
 # again -- it carried the 2020-2021 semi-rigid and 2023 campaigns but not the
 # 2021 rigid one, so 328 of the 1,130 measurements the model uses had no
@@ -49,7 +49,7 @@ tree_out <- drop_pred(tree)
 soil_out <- drop_pred(soil)
 
 # UNIT MISNOMER, corrected at the archive boundary. stem_flux_umol_m2_s and
-# soil_flux_umol_m2_s hold nmol m-2 s-1, not umol; manuscript_statistics.R:1447
+# soil_flux_umol_m2_s hold nmol m-2 s-1, not umol; 20_manuscript_statistics.R:1447
 # records this for the equivalent Phi_* columns. Verified against the budget:
 # the mean stem flux read as nmol gives 6.0 mg CH4 m-2 ground yr-1 against the
 # canonical 4.912, while reading it as umol gives 6,005 -- three orders out.

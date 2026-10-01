@@ -38,7 +38,7 @@ tree_pts <- tree_pts[tree_pts$in_stand & tree_pts$located, ]       # mappable su
 soil_map$mean_flux_nmol <- soil_map$flux_nmol_m2_s
 
 # ---- budget numbers: READ, never hardcoded ----------------------------------
-# All values come from budget_canonical.R, which computes them from the locked
+# All values come from 03_budget_canonical.R, which computes them from the locked
 # models and the inventory. Run that script first if any input has changed.
 B <- read.csv("outputs/data/canonical_budget.csv", stringsAsFactors = FALSE)
 val <- function(q) { v <- B$value[B$quantity == q]

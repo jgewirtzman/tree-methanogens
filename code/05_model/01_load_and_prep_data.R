@@ -46,7 +46,7 @@ paths <- list(
   # Master per-collar soil temperature + VWC campaign (Date, Site, Plot, Subplot).
   # Resolves to the individual collar, unlike soilmoisture_total.csv which only
   # resolves to the plot, and covers 197 of 288 soil flux records vs 104.
-  # Compiled by code/03_merge/compile_soil_env.R from every per-date iPad sheet
+  # Compiled by code/03_merge/02_compile_soil_env.R from every per-date iPad sheet
   # PLUS the master workbook: 97% coverage of soil flux records (279/288) with
   # genuinely measured per-collar temperature and VWC, vs 39% before.
   soil_env_collar_csv = "../../data/processed/environmental/soil_env_by_collar.csv",
@@ -413,7 +413,7 @@ cat("  Sample inventory tree IDs (first 10):", paste(head(unique(INVENTORY$tree_
 #
 # a single hardcoded date stamped onto every row of the 2021 campaign. The
 # campaign did not happen in a day: goflux_auxfile.csv -- this pipeline's OWN
-# product, written by code/02_flux/static/01_prep_auxfile.R -- records
+# product, written by code/02_flux/static/01_prep_auxfile_2021.R -- records
 # 461 measurements from 2021-07-19 13:45 to 2021-08-12 14:09 across 19 field days,
 # a median of 8 and at most 15 trees a day.
 #

@@ -14,10 +14,10 @@
 # *process*. Graphics devices are process-global, so `local=` isolates variables
 # and does nothing whatsoever for devices.
 #
-# That produced a wrong figure in the shipped SI. 12b_picrust_pathway_heatmap.R
+# That produced a wrong figure in the shipped SI. figS11-13_picrust-heatmaps.R
 # opens png(fig6_picrust_mcra_no_mcra_heatmap.png); when its pheatmap() call
 # errored, the handler's try(dev.off(), silent = TRUE) did not take, and the
-# device stayed open on fig6's path. Thirty scripts later 05_methods_figure_map.R
+# device stayed open on fig6's path. Thirty scripts later figS01_moisture-overlay.R
 # drew the moisture map -- into fig6's still-open device. On disk, fig6 carried
 # the map's timestamp (15:05) rather than its own siblings' (14:58), and
 # Figure_S12 in the assembled SI set was the moisture overlay.
@@ -37,7 +37,7 @@ if (!file.exists("data/processed/integrated/merged_tree_dataset_final.csv"))
 
 LOGDIR <- "outputs/logs"
 dir.create(LOGDIR, showWarnings = FALSE, recursive = TRUE)
-# MUST be the name 00_assemble_figures.R looks for. Naming it anything else
+# MUST be the name zz_assemble_figures.R looks for. Naming it anything else
 # silently disables the assembler's staleness check -- the guard that stops a
 # figure older than this run from being copied into the manuscript set and
 # reported as fresh. That guard exists because the assembler once shipped a
@@ -93,7 +93,7 @@ for (p in REVISION) run_one(p, "revision")
 
 # --- 3) assemble --------------------------------------------------------------
 cat("\n== ASSEMBLE ==\n")
-run_one("code/08_figures/00_assemble_figures.R", "assemble")
+run_one("code/08_figures/zz_assemble_figures.R", "assemble")
 
 # --- 4) report ----------------------------------------------------------------
 st  <- vapply(results, function(r) r$status, character(1))
