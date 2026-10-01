@@ -40,8 +40,14 @@ set.seed(42)
 source("code/lib/geometry.R")
 source("code/lib/species_levels.R")
 
-load("outputs/models/RF_MODELS.RData")
-load("outputs/models/TRAINING_DATA.RData")
+# SANDBOX (2026-09-30). With TREE_PRED_SANDBOX=<dir>, the models are read from <dir>
+# and the four tables are written there, so audits can score alternative forests
+# without touching outputs/models or outputs/tables. Unset: the canonical run.
+SANDBOX   <- Sys.getenv("TREE_PRED_SANDBOX")
+MODEL_DIR <- if (nzchar(SANDBOX)) SANDBOX else "outputs/models"
+TAB_DIR   <- if (nzchar(SANDBOX)) SANDBOX else "outputs/tables"
+load(file.path(MODEL_DIR, "RF_MODELS.RData"))
+load(file.path(MODEL_DIR, "TRAINING_DATA.RData"))
 load("data/processed/integrated/rf_workflow_input_data_with_2023.RData")
 DR <- rf_workflow_data$PLACEHOLDER_DRIVERS
 d  <- tree_train_complete
@@ -135,7 +141,8 @@ pred_at <- function(h, mo, idx = seq_len(nrow(INV))) predict(TreeRF, data.frame(
     soil_moisture_at_tree = MOIST[idx, mo],
     soil_temp_C_mean = DR$soil_temp_C_mean[mo],
     air_temp_C_mean = DR$air_temp_C_mean[mo],
-    height_cm = h), num.threads = 1)$predictions
+    height_cm = h,
+    dead_stem = 0), num.threads = 1)$predictions   # inventory is live stems; ignored unless a variant uses it
 
 # --- locate the steps, rather than assuming where they are --------------------
 # Split thresholds are a property of the forest, so a sample of stems reveals all
@@ -205,7 +212,8 @@ flux_2m <- rowMeans(F[, K, ])
 # parameter that would have had to be defended. The unclamped ratio is what the
 # cross-validation in model_family_comparison.R actually evaluated.
 source("code/lib/species_calibration.R")   # min sample MIN_CAL_N; see that file
-cal <- species_calibration(d$species_clean, d$stem_flux_corrected, TreeRF$predictions)
+.live <- if ("dead_stem" %in% names(d)) !d$dead_stem else rep(TRUE, nrow(d))   # calibrate on live stems
+cal <- species_calibration(d$species_clean[.live], d$stem_flux_corrected[.live], TreeRF$predictions[.live])
 cmap <- setNames(cal$ratio, cal$sp)
 INV$cal <- as.numeric(ifelse(is.na(cmap[INV$sp]), 1, cmap[INV$sp]))
 cat("\nper-species calibration (observed / out-of-bag predicted):\n")
@@ -239,10 +247,10 @@ stopifnot(max(abs(PROF[, K] - flux_2m)) < 1e-12)
 PROFOUT <- cbind(
   data.frame(source = INV$source, tag = INV$tag, in_stand = INV$in_stand),
   setNames(as.data.frame(PROF), sprintf("f_i%d", seq_len(K))))
-write.csv(PROFOUT, "outputs/tables/tree_band_profile.csv", row.names = FALSE)
+write.csv(PROFOUT, file.path(TAB_DIR, "tree_band_profile.csv"), row.names = FALSE)
 write.csv(data.frame(k = seq_len(K), edge_lo_cm = head(edges, -1),
                      edge_hi_cm = tail(edges, -1)),
-          "outputs/tables/tree_band_profile_edges.csv", row.names = FALSE)
+          file.path(TAB_DIR, "tree_band_profile_edges.csv"), row.names = FALSE)
 cat(sprintf("exported calibrated band profile: %d stems x %d intervals (edges %s)\n",
             nrow(PROF), K, paste(edges, collapse = ", ")))
 
@@ -257,7 +265,7 @@ OUT <- data.frame(
   flux_band_nmol_m2_s = rowMeans(band),
   flux_2m_nmol_m2_s   = flux_2m)
 OUT$flux_nmol_m2_s <- OUT$flux_band_nmol_m2_s
-write.csv(OUT, "outputs/tables/tree_flux_predictions.csv", row.names = FALSE)
+write.csv(OUT, file.path(TAB_DIR, "tree_flux_predictions.csv"), row.names = FALSE)
 
 # Stand-level monthly series, per m2 GROUND: sum(flux x stem area) over the
 # budget set, divided by censused stand area. This is the tree counterpart of
@@ -283,7 +291,7 @@ tree_monthly <- data.frame(
   tree_bh_nmol_m2_s = colSums(bh[keep, ] * w) / sum(w))
 cat(sprintf("breast height falls in interval %d [%d, %d) cm; mean flux there %.4f nmol m-2 s-1\n",
             k_bh, edges[k_bh], edges[k_bh+1], mean(tree_monthly$tree_bh_nmol_m2_s)))
-write.csv(tree_monthly, "outputs/tables/tree_monthly_stand.csv", row.names = FALSE)
+write.csv(tree_monthly, file.path(TAB_DIR, "tree_monthly_stand.csv"), row.names = FALSE)
 
 CONV <- 86400 * 365.25 * 16e-6
 S <- OUT[OUT$in_stand, ]

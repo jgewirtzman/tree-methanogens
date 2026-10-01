@@ -890,6 +890,10 @@ source("../lib/dead_stems.R")
 tree_train$dead_stem <- is_dead_stem_flux(tree_train$stem_flux_umol_m2_s)
 cat("  Dead-stem deployments excluded from training:", sum(tree_train$dead_stem), "\n")
 complete_rows <- complete_rows & !tree_train$dead_stem
+# Every trainable row, dead stems included and flagged, for
+# code/05_model/audit_training_population.R (live vs all vs a live/dead predictor).
+tree_train_candidates <- tree_train[!is.na(tree_train$y_asinh) & !is.na(tree_train$species_factor), ]
+save(tree_train_candidates, file = "../../outputs/models/TRAINING_CANDIDATES.RData")
 
 # Subset the training data to complete cases FIRST
 tree_train_complete <- tree_train[complete_rows, ]
