@@ -126,7 +126,8 @@ SUPPORT <- c(
   "code/05_model/rf_species_fallback_loso.R",
   "code/05_model/rf_species_pooling.R",
   "code/05_model/rf_species_bias_audit.R",
-  "code/08_figures/figS21_rf-model-summary.R",   # absorbed fig_model_findings.R
+  # figS21_rf-model-summary.R runs once, with the figures (make_figures.R); it was
+  # listed here too and ran twice (~10 min of permutation importance each time).
   "code/05_model/model_family_comparison.R",
   "code/05_model/rf_height_extrapolation.R",
   "code/06_upscale/scaling_assumptions_audit.R",
