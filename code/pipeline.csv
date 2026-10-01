@@ -1,4 +1,5 @@
 stage,script,workdir,fatal,purpose
+A,code/02_flux/static/01_prep_auxfile_2021.R,script,TRUE,2021 multi-height: goFlux aux file (first: 01_tree_id_consensus.R reads its flux_data_with_dimensions table)
 A,code/01_import/01_tree_id_consensus.R,script,TRUE,tree ID crosswalk and diameter consensus across sources
 A,code/01_import/02_process_wood_cores.R,script,TRUE,wood-core sectioning; density and moisture by radial position
 A,code/01_import/03_process_internal_gas.R,script,TRUE,GC calibration of 2021-22 internal-gas samples
@@ -15,7 +16,7 @@ A,code/02_flux/semirigid/03_prep_tree_auxfile.R,script,TRUE,monthly survey: goFl
 A,code/02_flux/semirigid/04_goflux_soils.R,script,TRUE,monthly survey: soil flux fits (goFlux)
 A,code/02_flux/semirigid/04_goflux_trees.R,script,TRUE,monthly survey: stem flux fits (goFlux)
 A,code/02_flux/semirigid/05_fix_december.R,script,TRUE,monthly survey: December 2020 files (date format)
-A,code/02_flux/static/01_prep_auxfile_2021.R,script,TRUE,2021 multi-height: goFlux aux file
+A,code/03_merge/01_fix_soil_flux.R,script,TRUE,soil flux re-fitted with corrected collar geometry (before the screens and detection limits read soil fluxes)
 A,code/02_flux/static/02_prep_auxfile_2023.R,script,TRUE,2023 cross-species: goFlux aux file
 A,code/02_flux/static/03_goflux_trees_2021.R,script,TRUE,2021 multi-height: stem flux fits (goFlux)
 A,code/02_flux/static/04_goflux_trees_2023.R,script,TRUE,2023 cross-species: stem flux fits (goFlux)
@@ -25,9 +26,7 @@ A,code/02_flux/rescue/03_merge_untagged_monthly.R,root,TRUE,monthly survey file 
 A,code/02_flux/01_apply_auxfile_vtot.R,root,TRUE,carry the 28 cm3 analyzer volume through every stored fit
 A,code/02_flux/02_qc_c0_screen.R,root,TRUE,procedural screen: chamber not at ambient at closure
 A,code/02_flux/03_precision_and_detection.R,root,TRUE,analyzer precision; minimum detectable flux; detection status
-A,code/03_merge/01_fix_soil_flux.R,script,TRUE,soil flux with corrected collar geometry
 A,code/03_merge/02_compile_soil_env.R,root,TRUE,soil temperature and moisture per collar and date
-A,code/03_merge/03_vendor_traits.R,script,TRUE,per-species plant traits
 A,code/03_merge/04_harmonize_all_data.R,script,TRUE,master per-tree table (flux; genes; gas; wood; soil)
 B,code/05_model/01_load_and_prep_data.R,script,TRUE,random-forest training tables
 B,code/05_model/02_rf_models.R,script,TRUE,fit the stem and soil random forests
