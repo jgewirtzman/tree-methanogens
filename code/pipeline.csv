@@ -25,7 +25,7 @@ A,code/02_flux/03_precision_and_detection.R,root,TRUE,analyzer precision; minimu
 A,code/03_merge/02_compile_soil_env.R,root,TRUE,soil temperature and moisture per collar and date
 A,code/03_merge/04_harmonize_all_data.R,script,TRUE,master per-tree table (flux; genes; gas; wood; soil)
 B,code/05_model/01_load_and_prep_data.R,script,TRUE,random-forest training tables
-B,code/01_import/08_inventory_build.R,root,TRUE,stand inventory from the 2018 and 2019 censuses and by-tag survey (reads the model's training tables, so after 01_load_and_prep_data)
+B,code/01_import/08_inventory_build.R,root,TRUE,stand inventory from the 2018 and 2019 censuses and by-tag survey (reads the model's training tables; so after 01_load_and_prep_data)
 B,code/01_import/09_audit_inventory_duplicates.R,root,FALSE,check: no stem counted in both censuses
 B,code/05_model/02_rf_models.R,script,TRUE,fit the stem and soil random forests
 B,code/05_model/03_export_canonical_tables.R,root,TRUE,measurement tables with training flags and exclusion reasons
