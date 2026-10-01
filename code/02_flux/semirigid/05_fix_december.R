@@ -263,7 +263,7 @@ cat("Flagged measurements:", quality_summary_december$flagged_measurements, "\n"
 cat("\n=== STEP 6: CREATING DECEMBER PLOTS ===\n")
 
 # Create December CO2 flux plots
-CO2_plots_lgr3_december <- flux.plot(
+CO2_plots_lgr3_december <- maybe_flux_plot(
   flux.results = CO2_best_lgr3_december,
   dataframe = manID.lgr3.december,
   gastype = "CO2dry_ppm",
@@ -277,7 +277,7 @@ CO2_plots_lgr3_december <- flux.plot(
 
 # Create December CH4 plots if available
 if(exists("CH4_best_lgr3_december")) {
-  CH4_plots_lgr3_december <- flux.plot(
+  CH4_plots_lgr3_december <- maybe_flux_plot(
     flux.results = CH4_best_lgr3_december,
     dataframe = manID.lgr3.december,
     gastype = "CH4dry_ppb",
@@ -296,7 +296,7 @@ if(exists("CH4_best_lgr3_december")) {
 }
 
 # Save December plots to PDF
-flux2pdf(
+maybe_flux2pdf(
   plot.list = all_plots_lgr3_december,
   outfile = "../../../data/processed/flux/LGR3_flux_plots_december_soil.pdf",
   width = 11.6,
@@ -531,7 +531,7 @@ updated_manID_complete <- read_csv("../../../data/processed/flux/lgr_manual_iden
 updated_CO2_best_complete <- read_csv("../../../data/processed/flux/CO2_best_flux_lgr_results_soil.csv")
 
 # Create complete CO2 plots with updated data
-CO2_plots_complete_updated <- flux.plot(
+CO2_plots_complete_updated <- maybe_flux_plot(
   flux.results = updated_CO2_best_complete,
   dataframe = updated_manID_complete,
   gastype = "CO2dry_ppm",
@@ -547,7 +547,7 @@ CO2_plots_complete_updated <- flux.plot(
 if(file.exists("../../../data/processed/flux/CH4_best_flux_lgr_results_soil.csv")) {
   updated_CH4_best_complete <- read_csv("../../../data/processed/flux/CH4_best_flux_lgr_results_soil.csv")
   
-  CH4_plots_complete_updated <- flux.plot(
+  CH4_plots_complete_updated <- maybe_flux_plot(
     flux.results = updated_CH4_best_complete,
     dataframe = updated_manID_complete,
     gastype = "CH4dry_ppb",
@@ -565,7 +565,7 @@ if(file.exists("../../../data/processed/flux/CH4_best_flux_lgr_results_soil.csv"
 }
 
 # Save updated complete plots (overwriting the original)
-flux2pdf(
+maybe_flux2pdf(
   plot.list = all_plots_complete_updated,
   outfile = "../../../data/processed/flux/LGR3_flux_plots_complete_soil.pdf",
   width = 11.6,

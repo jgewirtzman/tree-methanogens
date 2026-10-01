@@ -348,7 +348,7 @@ if(exists("CH4_best_lgr3")) {
 cat("\n=== STEP 6: CREATING PLOTS ===\n")
 
 # Create CO2 flux plots
-CO2_plots_lgr3 <- flux.plot(
+CO2_plots_lgr3 <- maybe_flux_plot(
   flux.results = CO2_best_lgr3,
   dataframe = manID.lgr3,
   gastype = "CO2dry_ppm",
@@ -362,7 +362,7 @@ CO2_plots_lgr3 <- flux.plot(
 
 # Create CH4 plots if available
 if(exists("CH4_best_lgr3")) {
-  CH4_plots_lgr3 <- flux.plot(
+  CH4_plots_lgr3 <- maybe_flux_plot(
     flux.results = CH4_best_lgr3,
     dataframe = manID.lgr3,
     gastype = "CH4dry_ppb",
@@ -381,7 +381,7 @@ if(exists("CH4_best_lgr3")) {
 }
 
 # Save plots to PDF
-flux2pdf(
+maybe_flux2pdf(
   plot.list = all_plots_lgr3,
   outfile = "../../../data/processed/flux/LGR3_flux_plots_complete.pdf",
   width = 11.6,

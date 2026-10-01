@@ -401,7 +401,7 @@ CO2_best_lgr3 <- CO2_best_lgr3 %>%
   )
 
 # Create CO2 flux plots
-CO2_plots_lgr3 <- flux.plot(
+CO2_plots_lgr3 <- maybe_flux_plot(
   flux.results = CO2_best_lgr3,
   dataframe = manID.lgr3,
   gastype = "CO2dry_ppm",
@@ -423,7 +423,7 @@ if(exists("CH4_best_lgr3")) {
       )
     )
   
-  CH4_plots_lgr3 <- flux.plot(
+  CH4_plots_lgr3 <- maybe_flux_plot(
     flux.results = CH4_best_lgr3,
     dataframe = manID.lgr3,
     gastype = "CH4dry_ppb",
@@ -441,7 +441,7 @@ if(exists("CH4_best_lgr3")) {
 }
 
 # Save plots to PDF
-flux2pdf(
+maybe_flux2pdf(
   plot.list = all_plots_lgr3,
   outfile = "../../../data/processed/flux/LGR3_flux_plots_complete_soil.pdf",
   width = 11.6,
@@ -456,6 +456,7 @@ library(grid)
 
 # Custom function to replace flux2pdf
 save_flux_plots <- function(plot_list, outfile, width = 11.6, height = 8.2) {
+  if (!length(plot_list)) return(invisible())   # plots skipped (FLUX_PLOTS unset)
   
   pdf(outfile, width = width, height = height)
   

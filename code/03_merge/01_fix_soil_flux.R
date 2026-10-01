@@ -16,6 +16,7 @@
 # ==============================================================================
 
 library(goFlux)
+source("../lib/flux_windows.R")   # maybe_flux_plot(), maybe_flux2pdf()
 library(dplyr)
 library(readr)
 
@@ -248,7 +249,7 @@ CH4_best_lgr3 <- CH4_best_lgr3 %>%
   )
 
 # Create CH4 plots with corrected data
-CH4_plots_lgr3 <- flux.plot(
+CH4_plots_lgr3 <- maybe_flux_plot(
   flux.results = CH4_best_lgr3,
   dataframe = manID.lgr3,
   gastype = "CH4dry_ppb",  # Correct gastype for plots
@@ -261,7 +262,7 @@ CH4_plots_lgr3 <- flux.plot(
 )
 
 # Save corrected CH4 plots
-flux2pdf(
+maybe_flux2pdf(
   plot.list = CH4_plots_lgr3,
   outfile = "../../outputs/figures/CH4_flux_plots_soil_CORRECTED.pdf",
   width = 11.6,
