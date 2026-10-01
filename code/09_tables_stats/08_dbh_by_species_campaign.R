@@ -52,7 +52,7 @@ dead_tags<-unique(tfn$PT[grepl("^[0-9]+$",tfn$PT)&grepl("dead|snag",tfn$NO,ignor
 mon$status<-ifelse(mon$tag %in% dead_tags,"Dead","Live")
 t1<-transmute(mon, campaign="2020-2021 monthly", location, code, dbh, status)
 # recovered untagged/dead-snag monthly trees (7) -> same campaign (breast-ht dia)
-utr<-read.csv("outputs/data/untagged_monthly_trees.csv",check.names=FALSE)
+utr<-read.csv("data/processed/flux/untagged_rescue/untagged_monthly_trees.csv",check.names=FALSE)
 t1u<-transmute(utr, campaign="2020-2021 monthly",
     location=dplyr::recode(Plot_Type, U="Upland", I="Intermediate", W="Wetland"),
     code=species, dbh=num(dbh), status=ifelse(dead,"Dead","Live"))

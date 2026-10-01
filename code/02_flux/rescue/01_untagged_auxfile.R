@@ -1,13 +1,13 @@
 #!/usr/bin/env Rscript
 # ==============================================================================
-# rev_rescue_untagged_prep.R  (revision "rescue" — monthly untagged tree fluxes)
+# 01_untagged_auxfile.R  (revision "rescue" — monthly untagged tree fluxes)
 # The 2020-21 monthly campaign fluxed ~7 untagged/dead-snag trees, but they were
 # dropped at 02_join_flux_geometry (non-numeric Plot Tag -> no geometry join),
 # BEFORE flux calc. Their measurements live in treeflux_total.xlsx and their
 # chamber geometry lives in the Tree_fluxes_*.xlsx sheets (labelled by site+species).
 # This builds a goFlux auxfile for the 49 untagged measurements so the standard
-# click+goFlux workflow (rev_rescue_untagged_click.R) can compute their fluxes.
-# Writes outputs/data/untagged_auxfile.csv
+# click+goFlux workflow (code/tools/click_untagged_windows.R) can compute their fluxes.
+# Writes data/processed/flux/untagged_rescue/untagged_auxfile.csv
 # ==============================================================================
 suppressMessages({library(readxl);library(dplyr);library(tidyr)}); options(warn=-1)
 num<-function(x) suppressWarnings(as.numeric(x))
@@ -69,7 +69,7 @@ m$UniqueID<-ave(m$UniqueID,m$UniqueID,FUN=function(x) if(length(x)==1) x else pa
 aux<-m %>% filter(!is.na(start.time),!is.na(Area),!is.na(Vtot)) %>%
   transmute(UniqueID, start.time, start.time_formatted=format(start.time,"%Y-%m-%d %H:%M:%S"),
             Area, Vtot, Tcham, Pcham, site, species=sp, dead, Sample, Dstem, obs.length=600)
-write.csv(aux,"outputs/data/untagged_auxfile.csv",row.names=FALSE)
+write.csv(aux,"data/processed/flux/untagged_rescue/untagged_auxfile.csv",row.names=FALSE)
 cat("untagged measurements:",nrow(u)," -> auxfile rows (with geometry+time):",nrow(aux),"\n")
 cat("trees covered:\n"); print(as.data.frame(aux %>% count(site,species,name="n_meas")))
-cat("Sc range (cm2):",paste(round(range(aux$Area,na.rm=TRUE)),collapse="-"),"| wrote outputs/data/untagged_auxfile.csv\n")
+cat("Sc range (cm2):",paste(round(range(aux$Area,na.rm=TRUE)),collapse="-"),"| wrote data/processed/flux/untagged_rescue/untagged_auxfile.csv\n")

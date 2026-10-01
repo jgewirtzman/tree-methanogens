@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 # ==============================================================================
-# rev_merge_untagged_monthly.R
+# 03_merge_untagged_monthly.R
 # Folds the recovered untagged/dead-snag monthly measurements into the monthly
 # tree-flux dataset, producing a REVISION merged file (original left untouched):
 #   data/processed/flux/semirigid_tree_final_complete_dataset_with_untagged.csv
@@ -19,7 +19,7 @@ srt$dead <- trimws(as.character(srt$Plot.Tag)) %in% dead_tags
 srt$Plot.Tag <- as.character(srt$Plot.Tag)                       # allow string untagged IDs
 
 # untagged recovered measurements -> srt schema
-u<-read.csv("outputs/revision/untagged_monthly_fluxes.csv",check.names=FALSE)
+u<-read.csv("data/processed/flux/untagged_rescue/untagged_monthly_fluxes.csv",check.names=FALSE)
 u$Date<-as.Date(sub(".*_(\\d{8})(_.*)?$","\\1",u$UniqueID),format="%Y%m%d")
 n<-nrow(u); untag<-srt[rep(NA_integer_,n),,drop=FALSE]; rownames(untag)<-NULL   # typed NA clone
 untag$Plot.Tag        <- u$tree_id                              # per-TREE id (measurements share it)

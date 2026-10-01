@@ -35,7 +35,7 @@ suppressMessages({ library(readr); library(dplyr) })
 source("code/lib/chamber_constants.R")
 
 FLUX <- "data/processed/flux"
-OUT  <- "outputs/data"
+RESC <- "data/processed/flux/untagged_rescue"   # the rescued untagged stems (02_flux/rescue/)
 num  <- function(x) suppressWarnings(as.numeric(x))
 rd   <- function(f) read_csv(f, col_types = cols(.default = "c"), na = character(), progress = FALSE)
 
@@ -80,8 +80,8 @@ if (length(dV) && diff(range(dV)) > 1e-6)
 # auxfile holds. (That auxfile comes from archive/revision/rev_rescue_untagged_prep.R;
 # untagged_fluxes.csv and untagged_manID.rds predate the corrected geometry and
 # are left alone.)
-un  <- rd(file.path(OUT, "untagged_monthly_fluxes.csv")) %>% transmute(UniqueID, V_old = num(Vtot), campaign = "untagged")
-aux <- round(num(rd(file.path(OUT, "untagged_auxfile.csv"))$Vtot), 9)
+un  <- rd(file.path(RESC, "untagged_monthly_fluxes.csv")) %>% transmute(UniqueID, V_old = num(Vtot), campaign = "untagged")
+aux <- round(num(rd(file.path(RESC, "untagged_auxfile.csv"))$Vtot), 9)
 off <- if (length(dV)) mean(dV) / 1000 else 0
 un$V_new <- if (all(round(un$V_old, 9) %in% aux)) un$V_old else un$V_old - off
 if (!all(round(un$V_new, 9) %in% aux))
@@ -142,7 +142,7 @@ csv_files <- c(
     "semirigid_tree_final_complete_dataset_soil_CORRECTED.csv", "semirigid_tree_final_complete_dataset_soil.csv",
     "tree_flux_2021_multiheight.csv", "tree_flux_2023_cross_species.csv",
     "semirigid_tree_final_complete_dataset.csv")),
-  file.path(OUT, "untagged_monthly_fluxes.csv"))
+  file.path(RESC, "untagged_monthly_fluxes.csv"))
 csv_files <- csv_files[file.exists(csv_files)]
 new <- setNames(lapply(csv_files, function(f) rescale(rd(f), f)), csv_files)
 
@@ -152,7 +152,7 @@ new <- setNames(lapply(csv_files, function(f) rescale(rd(f), f)), csv_files)
 # hold only CH4_best.flux.x/.y. Match them by position and prove it by value.
 f_wu <- file.path(FLUX, "semirigid_tree_final_complete_dataset_with_untagged.csv")
 wu <- rescale(rd(f_wu), f_wu)
-um_old <- rd(file.path(OUT, "untagged_monthly_fluxes.csv")); um_new <- new[[file.path(OUT, "untagged_monthly_fluxes.csv")]]
+um_old <- rd(file.path(RESC, "untagged_monthly_fluxes.csv")); um_new <- new[[file.path(RESC, "untagged_monthly_fluxes.csv")]]
 k <- which(wu$UniqueID == "NA" | wu$UniqueID == "")
 stopifnot(length(k) == nrow(um_old),
           isTRUE(all.equal(num(wu$CH4_best.flux.x[k]), num(um_old$CH4_best.flux))))
