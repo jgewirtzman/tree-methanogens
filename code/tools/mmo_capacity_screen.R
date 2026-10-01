@@ -18,6 +18,8 @@ source("code/lib/outputs.R")
 #
 # LIVE: queries NCBI E-utilities, so results drift as NCBI grows. The evidence the
 # definitions file cites is the committed snapshot code/lib/mmo_capacity_screen_2026-09-30.csv.
+# The 2026-09-30 run of this script is committed as code/lib/mmo_capacity_screen_table_S5_2026-09-30.csv
+# (SI Table S5); copy a new run there to update the table.
 # Not part of run_all.R (network). Needs the Bioconductor package pwalign.
 #
 # Output: outputs/data/mmo_capacity_screen.csv

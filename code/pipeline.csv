@@ -82,6 +82,7 @@ E,code/08_figures/fig02_height-flux.R,root,FALSE,Figure 2
 E,code/08_figures/fig03_variance-partition.R,root,FALSE,Figure 3
 E,code/08_figures/fig04_gene-abundance.R,root,FALSE,Figure 4
 E,code/08_figures/fig05_methane-cycling.R,root,FALSE,Figure 5
+E,code/08_figures/figS14_taxonomy-mcra.R,root,FALSE,Figure S14 (writes the family mcrA table fig06 reads; so runs first)
 E,code/08_figures/fig06_hydrogenotrophy.R,root,FALSE,Figure 6
 E,code/08_figures/fig07_decay-methanogenesis.R,root,FALSE,Figure 7
 E,code/08_figures/fig08_radial-species.R,root,FALSE,Figure 8 (also writes Fig S23)
@@ -96,7 +97,6 @@ E,code/08_figures/figS08_pmoa-mmox.R,root,FALSE,Figure S8
 E,code/08_figures/figS09_taxonomy-pmoa.R,root,FALSE,Figure S9
 E,code/08_figures/figS10_faprotax.R,root,FALSE,Figure S10
 E,code/08_figures/figS11-13_picrust-heatmaps.R,root,FALSE,Figures S11-S13
-E,code/08_figures/figS14_taxonomy-mcra.R,root,FALSE,Figure S14
 E,code/08_figures/figS15-16_internal-gas.R,root,FALSE,Figures S15-S16
 E,code/08_figures/figS17_isotope-sources.R,root,FALSE,Figure S17
 E,code/08_figures/figS18_stem-deterioration.R,root,FALSE,Figure S18

@@ -27,7 +27,7 @@ RESULTS <- c(
   "tableS2_known_putative_taxa.csv" = "outputs/data/known_putative_taxa_table.csv",
   "tableS3_ddpcr_16s_concordance.csv" = "outputs/data/tbl_ddpcr_16s_concordance.csv",
   "tableS4_dbh_by_species_campaign.csv" = "outputs/data/dbh_by_species_campaign.csv",
-  "tableS5_mmo_capacity_screen.csv" = "outputs/data/mmo_capacity_screen.csv",
+  "tableS5_mmo_capacity_screen.csv" = "code/lib/mmo_capacity_screen_table_S5_2026-09-30.csv",  # committed NCBI run
   # PICRUSt2 pathway associations (Fig 6c, Figs S11-S13)
   "picrust_pathway_associations.csv" = "data/processed/molecular/picrust/pathway_associations_combined.csv",
   "picrust_pathway_associations_pmoa.csv" = "data/processed/molecular/picrust/pathway_associations_pmoa.csv")

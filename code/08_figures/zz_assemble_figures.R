@@ -82,10 +82,10 @@ TABLES <- c(
   "Table_S3_ddpcr-16s-concordance"       = "outputs/data/tbl_ddpcr_16s_concordance.csv",
   "Table_S3_ddpcr-16s-concordance-view"  = "outputs/figures/generated/tbl_ddpcr_16s_concordance.png",
   "Table_S4_dbh-by-species-campaign"     = "outputs/data/dbh_by_species_campaign.csv")
-# Not rebuilt by run_all: mmo_capacity_screen.R queries NCBI, so it is run by hand
-# and its table is exempt from the staleness check.
+# Not rebuilt by run_all: mmo_capacity_screen.R queries NCBI, so the run shown in the
+# SI is committed (code/lib/mmo_capacity_screen_README.md) and exempt from the staleness check.
 TABLES_STATIC <- c(
-  "Table_S5_mmo-capacity-screen"         = "outputs/data/mmo_capacity_screen.csv")
+  "Table_S5_mmo-capacity-screen"         = "code/lib/mmo_capacity_screen_table_S5_2026-09-30.csv")
 
 # Photo plates — separate section (NOT SI data figures); chamber photos to be added
 PHOTOS <- c()   # the black-oak plate is now numbered SI Figure S20 (SI_PHOTOS)
