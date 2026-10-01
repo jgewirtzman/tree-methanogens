@@ -41,21 +41,27 @@ renv::restore()
 
 ### 3. Run
 
-All commands are run from the repository root.
+All commands are run from the repository root. `code/pipeline.csv` lists every step in order, with its stage and purpose; `run_all.R` runs it.
 
 ```bash
-Rscript code/run_all.R            # full pipeline: analyses, then make_figures.R
-Rscript code/make_figures.R       # figures and assembly only (run_all.R calls it)
-Rscript code/check_consistency.R  # verify the canonical outputs agree
+Rscript code/run_all.R                 # from data/processed/: model fit, scaling, analyses, figures, archive, checks
+Rscript code/run_all.R --from raw      # from data/raw/: also re-imports and re-fits every flux
+Rscript code/run_all.R --from C        # reuse the fitted model in outputs/models/
+Rscript code/run_all.R --only E        # figures only (same as Rscript code/make_figures.R)
+Rscript code/check_consistency.R       # verify that the outputs agree with one another
 ```
 
-The random forest models are fitted separately, since they take about ten minutes and the specification is fixed:
+| Stage | What runs |
+|---|---|
+| A | raw → processed: import, flux fitting (goFlux), cleaning, harmonisation |
+| B | random-forest training tables, fit, export, held-out skill (~10 min) |
+| C | climatologies, moisture surface, predictions, stand budget, scaling grid |
+| D | model audits, molecular summaries, statistics and tables |
+| E | one generator per paper figure, then the assembler |
+| F | the archive in `data/compiled/` and its README |
+| G | the consistency gate |
 
-```bash
-cd code/05_model && Rscript 01_load_and_prep_data.R && Rscript 02_rf_models.R
-```
-
-`run_all.R` checks for the fitted models and reports the command above if they are missing.
+Every cleaning rule — what is removed, flagged or corrected, where, and how many rows — is listed in `code/DATA_HYGIENE.md`. Each script's console output is in `outputs/logs/`, and `outputs/logs/pipeline_run.csv` records the last run.
 
 ## Repository structure
 
@@ -71,14 +77,16 @@ tree-methanogens/
 │   ├── 04_drivers/        # reference ET, soil moisture and temperature climatologies
 │   ├── 05_model/          # random forest fitting, cross-validation, calibration
 │   ├── 06_upscale/        # spatial interpolation, stand budget, scaling scenarios
-│   ├── 07_molecular/      # gene-flux models, 16S composition, PICRUSt, FAPROTAX
-│   │   ├── methanogens/   #   mcrA analyses
-│   │   └── methanotrophs/ #   pmoA and mmoX analyses
+│   ├── 07_molecular/      # FAPROTAX and PICRUSt summaries; helpers for the gene-flux figures
 │   ├── 08_figures/        # figure generators and the figure assembler
 │   ├── 09_tables_stats/   # manuscript statistics and summary tables
 │   ├── lib/               # shared definitions used across stages
 │   ├── zenodo/            # builds the archive in data/compiled/
-│   └── archive/           # superseded scripts, kept for reference
+│   ├── tools/             # run by hand: window picker, NCBI screen, archive migration
+│   ├── archive/           # superseded scripts, kept for reference
+│   ├── pipeline.csv       # every step, in order
+│   ├── run_all.R          # runs pipeline.csv
+│   └── DATA_HYGIENE.md    # every cleaning rule
 └── outputs/
     ├── figures/main/      # numbered main-text figures
     ├── figures/SI/        # numbered supplementary figures
@@ -88,7 +96,7 @@ tree-methanogens/
     └── logs/              # per-script run logs
 ```
 
-Scripts are numbered within each stage to indicate run order. Scripts prefixed `util_` are optional diagnostics.
+Scripts are numbered within each folder in run order. Figure generators are named for the figure they make (`fig01_…`, `figS01_…`). Files named `helper_*` are sourced by other scripts and not run alone. Renames made on 2026-10-01 are listed in `code/RENAMES_2026-10-01.csv`.
 
 ## Pipeline
 
@@ -114,7 +122,7 @@ Scripts are numbered within each stage to indicate run order. Scripts prefixed `
 Rscript code/make_figures.R
 ```
 
-This runs every figure generator and then assembles the numbered manuscript set into `outputs/figures/main/` and `outputs/figures/SI/`. The current set is 9 main-text figures, 25 supplementary figures, photo plates, and 5 tables.
+This runs every figure generator and then assembles the numbered manuscript set into `outputs/figures/main/` and `outputs/figures/SI/`: 9 main-text figures, 28 supplementary figures and 5 tables.
 
 `code/08_figures/zz_assemble_figures.R` maps each manuscript figure number to the script output that produces it, and writes `outputs/figures/MANIFEST.md` describing the assembled set.
 

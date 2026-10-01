@@ -1,0 +1,115 @@
+stage,script,workdir,fatal,purpose
+A,code/01_import/01_tree_id_consensus.R,script,TRUE,tree ID crosswalk and diameter consensus across sources
+A,code/01_import/02_process_wood_cores.R,script,TRUE,wood-core sectioning; density and moisture by radial position
+A,code/01_import/03_process_internal_gas.R,script,TRUE,GC calibration of 2021-22 internal-gas samples
+A,code/01_import/04_process_internal_gas_2024.R,root,TRUE,GC calibration of the 2024 heartwood/sapwood run
+A,code/01_import/05_ddpcr_import_and_align.R,root,TRUE,import ddPCR runs and align to sample metadata
+A,code/01_import/06_ddpcr_check_completeness.R,root,FALSE,check: every expected sample x gene present
+A,code/01_import/07_ddpcr_confirm_import.R,root,FALSE,check: processed ddPCR matches the raw run files
+A,code/01_import/08_inventory_build.R,root,TRUE,stand inventory from the 2018 and 2019 censuses and by-tag survey
+A,code/01_import/09_audit_inventory_duplicates.R,root,FALSE,check: no stem counted in both censuses
+A,code/02_flux/semirigid/01_calc_chamber_dims.R,script,TRUE,monthly survey: semi-rigid chamber area and volume
+A,code/02_flux/semirigid/02_join_flux_geometry.R,script,TRUE,monthly survey: join deployments to chamber geometry
+A,code/02_flux/semirigid/03_prep_soil_auxfile.R,script,TRUE,monthly survey: goFlux aux file for soil
+A,code/02_flux/semirigid/03_prep_tree_auxfile.R,script,TRUE,monthly survey: goFlux aux file for stems
+A,code/02_flux/semirigid/04_goflux_soils.R,script,TRUE,monthly survey: soil flux fits (goFlux)
+A,code/02_flux/semirigid/04_goflux_trees.R,script,TRUE,monthly survey: stem flux fits (goFlux)
+A,code/02_flux/semirigid/05_fix_december.R,script,TRUE,monthly survey: December 2020 files (date format)
+A,code/02_flux/static/01_prep_auxfile_2021.R,script,TRUE,2021 multi-height: goFlux aux file
+A,code/02_flux/static/02_prep_auxfile_2023.R,script,TRUE,2023 cross-species: goFlux aux file
+A,code/02_flux/static/03_goflux_trees_2021.R,script,TRUE,2021 multi-height: stem flux fits (goFlux)
+A,code/02_flux/static/04_goflux_trees_2023.R,script,TRUE,2023 cross-species: stem flux fits (goFlux)
+A,code/02_flux/static/05_fix_failed.R,script,TRUE,refit deployments whose default windows failed
+A,code/02_flux/01_apply_auxfile_vtot.R,root,TRUE,carry the 28 cm3 analyzer volume through every stored fit
+A,code/02_flux/02_qc_c0_screen.R,root,TRUE,procedural screen: chamber not at ambient at closure
+A,code/02_flux/03_precision_and_detection.R,root,TRUE,analyzer precision; minimum detectable flux; detection status
+A,code/03_merge/01_fix_soil_flux.R,script,TRUE,soil flux with corrected collar geometry
+A,code/03_merge/02_compile_soil_env.R,root,TRUE,soil temperature and moisture per collar and date
+A,code/03_merge/03_vendor_traits.R,script,TRUE,per-species plant traits
+A,code/03_merge/04_harmonize_all_data.R,script,TRUE,master per-tree table (flux; genes; gas; wood; soil)
+B,code/05_model/01_load_and_prep_data.R,script,TRUE,random-forest training tables
+B,code/05_model/02_rf_models.R,script,TRUE,fit the stem and soil random forests
+B,code/05_model/03_export_canonical_tables.R,root,TRUE,measurement tables with training flags and exclusion reasons
+B,code/05_model/04_rf_grouped_cv.R,root,TRUE,held-out skill with whole trees or collars held out
+C,code/04_drivers/01_wb_reference_et.R,root,TRUE,reference evapotranspiration for the water balance
+C,code/04_drivers/02_moisture_climatology.R,root,TRUE,monthly plot-wide soil-moisture level
+C,code/04_drivers/03_soil_temp_climatology.R,root,TRUE,monthly soil-temperature climatology
+C,code/04_drivers/04_moisture_surface.R,root,TRUE,relative soil-moisture pattern across the plot
+C,code/04_drivers/05_moisture_interpolation.R,root,FALSE,comparison of interpolation methods for the moisture surface
+C,code/04_drivers/06_moisture_elevation_check.R,root,FALSE,check: moisture against elevation
+C,code/06_upscale/01_predict_tree_flux.R,root,TRUE,per-stem predicted flux over the 0-2 m band
+C,code/06_upscale/02_predict_soil_surface.R,root,TRUE,soil flux surface across the stand
+C,code/06_upscale/03_budget_canonical.R,root,TRUE,measured-band budget; soil budget; monthly totals
+C,code/06_upscale/04_wai_bottomup.R,root,TRUE,bottom-up woody area index for this stand
+C,code/06_upscale/05_surface_area_model.R,root,FALSE,stem surface-area model
+C,code/06_upscale/06_area_distribution_scenarios.R,root,FALSE,vertical distributions of woody area
+C,code/06_upscale/07_scaling_full_grid.R,root,TRUE,the 240-combination whole-surface grid and named scenario
+C,code/06_upscale/08_scaling_assumptions_audit.R,root,FALSE,audit of height and allometry assumptions
+D,code/05_model/05_audit_training_population.R,root,FALSE,evidence for the training-population decisions
+D,code/05_model/06_rf_model_diagnostics.R,root,FALSE,four-panel diagnostics for each model
+D,code/05_model/07_rf_predictor_selection.R,root,FALSE,predictor-set comparison
+D,code/05_model/08_rf_calibration_sensitivity.R,root,FALSE,sensitivity of the band total to calibration
+D,code/05_model/09_rf_species_fallback_loso.R,root,FALSE,leave-one-species-out fallback test
+D,code/05_model/10_rf_species_pooling.R,root,FALSE,species pooling for rare species
+D,code/05_model/11_rf_species_bias_audit.R,root,FALSE,per-species bias of predictions
+D,code/05_model/12_model_family_comparison.R,root,FALSE,random forest against other model families
+D,code/05_model/13_height_form_crossvalidation.R,root,FALSE,leave-one-height-out test of flux forms above 2 m
+D,code/05_model/14_rf_height_extrapolation.R,root,FALSE,model behaviour above its training heights
+D,code/07_molecular/01_faprotax_dump_HW_SW.R,root,FALSE,FAPROTAX functions by compartment (Fig 6b)
+D,code/07_molecular/02_picrust_pathway_associations.R,root,FALSE,PICRUSt2 pathway associations with mcrA and pmoA (Fig 6c; S11-S13)
+D,code/09_tables_stats/01_height_effects.R,root,FALSE,height effects by species (Results 2)
+D,code/09_tables_stats/02_campaign_counts.R,root,FALSE,Table 1 and campaign sample sizes
+D,code/09_tables_stats/03_clade-census.R,root,FALSE,census of methane-cycling clades in the 16S data
+D,code/09_tables_stats/04_known-putative-table.R,root,FALSE,Table S2
+D,code/09_tables_stats/05_table_ddpcr-16s-concordance.R,root,FALSE,Table S3
+D,code/09_tables_stats/06_copies-per-gram.R,root,FALSE,gene copies per gram by compartment
+D,code/09_tables_stats/07_mass-basis-sensitivity.R,root,FALSE,dry vs fresh mass basis sensitivity
+D,code/09_tables_stats/08_dbh_by_species_campaign.R,root,FALSE,Table S4
+D,code/09_tables_stats/09_tree-distribution.R,root,FALSE,species distribution and moisture niche (Fig S7)
+D,code/09_tables_stats/10_tree_flux_merged.R,root,FALSE,merged per-tree flux summary
+D,code/09_tables_stats/11_variance-partition.R,root,FALSE,variance partition (Fig 3)
+D,code/09_tables_stats/12_isotopes-canonical.R,root,FALSE,isotope source estimates and fractionation
+D,code/09_tables_stats/13_faprotax-caveats.R,root,FALSE,FAPROTAX coverage caveats
+D,code/09_tables_stats/14_multigene-models.R,root,FALSE,species-level multi-gene models
+D,code/09_tables_stats/15_s1s2-arcsinh.R,root,FALSE,tree- and species-level gene models (Methods S4-S5)
+D,code/09_tables_stats/16_s1-rf-soil-arcsinh.R,root,FALSE,soil-gene check for tree-level models
+D,code/09_tables_stats/17_species-aggregation-rma.R,root,FALSE,species aggregation with measurement error
+D,code/09_tables_stats/18_pmoa-mmox-robustness.R,root,FALSE,pmoA/mmoX robustness checks
+D,code/09_tables_stats/19_gene-rf.R,root,FALSE,gene random forests on held-out trees (Methods S4)
+D,code/09_tables_stats/20_manuscript_statistics.R,root,FALSE,every quantitative statement in the text
+D,code/09_tables_stats/21_write_parameter_record.R,root,FALSE,generated scaling parameter record
+E,code/08_figures/fig01_temporal-flux.R,root,FALSE,Figure 1
+E,code/08_figures/fig02_height-flux.R,root,FALSE,Figure 2
+E,code/08_figures/fig03_variance-partition.R,root,FALSE,Figure 3
+E,code/08_figures/fig04_gene-abundance.R,root,FALSE,Figure 4
+E,code/08_figures/fig05_methane-cycling.R,root,FALSE,Figure 5
+E,code/08_figures/fig06_hydrogenotrophy.R,root,FALSE,Figure 6
+E,code/08_figures/fig07_decay-methanogenesis.R,root,FALSE,Figure 7
+E,code/08_figures/fig08_radial-species.R,root,FALSE,Figure 8 (also writes Fig S23)
+E,code/08_figures/fig09_budget.R,root,FALSE,Figure 9
+E,code/08_figures/figS01_moisture-overlay.R,root,FALSE,Figure S1
+E,code/08_figures/figS03_detection-limits.R,root,FALSE,Figure S3
+E,code/08_figures/figS04_mcra-probe-validation.R,root,FALSE,Figure S4
+E,code/08_figures/figS05_16s-ddpcr-association.R,root,FALSE,Figure S5
+E,code/08_figures/figS06_height-slope-moisture.R,root,FALSE,Figure S6
+E,code/08_figures/figS08_pmoa-mmox.R,root,FALSE,Figure S8
+E,code/08_figures/figS09_taxonomy-pmoa.R,root,FALSE,Figure S9
+E,code/08_figures/figS10_faprotax.R,root,FALSE,Figure S10
+E,code/08_figures/figS11-13_picrust-heatmaps.R,root,FALSE,Figures S11-S13
+E,code/08_figures/figS14_taxonomy-mcra.R,root,FALSE,Figure S14
+E,code/08_figures/figS15-16_internal-gas.R,root,FALSE,Figures S15-S16
+E,code/08_figures/figS17_isotope-sources.R,root,FALSE,Figure S17
+E,code/08_figures/figS18_stem-deterioration.R,root,FALSE,Figure S18
+E,code/08_figures/figS19_black-oak-cross-sections.R,root,FALSE,Figure S19
+E,code/08_figures/figS20_black-oak-methanome.R,root,FALSE,Figure S20
+E,code/08_figures/figS21_scale-dependent-genes.R,root,FALSE,Figure S21
+E,code/08_figures/figS22_radial-sections.R,root,FALSE,Figure S22
+E,code/08_figures/figS24_rf-model-summary.R,root,FALSE,Figure S24
+E,code/08_figures/figS25_rf-calibration.R,root,FALSE,Figure S25
+E,code/08_figures/figS26_scaling-heatmap.R,root,FALSE,Figure S26
+E,code/08_figures/figS27_scaling-profiles.R,root,FALSE,Figure S27
+E,code/08_figures/figS28_plant-traits.R,root,FALSE,Figure S28
+E,code/08_figures/zz_assemble_figures.R,root,TRUE,number and copy every figure into outputs/figures/{main;SI}
+F,code/zenodo/01_compile_datasets.R,root,TRUE,archive datasets in data/compiled/
+F,code/zenodo/02_generate_data_readme.R,root,TRUE,data/compiled/README_data.md from the column dictionary
+G,code/check_consistency.R,root,TRUE,the consistency gate

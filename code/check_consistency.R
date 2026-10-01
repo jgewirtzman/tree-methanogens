@@ -157,6 +157,24 @@ if (!is.null(GCV)) {
 #     the model's training rows as if they were every deployment, and lost 17 ash trees)
 #   - a derived copy left behind when its source changed
 # ------------------------------------------------------------------------------
+cat("\n== pipeline manifest ==\n")
+# code/pipeline.csv is the single list of what runs. Every live script must be in
+# it, or be a helper/library file sourced by one, or a hand-run tool.
+PM <- read.csv("code/pipeline.csv", stringsAsFactors = FALSE)
+chk("every manifest script exists", all(file.exists(PM$script)),
+    paste(PM$script[!file.exists(PM$script)], collapse = "; "))
+liveR <- setdiff(list.files("code", "\\.R$", recursive = TRUE, full.names = TRUE),
+                 list.files("code/archive", "\\.R$", recursive = TRUE, full.names = TRUE))
+exempt <- grepl("^code/(lib|tools)/", liveR) | grepl("/helper_", liveR) |
+          liveR %in% c("code/run_all.R", "code/make_figures.R", "code/02_flux/assemble_campaign_flux.R")
+orphans <- setdiff(liveR[!exempt], PM$script)
+chk("every live script is run by the manifest (or is a helper, library file or tool)",
+    !length(orphans), paste(orphans, collapse = "; "))
+chk("manifest order follows each folder's numbering",
+    all(vapply(split(PM$script, dirname(PM$script)), function(v) {
+      n <- suppressWarnings(as.numeric(sub("^(\\d+)_.*", "\\1", basename(v))))
+      n <- n[!is.na(n)]; !is.unsorted(n) }, TRUE)), "")
+
 cat("\n== data plumbing ==\n")
 
 # 1. one writer per file. Static scan of live code (archive excluded). A file may
