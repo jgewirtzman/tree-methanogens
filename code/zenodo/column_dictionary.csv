@@ -72,6 +72,9 @@ flux_measurements_soil.csv,soil_temp_C_mean,numeric,C,Monthly mean soil temperat
 flux_measurements_soil.csv,x,numeric,m,Plot-local easting
 flux_measurements_soil.csv,y,numeric,m,Plot-local northing
 flux_measurements_soil.csv,year,integer,NA,Calendar year
+flux_measurements_tree.csv,campaign,character,NA,"monthly_2020_2021, 2021_multiheight or 2023_cross_species"
+flux_measurements_tree.csv,in_rf_training,logical,NA,TRUE if the row is in the random-forest training set
+flux_measurements_tree.csv,exclusion_reason,character,NA,Why a deployment is not in the training set (NA if it is)
 flux_measurements_tree.csv,Date,date,YYYY-MM-DD,Measurement date
 flux_measurements_tree.csv,SI,numeric,NA,Engineered seasonality index (model feature)
 flux_measurements_tree.csv,air_temp_C,numeric,C,Air temperature at the time of measurement

@@ -7,7 +7,7 @@
 # Pipeline stage: 4 — Publication Figures
 #
 # Inputs:
-#   - data/compiled/flux_measurements_tree.csv (the merged measurement-level table)
+#   - data/compiled/flux_measurements_tree.csv (every stem deployment; in_rf_training flags the model's subset)
 #
 # The unit of analysis is the TREE. Each tree contributes one row: the mean of its
 # breast-height measurements. Four changes from the previous version, all aimed at
@@ -122,9 +122,17 @@ asinh_t <- function(x) asinh(x / ASINH_SIGMA)
 # VWC SD 10.28 -> 10.29. The seasonal axis belongs to Figure 1.
 GROWING_SEASON <- 5:9
 
+# ALL deployments, not only the model's training rows (2026-09-30). This file used
+# to contain only the 1,130 training rows; 61 deployments without a tag link were
+# missing, among them 17 low-emitting 2023 ash trees, which made white ash look like
+# the top emitter. Every filter below is counted and printed, so a drop is visible.
+cat(sprintf("Figure 3 input: %d deployments (%d outside the model's training set)\n",
+            nrow(flux_all), sum(!flux_all$in_rf_training)))
+.step <- function(d, label) { cat(sprintf("  %-46s %5d rows\n", label, nrow(d))); d }
 combined_data <- flux_all %>%
-  filter(is.na(measurement_height_cm) | measurement_height_cm == 125,
-         month %in% GROWING_SEASON) %>%
+  .step("all deployments") %>%
+  filter(is.na(measurement_height_cm) | measurement_height_cm == 125) %>% .step("breast height") %>%
+  filter(month %in% GROWING_SEASON) %>% .step("growing season (May-Sep)") %>%
   transmute(
     tree_id,
     Species.Code = species_code,
@@ -138,7 +146,8 @@ combined_data <- flux_all %>%
   ) %>%
   mutate(Species_Latin = species_mapping[Species.Code]) %>%
   filter(!is.na(Species_Latin)) %>%
-  drop_na(CH4_flux, DBH, Air_temp, Soil_temp, VWC, Chamber) %>%
+  .step("species in the 16-species set") %>%
+  drop_na(CH4_flux, DBH, Air_temp, Soil_temp, VWC, Chamber) %>% .step("complete covariates") %>%
   filter(is.finite(CH4_flux)) %>%
   mutate(CH4_asinh = asinh_t(CH4_flux))
 
