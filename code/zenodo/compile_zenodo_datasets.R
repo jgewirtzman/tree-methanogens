@@ -52,7 +52,10 @@ cat(sprintf("  %d tree stem flux measurements\n", nrow(tree_flux_clean)))
 # 1b. SEMIRIGID CHAMBER FLUX — Soil (2020–2021)
 # ============================================================================
 cat("--- 1b. Semirigid soil flux ---\n")
-soil_flux <- read_csv("data/processed/flux/semirigid_tree_final_complete_dataset_soil_CORRECTED.csv",
+# Same file the model reads (01_load_and_prep_data.R). The _CORRECTED copy written by
+# 03_merge/01_fix_soil_flux.R has identical CH4 fluxes (288/288) and differs only in
+# CO2_quality.check; archiving a different file from the one modelled invites drift.
+soil_flux <- read_csv("data/processed/flux/semirigid_tree_final_complete_dataset_soil.csv",
                        show_col_types = FALSE)
 
 soil_flux_clean <- soil_flux %>%

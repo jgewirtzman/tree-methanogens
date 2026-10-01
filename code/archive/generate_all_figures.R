@@ -74,8 +74,6 @@ run_figure_script("code/08_figures/09_felled_oak_profiles.R",            "fig7")
 # fig8: sources its own upstream dependencies (02 + 03) via internal source() calls
 run_figure_script("code/07_molecular/04_species_gene_flux.R",   "fig8")
 
-# fig9: loads from .RData files produced by earlier pipeline stages
-run_figure_script("code/08_figures/09_upscale_publication_plots.R",      "fig9")
 
 # ==============================================================================
 # SUPPLEMENTARY FIGURES

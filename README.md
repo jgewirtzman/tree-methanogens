@@ -44,8 +44,8 @@ renv::restore()
 All commands are run from the repository root.
 
 ```bash
-Rscript code/run_all.R            # full pipeline, stages 01-09
-Rscript code/make_figures.R       # all publication figures and tables
+Rscript code/run_all.R            # full pipeline: analyses, then make_figures.R
+Rscript code/make_figures.R       # figures and assembly only (run_all.R calls it)
 Rscript code/check_consistency.R  # verify the canonical outputs agree
 ```
 
