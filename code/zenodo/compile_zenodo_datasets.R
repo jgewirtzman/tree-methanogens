@@ -84,6 +84,14 @@ cat(sprintf("  %d soil flux measurements\n", nrow(soil_flux_clean)))
 
 # Combine tree + soil
 semirigid_flux <- bind_rows(tree_flux_clean, soil_flux_clean)
+# Chamber-integrity QC flags, from code/02_flux/qc_c0_screen.R's outputs (that script
+# used to rewrite this file in place). Rows are kept and flagged, not deleted.
+.qx <- "outputs/data/qc_excluded_measurements.csv"; .qs <- "outputs/data/qc_c0_screened_ids.csv"
+if (!file.exists(.qx) || !file.exists(.qs)) stop("run code/02_flux/qc_c0_screen.R first (missing ", .qx, " or ", .qs, ")", call. = FALSE)
+.ex <- read.csv(.qx, stringsAsFactors = FALSE); .sc <- read.csv(.qs, stringsAsFactors = FALSE)$UniqueID
+semirigid_flux$qc_pass        <- !(semirigid_flux$unique_id %in% .ex$UniqueID)
+semirigid_flux$qc_reason      <- .ex$reason[match(semirigid_flux$unique_id, .ex$UniqueID)]
+semirigid_flux$qc_c0_screened <- semirigid_flux$unique_id %in% .sc
 write_csv(semirigid_flux, file.path(out_dir, "semirigid_chamber_flux.csv"))
 cat(sprintf("  -> Wrote semirigid_chamber_flux.csv (%d rows)\n\n", nrow(semirigid_flux)))
 

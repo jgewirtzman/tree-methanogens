@@ -94,16 +94,18 @@ write.csv(EXCL, out_path("qc_excluded_measurements.csv"), row.names=FALSE)
 cat(sprintf("\n  Canonical exclusion list: %d measurements -> outputs/data/qc_excluded_measurements.csv\n",
             nrow(EXCL)))
 
-# --- annotate the compiled (Zenodo) product -----------------------------------
-rule("ANNOTATING data/compiled/semirigid_chamber_flux.csv")
-f <- "data/compiled/semirigid_chamber_flux.csv"
-Z <- read.csv(f, stringsAsFactors=FALSE)
+# --- record what was screened; the archive compiler annotates from these ---------
+# This used to rewrite data/compiled/semirigid_chamber_flux.csv in place, so two
+# scripts wrote one file (this and compile_zenodo_datasets.R). It now writes its own
+# outputs; compile_zenodo_datasets.R adds qc_pass / qc_reason / qc_c0_screened.
+rule("RECORDING screened deployments for the archive compiler")
+screened <- unique(unlist(lapply(SRC, function(p) read.csv(p, stringsAsFactors=FALSE)$UniqueID)))
+write.csv(data.frame(UniqueID = screened), out_path("qc_c0_screened_ids.csv"), row.names = FALSE)
+# annotate IN MEMORY for the summary and effect analysis below (read-only use of the archive)
+Z <- read.csv("data/compiled/semirigid_chamber_flux.csv", stringsAsFactors=FALSE)
 Z$qc_pass   <- !(Z$unique_id %in% EXCL$UniqueID)
 Z$qc_reason <- EXCL$reason[match(Z$unique_id, EXCL$UniqueID)]
-# rows we could not screen: static campaign has no CH4 C0
-screened <- unique(unlist(lapply(SRC, function(p) read.csv(p, stringsAsFactors=FALSE)$UniqueID)))
 Z$qc_c0_screened <- Z$unique_id %in% screened
-write.csv(Z, f, row.names=FALSE)
 cat(sprintf("
   rows            %d
   qc_pass = TRUE  %d

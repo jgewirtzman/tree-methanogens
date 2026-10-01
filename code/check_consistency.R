@@ -170,11 +170,21 @@ SEQUENTIAL_STAGES <- c(   # interactive 2020-21 soil processing: goFlux, then th
 live <- setdiff(list.files("code", "\\.R$", recursive = TRUE, full.names = TRUE),
                 list.files("code/archive", "\\.R$", recursive = TRUE, full.names = TRUE))
 wpat <- "(write\\.csv|write_csv|write\\.table|saveRDS|save|ggsave|fwrite|write_tsv)\\s*\\("
+# Scripts that write model files only into a temporary SANDBOX directory (never
+# outputs/models): they reuse the canonical file names by design.
+SANDBOX_WRITERS <- c("code/05_model/audit_training_population.R")
+pathre <- "[\"'][^\"']+\\.(csv|rds|RData|rda|tsv|png|pdf|txt)[\"']"
 writers <- list()
-for (f in live) for (ln in readLines(f, warn = FALSE)) {
-  if (grepl("^\\s*#", ln) || !grepl(wpat, ln)) next
-  for (p in regmatches(ln, gregexpr("[\"'][^\"']+\\.(csv|rds|RData|rda|tsv|png|pdf|txt)[\"']", ln))[[1]]) {
-    k <- basename(gsub("[\"']", "", p)); writers[[k]] <- union(writers[[k]], f)
+for (f in setdiff(live, SANDBOX_WRITERS)) {
+  L <- readLines(f, warn = FALSE); L <- L[!grepl("^\\s*#", L)]
+  # paths held in variables: f <- "data/compiled/x.csv" ... write.csv(Z, f)
+  asg <- grep(paste0("^\\s*[A-Za-z_.][A-Za-z0-9_.]*\\s*<-\\s*", pathre), L, value = TRUE)
+  vmap <- setNames(basename(gsub("[\"']", "", regmatches(asg, regexpr(pathre, asg)))),
+                   sub("^\\s*([A-Za-z_.][A-Za-z0-9_.]*)\\s*<-.*$", "\\1", asg))
+  for (ln in L[grepl(wpat, L)]) {
+    ks <- basename(gsub("[\"']", "", regmatches(ln, gregexpr(pathre, ln))[[1]]))
+    for (v in names(vmap)) if (grepl(paste0("[(,]\\s*", gsub(".", "\\.", v, fixed = TRUE), "\\s*[,)]"), ln)) ks <- c(ks, vmap[[v]])
+    for (k in unique(ks)) writers[[k]] <- union(writers[[k]], f)
   }
 }
 multi <- Filter(function(w) length(w) > 1, writers)
@@ -184,6 +194,23 @@ chk("every output file has exactly one writing script", !length(multi),
                                      vapply(multi, paste, "", collapse = " + ")), collapse = "; ") else
     sprintf("%d files scanned", length(writers)))
 
+# 1b. only the data stages write into data/. Analysis, model, upscaling, figure and
+#     stats scripts write outputs/. qc_c0_screen.R rewrote data/compiled/ in place
+#     through a variable (f <- "data/compiled/..."), which the literal-path scan above
+#     cannot see, so paths held in variables are followed here.
+DATA_STAGES <- c("code/01_import", "code/02_flux", "code/03_merge", "code/zenodo", "code/05_model/01_load_and_prep_data.R")
+analysis <- live[!vapply(live, function(f) any(startsWith(f, DATA_STAGES)), TRUE) & !grepl("check_consistency", live)]
+writes_data <- character(0)
+for (f in analysis) {
+  L <- readLines(f, warn = FALSE); L <- L[!grepl("^\\s*#", L)]
+  vars <- sub("^\\s*([A-Za-z_.][A-Za-z0-9_.]*)\\s*<-.*$", "\\1",
+              grep("^\\s*[A-Za-z_.][A-Za-z0-9_.]*\\s*<-\\s*[\"'](\\.\\./)*data/", L, value = TRUE))
+  w <- grep(wpat, L, value = TRUE)
+  hit <- grepl("[\"'](\\.\\./)*data/", w) | (length(vars) > 0 & grepl(paste0("\\b(", paste(vars, collapse = "|"), ")\\b"), w))
+  if (any(hit)) writes_data <- c(writes_data, f)
+}
+chk("analysis scripts never write into data/", !length(writes_data), paste(writes_data, collapse = ", "))
+
 # 2. the retired shared names must not come back, in code or on disk
 RETIRED <- c("methanogen_tree_flux_complete_dataset.csv", "CH4_best_flux_lgr_results.csv",
              "CO2_best_flux_lgr_results.csv", "CH4_flux_lgr_results.csv", "CO2_flux_lgr_results.csv",
@@ -191,7 +218,7 @@ RETIRED <- c("methanogen_tree_flux_complete_dataset.csv", "CH4_best_flux_lgr_res
 hits <- live[vapply(live, function(f) any(grepl(paste(gsub(".", "\\.", RETIRED, fixed = TRUE),
                                                       collapse = "|"), readLines(f, warn = FALSE))), TRUE)]
 hits <- setdiff(hits, "code/check_consistency.R")
-hits <- hits[!grepl("assemble_campaign_flux\\.R$", hits)]   # names them in its history note
+hits <- hits[!grepl("assemble_campaign_flux\\.R$|migrate_campaign_filenames\\.R$", hits)]   # name them by design
 chk("retired shared flux filenames absent from code", !length(hits), paste(hits, collapse = ", "))
 chk("retired shared flux filenames absent from data/processed/flux",
     !any(file.exists(file.path("data/processed/flux", RETIRED))),
