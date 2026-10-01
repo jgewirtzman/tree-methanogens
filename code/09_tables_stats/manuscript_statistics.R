@@ -404,7 +404,10 @@ section_header("SECTION 3: VARIANCE PARTITIONING (Figure 3)")
 # Combine datasets (matches 04_variance_partition.R)
 data_2023 <- ymf2023 %>%
   select(Species.Code, DBH = DBH..cm., Air_temp = air_temp_C,
-         Soil_temp = Soil.Temp....C., VWC = vwc_mean, CH4_flux = CH4_best.flux) %>%
+         # the degree sign in "Soil Temp (°C)" is mangled differently by locale
+         # ("Soil.Temp....C." under C, "Soil.Temp...C." under UTF-8), so match by pattern
+         Soil_temp = all_of(grep("^Soil\\.Temp", names(ymf2023), value = TRUE)[1]),
+         VWC = vwc_mean, CH4_flux = CH4_best.flux) %>%
   mutate(Year = "2023", Species_Latin = species_mapping[Species.Code]) %>%
   drop_na(CH4_flux)
 
