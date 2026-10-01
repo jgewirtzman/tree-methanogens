@@ -272,11 +272,31 @@ if (!is.null(MT)) {
   }
   chk("every excluded deployment states its reason",
       all(!is.na(MT$exclusion_reason[!MT$in_rf_training %in% c(TRUE, "TRUE")])))
-  if (file.exists("data/compiled/flux_measurements_tree.csv"))
-    chk("data/compiled copy matches outputs/data", identical(unname(tools::md5sum("data/compiled/flux_measurements_tree.csv")),
-                                                           unname(tools::md5sum("outputs/data/flux_measurements_tree.csv"))),
-        "copy outputs/data/flux_measurements_tree.csv after rerunning the export")
 }
+
+# 3b. the archive (data/compiled/) agrees with the pipeline it was built from
+cat("\n== archive ==\n")
+FS <- rd("data/compiled/flux_stem.csv"); FL <- rd("data/compiled/flux_soil.csv")
+chk("flux_stem.csv: every measurement-table deployment plus the felled oak, once each",
+    nrow(FS) == nrow(MT) + sum(FS$campaign == "2022_felled_oak") && !anyDuplicated(FS$unique_id),
+    sprintf("%d rows, %d in the measurement table", nrow(FS), nrow(MT)))
+chk("flux_stem.csv training flags = the measurement table's",
+    sum(FS$in_rf_training %in% c(TRUE, "TRUE")) == sum(MT$in_rf_training %in% c(TRUE, "TRUE")), "")
+chk("flux_soil.csv training rows = the soil model's training table",
+    sum(FL$in_rf_training %in% c(TRUE, "TRUE")) == nrow(rd("outputs/data/flux_measurements_soil.csv")), "")
+chk("every archived deployment outside training states why",
+    all(!is.na(FS$exclusion_reason[!FS$in_rf_training %in% c(TRUE, "TRUE")])) &&
+    all(!is.na(FL$exclusion_reason[!FL$in_rf_training %in% c(TRUE, "TRUE")])), "")
+IS <- rd("data/compiled/isotopes.csv")
+chk("isotopes.csv whole-tree set = the isotope summary's n",
+    sum(IS$in_whole_tree_set %in% c(TRUE, "TRUE")) == with(rd("outputs/data/ISOTOPES_summary.csv"), value[quantity == "n_trees"]), "")
+RS <- list.files("data/compiled/results", "\\.csv$")
+chk("results/ copies are byte-identical to their sources", local({
+  src <- c(canonical_budget.csv = "outputs/data/canonical_budget.csv", scaling_full_grid.csv = "outputs/data/scaling_full_grid.csv",
+           isotopes_summary.csv = "outputs/data/ISOTOPES_summary.csv", rf_grouped_cv.csv = "outputs/data/rf_grouped_cv.csv")
+  src <- src[names(src) %in% RS]
+  length(src) == 4 && all(unname(tools::md5sum(file.path("data/compiled/results", names(src)))) == unname(tools::md5sum(src))) }),
+  "rerun code/zenodo/02_compile_results.R")
 
 # 4. internal gas: recalibrated (no zero clamp) and carried through to the merged table
 GS <- rd("data/processed/internal_gas/sample_data_only.csv")

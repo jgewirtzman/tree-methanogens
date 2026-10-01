@@ -135,6 +135,7 @@ extra <- bind_rows(lapply(names(src), function(cmp) {
              stem_flux_nmol_m2_s = miss$flux, air_temp_C = miss$air_temp_C, soil_temp_C = miss$soil_temp_C,
              soil_moisture_abs = miss$soil_moisture_abs, dbh_m = miss$dbh_m, chamber_type = miss$chamber_type,
              measurement_height_cm = miss$height, campaign = cmp, in_rf_training = FALSE,
+             dead_stem = is_dead_stem_flux(miss$flux, DEAD),   # was left NA for excluded rows
              exclusion_reason = why, stringsAsFactors = FALSE)
 }))
 # Untagged stems share labels ("untagged" x5 in 2023); number them so each deployment

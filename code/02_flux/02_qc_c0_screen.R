@@ -101,8 +101,13 @@ cat(sprintf("\n  Canonical exclusion list: %d measurements -> outputs/data/qc_ex
 rule("RECORDING screened deployments for the archive compiler")
 screened <- unique(unlist(lapply(SRC, function(p) read.csv(p, stringsAsFactors=FALSE)$UniqueID)))
 write.csv(data.frame(UniqueID = screened), out_path("qc_c0_screened_ids.csv"), row.names = FALSE)
-# annotate IN MEMORY for the summary and effect analysis below (read-only use of the archive)
-Z <- read.csv("data/compiled/semirigid_chamber_flux.csv", stringsAsFactors=FALSE)
+# annotate IN MEMORY for the summary below. Reads the processed monthly-survey files,
+# not the archive: data/compiled/ is built after this stage, so reading it here gave
+# the previous run's rows.
+Z <- data.frame(unique_id = unique(c(
+  read.csv("data/processed/flux/semirigid_tree_final_complete_dataset_with_untagged.csv", stringsAsFactors=FALSE)$UniqueID,
+  read.csv("data/processed/flux/semirigid_tree_final_complete_dataset_soil.csv", stringsAsFactors=FALSE)$UniqueID)),
+  stringsAsFactors = FALSE)
 Z$qc_pass   <- !(Z$unique_id %in% EXCL$UniqueID)
 Z$qc_reason <- EXCL$reason[match(Z$unique_id, EXCL$UniqueID)]
 Z$qc_c0_screened <- Z$unique_id %in% screened
