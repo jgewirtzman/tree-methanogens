@@ -124,6 +124,14 @@ cat("Good December windows (>=30 obs):", length(good_windows), "\n")
 # =============================================================================
 
 cat("\n=== STEP 3: MANUAL IDENTIFICATION (DECEMBER ONLY) ===\n")
+source("../../lib/flux_windows.R")
+MC_PATH <- "../../../data/processed/flux/flux_model_choices.csv"
+WIN <- "../../../data/processed/flux/lgr_manual_identification_results_december_soil.csv"
+# Saved hand-picked windows are the record; the picker below runs only without them
+# (or with FLUX_REPICK=1, interactively). See code/lib/flux_windows.R.
+if (use_saved_windows(WIN)) {
+  manID.lgr3.december <- load_windows(WIN)
+} else {
 
 # Process in batches of 20
 batch_size <- 20
@@ -170,6 +178,7 @@ cat("\nDecember manual identification complete! Total:", nrow(manID.lgr3.decembe
 
 # Save December manual identification results
 write_csv(manID.lgr3.december, "../../../data/processed/flux/lgr_manual_identification_results_december_soil.csv")
+}
 
 # =============================================================================
 # STEP 4: FLUX CALCULATIONS FOR DECEMBER
@@ -217,6 +226,7 @@ CO2_best_lgr3_december <- best.flux(
   k.ratio = 1,
   warn.length = 60
 )
+CO2_best_lgr3_december <- apply_model_choices(CO2_best_lgr3_december, "CO2", MC_PATH)
 
 # Run best.flux on December CH4 results if available
 if(exists("CH4_flux_lgr3_december")) {
@@ -229,6 +239,7 @@ if(exists("CH4_flux_lgr3_december")) {
     k.ratio = 1,
     warn.length = 60
   )
+  CH4_best_lgr3_december <- apply_model_choices(CH4_best_lgr3_december, "CH4", MC_PATH)
 }
 
 # Quality summary for December

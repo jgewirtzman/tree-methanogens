@@ -125,6 +125,14 @@ cat("Good windows (>=60 obs):", length(good_windows), "\n")
 # =============================================================================
 
 cat("\n=== STEP 3: MANUAL IDENTIFICATION ===\n")
+source("../../lib/flux_windows.R")
+MC_PATH <- "../../../data/processed/flux/flux_model_choices.csv"
+WIN <- "../../../data/processed/flux/lgr_manual_identification_semirigid_tree.csv"
+# Saved hand-picked windows are the record; the picker below runs only without them
+# (or with FLUX_REPICK=1, interactively). See code/lib/flux_windows.R.
+if (use_saved_windows(WIN)) {
+  manID.lgr3 <- load_windows(WIN)
+} else {
 
 # Process in batches of 20
 batch_size <- 20
@@ -243,6 +251,7 @@ cat("\nManual identification complete! Total:", nrow(manID.lgr3), "measurements\
 
 # Save manual identification results
 write_csv(manID.lgr3, "../../../data/processed/flux/lgr_manual_identification_semirigid_tree.csv")
+}
 
 # =============================================================================
 # STEP 4: FLUX CALCULATIONS
@@ -296,6 +305,7 @@ CO2_best_lgr3 <- best.flux(
   k.ratio = 1,
   warn.length = 60
 )
+CO2_best_lgr3 <- apply_model_choices(CO2_best_lgr3, "CO2", MC_PATH)
 
 # Run best.flux on CH4 results if available
 if(exists("CH4_flux_lgr3")) {
@@ -308,6 +318,7 @@ if(exists("CH4_flux_lgr3")) {
     k.ratio = 1,
     warn.length = 60
   )
+  CH4_best_lgr3 <- apply_model_choices(CH4_best_lgr3, "CH4", MC_PATH)
 }
 
 # Quality summary
