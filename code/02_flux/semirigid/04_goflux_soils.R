@@ -161,7 +161,8 @@ WIN <- "../../../data/processed/flux/lgr_manual_identification_results_soil.csv"
 # Saved hand-picked windows are the record; the picker below runs only without them
 # (or with FLUX_REPICK=1, interactively). See code/lib/flux_windows.R.
 if (use_saved_windows(WIN)) {
-  manID.lgr3 <- load_windows(WIN)
+  manID.lgr3 <- load_windows(WIN) %>% mutate(Vtot = CORRECT_VTOT_L, Area = CORRECT_CHAMBER_SURFACE_AREA_CM2)
+  stopifnot(isTRUE(all.equal(CORRECT_VTOT_L, SOIL_VTOT_L)), CORRECT_CHAMBER_SURFACE_AREA_CM2 == SOIL_COLLAR_AREA_CM2)
 } else {
 
 # Check if manual ID already exists
