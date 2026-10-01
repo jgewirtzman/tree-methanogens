@@ -33,8 +33,12 @@ d13_label <- expression(delta^{13}*CH[4]~"(VPDB)")
 # STEP 1: Load GC metadata (master sample table)
 # ==============================================================================
 
-gc_meta <- read.csv("data/processed/internal_gas/stem_gas_isotopes_picarro_run.csv",
+# Recalibrated 2024 GC concentrations (03b_process_internal_gas_2024.R). The lab's
+# own CH4_concentration column ran negative for 48 of 125 samples, which pushed them
+# under the 1.5 ppm filter below on calibration error alone.
+gc_meta <- read.csv("data/processed/internal_gas/stem_gas_2024_calibrated.csv",
                      fileEncoding = "UTF-8-BOM")
+gc_meta$CH4_concentration <- gc_meta$CH4_calibrated_ppm
 
 # Keep only biological samples and atmosphere
 gc_samples <- gc_meta %>%
