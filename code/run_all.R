@@ -160,6 +160,7 @@ rest <- c(
   "code/09_tables_stats/stat_dbh_by_species_campaign.R",
   "code/09_tables_stats/stat_faprotax-caveats.R",
   "code/09_tables_stats/stat_isotopes-canonical.R",
+  "code/09_tables_stats/stat_gene-rf.R",            # -> gene_rf_cv.csv (SI Methods S4)
   "code/09_tables_stats/stat_known-putative-table.R",
   "code/09_tables_stats/stat_multigene-models.R",
   "code/09_tables_stats/stat_pmoa-mmox-robustness.R",
