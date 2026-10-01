@@ -179,9 +179,11 @@ sprintf("apparent CO2-CH4 fractionation of ~%.0f-%.0f permil (at/into the CO2-re
 write.csv(data.frame(
   quantity = c("n_trees", "n_species", "d13CH4_median", "d13CH4_q25", "d13CH4_q75", "d13CO2_median",
                "keeling_source", "keeling_ci_lo", "keeling_ci_hi", "atm_corrected_source",
-               "eps_C_within_tree", "eps_C_source_atm", "eps_C_source_keeling"),
+               "eps_C_within_tree", "eps_C_source_atm", "eps_C_source_keeling",
+               "coupling_r_ge10ppm", "coupling_p_ge10ppm", "n_ge10ppm"),
   value = c(nrow(d), dplyr::n_distinct(d$species), bulk_ch4, quantile(d$d13CH4, .25), quantile(d$d13CH4, .75),
-            bulk_co2, keel_src, keel_ci[1], keel_ci[2], atm_src, bulk_eps, eps_src_atm, eps_src_keel)),
+            bulk_co2, keel_src, keel_ci[1], keel_ci[2], atm_src, bulk_eps, eps_src_atm, eps_src_keel,
+            unname(cpl_hi$estimate), cpl_hi$p.value, nrow(hi))),
   out_path("ISOTOPES_summary.csv"), row.names = FALSE)
 writeLines(methods, out_path("ISOTOPES_methods.md"))
 writeLines(res,     out_path("ISOTOPES_results.md"))
