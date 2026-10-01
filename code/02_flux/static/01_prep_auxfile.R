@@ -23,6 +23,8 @@ library(stringr)
 library(purrr)
 library(ggplot2)
 
+source("../../lib/chamber_constants.R")  # ANALYZER_VOLUME_CM3
+
 # Function to assign chamber dimensions by loading data from files
 assign_chamber_dimensions <- function(flux_file, surface_area_file, additional_vol_file, simplified_vol_file = NULL, weather_file = NULL) {
   
@@ -95,7 +97,10 @@ assign_chamber_dimensions <- function(flux_file, surface_area_file, additional_v
         tolower(instrument) == "picarro" ~ "Picarro",
         TRUE ~ toupper(instrument)
       ),
-      analyzer_cell_volume_cm3 = as.numeric(analyzer_cell),
+      # additional_vol.csv lists 70 cm3 for the LGR cell: goFlux's example value,
+      # for the larger UGGA. The microportable used here is ANALYZER_VOLUME_CM3.
+      analyzer_cell_volume_cm3 = ifelse(analyzer_name == "LGR", ANALYZER_VOLUME_CM3,
+                                        as.numeric(analyzer_cell)),
       tubing_volume_cm3 = as.numeric(tubing),
       # No drierite used - filter volume = 0
       filter_volume_cm3 = 0
@@ -570,10 +575,10 @@ tryCatch({
   cat("Starting chamber dimension assignment with comprehensive air temperature hierarchy...\n")
   
   # File paths - update these to match your actual file locations
-  base_path <- "../../../data/raw/static/dims"
+  base_path <- "../../../data/raw/field_data/static_chamber_dims"
 
   result <- assign_chamber_dimensions(
-    flux_file = '../../../data/raw/static/field/Gewirtzman_datasheets_fixing_dates.csv',
+    flux_file = '../../../data/raw/field_data/static_chamber_field/Gewirtzman_datasheets_fixing_dates.csv',
     surface_area_file = file.path(base_path, "surface_area.csv"),
     additional_vol_file = file.path(base_path, "additional_vol.csv"),
     simplified_vol_file = file.path(base_path, "simplified_volume.csv"),  # Optional

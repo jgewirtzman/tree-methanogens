@@ -19,6 +19,8 @@ library(lubridate)
 library(stringr)
 library(purrr)
 
+source("../../lib/chamber_constants.R")  # ANALYZER_VOLUME_CM3
+
 # Function to create goFlux-compatible auxfile from YMF 2023 data
 create_ymf2023_auxfile <- function(data_path, 
                                    surface_area_file,
@@ -70,7 +72,10 @@ create_ymf2023_auxfile <- function(data_path,
         tolower(instrument) == "picarro" ~ "Picarro",
         TRUE ~ toupper(instrument)
       ),
-      analyzer_cell_volume_cm3 = as.numeric(analyzer_cell),
+      # additional_vol.csv lists 70 cm3 for the LGR cell: goFlux's example value,
+      # for the larger UGGA. The microportable used here is ANALYZER_VOLUME_CM3.
+      analyzer_cell_volume_cm3 = ifelse(analyzer_name == "LGR", ANALYZER_VOLUME_CM3,
+                                        as.numeric(analyzer_cell)),
       tubing_volume_cm3 = as.numeric(tubing),
       filter_volume_cm3 = 0  # No drierite used
     ) %>%
@@ -321,14 +326,14 @@ create_ymf2023_auxfile <- function(data_path,
 cat("Creating auxfile for YMF 2023 data...\n\n")
 
 # Update these paths to your file locations
-base_path <- "../../../data/raw/static"
+base_path <- "../../../data/raw/field_data"
 
 # Create the auxfile
 auxfile_2023 <- create_ymf2023_auxfile(
-  data_path = file.path(base_path, "2023/Compiled YMF Data 2023 - Sheet1.csv"),
-  surface_area_file = file.path(base_path, "dims/surface_area.csv"),
-  additional_vol_file = file.path(base_path, "dims/additional_vol.csv"),
-  simplified_vol_file = file.path(base_path, "dims/simplified_volume.csv")
+  data_path = "../../../data/processed/flux/Compiled YMF Data 2023 - Sheet1.csv",
+  surface_area_file = file.path(base_path, "static_chamber_dims/surface_area.csv"),
+  additional_vol_file = file.path(base_path, "static_chamber_dims/additional_vol.csv"),
+  simplified_vol_file = file.path(base_path, "static_chamber_dims/simplified_volume.csv")
 )
 
 # Save the auxfile

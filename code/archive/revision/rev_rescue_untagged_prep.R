@@ -61,7 +61,8 @@ nearestT<-function(t){ i<-which.min(abs(as.numeric(wx$TS-t))); if(length(i)) num
 hh<-floor(m$time/100); mm<-floor(m$time)%%100
 m$start.time<-as.POSIXct(paste(m$Date,sprintf("%02d:%02d:00",hh,mm)),format="%Y-%m-%d %H:%M:%S",tz="UTC")
 m$Area<-m$Sc_cm2
-m$Vtot<-(m$Vc_cm3 + pi*(1/16)^2*12*12*16.387 + 70)/1000
+source("code/lib/chamber_constants.R")  # ANALYZER_VOLUME_CM3 (was a literal 70)
+m$Vtot<-(m$Vc_cm3 + pi*(1/16)^2*12*12*16.387 + ANALYZER_VOLUME_CM3)/1000
 m$Tcham<-vapply(m$start.time,nearestT,numeric(1)); m$Pcham<-101.325
 m$UniqueID<-paste("UNTAG",m$site,m$sp,format(m$Date,"%Y%m%d"),ifelse(is.na(m$chamber),"na",m$chamber),sep="_")
 m$UniqueID<-ave(m$UniqueID,m$UniqueID,FUN=function(x) if(length(x)==1) x else paste(x,seq_along(x),sep="_"))

@@ -19,13 +19,15 @@ library(goFlux)
 library(dplyr)
 library(readr)
 
+source("../lib/chamber_constants.R")  # ANALYZER_VOLUME_CM3
+
 cat("=== FIXING CH4 FLUX CALCULATIONS FOR SOIL DATA ===\n\n")
 
 # Define correct chamber geometry (same as your main script)
 CORRECT_CHAMBER_SURFACE_AREA_CM2 <- 507.7
 CORRECT_CHAMBER_VOLUME_L <- 7.53
 correct_tubing_volume_cm3 <- pi * (1/16)^2 * 12 * 12 * 16.387
-correct_system_volume_cm3 <- 70
+correct_system_volume_cm3 <- ANALYZER_VOLUME_CM3
 correct_total_system_volume_cm3 <- CORRECT_CHAMBER_VOLUME_L * 1000 + 
   correct_tubing_volume_cm3 + correct_system_volume_cm3
 CORRECT_VTOT_L <- correct_total_system_volume_cm3 / 1000
@@ -747,7 +749,7 @@ cat("=== CREATING FINAL SOIL DATASET ===\n\n")
 CORRECT_CHAMBER_SURFACE_AREA_CM2 <- 507.7
 CORRECT_CHAMBER_VOLUME_L <- 7.53
 correct_tubing_volume_cm3 <- pi * (1/16)^2 * 12 * 12 * 16.387
-correct_system_volume_cm3 <- 70
+correct_system_volume_cm3 <- ANALYZER_VOLUME_CM3
 correct_total_system_volume_cm3 <- CORRECT_CHAMBER_VOLUME_L * 1000 + 
   correct_tubing_volume_cm3 + correct_system_volume_cm3
 CORRECT_VTOT_L <- correct_total_system_volume_cm3 / 1000
