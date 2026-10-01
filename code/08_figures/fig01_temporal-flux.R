@@ -22,7 +22,8 @@ library(scales)
 
 # Read the datasets
 soil_dataset <- read.csv('data/processed/flux/semirigid_tree_final_complete_dataset_soil.csv')
-tree_dataset <- read.csv('data/processed/flux/semirigid_tree_final_complete_dataset_with_untagged.csv')  # includes recovered untagged/dead-snag monthly trees
+source('code/lib/monthly_cols.R')
+tree_dataset <- monthly_plain(read.csv('data/processed/flux/semirigid_tree_final_complete_dataset_with_untagged.csv'))  # includes recovered untagged/dead-snag monthly trees
 
 # Measurements are excluded only for procedural failure: the chamber screen in
 # 02_qc_c0_screen.R (two soil chambers not at ambient at closure). The r2 >= 0.7 and
@@ -69,7 +70,7 @@ soil_plot_data <- soil_dataset %>%
 
 # Prepare tree data
 tree_plot_data <- tree_dataset %>%
-  filter(!is.na(CH4_best.flux.x)) %>%
+  filter(!is.na(CH4_best.flux)) %>%
   mutate(
     Plot_Type = case_when(
       Plot.Letter %in% c("WD", "WS") ~ "W",
@@ -88,8 +89,8 @@ tree_plot_data <- tree_dataset %>%
   ungroup() %>%
   group_by(Plot_Type, Date_interval) %>%
   summarise(
-    mean_flux = mean(CH4_best.flux.x, na.rm = TRUE),
-    se_flux = sd(CH4_best.flux.x, na.rm = TRUE) / sqrt(n()),
+    mean_flux = mean(CH4_best.flux, na.rm = TRUE),
+    se_flux = sd(CH4_best.flux, na.rm = TRUE) / sqrt(n()),
     n_measurements = n(),
     .groups = 'drop'
   ) %>%
@@ -126,7 +127,7 @@ soil_raw_data <- soil_dataset %>%
   rename(CH4_flux = CH4_best.flux)
 
 tree_raw_data <- tree_dataset %>%
-  filter(!is.na(CH4_best.flux.x)) %>%
+  filter(!is.na(CH4_best.flux)) %>%
   mutate(
     Plot_Type = case_when(
       Plot.Letter %in% c("WD", "WS") ~ "W",
@@ -145,8 +146,8 @@ tree_raw_data <- tree_dataset %>%
   group_by(Date_group) %>%
   mutate(Date_interval = min(Date)) %>%
   ungroup() %>%
-  filter(!is.na(CH4_best.flux.x), !is.na(Date_interval)) %>%
-  rename(CH4_flux = CH4_best.flux.x)
+  filter(!is.na(CH4_best.flux), !is.na(Date_interval)) %>%
+  rename(CH4_flux = CH4_best.flux)
 
 combined_facet_raw <- bind_rows(soil_raw_data, tree_raw_data) %>%
   mutate(Plot_Type = factor(Plot_Type, levels = c("U", "I", "W"),
@@ -318,7 +319,7 @@ ggsave("outputs/figures/generated/fig1_final.png",
 # Overall statistics
 cat("\n===== OVERALL STATISTICS =====\n")
 cat("Total tree flux measurements:", nrow(tree_dataset %>%
-                                            filter(!is.na(CH4_best.flux.x))), "\n")
+                                            filter(!is.na(CH4_best.flux))), "\n")
 cat("Total soil flux measurements:", nrow(soil_dataset %>%
                                             filter(!is.na(CH4_best.flux), !UniqueID %in% QC_EXCLUDED)), "\n")
 cat("Date range:", format(min(combined_facet_data$Date_interval, na.rm = TRUE), "%B %Y"),

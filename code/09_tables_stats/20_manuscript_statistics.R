@@ -100,7 +100,8 @@ cat("\nLoading data...\n")
 # the file Figure 1 plots (fig01_temporal-flux.R): the monthly survey including the recovered
 # untagged and dead-stem trees. Section 1 read the 41-tree file and so described a
 # smaller set than the figure beside it.
-semirigid_tree <- read.csv("data/processed/flux/semirigid_tree_final_complete_dataset_with_untagged.csv")
+source("code/lib/monthly_cols.R")
+semirigid_tree <- monthly_plain(read.csv("data/processed/flux/semirigid_tree_final_complete_dataset_with_untagged.csv"))
 semirigid_soil <- read.csv("data/processed/flux/semirigid_tree_final_complete_dataset_soil.csv")
 
 # Measurements are excluded only for procedural failure: the chamber screen in
@@ -162,7 +163,7 @@ soil_qc <- semirigid_soil %>%
   ))
 
 tree_qc <- semirigid_tree %>%
-  filter(!is.na(CH4_best.flux.x)) %>%
+  filter(!is.na(CH4_best.flux)) %>%
   mutate(
     Plot_Type = case_when(
       Plot.Letter %in% c("WD", "WS") ~ "W",
@@ -170,7 +171,7 @@ tree_qc <- semirigid_tree %>%
       Plot.Letter == "U" ~ "U",
       TRUE ~ Plot.Letter
     ),
-    CH4_flux = CH4_best.flux.x
+    CH4_flux = CH4_best.flux
   )
 
 # Sample sizes

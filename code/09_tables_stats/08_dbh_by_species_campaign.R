@@ -28,9 +28,10 @@ lab<-function(code){code<-toupper(trimws(code)); code<-ifelse(code %in% names(co
 fd<-"data/processed/flux"
 
 ## 2020-2021 monthly — unique Plot.Tag with valid flux (== campaign_counts 41)
-srt<-read.csv(file.path(fd,"semirigid_tree_final_complete_dataset.csv"))
+source("code/lib/monthly_cols.R")
+srt<-monthly_plain(read.csv(file.path(fd,"semirigid_tree_final_complete_dataset.csv")))
 mon<-data.frame(tag=as.character(srt$Plot.Tag), pos=as.character(srt$Plot.Letter),
-                ok=!is.na(srt$CH4_best.flux.x), stringsAsFactors=FALSE)
+                ok=!is.na(srt$CH4_best.flux), stringsAsFactors=FALSE)
 mon<-mon[mon$ok,]; mon<-mon[!duplicated(mon$tag),]
 ymt<-read.csv("data/raw/field_data/static_chamber_field/YM_trees_measured.csv.csv",check.names=FALSE)
 sp_lut<-setNames(as.character(ymt$Species),as.character(ymt$Label)); dbh_lut<-setNames(num(ymt$D_stem),as.character(ymt$Label))

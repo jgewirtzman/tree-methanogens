@@ -16,6 +16,7 @@
 #   Rscript code/check_consistency.R
 # ==============================================================================
 source("code/lib/geometry.R")
+source("code/lib/monthly_cols.R")
 
 FAILS <- 0L
 chk <- function(label, ok, detail = "") {
@@ -279,7 +280,7 @@ chk("retired shared flux filenames absent from data/processed/flux",
 MT <- rd("outputs/data/flux_measurements_tree.csv")
 if (!is.null(MT)) {
   fd <- "data/processed/flux"; nn <- function(x) sum(!is.na(x))
-  src <- c(monthly_2020_2021 = nn(rd(file.path(fd, "semirigid_tree_final_complete_dataset_with_untagged.csv"))$CH4_best.flux.x),
+  src <- c(monthly_2020_2021 = nn(monthly_plain(rd(file.path(fd, "semirigid_tree_final_complete_dataset_with_untagged.csv")))$CH4_best.flux),
            `2021_multiheight` = nn(rd(file.path(fd, "tree_flux_2021_multiheight.csv"))$CH4_best.flux),
            `2023_cross_species` = nn(rd(file.path(fd, "tree_flux_2023_cross_species.csv"))$CH4_best.flux))
   got <- table(factor(MT$campaign, levels = names(src)))

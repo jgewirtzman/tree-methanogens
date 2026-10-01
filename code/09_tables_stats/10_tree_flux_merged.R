@@ -4,20 +4,21 @@
 # Recomputes the main-text tree-flux statistics on the MERGED monthly dataset
 # (tagged + 7 recovered untagged/dead-snag trees), using the SAME QC filter as
 # 20_manuscript_statistics.R:
-#     (CO2_LM.r2|CO2_HM.r2|CH4_LM.r2.x|CH4_HM.r2.x) >= 0.7  &  CH4 in [-100,200]
+#     (CO2_LM.r2|CO2_HM.r2|CH4_LM.r2|CH4_HM.r2) >= 0.7  &  CH4 in [-100,200]
 # Reports ORIGINAL vs MERGED side by side so the revised numbers are traceable,
 # and adds the dead-vs-live breakdown (new to the revision). Does NOT edit the
 # original pipeline script. Writes outputs/audit/tree_flux_merged_stats.txt.
 # ==============================================================================
 suppressPackageStartupMessages(library(dplyr)); options(warn=-1)
 num<-function(x) suppressWarnings(as.numeric(x)); NMOL_TO_UG<-57.744
-qc<-function(d) d %>% filter((num(CO2_LM.r2)>=0.7|num(CO2_HM.r2)>=0.7|num(CH4_LM.r2.x)>=0.7|num(CH4_HM.r2.x)>=0.7),
-                             num(CH4_best.flux.x)>=-100, num(CH4_best.flux.x)<=200) %>%
+qc<-function(d) d %>% filter((num(CO2_LM.r2)>=0.7|num(CO2_HM.r2)>=0.7|num(CH4_LM.r2)>=0.7|num(CH4_HM.r2)>=0.7),
+                             num(CH4_best.flux)>=-100, num(CH4_best.flux)<=200) %>%
   mutate(pos=case_when(Plot.Letter%in%c("WD","WS")~"W", Plot.Letter=="I"~"I", Plot.Letter=="U"~"U", TRUE~Plot.Letter),
-         f=num(CH4_best.flux.x))
+         f=num(CH4_best.flux))
 fd<-"data/processed/flux"
-orig<-qc(read.csv(file.path(fd,"semirigid_tree_final_complete_dataset.csv")))
-merg<-qc(read.csv(file.path(fd,"semirigid_tree_final_complete_dataset_with_untagged.csv")))
+source("code/lib/monthly_cols.R")
+orig<-qc(monthly_plain(read.csv(file.path(fd,"semirigid_tree_final_complete_dataset.csv"))))
+merg<-qc(monthly_plain(read.csv(file.path(fd,"semirigid_tree_final_complete_dataset_with_untagged.csv"))))
 if(!"dead"%in%names(merg)) merg$dead<-FALSE; merg$dead[is.na(merg$dead)]<-FALSE
 
 out<-file("outputs/audit/tree_flux_merged_stats.txt","w"); P<-function(...) {s<-sprintf(...); cat(s,"\n"); writeLines(s,out)}

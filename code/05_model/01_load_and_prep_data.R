@@ -186,6 +186,8 @@ screen_chamber_integrity <- function(df, c0_col, flux_col, label) {
 # The revision dataset was written with syntactic column names (Plot.Tag); the older
 # file used literal spaces (`Plot Tag`). Normalise so downstream code is agnostic.
 if (!is.null(semirigid_data)) {
+  source(Filter(file.exists, c("code/lib/monthly_cols.R", "../lib/monthly_cols.R", "../../lib/monthly_cols.R"))[1])
+  semirigid_data <- monthly_plain(semirigid_data)   # .x/.y duplicates -> plain names
   nm <- names(semirigid_data)
   ren <- c("Plot.Tag" = "Plot Tag", "Plot.Letter" = "Plot Letter")
   for (from in names(ren)) if (from %in% nm && !(ren[[from]] %in% nm)) {
@@ -196,7 +198,7 @@ if (!is.null(semirigid_data)) {
 
 cat("\nChamber integrity screen:\n")
 soil_data      <- screen_chamber_integrity(soil_data,      "CH4_C0",   "CH4_best.flux",   "soil monthly")
-semirigid_data <- screen_chamber_integrity(semirigid_data, "CH4_C0.x", "CH4_best.flux.x", "tree monthly")
+semirigid_data <- screen_chamber_integrity(semirigid_data, "CH4_C0",   "CH4_best.flux",   "tree monthly")
 tree_2023_data <- screen_chamber_integrity(tree_2023_data, "CH4_C0",   "CH4_best.flux",   "tree 2023")
 
 # Check critical data loaded
@@ -825,7 +827,7 @@ if (!is.null(semirigid_data)) {
                              as.POSIXct(paste(as.Date(Date), "12:00:00"), tz = "UTC")),
       tree_id_raw = as.character(`Plot Tag`),
       plot_letter = toupper(trimws(`Plot Letter`)),
-      stem_flux_umol_m2_s = CH4_best.flux.x,
+      stem_flux_umol_m2_s = CH4_best.flux,
       chamber_type = "semirigid",
       month = month(Date),
       year = year(Date)
