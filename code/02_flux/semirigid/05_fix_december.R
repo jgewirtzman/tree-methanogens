@@ -316,6 +316,11 @@ december_14_unique_ids <- lgr3_auxfile_december$UniqueID
 # Get UniqueIDs for December 8th measurements (to remove)
 # These will be any UniqueID containing "20201208"
 december_8_pattern <- "20201208"
+# The re-picked December deployments. Every merge below drops the superseded 8 December
+# rows AND any copy of these, so the step can run more than once without duplicating
+# December (the saved soil windows already include it). This name was used below but
+# was only ever defined in the interactive session that first ran this script.
+december_unique_ids <- unique(manID.lgr3.december$UniqueID)
 
 # =============================================================================
 # UPDATE MANUAL IDENTIFICATION RESULTS
@@ -330,7 +335,7 @@ if(file.exists("../../../data/processed/flux/lgr_manual_identification_results_s
   
   # Remove existing December 8th data
   non_december_8_manID <- existing_manID %>%
-    filter(!grepl(december_8_pattern, UniqueID))
+    filter(!grepl(december_8_pattern, UniqueID), !UniqueID %in% december_unique_ids)
   
   # Convert new December data DATE column to character to match
   manID.lgr3.december_fixed <- manID.lgr3.december %>%
@@ -363,7 +368,7 @@ if(file.exists("../../../data/processed/flux/CO2_flux_lgr_results_soil.csv")) {
   
   # Remove existing December 8th data
   non_december_8_CO2_flux <- existing_CO2_flux %>%
-    filter(!grepl(december_8_pattern, UniqueID))
+    filter(!grepl(december_8_pattern, UniqueID), !UniqueID %in% december_unique_ids)
   
   # Combine with new December 14th data
   updated_CO2_flux <- bind_rows(non_december_8_CO2_flux, CO2_flux_lgr3_december)
@@ -392,7 +397,7 @@ if(file.exists("../../../data/processed/flux/CO2_best_flux_lgr_results_soil.csv"
   
   # Remove existing December 8th data
   non_december_8_CO2_best <- existing_CO2_best %>%
-    filter(!grepl(december_8_pattern, UniqueID))
+    filter(!grepl(december_8_pattern, UniqueID), !UniqueID %in% december_unique_ids)
   
   # Combine with new December 14th data
   updated_CO2_best <- bind_rows(non_december_8_CO2_best, CO2_best_lgr3_december)
@@ -422,7 +427,7 @@ if(exists("CH4_flux_lgr3_december")) {
     
     # Remove existing December 8th data
     non_december_8_CH4_flux <- existing_CH4_flux %>%
-      filter(!grepl(december_8_pattern, UniqueID))
+      filter(!grepl(december_8_pattern, UniqueID), !UniqueID %in% december_unique_ids)
     
     # Combine with new December 14th data
     updated_CH4_flux <- bind_rows(non_december_8_CH4_flux, CH4_flux_lgr3_december)
@@ -453,7 +458,7 @@ if(exists("CH4_best_lgr3_december")) {
     
     # Remove existing December data
     non_december_CH4_best <- existing_CH4_best %>%
-      filter(!UniqueID %in% december_unique_ids)
+      filter(!grepl(december_8_pattern, UniqueID), !UniqueID %in% december_unique_ids)
     
     # Combine with new December data
     updated_CH4_best <- bind_rows(non_december_CH4_best, CH4_best_lgr3_december)
@@ -491,7 +496,7 @@ if(exists("CH4_best_lgr3_december")) {
 # Remove existing December 8th data from the dataset
 cat("Removing existing December 8th data from final dataset...\n")
 non_december_8_dataset <- existing_dataset %>%
-  filter(!grepl(december_8_pattern, UniqueID))
+  filter(!grepl(december_8_pattern, UniqueID), !UniqueID %in% december_unique_ids)
 
 cat("Rows before December 8th removal:", nrow(existing_dataset), "\n")
 cat("Rows after December 8th removal:", nrow(non_december_8_dataset), "\n")
