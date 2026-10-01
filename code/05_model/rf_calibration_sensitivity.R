@@ -38,13 +38,8 @@ SHRINK_K <- 10      # ratio -> 1 + (ratio-1) * n/(n+K); K = the ladder's own thr
 CONV     <- 86400 * 365.25 * 16e-6
 
 d <- tree_train_complete
-cal <- data.frame(sp = as.character(d$species_clean),
-                  obs = d$stem_flux_corrected, oob = TreeRF$predictions) %>%
-  filter(is.finite(obs), is.finite(oob)) %>%
-  group_by(sp) %>%
-  summarise(n = dplyr::n(), obs_mean = mean(obs), oob_mean = mean(oob),
-            ratio = ifelse(mean(oob) > 0, mean(obs)/mean(oob), 1), .groups = "drop") %>%
-  as.data.frame()
+source("code/lib/species_calibration.R")
+cal <- species_calibration(d$species_clean, d$stem_flux_corrected, TreeRF$predictions)
 
 # leave-one-measurement-out range of each ratio (OOB predictions held fixed)
 jk <- t(sapply(cal$sp, function(s) {

@@ -883,6 +883,14 @@ cat("Training Species-First Random Forest models...\n")
 complete_rows <- !is.na(tree_train$y_asinh) &
   !is.na(tree_train$species_factor)
 
+# LIVE STEMS ONLY (2026-09-30). The inventory the model is applied to has no dead
+# stems, so dead ones are kept out of training (see code/lib/dead_stems.R for the
+# definition and the evidence). They remain in every descriptive analysis.
+source("../lib/dead_stems.R")
+tree_train$dead_stem <- is_dead_stem_flux(tree_train$stem_flux_umol_m2_s)
+cat("  Dead-stem deployments excluded from training:", sum(tree_train$dead_stem), "\n")
+complete_rows <- complete_rows & !tree_train$dead_stem
+
 # Subset the training data to complete cases FIRST
 tree_train_complete <- tree_train[complete_rows, ]
 y_tree <- tree_train_complete$y_asinh

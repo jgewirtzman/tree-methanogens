@@ -74,6 +74,7 @@ names(soil_out)[names(soil_out) == "soil_flux_umol_m2_s"] <- "soil_flux_nmol_m2_
 #   Refit the model:            filter(in_rf_training)
 #   Describe the measurements:  all rows (covariates are NA where none were measured)
 suppressMessages(library(dplyr))
+source("code/lib/dead_stems.R"); DEAD <- dead_stem_flux()
 fd   <- "data/processed/flux"
 key  <- function(x) round(as.numeric(x), 8)
 LATIN <- setNames(as.character(tree_out$species), tree_out$species_code)
@@ -126,13 +127,15 @@ extra <- bind_rows(lapply(names(src), function(cmp) {
               sum(tree_out$campaign == cmp), nrow(miss)))
   if (!nrow(miss)) return(NULL)
   d <- as.Date(substr(miss$Date, 1, 10), tryFormats = c("%Y-%m-%d", "%m/%d/%y", "%m/%d/%Y"))
+  why <- ifelse(is_dead_stem_flux(miss$flux, DEAD), "dead stem: the inventory the model is applied to is live stems only",
+                reason[[cmp]])
   data.frame(tree_id = paste0(sub("_.*", "", cmp), "_", gsub("[^A-Za-z0-9]", "", miss$tree_id)),
              species = unname(LATIN[miss$species_code]), species_code = miss$species_code,
              Date = as.character(d), month = as.integer(format(d, "%m")), year = as.integer(format(d, "%Y")),
              stem_flux_nmol_m2_s = miss$flux, air_temp_C = miss$air_temp_C, soil_temp_C = miss$soil_temp_C,
              soil_moisture_abs = miss$soil_moisture_abs, dbh_m = miss$dbh_m, chamber_type = miss$chamber_type,
              measurement_height_cm = miss$height, campaign = cmp, in_rf_training = FALSE,
-             exclusion_reason = reason[[cmp]], stringsAsFactors = FALSE)
+             exclusion_reason = why, stringsAsFactors = FALSE)
 }))
 # Untagged stems share labels ("untagged" x5 in 2023); number them so each deployment
 # keeps its own id. Monthly UNTAG_ labels are per-stem and stay as they are.

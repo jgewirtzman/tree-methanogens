@@ -197,26 +197,23 @@ flux_2m <- rowMeans(F[, K, ])
 # months. Calibrating on the predicted value instead -- linear or isotonic -- does
 # NOT work (sum ratio 1.11-1.13), because the shrinkage is structured by species
 # rather than by predicted magnitude. See model_family_comparison.R.
-# NO CLAMP. An earlier version bounded the ratio to [0.2, 5] to guard against
+# NO CLAMP, BUT A MINIMUM SAMPLE (code/lib/species_calibration.R): levels with fewer
+# than 5 training measurements get ratio 1. An earlier version bounded the ratio to [0.2, 5] to guard against
 # levels with 1-3 records. On the current model it binds on NO level at all -- every
 # ratio falls inside [0.2, 5], so rf_calibration_sensitivity.R measures the clamped
 # variant as changing the stand total by exactly 0.00%. It introduced an arbitrary
 # parameter that would have had to be defended. The unclamped ratio is what the
 # cross-validation in model_family_comparison.R actually evaluated.
-cal <- data.frame(sp = as.character(d$species_clean),
-                  obs = d$stem_flux_corrected, oob = TreeRF$predictions) %>%
-  filter(is.finite(obs), is.finite(oob)) %>%
-  group_by(sp) %>%
-  summarise(n = dplyr::n(), obs_mean = mean(obs), oob_mean = mean(oob),
-            ratio = ifelse(oob_mean > 0, obs_mean/oob_mean, 1), .groups = "drop")
+source("code/lib/species_calibration.R")   # min sample MIN_CAL_N; see that file
+cal <- species_calibration(d$species_clean, d$stem_flux_corrected, TreeRF$predictions)
 cmap <- setNames(cal$ratio, cal$sp)
 INV$cal <- as.numeric(ifelse(is.na(cmap[INV$sp]), 1, cmap[INV$sp]))
 cat("\nper-species calibration (observed / out-of-bag predicted):\n")
 print(as.data.frame(cal %>% arrange(ratio) %>%
       transmute(sp, n, obs_mean = round(obs_mean,4), oob_mean = round(oob_mean,4),
                 ratio = round(ratio,3))), row.names = FALSE)
-cat(sprintf("  no clamp applied; ratio range %.3f - %.3f across %d levels\n",
-            min(cal$ratio), max(cal$ratio), nrow(cal)))
+cat(sprintf("  ratio range %.3f - %.3f across %d levels; %d level(s) with n < %d set to 1\n",
+            min(cal$ratio), max(cal$ratio), nrow(cal), sum(cal$n < MIN_CAL_N), MIN_CAL_N))
 
 band_uncal <- band
 band    <- band    * INV$cal
