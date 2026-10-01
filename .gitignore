@@ -31,6 +31,8 @@ doi_list.txt
 outputs/figure_captions.md
 # Revision prose/notes (manuscript-adjacent; not for public repo)
 code/revision/notes/
+# notes now live in manuscript/notes (private repo); this path is a symlink to them
+code/revision/notes
 
 # --- Data (all archived on Zenodo; git tracks ONLY the folder structure) ---
 # Every data file lives in the Zenodo archive and drops into data/ locally.
