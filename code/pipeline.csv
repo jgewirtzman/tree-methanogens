@@ -31,6 +31,7 @@ B,code/05_model/01_load_and_prep_data.R,script,TRUE,random-forest training table
 B,code/05_model/02_rf_models.R,script,TRUE,fit the stem and soil random forests
 B,code/05_model/03_export_canonical_tables.R,root,TRUE,measurement tables with training flags and exclusion reasons
 B,code/05_model/04_rf_grouped_cv.R,root,TRUE,held-out skill with whole trees or collars held out
+B,code/zenodo/01_compile_datasets.R,root,TRUE,archive datasets in data/compiled/ (what every later stage reads)
 C,code/04_drivers/01_wb_reference_et.R,root,TRUE,reference evapotranspiration for the water balance
 C,code/04_drivers/02_moisture_climatology.R,root,TRUE,monthly plot-wide soil-moisture level
 C,code/04_drivers/03_soil_temp_climatology.R,root,TRUE,monthly soil-temperature climatology
@@ -110,6 +111,6 @@ E,code/08_figures/figS26_scaling-heatmap.R,root,FALSE,Figure S26
 E,code/08_figures/figS27_scaling-profiles.R,root,FALSE,Figure S27
 E,code/08_figures/figS28_plant-traits.R,root,FALSE,Figure S28
 E,code/08_figures/zz_assemble_figures.R,root,TRUE,number and copy every figure into outputs/figures/{main;SI}
-F,code/zenodo/01_compile_datasets.R,root,TRUE,archive datasets in data/compiled/
-F,code/zenodo/02_generate_data_readme.R,root,TRUE,data/compiled/README_data.md from the column dictionary
+F,code/zenodo/02_compile_results.R,root,TRUE,the paper's computed results in data/compiled/results/
+F,code/zenodo/03_generate_data_readme.R,root,TRUE,data/compiled/README_data.md from the column dictionary
 G,code/check_consistency.R,root,TRUE,the consistency gate

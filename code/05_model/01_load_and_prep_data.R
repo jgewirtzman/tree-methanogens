@@ -1002,7 +1002,7 @@ if (!is.null(soil_data) && !is.null(plot_locations)) {
   # This replaces the old MAD k=8 filter, which deleted four genuine wetland-margin
   # emissions while retaining the one real artifact, making the sink ~2.7x too strong.
   # =========================================================================
-  OUT_OF_STAND_COLLARS <- c("WS_1-1", "WS_1-2")
+  source(if (file.exists("../lib/soil_collars.R")) "../lib/soil_collars.R" else "code/lib/soil_collars.R")  # OUT_OF_STAND_COLLARS
   n_before_stand <- nrow(SOIL_YEAR)
   SOIL_YEAR <- SOIL_YEAR %>% filter(!(site_id %in% OUT_OF_STAND_COLLARS))
   cat(sprintf("  Out-of-stand collars removed: %s (%d of %d measurements)\n",

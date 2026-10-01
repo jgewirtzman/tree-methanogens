@@ -56,3 +56,14 @@ Run `Rscript code/tools/migrate_campaign_filenames.R` on a restored archive; it 
 After the auxfile scripts, `Rscript code/02_flux/01_apply_auxfile_vtot.R` rescales the stored goFlux
 results to the 28 cm³ analyzer volume (20 tables; idempotent). The flux tables in `data/processed/flux/`
 are at 28 cm³; an older archive is at 70 cm³ and needs this step.
+
+## 5. Archive structure changed (2026-10-01)
+
+`data/compiled/` is rebuilt by `code/zenodo/01_compile_datasets.R` (end of stage B) and
+`02_compile_results.R` (stage F). Retired: `semirigid_chamber_flux.csv`,
+`static_chamber_flux.csv`, `height_chamber_flux.csv`, `flux_measurements_tree.csv`,
+`flux_measurements_soil.csv` (replaced by `flux_stem.csv` and `flux_soil.csv`, one row per
+deployment with all flags) and `picrust_pathway_associations.csv` (moved to `results/`).
+New: `internal_gas.csv`, `isotopes.csv`, and `results/` (budget, grid, model skill,
+isotope summary, Tables 1 and S2-S5). The previous archive's monthly stem file omitted the
+45 hand-rescued untagged deployments; `flux_stem.csv` includes them.
