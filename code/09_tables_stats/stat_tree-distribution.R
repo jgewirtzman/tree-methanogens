@@ -8,7 +8,7 @@ source("code/lib/outputs.R")
 #
 # NEW file; edits nothing.
 # Inputs: data/compiled/tree_properties.csv (measured trees: species, dbh, VWC,
-#         landscape_position), data/compiled/forest_inventory.csv (full census).
+#         landscape_position), data/compiled/forest_inventory_stems.csv (full census).
 # Run: Rscript code/revision/R_tree_distribution.R
 # Outputs (outputs/):
 #   tree_dbh_landscape_table.csv     R3 L286 table
@@ -99,7 +99,9 @@ ggsave(out_path("tree_species_moisture_niche.png"),
        p_niche + labs(title = NULL, subtitle = NULL), width = 6.8, height = 6.2, dpi = 200)
 
 # ---- Forest-inventory context (full census) ----------------------------------
-fi <- read_csv("data/compiled/forest_inventory.csv", show_col_types = FALSE)
+# forest_inventory.csv was renamed forest_inventory_stems.csv in the archive (both census
+# sources merged); its diameter is in cm, so dbh_mm is derived.
+fi <- read_csv("data/compiled/forest_inventory_stems.csv", show_col_types = FALSE) %>% mutate(dbh_mm = dbh_cm * 10)
 fi_summary <- fi %>% mutate(species = sp_map[species_code]) %>%
   group_by(species_code) %>%
   summarise(n_stems = n(), dbh_mean_mm = mean(dbh_mm, na.rm = TRUE), .groups = "drop") %>%

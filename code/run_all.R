@@ -75,6 +75,9 @@ local({
 # prediction script. Both prediction scripts now read the same two climatologies
 # and the same moisture surface, so those have to be built before either runs.
 CORE <- c(
+  # Every stem deployment, flagged in_rf_training; reads the model files. Cheap, and
+  # until 2026-09-30 it ran only by hand, so its table could go stale against the model.
+  "code/05_model/03_export_canonical_tables.R",
   "code/05_model/rf_grouped_cv.R",             # -> rf_grouped_cv.csv (budget reads it)
   "code/01_import/inventory_build.R",           # raw -> inventory_stems.csv
   "code/04_drivers/wb_reference_et.R",           # -> water balance (climatology input)
@@ -146,6 +149,8 @@ for (f in SUPPORT) run(f)
 # This list was generated from the glob it replaces and verified set-identical.
 rest <- c(
   "code/09_tables_stats/stat_campaign_counts.R",
+  "code/09_tables_stats/stat_clade-census.R",
+  "code/09_tables_stats/stat_mass-basis-sensitivity.R",
   "code/09_tables_stats/stat_copies-per-gram.R",
   "code/09_tables_stats/stat_dbh_by_species_campaign.R",
   "code/09_tables_stats/stat_faprotax-caveats.R",

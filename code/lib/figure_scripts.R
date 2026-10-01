@@ -50,6 +50,7 @@ FIGURE_SCRIPTS_REVISION <- c(
   "code/08_figures/figS20_stem-deterioration.R",
   "code/08_figures/figS21_rf-model-summary.R",
   "code/08_figures/figSI_detection.R",
+  "code/08_figures/figSI_16s_ddpcr_association.R",
   "code/08_figures/figS_black-oak-cross-sections.R",
   "code/08_figures/figS_rf-calibration.R",
   "code/08_figures/fig_height_curves.R",

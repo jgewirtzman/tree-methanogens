@@ -26,7 +26,7 @@
 # position that air temperature is a monthly mean and so is not identifiable
 # separately from season.
 #
-# GROUPING. Soil and air temperature correlate at r = 0.97. Shuffling one leaves
+# GROUPING. Soil and air temperature correlate at r = 0.92 across training rows. Shuffling one leaves
 # the other as a proxy, so ordinary permutation mutually suppresses both. They
 # are permuted TOGETHER under one shared permutation, which asks the only
 # question with an answer: how much does the model rely on temperature at all.
