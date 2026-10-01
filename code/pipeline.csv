@@ -5,10 +5,6 @@ A,code/01_import/02_process_wood_cores.R,script,TRUE,wood-core sectioning; densi
 A,code/01_import/03_process_internal_gas.R,script,TRUE,GC calibration of 2021-22 internal-gas samples
 A,code/01_import/04_process_internal_gas_2024.R,root,TRUE,GC calibration of the 2024 heartwood/sapwood run
 A,code/01_import/05_ddpcr_import_and_align.R,root,TRUE,import ddPCR runs and align to sample metadata
-A,code/01_import/06_ddpcr_check_completeness.R,root,FALSE,check: every expected sample x gene present
-A,code/01_import/07_ddpcr_confirm_import.R,root,FALSE,check: processed ddPCR matches the raw run files
-A,code/01_import/08_inventory_build.R,root,TRUE,stand inventory from the 2018 and 2019 censuses and by-tag survey
-A,code/01_import/09_audit_inventory_duplicates.R,root,FALSE,check: no stem counted in both censuses
 A,code/02_flux/semirigid/01_calc_chamber_dims.R,script,TRUE,monthly survey: semi-rigid chamber area and volume
 A,code/02_flux/semirigid/02_join_flux_geometry.R,script,TRUE,monthly survey: join deployments to chamber geometry
 A,code/02_flux/semirigid/03_prep_soil_auxfile.R,script,TRUE,monthly survey: goFlux aux file for soil
@@ -29,6 +25,8 @@ A,code/02_flux/03_precision_and_detection.R,root,TRUE,analyzer precision; minimu
 A,code/03_merge/02_compile_soil_env.R,root,TRUE,soil temperature and moisture per collar and date
 A,code/03_merge/04_harmonize_all_data.R,script,TRUE,master per-tree table (flux; genes; gas; wood; soil)
 B,code/05_model/01_load_and_prep_data.R,script,TRUE,random-forest training tables
+B,code/01_import/08_inventory_build.R,root,TRUE,stand inventory from the 2018 and 2019 censuses and by-tag survey (reads the model's training tables, so after 01_load_and_prep_data)
+B,code/01_import/09_audit_inventory_duplicates.R,root,FALSE,check: no stem counted in both censuses
 B,code/05_model/02_rf_models.R,script,TRUE,fit the stem and soil random forests
 B,code/05_model/03_export_canonical_tables.R,root,TRUE,measurement tables with training flags and exclusion reasons
 B,code/05_model/04_rf_grouped_cv.R,root,TRUE,held-out skill with whole trees or collars held out
