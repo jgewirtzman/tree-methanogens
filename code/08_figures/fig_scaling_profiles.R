@@ -235,6 +235,17 @@ PD <- PD %>% group_by(form) %>%
 LAB <- PD %>% group_by(form) %>%
   summarise(tot = sum(integrand)*dzP,
             above = 100*(1 - sum(integrand[z <= BAND])*dzP/sum(integrand*dzP)), .groups="drop")
+# The printed totals are the GRID's (scaling_full_grid.csv), the numbers the text quotes.
+# The binned integral drawn here is a 1 m approximation of the same sum and read
+# 13.9 mg against the grid's 15.4 for the named cell; the shape is the figure's job,
+# the number is the grid's.
+GRD <- read.csv("outputs/data/scaling_full_grid.csv", stringsAsFactors = FALSE)
+LAB_BIN <- LAB
+LAB <- LAB %>% mutate(form_chr = as.character(form)) %>%
+  left_join(GRD %>% filter(WAI == HL$WAI, branch == HL$branch, bole == HL$bole) %>%
+              transmute(form_chr = flux, g_tot = total_mg, g_above = pct_extrapolated), "form_chr") %>%
+  mutate(tot = g_tot, above = g_above)
+stopifnot(all(is.finite(LAB$tot)))
 pd <- ggplot(PD, aes(y = z)) +
   geom_ribbon(aes(xmin = 0, xmax = integrand, fill = z <= BAND)) +
   # purple = measured, grey = extrapolated. The colour now carries the one
@@ -278,7 +289,7 @@ cat(sprintf("  flux %s | WAI %s | branch %s | bole %s\n",
             HL$flux, HL$WAI, HL$branch, HL$bole))
 cat(sprintf("  grid total %.1f mg CH4 m-2 yr-1 (%.1f%% of soil, %.0f%% extrapolated)\n",
             HL$total_mg, HL$pct_of_soil, HL$pct_extrapolated))
-cat("\n  inventory sums reproduced by this figure:\n")
-print(as.data.frame(LAB %>% transmute(form, total_mg = round(tot,1),
-                                      pct_above_2m = round(above))), row.names = FALSE)
+cat("\n  panel (d) labels (grid) against this figure's 1 m binned integral:\n")
+print(as.data.frame(LAB %>% transmute(form, grid_mg = round(tot,1), grid_pct_above = round(above),
+                                      binned_mg = round(LAB_BIN$tot,1))), row.names = FALSE)
 cat("\nwritten: outputs/figures/generated/fig_scaling_profiles.png\n")

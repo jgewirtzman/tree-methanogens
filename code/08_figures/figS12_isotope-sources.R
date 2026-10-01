@@ -13,6 +13,12 @@ RED <- "#b2182b"; BLU <- "#2166ac"
 
 # ---- data (verbatim from ISOTOPES_final.R) -----------------------------------
 source("code/lib/isotope_samples.R")   # the one sample-selection rule (see that file)
+# reference values READ from stat_isotopes-canonical.R; panels (c) and (d) typed -70 and
+# 54-64 by hand, and the band outlived the reconciliation that moved eps_C to ~51-53
+.IS <- with(read.csv("outputs/data/ISOTOPES_summary.csv"), setNames(value, quantity))
+ATM_SRC <- .IS[["atm_corrected_source"]]
+EPS_LO <- min(.IS[["eps_C_source_atm"]], .IS[["eps_C_source_keeling"]])
+EPS_HI <- max(.IS[["eps_C_source_atm"]], .IS[["eps_C_source_keeling"]])
 d <- isotope_whole_tree_samples()
 wt <- d %>% filter(!is.na(d13CO2), co2_ppm > 0) %>%
   mutate(eps_C = ((d13CO2 + 1000)/(d13CH4 + 1000) - 1)*1000)
@@ -37,10 +43,10 @@ pa <- pt(d, 1/ch4_ppm, d13CH4) +
 # ---- d13CH4 convergence ------------------------------------------------------
 pc <- pt(d, ch4_ppm, d13CH4) +
   geom_smooth(method = "loess", se = TRUE, color = "black", fill = "grey80", linewidth = 0.7) +
-  geom_hline(yintercept = -70, linetype = "dashed", color = RED, linewidth = 0.6) +
+  geom_hline(yintercept = ATM_SRC, linetype = "dashed", color = RED, linewidth = 0.6) +
   scale_x_log10() +
   labs(x = expression(CH[4]~"(ppm, log)"), y = expression(delta^13*"C-CH"[4]~"(per mil)"),
-       title = "d13CH4 source convergence", subtitle = "plateau ~ -70 per mil (atmosphere-corrected)") + th
+       title = "d13CH4 source convergence", subtitle = sprintf("plateau ~ %.0f per mil (atmosphere-corrected)", ATM_SRC)) + th
 # ---- (d) CO2 Keeling ---------------------------------------------------------
 pd <- pt(wt, 1/co2_ppm, d13CO2) +
   geom_smooth(method = "lm", formula = y~x, color = "black", fill = "grey80", linewidth = 0.7) +
@@ -50,12 +56,12 @@ pd <- pt(wt, 1/co2_ppm, d13CO2) +
        subtitle = sprintf("source intercept = %.0f [%.0f, %.0f] per mil", s_ko, ci_ko[1], ci_ko[2])) + th
 # ---- eps_C convergence -------------------------------------------------------
 pf <- pt(wt, ch4_ppm, eps_C) +
-  annotate("rect", xmin = 1, xmax = Inf, ymin = 54, ymax = 64, fill = RED, alpha = 0.10) +
+  annotate("rect", xmin = 1, xmax = Inf, ymin = EPS_LO, ymax = EPS_HI, fill = RED, alpha = 0.10) +
   geom_smooth(method = "loess", se = TRUE, color = "black", fill = "grey80", linewidth = 0.7) +
   scale_x_log10() +
   labs(x = expression(CH[4]~"(ppm, log)"), y = expression(epsilon[C]~"(per mil)"),
        title = "Apparent fractionation convergence",
-       subtitle = expression(paste("plateau ", epsilon[C], " ~ 54-64 per mil (hydrogenotrophic)"))) + th
+       subtitle = bquote("source-corrected " * epsilon[C] ~ "=" ~ .(sprintf("%.0f-%.0f", EPS_LO, EPS_HI)) ~ "per mil (apparent)")) + th
 
 fig <- (pa | pd) / (pc | pf) +          # top row = Keeling source plots; bottom = convergence
   plot_annotation(tag_levels = "a", tag_prefix = "(", tag_suffix = ")") &

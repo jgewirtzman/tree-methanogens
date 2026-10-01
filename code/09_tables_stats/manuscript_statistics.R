@@ -97,7 +97,10 @@ record <- function(name, value) {
 # --- Load ALL data upfront ---
 cat("\nLoading data...\n")
 
-semirigid_tree <- read.csv("data/processed/flux/semirigid_tree_final_complete_dataset.csv")
+# the file Figure 1 plots (fig01_temporal-flux.R): the monthly survey including the recovered
+# untagged and dead-stem trees. Section 1 read the 41-tree file and so described a
+# smaller set than the figure beside it.
+semirigid_tree <- read.csv("data/processed/flux/semirigid_tree_final_complete_dataset_with_untagged.csv")
 semirigid_soil <- read.csv("data/processed/flux/semirigid_tree_final_complete_dataset_soil.csv")
 moisture_data  <- read.csv("data/raw/field_data/ipad_data/Cleaned data/soilmoisture_total.csv",
                            fileEncoding = "UTF-8-BOM")

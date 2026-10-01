@@ -112,7 +112,9 @@ s16_oak <- sum(s16$Material=="QUVE" & !(s16$core_type %in% c("None","empty",""))
 n_gas <- nn(read.csv("data/processed/internal_gas/sample_data_only.csv", check.names=FALSE)[[1]])
 iso <- read.csv("data/processed/internal_gas/stem_gas_isotopes_picarro_run.csv", check.names=FALSE)
 iso_stcol <- grep("Sample.Type|Sample Type", names(iso), value=TRUE)[1]
-iso_samp <- if(!is.na(iso_stcol)) sum(grepl("Sample", iso[[iso_stcol]])) else nrow(iso)
+# whole-tree d13C samples: the one definition in code/lib/isotope_samples.R, so the
+# table, the text and Fig. 6d count the same set (the Sample-Type tally gave 125)
+source("code/lib/isotope_samples.R"); iso_samp <- nrow(isotope_whole_tree_samples())
 
 # ================================================= D. FELLED BLACK OAK (2022) ==
 bof <- read.csv("data/compiled/black_oak_experiment.csv"); bo_flux <- nrow(bof)
@@ -136,15 +138,21 @@ wood_moist<- sum(apply(!is.na(tp[,grep("moisture_dry_percent",names(tp))]),1,any
 # attributes (status, quadrat, point of measurement) are present as census_*
 # columns and are NA for by-tag stems, so counts over them are reported against
 # the census subset rather than the stand, and labelled as such.
-inv <- read.csv(file.path(comp,"forest_inventory_stems.csv"))
+# Stand counts come from outputs/tables/inventory_stems.csv (inventory_build.R, run
+# early in run_all). data/compiled/ is written by the LAST step of run_all, so reading
+# it here reported the previous run's inventory (8,014 stems after the 8,205 rebuild).
+# Census-only attributes (status) still come from the compiled copy, which adds them.
+inv <- read.csv("outputs/tables/inventory_stems.csv")
+inv_cmp <- read.csv(file.path(comp,"forest_inventory_stems.csv"))
 inv_stems <- nrow(inv); inv_dbh <- sum(!is.na(inv$dbh_cm)); inv_indiv <- uq(inv$tag)
 inv_spp <- uq(inv$species_code)
 inv_area <- round(diff(range(inv$PX,na.rm=TRUE))*diff(range(inv$PY,na.rm=TRUE))/1e4, 2)
 # census subset, where status is recorded
 inv_census   <- sum(inv$source == "fg19", na.rm = TRUE)
 inv_bytag    <- sum(inv$source == "bytag", na.rm = TRUE)
-inv_live     <- sum(inv$census_status == "LI", na.rm = TRUE)
+inv_live     <- sum(inv_cmp$census_status == "LI", na.rm = TRUE)
 inv_in_stand <- sum(inv$in_stand, na.rm = TRUE)
+inv_spp_stand <- uq(inv$species_code[inv$in_stand %in% TRUE])   # Table 1 reports the stand (the budget basis)
 
 # ================================================================== REPORT =====
 sink("outputs/audit/campaign_counts.txt")
@@ -214,7 +222,7 @@ write.csv(data.frame(
   period=c("Jun2020-May2021","Summer2021","Oct2022","Summer2023","-"),
   location=c("hillslope U/I/wetland-margin","upland, in plot","stand (1 tree)","spatial, in plot","census plot"),
   heights=c("breast","50/125/200cm","0.5-10m+seam","breast","-"),
-  trees=c(mon_trees,h_trees,1,t23_trees,inv_stems), species=c(mon_spp,h_spp,1,t23_spp,inv_spp),
+  trees=c(mon_trees,h_trees,1,t23_trees,inv_in_stand), species=c(mon_spp,h_spp,1,t23_spp,inv_spp_stand),
   stem_flux=c(n_monthly,n_height,bo_flux,n_2023,NA), soil_flux=c(n_soil,NA,NA,NA,NA),
   ddpcr=c(NA,dd_surv,bo_ddpcr,NA,NA), s16=c(NA,s16_w+s16_s,s16_oak,NA,NA),
   gas=c(NA,n_gas,bo_gas,NA,NA), isotopes=c(NA,iso_samp,NA,NA,NA),

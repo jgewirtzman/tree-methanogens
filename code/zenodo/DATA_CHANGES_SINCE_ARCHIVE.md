@@ -15,6 +15,8 @@ Recorded 2026-09-30.
 | `data/raw/inventory/fg_2018_problems.csv` | sheet "problems" |
 | `data/raw/inventory/README_fg_2018_sheets.txt` | provenance note |
 
+| `data/raw/photos/{semirigid,rigid}_chamber.jpg` | chamber photographs (SI Fig. S2), copied 2026-10-01 from `outputs/figures/photos/`, which is git-ignored and not regenerable |
+
 ## 1b. Interactive products kept under outputs/ — copy archived, must be uploaded
 
 The July 2026 rescue of the untagged monthly stems (archive/revision/rev_rescue_untagged_click.R) chose

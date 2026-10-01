@@ -1,6 +1,7 @@
 source("code/lib/outputs.R")
 # ==============================================================================
-# REVISION — S10: pmoA/mmoX coupling & composition, WOOD (focus) vs SOIL (contrast).
+# REVISION — SI: pmoA and mmoX by compartment (a), coupling (b,c) and composition (d,e),
+# WOOD (focus) vs SOIL (contrast).
 # Tree-focused; four compartments (BrBG palette): Heartwood, Sapwood (wood) /
 # Organic, Mineral (soil), each with its own fit.
 #   (a) Wood decoupling: pmoA vs mmoX (heartwood/sapwood) — no co-variation (r2~0).
@@ -109,9 +110,32 @@ comp_panel <- function(comps) {
 }
 pc <- comp_panel(WOODC); pd <- comp_panel(SOILC)
 
-fig <- (pa | pb) / (pc | pd) +
+# ---- (a) pmoA and mmoX separately, by compartment (median + IQR) -------------
+# Merged in 2026-10-01 from the archived rev_figS07_pmoa-mmox-compartment.R (old SI
+# S07), which recomputed copies/g its own way and was no longer run by the pipeline.
+# Same data and copies/g as panels (b)-(e); nondetects enter as zero.
+sep <- dec %>% select(comp, pmoA = pmoa_g, mmoX = mmox_g) %>%
+  pivot_longer(c(pmoA, mmoX), names_to = "gene", values_to = "cg") %>%
+  group_by(comp, gene) %>%
+  summarise(med = median(cg), lo = quantile(cg, .25), hi = quantile(cg, .75), n = n(), .groups = "drop") %>%
+  mutate(across(c(med, lo, hi), ~ pmax(.x, 1)),
+         gene = factor(gene, levels = c("pmoA", "mmoX"), labels = c("pmoA (pMMO)", "mmoX (sMMO)")),
+         comp = factor(comp, levels = names(COMP4)))
+p_sep <- ggplot(sep, aes(comp, med, color = comp, shape = gene)) +
+  geom_pointrange(aes(ymin = lo, ymax = hi), position = position_dodge(width = 0.5),
+                  size = 0.55, linewidth = 0.8) +
+  scale_color_manual(values = COMP4, guide = "none") +
+  scale_shape_manual(values = c("pmoA (pMMO)" = 16, "mmoX (sMMO)" = 17), name = NULL) +
+  scale_y_log10(labels = scales::label_number(big.mark = ",")) +
+  labs(x = NULL, y = expression("copies g"^-1*" (median, IQR)")) +
+  theme_bw(base_size = 11) + theme(panel.grid.minor = element_blank(), legend.position = "top")
+write.csv(sep, out_path("pmoa_mmox_by_compartment.csv"), row.names = FALSE)
+
+pa <- p_sep; pb0 <- decouple_panel(WOODC, "dry"); pc0 <- decouple_panel(SOILC, "fresh")
+pd0 <- comp_panel(WOODC); pe0 <- comp_panel(SOILC)
+fig <- pa / ((pb0 | pc0) / (pd0 | pe0)) + plot_layout(heights = c(0.45, 2)) +
   plot_annotation(tag_levels = "a", tag_prefix = "(", tag_suffix = ")") &
   theme(plot.tag = element_text(face = "bold", size = 13))
-ggsave(out_path("figS10_final.png"), fig, width = 9.4, height = 9.4, dpi = 300, bg = "white")
+ggsave(out_path("figS10_final.png"), fig, width = 9.4, height = 12.2, dpi = 300, bg = "white")
 print(decstat); print(compstat[, c("comp","slope","r2","permp","n")])
 cat("Wrote figS10_final.png\n")
