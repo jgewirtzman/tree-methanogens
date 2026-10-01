@@ -30,6 +30,8 @@ source("code/lib/geometry.R")
 MD    <- "code/revision/notes/scaling_parameters.md"
 BEGIN <- "<!-- BEGIN GENERATED: headline -- 21_write_parameter_record.R -->"
 END   <- "<!-- END GENERATED -->"
+# A public clone has no private notes: nothing to update, and not a failure.
+if (!file.exists(MD)) { cat("no", MD, "(private notes not in this checkout); nothing to update\n"); quit(status = 0) }
 
 rd <- function(p) if (file.exists(p)) utils::read.csv(p, stringsAsFactors = FALSE) else NULL
 B  <- rd("outputs/data/canonical_budget.csv")
