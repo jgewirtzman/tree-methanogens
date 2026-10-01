@@ -949,19 +949,23 @@ write_csv(simplified_dataset, "../../data/processed/flux/FINAL_soil_flux_dataset
 cat("Saved simplified dataset to: data/processed/flux/FINAL_soil_flux_dataset_simplified.csv\n")
 
 # Save a summary table
-summary_by_treatment <- final_dataset %>%
-  group_by(trt) %>%
-  summarise(
-    n = n(),
-    CO2_mean = round(mean(CO2_flux.term, na.rm = TRUE), 2),
-    CO2_se = round(sd(CO2_flux.term, na.rm = TRUE) / sqrt(sum(!is.na(CO2_flux.term))), 3),
-    CH4_mean = round(mean(CH4_flux.term, na.rm = TRUE), 4),
-    CH4_se = round(sd(CH4_flux.term, na.rm = TRUE) / sqrt(sum(!is.na(CH4_flux.term))), 4),
-    CH4_uptake_pct = round(100 * sum(CH4_uptake, na.rm = TRUE) / sum(!is.na(CH4_flux.term)), 1)
-  )
-
-write_csv(summary_by_treatment, "../../data/processed/flux/FINAL_soil_flux_summary_by_treatment.csv")
-cat("Saved summary by treatment to: data/processed/flux/FINAL_soil_flux_summary_by_treatment.csv\n")
+# Summary by treatment: only if the aux file carries `trt` (it does not on a fresh run);
+# this summary is not read by any other script.
+if ("trt" %in% names(final_dataset)) {
+  summary_by_treatment <- final_dataset %>%
+    group_by(trt) %>%
+    summarise(
+      n = n(),
+      CO2_mean = round(mean(CO2_flux.term, na.rm = TRUE), 2),
+      CO2_se = round(sd(CO2_flux.term, na.rm = TRUE) / sqrt(sum(!is.na(CO2_flux.term))), 3),
+      CH4_mean = round(mean(CH4_flux.term, na.rm = TRUE), 4),
+      CH4_se = round(sd(CH4_flux.term, na.rm = TRUE) / sqrt(sum(!is.na(CH4_flux.term))), 4),
+      CH4_uptake_pct = round(100 * sum(CH4_uptake, na.rm = TRUE) / sum(!is.na(CH4_flux.term)), 1)
+    )
+  
+  write_csv(summary_by_treatment, "../../data/processed/flux/FINAL_soil_flux_summary_by_treatment.csv")
+  cat("Saved summary by treatment to: data/processed/flux/FINAL_soil_flux_summary_by_treatment.csv\n")
+}
 
 cat("\n✅ COMPLETE! Final dataset created with correct CH4 and CO2 fluxes.\n")
 cat("\nKey findings:\n")
