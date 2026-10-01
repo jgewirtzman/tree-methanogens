@@ -36,67 +36,13 @@ d13_label <- "\u03B4<sup>13</sup>CH<sub>4</sub> (\u2030 VPDB)"
 # STEP 1: Load and combine Picarro data from Runs 2, 3, 4
 # ==============================================================================
 
-pic2 <- read_csv("data/raw/internal_gas/picarro/20251128_211030_results.csv",
-                 show_col_types = FALSE)
-pic3 <- read_csv("data/raw/internal_gas/picarro/20251128_213226_results.csv",
-                 show_col_types = FALSE)
-pic4 <- read_csv("data/raw/internal_gas/picarro/20251128_215521_results.csv",
-                 show_col_types = FALSE)
-
-# Run 2: keep only samples WITHOUT H/S suffix (single per tree) + Amb atmosphere
-pic2_single <- pic2 %>%
-  filter(!str_detect(SampleName, "[HS]$")) %>%
-  filter(!SampleName %in% c("SB1", "SB3a", "SB3b", "SB3", "SB4a", "SB4",
-                              "SB5a", "SB5", "S3a", "S3b", "S3c"))
-
-# Run 3: exclude standards, keep all tree + atmosphere samples
-pic3_single <- pic3 %>%
-  filter(!SampleName %in% c("SB1", "SB3a", "SB3b", "SB3", "SB4a", "SB4",
-                              "SB5a", "SB5", "S3a", "S3b", "S3c"))
-
-# Run 4: keep only RM trees (exclude V_ vial experiments and control samples)
-pic4_single <- pic4 %>%
-  filter(!str_detect(SampleName, "^V|^FLUSH|^RINS|^ROOM"))
-
-# Combine all
-all_picarro <- bind_rows(pic2_single, pic3_single, pic4_single)
-
-# ==============================================================================
-# STEP 2: Map sample names to species via ddPCR metadata
-# ==============================================================================
-
-ddpcr <- read_csv("data/raw/ddpcr/ddPCR_meta_all_data.csv", show_col_types = FALSE)
-species_map <- ddpcr %>%
-  distinct(seq_id, species) %>%
-  rename(SampleName = seq_id)
-
-# Join species
-iso_data <- all_picarro %>%
-  left_join(species_map, by = "SampleName")
-
-# Classify atmosphere samples
-iso_data <- iso_data %>%
-  mutate(species = case_when(
-    str_detect(SampleName, "^Amb") ~ "Atmosphere",
-    TRUE ~ species
-  ))
-
-# Drop samples with no species match (standards, unknowns)
-iso_data <- iso_data %>% filter(!is.na(species))
-
-# ==============================================================================
-# STEP 3: Extract key columns and clean
-# ==============================================================================
-
-iso_clean <- iso_data %>%
-  select(SampleName, species,
-         d13CH4 = HR_Delta_iCH4_Raw_mean,
-         ch4_ppm = HR_12CH4_dry_mean) %>%
-  filter(!is.na(d13CH4)) %>%
-  # Remove any sample below 1.5 ppm (unreliable isotope at very low conc.)
-  filter(ch4_ppm >= 1.5) %>%
-  # Remove atmosphere samples above 5 ppm (contaminated with tree gas)
-  filter(!(species == "Atmosphere" & ch4_ppm > 5))
+# Sample selection lives in one place (code/lib/isotope_samples.R, 2026-10-01): it
+# replaces this script's own run list and species-match filter, which dropped three
+# real hemlocks and the redo runs.
+source("code/lib/isotope_samples.R")
+iso_clean <- dplyr::bind_rows(
+  isotope_whole_tree_samples() %>% dplyr::select(SampleName, species, d13CH4, ch4_ppm),
+  isotope_atmosphere_samples() %>% dplyr::mutate(species = "Atmosphere"))
 
 # Species label mapping (genus abbreviations)
 species_labels <- c(

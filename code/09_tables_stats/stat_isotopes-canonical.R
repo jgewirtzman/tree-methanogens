@@ -27,20 +27,8 @@ suppressPackageStartupMessages({ library(tidyverse); library(gridExtra) })
 out <- "outputs"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
 
 # ---- 1. LOAD + QC ------------------------------------------------------------
-runs <- list.files("data/raw/internal_gas/picarro", pattern = "_results.csv$", full.names = TRUE)
-runs <- runs[!grepl("merged", runs)]
-raw  <- map_dfr(runs, ~read_csv(.x, show_col_types = FALSE))
-STANDARDS <- c("SB1","SB3a","SB3b","SB3","SB4a","SB4","SB5a","SB5","S3a","S3b","S3c","SA1")
-
-d <- raw %>%
-  transmute(SampleName,
-            d13CH4 = HR_Delta_iCH4_Raw_mean, ch4_ppm = HR_12CH4_dry_mean,
-            d13CO2 = Delta_Raw_iCO2_mean,     co2_ppm = `12CO2_mean`) %>%
-  filter(!str_detect(SampleName, "^Amb"),        # atmosphere
-         !str_detect(SampleName, "^V"),          # incubations (unrelated)
-         !str_detect(SampleName, "[HS]$"),       # paired tissue set (dropped)
-         !SampleName %in% STANDARDS,             # calibration standards
-         !is.na(d13CH4), ch4_ppm >= 1.5)         # manuscript isotope QC floor
+source("code/lib/isotope_samples.R")   # the one sample-selection rule (see that file)
+d <- isotope_whole_tree_samples()
 wt <- d %>% filter(!is.na(d13CO2), co2_ppm > 0) %>%
   mutate(alpha_C = (d13CO2 + 1000)/(d13CH4 + 1000), eps_C = (alpha_C - 1)*1000,
          invCH4 = 1/ch4_ppm)
@@ -77,9 +65,7 @@ eps_src_atm  <- eps_from(atm_src,  bulk_co2)
 cpl_all <- cor.test(wt$d13CH4, wt$d13CO2)
 hi <- wt %>% filter(ch4_ppm >= 10); cpl_hi <- cor.test(hi$d13CH4, hi$d13CO2)
 # among-species homogeneity (is one pooled estimate ok?) at reliable conc
-meta_sp <- read_csv("data/raw/ddpcr/ddPCR_meta_all_data.csv", show_col_types = FALSE) %>%
-  distinct(seq_id, species) %>% rename(SampleName = seq_id)
-hi_join <- hi %>% left_join(meta_sp, by = "SampleName")
+hi_join <- hi   # species already attached by isotope_whole_tree_samples()
 kw_matched <- sum(!is.na(hi_join$species)); kw_total <- nrow(hi)   # join-count check (reviewer #4)
 sp10 <- hi_join %>% filter(!is.na(species)) %>% group_by(species) %>% filter(n() >= 4) %>% ungroup()
 kw_ngrp <- n_distinct(sp10$species); kw_n <- nrow(sp10)
@@ -189,6 +175,14 @@ sprintf("apparent CO2-CH4 fractionation of ~%.0f-%.0f permil (at/into the CO2-re
 "eps_C is consistent-with, not diagnostic (respiration-dominated bulk CO2, d13C only,",
 "and possible oxidation shifting the apparent source).")
 
+# Summary values for every consumer (Figure 6d, the manuscript), so none types them
+write.csv(data.frame(
+  quantity = c("n_trees", "n_species", "d13CH4_median", "d13CH4_q25", "d13CH4_q75", "d13CO2_median",
+               "keeling_source", "keeling_ci_lo", "keeling_ci_hi", "atm_corrected_source",
+               "eps_C_within_tree", "eps_C_source_atm", "eps_C_source_keeling"),
+  value = c(nrow(d), dplyr::n_distinct(d$species), bulk_ch4, quantile(d$d13CH4, .25), quantile(d$d13CH4, .75),
+            bulk_co2, keel_src, keel_ci[1], keel_ci[2], atm_src, bulk_eps, eps_src_atm, eps_src_keel)),
+  out_path("ISOTOPES_summary.csv"), row.names = FALSE)
 writeLines(methods, out_path("ISOTOPES_methods.md"))
 writeLines(res,     out_path("ISOTOPES_results.md"))
 cat(paste(res, collapse = "\n"), "\n\nWrote: ISOTOPES_methods.md, ISOTOPES_results.md,",

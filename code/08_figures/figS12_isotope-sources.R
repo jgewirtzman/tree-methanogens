@@ -12,17 +12,8 @@ out <- "outputs"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
 RED <- "#b2182b"; BLU <- "#2166ac"
 
 # ---- data (verbatim from ISOTOPES_final.R) -----------------------------------
-runs <- list.files("data/raw/internal_gas/picarro", pattern = "_results.csv$", full.names = TRUE)
-runs <- runs[!grepl("merged", runs)]
-raw  <- map_dfr(runs, ~read_csv(.x, show_col_types = FALSE))
-STANDARDS <- c("SB1","SB3a","SB3b","SB3","SB4a","SB4","SB5a","SB5","S3a","S3b","S3c","SA1")
-d <- raw %>%
-  transmute(SampleName,
-            d13CH4 = HR_Delta_iCH4_Raw_mean, ch4_ppm = HR_12CH4_dry_mean,
-            d13CO2 = Delta_Raw_iCO2_mean,     co2_ppm = `12CO2_mean`) %>%
-  filter(!str_detect(SampleName, "^Amb"), !str_detect(SampleName, "^V"),
-         !str_detect(SampleName, "[HS]$"), !SampleName %in% STANDARDS,
-         !is.na(d13CH4), ch4_ppm >= 1.5)
+source("code/lib/isotope_samples.R")   # the one sample-selection rule (see that file)
+d <- isotope_whole_tree_samples()
 wt <- d %>% filter(!is.na(d13CO2), co2_ppm > 0) %>%
   mutate(eps_C = ((d13CO2 + 1000)/(d13CH4 + 1000) - 1)*1000)
 

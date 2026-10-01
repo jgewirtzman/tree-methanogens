@@ -1777,29 +1777,11 @@ for (h_col in c("CH4_best.flux_50cm", "CH4_best.flux_125cm", "CH4_best.flux_200c
 
 # --- Figure S9: δ13CH4 isotope analysis ---
 sub_header("Figure S9: d13CH4 isotope analysis")
-pic_files <- c("data/raw/internal_gas/picarro/20251128_211030_results.csv",
-               "data/raw/internal_gas/picarro/20251128_213226_results.csv",
-               "data/raw/internal_gas/picarro/20251128_215521_results.csv")
-if (all(file.exists(pic_files))) {
-  pic_all <- bind_rows(lapply(pic_files, function(f) readr::read_csv(f, show_col_types = FALSE)))
-
-  # Map species
-  ddpcr_meta <- read.csv("data/raw/ddpcr/ddPCR_meta_all_data.csv")
-  sp_map_iso <- ddpcr_meta %>% distinct(seq_id, species) %>% rename(SampleName = seq_id)
-  pic_all <- pic_all %>% left_join(sp_map_iso, by = "SampleName") %>%
-    mutate(species = ifelse(grepl("^Amb", SampleName), "Atmosphere", species)) %>%
-    filter(!is.na(species))
-
-  # Extract key columns
-  iso_s8 <- pic_all %>%
-    dplyr::select(SampleName, species,
-                  d13CH4 = HR_Delta_iCH4_Raw_mean,
-                  ch4_ppm = HR_12CH4_dry_mean) %>%
-    filter(!is.na(d13CH4), ch4_ppm >= 1.5) %>%
-    filter(!(species == "Atmosphere" & ch4_ppm > 5))
-
-  internal_iso <- iso_s8 %>% filter(species != "Atmosphere")
-  atm_iso <- iso_s8 %>% filter(species == "Atmosphere")
+source("code/lib/isotope_samples.R")   # the one sample-selection rule (see that file)
+if (TRUE) {
+  internal_iso <- isotope_whole_tree_samples() %>% dplyr::select(SampleName, species, d13CH4, ch4_ppm)
+  atm_iso      <- isotope_atmosphere_samples() %>% dplyr::mutate(species = "Atmosphere")
+  iso_s8       <- dplyr::bind_rows(internal_iso, atm_iso)
 
   stat("Total isotope samples", nrow(iso_s8))
   stat("Internal tree samples", nrow(internal_iso))
