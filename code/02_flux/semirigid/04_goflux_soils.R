@@ -531,12 +531,9 @@ if(exists("ch4_results")) {
 # Save the final dataset
 write_csv(final_dataset, "../../../data/processed/flux/semirigid_tree_final_complete_dataset_soil.csv")
 
-# Also update the auxfiles with correct volume
-write_csv(original_data %>% select(-contains("CO2_"), -contains("CH4_")), 
-          "auxfile_goFlux_soilflux_with_weather_formatted.csv")
-write.table(original_data %>% select(-contains("CO2_"), -contains("CH4_"), -start.time_formatted), 
-            "auxfile_goFlux_soilflux_with_weather.txt", 
-            sep = "\t", row.names = FALSE, quote = FALSE)
+# (Removed 2026-10-01: two copies of the auxfile were written here to bare filenames,
+# i.e. into this code folder, and nothing read them. The auxfile itself is written by
+# 03_prep_soil_auxfile.R.)
 
 # =============================================================================
 # STEP 8: FLUX SUMMARY STATISTICS

@@ -256,7 +256,12 @@ chk("analysis scripts never write into data/", !length(writes_data), paste(write
 #     leaving the copies in data/processed/flux/ stale. out_path("x.csv") is fine.
 bare <- character(0)
 for (f in live) {
-  L <- readLines(f, warn = FALSE); L <- L[!grepl("^\\s*#", L) & grepl(wpat, L) & !grepl("out_path\\(|file\\.path\\(", L)]
+  L0 <- readLines(f, warn = FALSE); L0[grepl("^\\s*#", L0)] <- ""
+  # a write call often puts its filename on a continuation line (04_goflux_soils.R did),
+  # so look at each write line together with the two after it
+  i <- which(grepl(wpat, L0))
+  L <- vapply(i, function(k) paste(L0[k:min(k + 2, length(L0))], collapse = " "), "")
+  L <- L[!grepl("out_path\\(|file\\.path\\(", L)]
   p <- unlist(regmatches(L, gregexpr("[\"'][^\"'/]+\\.(csv|txt|rds|RData|tsv)[\"']", L)))
   if (length(p)) bare <- c(bare, sprintf("%s (%s)", f, paste(unique(p), collapse = " ")))
 }
