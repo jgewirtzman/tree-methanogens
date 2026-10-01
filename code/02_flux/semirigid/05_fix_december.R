@@ -504,8 +504,9 @@ cat("Rows before December 8th removal:", nrow(existing_dataset), "\n")
 cat("Rows after December 8th removal:", nrow(non_december_8_dataset), "\n")
 cat("December 8th rows removed:", nrow(existing_dataset) - nrow(non_december_8_dataset), "\n")
 
-# Prepare new December 14th data to add back
-december_base_data <- lgr3_auxfile_december
+# Prepare new December 14th data to add back. The soil auxfile carries the old collar
+# volume; record the geometry the fluxes were fitted with, as 04_goflux_soils.R does.
+december_base_data <- lgr3_auxfile_december %>% mutate(Vtot = SOIL_VTOT_L, Area = SOIL_COLLAR_AREA_CM2)
 
 # Add December 14th flux results
 december_final_data <- december_base_data %>%
