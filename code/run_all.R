@@ -190,6 +190,11 @@ run("code/09_tables_stats/write_parameter_record.R")
 # make_figures.R was written to replace -- and kept its own copy of the figure list.
 run("code/make_figures.R")
 
+# --- 4b) archive tables -------------------------------------------------------
+# data/compiled/ is the Zenodo copy of the canonical tables. It was never rebuilt by
+# this script, so it went stale after every run (check_consistency.R compares it).
+run("code/zenodo/compile_zenodo_datasets.R")
+
 # --- 5) report anything never reached ----------------------------------------
 source("code/lib/figure_scripts.R")         # run by make_figures.R (step 4)
 SOURCED <- c("code/lib/geometry.R",        # sourced by others, not run alone
@@ -208,6 +213,7 @@ allR <- setdiff(
   list.files("code/archive", "\\.R$", recursive = TRUE, full.names = TRUE))
 never <- setdiff(allR, c(CORE, SUPPORT, rest, SOURCED,
                          "code/run_all.R",
+                         "code/zenodo/compile_zenodo_datasets.R",
                          "code/08_figures/00_assemble_figures.R",
                          # Run standalone at step 3b, not via CORE/SUPPORT/rest, so it
                          # was absent here and got reported as "never run" on every

@@ -211,6 +211,17 @@ for (f in analysis) {
 }
 chk("analysis scripts never write into data/", !length(writes_data), paste(writes_data, collapse = ", "))
 
+# 1c. no write to a bare filename. Such a file lands in whatever directory the script
+#     runs from -- 03_prep_soil_auxfile.R wrote its auxfiles into code/02_flux/semirigid/,
+#     leaving the copies in data/processed/flux/ stale. out_path("x.csv") is fine.
+bare <- character(0)
+for (f in live) {
+  L <- readLines(f, warn = FALSE); L <- L[!grepl("^\\s*#", L) & grepl(wpat, L) & !grepl("out_path\\(|file\\.path\\(", L)]
+  p <- unlist(regmatches(L, gregexpr("[\"'][^\"'/]+\\.(csv|txt|rds|RData|tsv)[\"']", L)))
+  if (length(p)) bare <- c(bare, sprintf("%s (%s)", f, paste(unique(p), collapse = " ")))
+}
+chk("no script writes to a bare filename (cwd-dependent)", !length(bare), paste(bare, collapse = "; "))
+
 # 2. the retired shared names must not come back, in code or on disk
 RETIRED <- c("methanogen_tree_flux_complete_dataset.csv", "CH4_best_flux_lgr_results.csv",
              "CO2_best_flux_lgr_results.csv", "CH4_flux_lgr_results.csv", "CO2_flux_lgr_results.csv",

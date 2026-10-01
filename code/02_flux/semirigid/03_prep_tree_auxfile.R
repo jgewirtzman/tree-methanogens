@@ -221,7 +221,7 @@ str(auxfile)
 
 # SAVE WITH PROPER DATETIME FORMAT
 # Save the auxfile ensuring datetime format is preserved
-write.table(auxfile, "auxfile_goFlux_with_weather.txt", 
+write.table(auxfile, "../../../data/processed/flux/auxfile_goFlux_with_weather.txt", 
             sep = "\t", row.names = FALSE, quote = FALSE)
 
 # Also save as CSV for easier viewing

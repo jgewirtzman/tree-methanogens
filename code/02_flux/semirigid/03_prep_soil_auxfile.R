@@ -261,16 +261,16 @@ time_summary <- auxfile %>%
 print(time_summary)
 
 # Save the auxfile with weather integration
-write.table(auxfile, "auxfile_goFlux_soilflux_with_weather.txt", 
+write.table(auxfile, "../../../data/processed/flux/auxfile_goFlux_soilflux_with_weather.txt", 
             sep = "\t", row.names = FALSE, quote = FALSE)
 
-write_csv(auxfile, "auxfile_goFlux_soilflux_with_weather.csv")
+write_csv(auxfile, "../../../data/processed/flux/auxfile_goFlux_soilflux_with_weather.csv")
 
 # Create a version with readable datetime formatting
 auxfile_readable <- auxfile %>%
   mutate(start.time_formatted = format(start.time, "%Y-%m-%d %H:%M:%S %Z"))
 
-write_csv(auxfile_readable, "auxfile_goFlux_soilflux_with_weather_formatted.csv")
+write_csv(auxfile_readable, "../../../data/processed/flux/auxfile_goFlux_soilflux_with_weather_formatted.csv")
 
 cat("\n=== FILES SAVED ===\n")
 cat("Main auxfile: auxfile_goFlux_soilflux_with_weather.txt\n")
