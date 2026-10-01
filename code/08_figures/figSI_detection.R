@@ -18,7 +18,8 @@ outdir <- "outputs"
 G <- read.csv(out_path("flux_FINAL.csv"), stringsAsFactors=FALSE)
 G$camp <- factor(G$camp, levels=c("Height+molecular","Cross-species","Monthly survey"))
 G$class <- factor(G$class, levels=c("uptake","below detection","emission"))
-CL <- c(uptake="#B2182B", `below detection`="grey70", emission="#2166AC")
+# sink blue / source red, the convention of Figure 9 and the rest of the paper
+CL <- c(uptake="#2166AC", `below detection`="grey70", emission="#B2182B")
 S <- G[G$type=="stem",]
 
 pa <- ggplot(G, aes(abs(best.flux), MDF, colour=class)) +
@@ -44,7 +45,7 @@ cs <- S %>% group_by(camp) %>% summarise(sigma=sigma[1], n=n(),
   pct=100*mean(class=="uptake"), .groups="drop")
 pc <- ggplot(cs, aes(sigma, pct)) +
   geom_line(colour="grey60", linewidth=.4) +
-  geom_point(aes(size=n), colour="#B2182B") +
+  geom_point(aes(size=n), colour="#2166AC") +
   geom_text(aes(label=camp), vjust=-1.4, size=2.4) +
   scale_size_continuous(range=c(2.5,5), guide="none") +
   expand_limits(y=c(-1,13), x=c(1.0,2.5)) +
@@ -65,7 +66,7 @@ pd <- D %>% pivot_longer(c(pct_kept,pct_uptake,bias)) %>%
                      bias="change in mean flux (%)")) %>%
   ggplot(aes(value, criterion, fill=name)) + geom_col(show.legend=FALSE) +
   facet_wrap(~name, scales="free_x") +
-  scale_fill_manual(values=c("#4393C3","#B2182B","#F4A582")) +
+  scale_fill_manual(values=c("grey45","grey65","grey80")) +
   labs(title="d  what each screening criterion does",
        subtitle="an r2 threshold removes nearly all apparent uptake and inflates the mean",
        x=NULL, y=NULL) + theme_bw(base_size=7.5)

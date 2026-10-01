@@ -92,6 +92,12 @@ CORE <- c(
   # fatal CORE block) a clean checkout aborted at the last CORE step. That is the exact
   # failure this file's header describes for the driver builders.
   "code/06_upscale/wai_bottomup_and_rf_interactions.R",  # -> wai_bottomup.csv
+  # The grid reads its uptake bound (median detected stem uptake) from flux_FINAL.csv.
+  # These two ran in SUPPORT, AFTER the grid, so the grid always used the previous
+  # run's bound: on 2026-09-30 it read -0.0248 a minute before mdf_FINAL rewrote it
+  # as -0.0243 at the 28 cm3 analyzer volume.
+  "code/02_flux/qc_c0_screen.R",
+  "code/02_flux/mdf_FINAL_precision_and_detection.R",   # -> flux_FINAL.csv
   "code/06_upscale/scaling_full_grid.R")
 # fig_scaling_profiles / heatmap read the grid exports and run in the figure block         # -> scaling_full_grid.csv
 cat(sprintf("\n== CORE CHAIN (%d steps, dependency-ordered) ==\n", length(CORE)))
@@ -107,8 +113,6 @@ SUPPORT <- c(
   "code/03_merge/compile_soil_env.R",
   "code/04_drivers/moisture_elevation_check.R",
   "code/04_drivers/moisture_interpolation.R",
-  "code/02_flux/qc_c0_screen.R",
-  "code/02_flux/mdf_FINAL_precision_and_detection.R",
   "code/06_upscale/surface_area_model.R",
   # Promoted out of exploratory/ 2026-07-29. Figure 6 panel (b) reads
   # outputs/data/FAPROTAX_all_functions_HW_SW.csv, and this is its ONLY

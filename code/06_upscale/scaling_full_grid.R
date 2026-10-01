@@ -143,6 +143,23 @@ rf_slope <- as.numeric(apply(PROFI,1,function(f){
   if(any(!is.finite(f))||all(f<=0)||sd(f)==0) return(0)
   as.numeric(coef(lm(log(pmax(f,1e-9))~zh))[2])}))
 
+# The three disclosures that must accompany the named cell (decision D) are COMPUTED
+# here; the values that stood in the comments below were typed by hand and drifted
+# across model versions (-0.914 / +0.052 / 0.580 and -0.672 / +0.057 / 0.559).
+slope_fit <- function(f, z) {
+  if(any(!is.finite(f))||all(f<=0)||sd(f)==0) return(c(NA, NA))
+  m <- lm(log(pmax(f,1e-9))~z); c(coef(m)[2], summary(m)$r.squared) }
+fit_all   <- t(apply(PROFI, 1, slope_fit, z = zh))
+fit_upper <- t(apply(PROFI[, -1, drop=FALSE], 1, slope_fit, z = zh[-1]))   # without the lowest interval
+slope_diag <- data.frame(
+  quantity = c("median_slope_all_intervals", "median_slope_without_lowest", "lowest_interval_top_cm",
+               "median_r2_all_intervals", "fit_span_m", "stems"),
+  value = c(median(fit_all[,1], na.rm=TRUE), median(fit_upper[,1], na.rm=TRUE), edges[2],
+            median(fit_all[,2], na.rm=TRUE), diff(range(zh)), n))
+write.csv(slope_diag, out_path("scaling_slope_diagnostics.csv"), row.names=FALSE)
+cat(sprintf("exp_band_slope diagnostics: median slope %.3f per m (all), %.3f without the interval below %d cm; median R2 %.3f over %.2f m\n",
+            slope_diag$value[1], slope_diag$value[2], edges[2], slope_diag$value[4], slope_diag$value[5]))
+
 # --- shapes and forms --------------------------------------------------------
 hq <- c(.5,1.25,2)
 fbar <- sapply(hq,function(z) mean(d$stem_flux_corrected[!is.na(d$measurement_height_cm) &
@@ -263,10 +280,10 @@ names(Rmat) <- SHARED
 #
 # It is a deliberately conservative scenario and its limits should be stated. The
 # fit spans 1.13 m (interval midpoints 0.685-1.815 m) and is projected to 25 m;
-# median R2 of the four-point fit is 0.559, because a straight line in log space
-# fits a non-monotonic step poorly; and the 50 cm value supplies essentially all
-# of the decline -- refitting above 88 cm gives a median slope of +0.057 against
-# -0.672 with it. The consequence is that 97% of stems fall below 1% of their 2 m
+# the four-point fit is poor, because a straight line in log space fits a
+# non-monotonic step poorly; and the 50 cm value supplies essentially all of the
+# decline -- refitting above 88 cm changes the sign of the median slope (values in
+# scaling_slope_diagnostics.csv). The consequence is that 97% of stems fall below 1% of their 2 m
 # flux by 25 m, against 0.82x measured on the one climbed tree at 10 m. It is
 # retained because a single climbed stem cannot exclude decline in other species
 # or conditions, but it is a lower bound on emission rather than a central case.
@@ -342,11 +359,11 @@ write.csv(R, out_path("scaling_full_grid.csv"), row.names=FALSE)
 #                           It also sits mid-range rather than at an extreme.
 #
 #                           THREE THINGS MUST BE DISCLOSED WHEREVER IT IS QUOTED:
-#                             1. the fitted slope is dominated by the 50 cm value --
-#                                refit above 88 cm and the median slope moves from
-#                                -0.914 to +0.052, i.e. it changes sign;
-#                             2. median R2 of the per-stem 4-point fits is 0.580, and
+#                             1. the fitted slope is dominated by the lowest interval --
+#                                refit without it and the median slope changes sign;
+#                             2. the per-stem 4-point fits are poor (median R2) and
 #                                1.13 m of fit is projected to ~25 m;
+#                                (values for 1-2: outputs/data/scaling_slope_diagnostics.csv)
 #                             3. it is the ONLY form whose shape depends on the model.
 #                                power, exponential and linear_floored are fitted to
 #                                the OBSERVED three-height means, so their shapes move
