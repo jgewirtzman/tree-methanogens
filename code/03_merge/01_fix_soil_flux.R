@@ -938,10 +938,12 @@ cat("Saved complete dataset to: data/processed/flux/FINAL_soil_flux_dataset_comp
 
 # Also save a simplified version with just the key results
 simplified_dataset <- final_dataset %>%
-  select(UniqueID, start.time, Plot, trt, soilT.C, moistV, 
-         CO2_flux.term, CO2_model, CO2_quality.check,
-         CH4_flux.term, CH4_model, CH4_quality.check,
-         CO2_CH4_ratio, CH4_uptake, CH4_emission)
+  # any_of(): the aux file carries no `Plot` column, so a plain select() stopped the
+  # script here on a fresh run. This summary is not read by any other script.
+  select(any_of(c("UniqueID", "start.time", "Plot", "trt", "soilT.C", "moistV",
+         "CO2_flux.term", "CO2_model", "CO2_quality.check",
+         "CH4_flux.term", "CH4_model", "CH4_quality.check",
+         "CO2_CH4_ratio", "CH4_uptake", "CH4_emission")))
 
 write_csv(simplified_dataset, "../../data/processed/flux/FINAL_soil_flux_dataset_simplified.csv")
 cat("Saved simplified dataset to: data/processed/flux/FINAL_soil_flux_dataset_simplified.csv\n")
