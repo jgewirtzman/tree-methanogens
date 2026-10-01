@@ -183,7 +183,7 @@ ggsave("../../../outputs/figures/coefficient_variation.png", p6, width = 12, hei
 cat("Plots saved as PNG files in working directory\n")
 
 # Create summary table for export
-write.csv(sample_summary, "sample_summary_statistics.csv", row.names = FALSE)
+write.csv(sample_summary, "../../../outputs/data/sample_summary_statistics.csv", row.names = FALSE)
 cat("Summary statistics saved as 'sample_summary_statistics.csv'\n")
 
 # Additional analysis: Identify outliers
@@ -396,7 +396,7 @@ if (nrow(multiple_measurements) > 0) {
   print(p3)
   
   # Save outputs
-  write.csv(detailed_table, "chamber_stem_consistency_check.csv", row.names = FALSE)
+  write.csv(detailed_table, "../../../outputs/data/chamber_stem_consistency_check.csv", row.names = FALSE)
   ggsave("../../../outputs/figures/surface_area_cv_distribution.png", p1, width = 10, height = 6, dpi = 300)
   ggsave("../../../outputs/figures/surface_area_consistency_plot.png", p2, width = 10, height = 6, dpi = 300)
   ggsave("../../../outputs/figures/volume_consistency_plot.png", p3, width = 10, height = 6, dpi = 300)

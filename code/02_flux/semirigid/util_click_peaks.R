@@ -185,7 +185,7 @@ cat("Graphics device restored\n")
 cat("\n=== SAVING RESULTS ===\n")
 
 # Save manual identification results
-write.csv(manID.data, "methane_manual_identification.csv", row.names = FALSE)
+write.csv(manID.data, "../../../data/processed/flux/util_click_peaks_manual_identification.csv", row.names = FALSE)
 cat("Results saved as: methane_manual_identification.csv\n")
 
 # Quality check summary
@@ -207,6 +207,6 @@ cat("1. Review saved plots: methane_manual_ID_batch*.pdf\n")
 cat("2. Check results in: methane_manual_identification.csv\n")
 cat("3. Run flux calculations:\n")
 cat("   CH4_flux <- goFlux(manID.data, 'CH4dry_ppb')\n")
-cat("   write.csv(CH4_flux, 'methane_flux_results.csv', row.names = FALSE)\n")
+cat("   write.csv(CH4_flux, '../../../data/processed/flux/util_click_peaks_flux_results.csv', row.names = FALSE)\n")
 
 cat("\nManual identification workflow complete!\n")
