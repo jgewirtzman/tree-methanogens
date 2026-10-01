@@ -118,11 +118,11 @@ pc <- ggplot(pwc, aes(t, lab, color = cat)) +
 
 # ---- (d) ISOTOPES (Fig-S9 raincloud) + Keeling source; points sized by CH4 ----
 XLO <- -118; XHI <- 28
-iso <- read.csv("outputs/data/ISOTOPES_sample_table.csv") %>%
-  filter(is.finite(d13CH4), d13CH4 > -115, d13CH4 < 25, ch4_ppm >= 1.5)
+iso <- read.csv("outputs/data/ISOTOPES_sample_table.csv")   # already screened (code/lib/isotope_samples.R)
 dens <- density(iso$d13CH4); dd <- data.frame(x = dens$x, y = dens$y/max(dens$y)*0.55) %>% filter(x >= XLO, x <= XHI)
 set.seed(42); iso$jy <- runif(nrow(iso), -0.30, -0.06); iso$lc <- log10(iso$ch4_ppm)
-keel <- -79; keel_lo <- -92; keel_hi <- -66; by <- -0.52; bs <- 0.15; bc <- 0.035
+.iso_sum <- with(read.csv("outputs/data/ISOTOPES_summary.csv"), setNames(value, quantity))   # stat_isotopes-canonical.R
+keel <- .iso_sum[["keeling_source"]]; keel_lo <- .iso_sum[["keeling_ci_lo"]]; keel_hi <- .iso_sum[["keeling_ci_hi"]]; by <- -0.52; bs <- 0.15; bc <- 0.035
 brk <- function(x1,x2,y,lab) list(
   annotate("segment", x=x1, xend=x2, y=y, yend=y, color="gray30", linewidth=0.9),
   annotate("segment", x=x1, xend=x1, y=y, yend=y+bc, color="gray30", linewidth=0.5),
