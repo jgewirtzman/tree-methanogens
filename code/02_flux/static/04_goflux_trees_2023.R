@@ -467,7 +467,7 @@ if(length(all_plots_lgr3) >= 3) {
   print(all_plots_lgr3[[3]])
 } else {
   # Show all available plots
-  for(i in 1:length(all_plots_lgr3)) {
+  for(i in seq_along(all_plots_lgr3)) {   # seq_along: no plots when FLUX_PLOTS is unset
     print(all_plots_lgr3[[i]])
   }
 }
