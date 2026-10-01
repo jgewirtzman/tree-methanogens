@@ -15,6 +15,14 @@ Recorded 2026-09-30.
 | `data/raw/inventory/fg_2018_problems.csv` | sheet "problems" |
 | `data/raw/inventory/README_fg_2018_sheets.txt` | provenance note |
 
+## 1b. Interactive products kept under outputs/ — copy archived, must be uploaded
+
+The July 2026 rescue of the untagged monthly stems (archive/revision/rev_rescue_untagged_click.R) chose
+flux windows by hand. Its products live in `outputs/data/`, which is neither in git nor in the archive:
+`untagged_manID.rds` (the window selections), `untagged_fluxes.csv`, `untagged_monthly_trees.csv`.
+They cannot be regenerated without repeating the clicking. Copies (as of 2026-07-24) are in
+`data/processed/flux/untagged_rescue/` so the archive carries them; readers still use `outputs/data/`.
+
 ## 2. Renamed files — an older archive still has the old names
 
 Run `Rscript code/02_flux/migrate_campaign_filenames.R` on a restored archive; it renames by content.
@@ -41,8 +49,8 @@ Run `Rscript code/02_flux/migrate_campaign_filenames.R` on a restored archive; i
 7. `Rscript code/run_all.R` → every output, figure and audit
 8. `Rscript code/zenodo/compile_zenodo_datasets.R` → `data/compiled/*` (then upload `data/`)
 
-## 4. Pending from another session
+## 4. Analyzer volume (merged 2026-09-30, fa7e721)
 
-The analyzer-volume correction (GLA131 cell 28 cm³, not goFlux's example 70 cm³) is
-uncommitted in worktree `.claude/worktrees/admiring-saha-012e11`. When it lands it changes
-the auxfiles and every flux by 0.5–6.8 %, so steps 1, 5–8 rerun after it.
+After the auxfile scripts, `Rscript code/02_flux/apply_auxfile_vtot.R` rescales the stored goFlux
+results to the 28 cm³ analyzer volume (20 tables; idempotent). The flux tables in `data/processed/flux/`
+are at 28 cm³; an older archive is at 70 cm³ and needs this step.
