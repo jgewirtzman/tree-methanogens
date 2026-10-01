@@ -2,7 +2,24 @@
 # Process Internal Gas Concentrations
 # ==============================================================================
 # Purpose: Processes gas chromatograph data for internal tree gas concentrations
-#   (CH4, CO2) from extracted stem samples.
+#   (CH4, CO2, N2O, O2) from extracted stem samples.
+#
+# Calibration (revised 2026-09-30; ported from tree-gas-traits
+#   code/00a_process_ymf_gc.R). The previous version fitted one unweighted
+#   quadratic through all standards (0-60,340 ppm CH4) and set negative
+#   predictions to 0. That fit is dominated by the high standards, so
+#   near-ambient samples predicted < 0 and 92/157 trees (and the lab-air
+#   blanks) became CH4 = 0 ppm. Now:
+#   - CH4: weighted linear fit through N2 + SB1-SB5; above SB5, linear
+#     interpolation SB5 -> SB6 (SB6 is off-trend: response factor 6.0 vs
+#     4.1-4.5 for SB1-SB5)
+#   - CO2, N2O: weighted quadratics
+#   - O2: weighted quadratic; NOT rescaled to the field "Ambient YYMMDD" vials
+#     (they read ~19.6% O2 against ~20.7% for fresh outdoor air, a likely
+#     storage effect; reported as QC only)
+#   - no clamp and no substitution: detection limits are computed and values
+#     are flagged (below LOD, near ambient), never overwritten. No tree sample
+#     falls below the CH4 LOD.
 #
 # Pipeline stage: 01 Tree Data Processing
 # Run after: None
@@ -13,6 +30,7 @@
 # Outputs:
 #   - sample_data_only.csv
 #   - processed_GC_data_internal_conc.csv
+#   - internal_gas_calibration_check.csv (back-predicted standards)
 # ==============================================================================
 
 library(tidyverse)
@@ -61,8 +79,12 @@ ghg_standard_names <- c("N2", "Outdoor Air 1", "Outdoor Air 2", "Outdoor Air 3",
                         "Outdoor Air 4", "Outdoor Air 5", "Outdoor Air 6", "Outdoor Air 7",
                         "SB1", "SB2", "SB3", "SB4", "SB5", "SB6")
 
+# SB6 has no certified O2; the outdoor-air series anchors the ambient end
 o2_standard_names <- c("N2", "Oxygen Standard 1", "Oxygen Standard 2", "Oxygen Standard 3", 
-                       "Oxygen Standard 4", "Oxygen Standard 5", "SB1", "SB2", "SB3", "SB4", "SB5", "SB6")
+                       "Oxygen Standard 4", "Oxygen Standard 5",
+                       "Outdoor Air 1", "Outdoor Air 2", "Outdoor Air 3", "Outdoor Air 4",
+                       "Outdoor Air 5", "Outdoor Air 6", "Outdoor Air 7",
+                       "SB1", "SB2", "SB3", "SB4", "SB5")
 
 # Create standards datasets by filtering and merging with concentration data
 standards_conc_clean <- standards_conc %>%
@@ -72,173 +94,140 @@ standards_conc_clean <- standards_conc %>%
     CH4_ppm = `[CH4] (ppm)`,
     N2O_ppm = `[N2O] (ppm)`,
     O2_ppm = `[O2] (ppm)`
-  )
+  ) %>%
+  mutate(across(ends_with("_ppm"), as.numeric))
 
-# Filter GC data for standards
-GHG_standards_data <- GC_data %>%
-  filter(Species.ID %in% ghg_standard_names) %>%
+standards_data <- GC_data %>%
+  filter(Species.ID %in% union(ghg_standard_names, o2_standard_names)) %>%
   left_join(standards_conc_clean, by = c("Species.ID" = "Sample"))
 
-O2_standards_data <- GC_data %>%
-  filter(Species.ID %in% o2_standard_names) %>%
-  left_join(standards_conc_clean, by = c("Species.ID" = "Sample"))
+# ==============================================================================
+# Calibration
+# ==============================================================================
+# Standards are pooled over the four run days (SB areas vary < 5% between
+# days). Weights 1/(conc + c0)^2 make the fits minimise *relative* error, so
+# ambient-level standards carry as much weight as the high ones.
+#
+# Standard choice (from response factors, ppm per area unit):
+#  - CH4: SB1-SB5 give 4.1-4.5 (linear, ~zero intercept); SB6 gives 6.0, so a
+#    single curve through SB6 biases everything below it by ~20%. The
+#    outdoor-air dilutions assume a nominal 1.8 ppm stock, but undiluted
+#    outdoor air reads ~2.3 ppm against the SB tanks, so they are not used for
+#    CH4 or CO2. -> linear through N2 + SB1-SB5; above SB5, linear
+#    interpolation SB5 -> SB6 (flagged).
+#  - CO2: response factor rises steadily SB2 -> SB6 (2.6 -> 4.2), i.e. a
+#    genuinely curved response -> weighted quadratic through N2 + SB1-SB6.
+#  - N2O: response factor 0.0035-0.0041 for all standards; outdoor-air series
+#    kept -> weighted quadratic.
+#  - O2: N2 + O2 standards + outdoor-air series + SB1-SB5 -> weighted quadratic.
 
-# Convert concentration columns to numeric
-GHG_standards_data$CO2_ppm <- as.numeric(GHG_standards_data$CO2_ppm)
-GHG_standards_data$CH4_ppm <- as.numeric(GHG_standards_data$CH4_ppm)
-GHG_standards_data$N2O_ppm <- as.numeric(GHG_standards_data$N2O_ppm)
-O2_standards_data$O2_ppm <- as.numeric(O2_standards_data$O2_ppm)
+c0 <- c(CH4 = 0.3, CO2 = 50, N2O = 0.05, O2 = 20000)
+sb_names <- paste0("SB", 1:6)
 
-# Filter out any NAs or missing values for standards
-GHG_standards_data <- GHG_standards_data %>%
-  filter(!is.na(CH4.Area) & !is.na(CH4_ppm)) %>%
-  filter(!is.na(CO2.Area) & !is.na(CO2_ppm)) %>%
-  filter(!is.na(N2O.Area) & !is.na(N2O_ppm))
-
-O2_standards_data <- O2_standards_data %>%
-  filter(!is.na(O2.Area) & !is.na(O2_ppm))
-
-# Create linear and polynomial calibration curves (using all standards data)
-# Linear curves
-CO2_linear <- lm(CO2_ppm ~ CO2.Area, data = GHG_standards_data)
-CH4_linear <- lm(CH4_ppm ~ CH4.Area, data = GHG_standards_data)
-N2O_linear <- lm(N2O_ppm ~ N2O.Area, data = GHG_standards_data)
-O2_linear <- lm(O2_ppm ~ O2.Area, data = O2_standards_data)
-
-# Polynomial curves (2nd degree)
-CO2_poly <- lm(CO2_ppm ~ poly(CO2.Area, 2), data = GHG_standards_data)
-CH4_poly <- lm(CH4_ppm ~ poly(CH4.Area, 2), data = GHG_standards_data)
-N2O_poly <- lm(N2O_ppm ~ poly(N2O.Area, 2), data = GHG_standards_data)
-O2_poly <- lm(O2_ppm ~ poly(O2.Area, 2), data = O2_standards_data)
-
-# Function to apply concentrations using the better fitting curve
-apply_best_curve <- function(areas, linear_curve, poly_curve) {
-  linear_r2 <- summary(linear_curve)$r.squared
-  poly_r2 <- summary(poly_curve)$r.squared
-  
-  if (poly_r2 > linear_r2) {
-    return(predict(poly_curve, newdata = data.frame(areas)))
-  } else {
-    return(predict(linear_curve, newdata = data.frame(areas)))
-  }
+cal_data <- function(gas, std_names) {
+  standards_data %>%
+    filter(Species.ID %in% std_names) %>%
+    transmute(Species.ID, area = .data[[paste0(gas, ".Area")]], conc = .data[[paste0(gas, "_ppm")]]) %>%
+    filter(!is.na(area), !is.na(conc))
+}
+fit_weighted_quadratic <- function(d, gas) {
+  lm(conc ~ area + I(area^2), data = d, weights = 1 / (conc + c0[[gas]])^2)
 }
 
-# Apply concentration calculations using the best fitting curves
+CH4_cal_data <- cal_data("CH4", c("N2", sb_names))
+CH4_linear <- lm(conc ~ area, data = filter(CH4_cal_data, Species.ID != "SB6"),
+                 weights = 1 / (conc + c0[["CH4"]])^2)
+CH4_top <- CH4_cal_data %>%
+  filter(Species.ID %in% c("SB5", "SB6")) %>%
+  group_by(Species.ID) %>%
+  summarise(area = mean(area), conc = mean(conc), .groups = "drop") %>%
+  arrange(area)
+
+cal_curves <- list(
+  CO2 = fit_weighted_quadratic(cal_data("CO2", c("N2", sb_names)), "CO2"),
+  N2O = fit_weighted_quadratic(cal_data("N2O", ghg_standard_names), "N2O"),
+  O2  = fit_weighted_quadratic(cal_data("O2",  o2_standard_names), "O2")
+)
+
+predict_gas <- function(gas, area) {
+  if (gas == "CH4") {
+    lin <- as.numeric(predict(CH4_linear, newdata = data.frame(area = area)))
+    # SB5 -> SB6 line, held at the SB6 value beyond its area (no extrapolation
+    # past the highest standard). One tree, RO8, lies ~17% above the SB6 area:
+    # it is reported as 60,340 ppm and flagged CH4_above_SB6 (a lower bound).
+    # Matches tree-gas-traits code/00a_process_ymf_gc.R exactly.
+    top <- approx(CH4_top$area, CH4_top$conc, xout = area, rule = 2)$y
+    # above the SB5 area, interpolate towards SB6 (never below the linear fit)
+    return(if_else(!is.na(area) & area > CH4_top$area[1], pmax(lin, top), lin))
+  }
+  as.numeric(predict(cal_curves[[gas]], newdata = data.frame(area = area)))
+}
+
+# Detection limit: 3 x SD of replicate predictions of the lowest certified
+# standard (SB1; one injection per run day)
+SB1_data <- standards_data %>% filter(Species.ID == "SB1")
+lod <- sapply(c(CH4 = "CH4", CO2 = "CO2", N2O = "N2O"), function(gas) {
+  3 * sd(predict_gas(gas, SB1_data[[paste0(gas, ".Area")]]), na.rm = TRUE)
+})
+SB5_CH4_ppm <- CH4_top$conc[CH4_top$Species.ID == "SB5"]
+
+# Apply calibration to all injections (uncensored, un-normalised)
 GC_data <- GC_data %>%
   mutate(
-    CO2_concentration = case_when(
-      is.na(CO2.Area) ~ NA_real_,
-      TRUE ~ if (summary(CO2_poly)$r.squared > summary(CO2_linear)$r.squared) {
-        predict(CO2_poly, newdata = data.frame(CO2.Area = CO2.Area))
-      } else {
-        predict(CO2_linear, newdata = data.frame(CO2.Area = CO2.Area))
-      }
-    ),
-    
-    CH4_concentration = case_when(
-      is.na(CH4.Area) ~ NA_real_,
-      TRUE ~ if (summary(CH4_poly)$r.squared > summary(CH4_linear)$r.squared) {
-        predict(CH4_poly, newdata = data.frame(CH4.Area = CH4.Area))
-      } else {
-        predict(CH4_linear, newdata = data.frame(CH4.Area = CH4.Area))
-      }
-    ),
-    
-    N2O_concentration = case_when(
-      is.na(N2O.Area) ~ NA_real_,
-      TRUE ~ if (summary(N2O_poly)$r.squared > summary(N2O_linear)$r.squared) {
-        predict(N2O_poly, newdata = data.frame(N2O.Area = N2O.Area))
-      } else {
-        predict(N2O_linear, newdata = data.frame(N2O.Area = N2O.Area))
-      }
-    ),
-    
-    O2_concentration = case_when(
-      is.na(O2.Area) ~ NA_real_,
-      TRUE ~ if (summary(O2_poly)$r.squared > summary(O2_linear)$r.squared) {
-        predict(O2_poly, newdata = data.frame(O2.Area = O2.Area))
-      } else {
-        predict(O2_linear, newdata = data.frame(O2.Area = O2.Area))
-      }
-    )
+    CO2_concentration = predict_gas("CO2", CO2.Area),
+    CH4_concentration = predict_gas("CH4", CH4.Area),
+    N2O_concentration = predict_gas("N2O", N2O.Area),
+    O2_concentration  = predict_gas("O2",  O2.Area)
   )
 
-# Function to plot linear vs polynomial comparison
-plot_curve_comparison <- function(standards_data, linear_curve, poly_curve, analyte, x_col, y_col) {
-  
-  linear_summary <- summary(linear_curve)
-  poly_summary <- summary(poly_curve)
-  
-  linear_r2 <- round(linear_summary$r.squared, 4)
-  poly_r2 <- round(poly_summary$r.squared, 4)
-  
-  # Generate smooth prediction lines
-  area_range <- seq(min(standards_data[[x_col]], na.rm = TRUE), 
-                    max(standards_data[[x_col]], na.rm = TRUE), 
-                    length.out = 100)
-  
-  linear_pred <- predict(linear_curve, newdata = setNames(data.frame(area_range), x_col))
-  poly_pred <- predict(poly_curve, newdata = setNames(data.frame(area_range), x_col))
-  
-  pred_data <- data.frame(
-    area = area_range,
-    linear = linear_pred,
-    poly = poly_pred
-  )
-  
-  ggplot(standards_data, aes_string(x = x_col, y = y_col)) +
-    geom_point(size = 3, alpha = 0.7) +
-    geom_line(data = pred_data, aes(x = area, y = linear), color = "blue", size = 1) +
-    geom_line(data = pred_data, aes(x = area, y = poly), color = "red", size = 1) +
-    annotate("text", x = Inf, y = Inf, 
-             label = paste("Linear R² =", linear_r2, "\nPolynomial R² =", poly_r2), 
-             hjust = 1.1, vjust = 1.1, size = 4, 
-             color = ifelse(poly_r2 > linear_r2, "red", "blue")) +
-    labs(title = paste(analyte, "Calibration: Linear vs Polynomial"),
-         x = "Peak Area",
-         y = "Concentration (ppm)",
-         subtitle = paste("Best fit:", ifelse(poly_r2 > linear_r2, "Polynomial", "Linear"))) +
-    theme_minimal() +
-    theme(
-      plot.title = element_text(size = 14, face = "bold"),
-      panel.border = element_rect(color = "black", fill = NA, size = 1),
-      legend.position = "bottom"
-    )
-}
+# Back-prediction of standards, including the independent check standard
+# (an SB2-like blend: 3.008 ppm CH4, 426.2 ppm CO2, 0.379 ppm N2O, 240,100 ppm O2)
+calibration_check <- GC_data %>%
+  filter(Species.ID %in% c(ghg_standard_names, o2_standard_names, "Check Standard")) %>%
+  select(Species.ID, FID.Date, CO2_concentration, CH4_concentration,
+         N2O_concentration, O2_concentration) %>%
+  pivot_longer(ends_with("_concentration"), names_to = "gas", values_to = "predicted") %>%
+  mutate(gas = sub("_concentration", "", gas)) %>%
+  left_join(standards_conc_clean %>%
+              bind_rows(tibble(Sample = "Check Standard", CH4_ppm = 3.008, CO2_ppm = 426.2,
+                               N2O_ppm = 0.379, O2_ppm = 240100)) %>%
+              pivot_longer(ends_with("_ppm"), names_to = "gas", values_to = "certified") %>%
+              mutate(gas = sub("_ppm", "", gas)),
+            by = c("Species.ID" = "Sample", "gas")) %>%
+  filter(!is.na(certified), !is.na(predicted),
+         !(gas == "O2" & !Species.ID %in% c(o2_standard_names, "Check Standard"))) %>%
+  mutate(rel_error = (predicted - certified) / certified)
 
-# Create calibration comparison plots
-CO2_comparison <- plot_curve_comparison(GHG_standards_data, CO2_linear, CO2_poly, "CO2", "CO2.Area", "CO2_ppm")
-CH4_comparison <- plot_curve_comparison(GHG_standards_data, CH4_linear, CH4_poly, "CH4", "CH4.Area", "CH4_ppm")
-N2O_comparison <- plot_curve_comparison(GHG_standards_data, N2O_linear, N2O_poly, "N2O", "N2O.Area", "N2O_ppm")
-O2_comparison <- plot_curve_comparison(O2_standards_data, O2_linear, O2_poly, "O2", "O2.Area", "O2_ppm")
+cat("=== Calibration ===\n")
+cat("Detection limits (ppm):\n"); print(round(lod, 3))
+cat("\nBack-predicted standards (median relative error by level):\n")
+calibration_check %>%
+  filter(certified > 0) %>%
+  group_by(gas, Species.ID, certified) %>%
+  summarise(median_pred = median(predicted), rel_err = round(median(rel_error), 3),
+            .groups = "drop") %>%
+  arrange(gas, certified) %>%
+  print(n = 80)
 
-# Display calibration plots
-print(CO2_comparison)
-print(CH4_comparison)
-print(N2O_comparison)
-print(O2_comparison)
+write.csv(calibration_check, "../../data/processed/internal_gas/internal_gas_calibration_check.csv",
+          row.names = FALSE)
 
-# Print curve statistics
-cat("=== Calibration Curve Comparison ===\n")
-cat("\nCO2:\n")
-cat("Linear R²:", round(summary(CO2_linear)$r.squared, 4), "\n")
-cat("Polynomial R²:", round(summary(CO2_poly)$r.squared, 4), "\n")
-cat("Best fit:", ifelse(summary(CO2_poly)$r.squared > summary(CO2_linear)$r.squared, "Polynomial", "Linear"), "\n")
-
-cat("\nCH4:\n")
-cat("Linear R²:", round(summary(CH4_linear)$r.squared, 4), "\n")
-cat("Polynomial R²:", round(summary(CH4_poly)$r.squared, 4), "\n")
-cat("Best fit:", ifelse(summary(CH4_poly)$r.squared > summary(CH4_linear)$r.squared, "Polynomial", "Linear"), "\n")
-
-cat("\nN2O:\n")
-cat("Linear R²:", round(summary(N2O_linear)$r.squared, 4), "\n")
-cat("Polynomial R²:", round(summary(N2O_poly)$r.squared, 4), "\n")
-cat("Best fit:", ifelse(summary(N2O_poly)$r.squared > summary(N2O_linear)$r.squared, "Polynomial", "Linear"), "\n")
-
-cat("\nO2:\n")
-cat("Linear R²:", round(summary(O2_linear)$r.squared, 4), "\n")
-cat("Polynomial R²:", round(summary(O2_poly)$r.squared, 4), "\n")
-cat("Best fit:", ifelse(summary(O2_poly)$r.squared > summary(O2_linear)$r.squared, "Polynomial", "Linear"), "\n")
+# Calibration plot: back-prediction error of each standard
+calibration_plot <- calibration_check %>%
+  filter(certified > 0) %>%
+  ggplot(aes(certified, rel_error * 100, colour = Species.ID == "Check Standard")) +
+  geom_hline(yintercept = 0, colour = "grey50") +
+  geom_point(alpha = 0.7) +
+  scale_x_log10() +
+  scale_colour_manual(values = c(`FALSE` = "black", `TRUE` = "red"),
+                      labels = c("Standards", "Check standard"), name = NULL) +
+  facet_wrap(~ gas, scales = "free") +
+  labs(x = "Certified concentration (ppm)", y = "Back-prediction error (%)",
+       title = "Internal gas calibration") +
+  theme_minimal() +
+  theme(panel.border = element_rect(color = "black", fill = NA, size = 1),
+        legend.position = "bottom")
+print(calibration_plot)
 
 # Check for unrealistic concentrations (>100% = 1,000,000 ppm)
 cat("\n=== Checking for Unrealistic Concentrations ===\n")
@@ -252,35 +241,42 @@ cat("Samples with CH4 > 1,000,000 ppm (>100%):", high_ch4, "\n")
 cat("Samples with N2O > 1,000,000 ppm (>100%):", high_n2o, "\n")
 cat("Samples with O2 > 1,000,000 ppm (>100%):", high_o2, "\n")
 
-# Show peak area ranges for standards vs samples
-cat("\n=== Peak Area Ranges ===\n")
-cat("CO2 Standards - Min Area:", min(GHG_standards_data$CO2.Area, na.rm = TRUE), 
-    "Max Area:", max(GHG_standards_data$CO2.Area, na.rm = TRUE), "\n")
-cat("CH4 Standards - Min Area:", min(GHG_standards_data$CH4.Area, na.rm = TRUE), 
-    "Max Area:", max(GHG_standards_data$CH4.Area, na.rm = TRUE), "\n")
-cat("N2O Standards - Min Area:", min(GHG_standards_data$N2O.Area, na.rm = TRUE), 
-    "Max Area:", max(GHG_standards_data$N2O.Area, na.rm = TRUE), "\n")
-cat("O2 Standards - Min Area:", min(O2_standards_data$O2.Area, na.rm = TRUE), 
-    "Max Area:", max(O2_standards_data$O2.Area, na.rm = TRUE), "\n")
+# ==============================================================================
+# Field-ambient vials: QC only
+# ==============================================================================
+# "Ambient YYMMDD" vials were filled in the field on each sampling day and
+# stored with the tree samples until the GC run (~14 months). Their O2 reads
+# ~19.6% against ~20.7% for fresh outdoor air in the same runs. We report this
+# as QC and do not rescale O2 to them (decision shared with tree-gas-traits).
 
-cat("\nAll Samples - Peak Area Ranges:\n")
-cat("CO2 - Min Area:", min(GC_data$CO2.Area, na.rm = TRUE), 
-    "Max Area:", max(GC_data$CO2.Area, na.rm = TRUE), "\n")
-cat("CH4 - Min Area:", min(GC_data$CH4.Area, na.rm = TRUE), 
-    "Max Area:", max(GC_data$CH4.Area, na.rm = TRUE), "\n")
-cat("N2O - Min Area:", min(GC_data$N2O.Area, na.rm = TRUE), 
-    "Max Area:", max(GC_data$N2O.Area, na.rm = TRUE), "\n")
-cat("O2 - Min Area:", min(GC_data$O2.Area, na.rm = TRUE), 
-    "Max Area:", max(GC_data$O2.Area, na.rm = TRUE), "\n")
+ambient_vials <- GC_data %>% filter(grepl("^Ambient", Species.ID))
+ambient_O2 <- median(ambient_vials$O2_concentration, na.rm = TRUE)
+cat(sprintf("\nField ambient vials (n=%d): O2 %.0f ppm, CO2 %.0f ppm, CH4 %.2f ppm\n",
+            nrow(ambient_vials), ambient_O2,
+            median(ambient_vials$CO2_concentration, na.rm = TRUE),
+            median(ambient_vials$CH4_concentration, na.rm = TRUE)))
 
-# Set negative concentrations to 0 (negative concentrations are not physically possible)
+# ==============================================================================
+# Detection flags (replace the old zero clamp)
+# ==============================================================================
+# Values are kept as calibrated; nothing is clamped or substituted. Flags mark
+# below-LOD and near-ambient (< 3 ppm CH4) samples for sensitivity runs.
+# Standards and blanks are processed identically so they can be inspected.
+
 GC_data <- GC_data %>%
   mutate(
-    CO2_concentration = pmax(0, CO2_concentration, na.rm = TRUE),
-    CH4_concentration = pmax(0, CH4_concentration, na.rm = TRUE),
-    N2O_concentration = pmax(0, N2O_concentration, na.rm = TRUE),
-    O2_concentration = pmax(0, O2_concentration, na.rm = TRUE)
+    CH4_below_lod    = CH4_concentration < lod[["CH4"]],
+    CO2_below_lod    = CO2_concentration < lod[["CO2"]],
+    N2O_below_lod    = N2O_concentration < lod[["N2O"]],
+    CH4_near_ambient = CH4_concentration < 3,
+    CH4_above_SB5    = CH4_concentration > SB5_CH4_ppm,
+    CH4_above_SB6    = CH4.Area > CH4_top$area[2]
   )
+
+cat("\nLab-air blanks (median ppm): CH4",
+    round(median(GC_data$CH4_concentration[GC_data$Species.ID == "Lab Air Blank"], na.rm = TRUE), 2),
+    "| lab CH4.ppm column",
+    round(median(as.numeric(GC_data$CH4.ppm[GC_data$Species.ID == "Lab Air Blank"]), na.rm = TRUE), 2), "\n")
 
 # Filter for samples only (exclude standards, blanks, check standards, etc.)
 excluded_patterns <- c("Lab Air Blank", "N2", "Outdoor Air 1", "Outdoor Air 2", "Outdoor Air 3", 
@@ -393,3 +389,9 @@ sample_summary <- sample_data %>%
 
 cat("\n=== Sample Summary (Excluding Standards/Blanks) ===\n")
 print(sample_summary)
+cat("\nTree samples:", nrow(sample_data),
+    "| CH4 < LOD:", sum(sample_data$CH4_below_lod, na.rm = TRUE),
+    "| CH4 < 3 ppm:", sum(sample_data$CH4_near_ambient, na.rm = TRUE),
+    "| CH4 above SB5 (", SB5_CH4_ppm, "ppm; SB5->SB6 interpolation):",
+    sum(sample_data$CH4_above_SB5, na.rm = TRUE),
+    "| above SB6 (held at SB6, lower bound):", sum(sample_data$CH4_above_SB6, na.rm = TRUE), "\n")
