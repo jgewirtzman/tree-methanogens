@@ -14,7 +14,7 @@
 #   so the numbers match the as-reviewed manuscript, then adds the RMA analysis.
 #
 # Inputs (same as script 02):
-#   - data/processed/flux/methanogen_tree_flux_complete_dataset.csv
+#   - data/processed/flux/tree_flux_2023_cross_species.csv
 #   - data/processed/integrated/merged_tree_dataset_final.csv
 #
 # Outputs (outputs/):
@@ -66,7 +66,7 @@ sma_fit <- function(x, y, alpha = 0.05) {
 # ---- BEGIN reproduction of script 02 prep (lines 50-302), verbatim logic ----
 # ==============================================================================
 
-ymf2023 <- read.csv("data/processed/flux/methanogen_tree_flux_complete_dataset.csv")
+ymf2023 <- read.csv("data/processed/flux/tree_flux_2023_cross_species.csv")
 ymf2021 <- read.csv("data/processed/integrated/merged_tree_dataset_final.csv")
 
 species_mapping <- c(

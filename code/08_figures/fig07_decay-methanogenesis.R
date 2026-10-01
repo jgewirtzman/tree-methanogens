@@ -91,7 +91,7 @@ pf<-ggplot(itw,aes(height,ITS_g))+geom_smooth(se=FALSE,color="black",span=1)+
 
 ## ===================== TOP ROW: population humps =====================
 ord<-function(v){v<-tolower(trimws(as.character(v)));x<-suppressWarnings(as.numeric(v));x[v=="dead"]<-4;x}
-y<-read.csv("data/processed/flux/methanogen_tree_flux_complete_dataset.csv",check.names=FALSE);names(y)<-make.names(names(y))
+y<-read.csv("data/processed/flux/tree_flux_2023_cross_species.csv",check.names=FALSE);names(y)<-make.names(names(y))
 y<-y[!is.na(y$CH4_best.flux),];y$fx<-asinh10(y$CH4_best.flux);y$sp<-as.factor(y$Species);y$x<-ord(y$Bark.Missing);y<-y[!is.na(y$x),]
 mq<-lmer(fx~x+I(x^2)+(1|sp),data=y);co<-summary(mq)$coefficients;pqa<-co["I(x^2)","Pr(>|t|)"]
 mla<-lmer(fx~x+(1|sp),data=y);dAICa<-as.numeric(AIC(mla)-AIC(mq));R2a<-r2m(mq)

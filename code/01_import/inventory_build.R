@@ -77,22 +77,71 @@ repair_dbh <- function(cm) {
 num <- function(x) suppressWarnings(as.numeric(x))
 
 fg19 <- read.csv(file.path(RAW, "ForestGEO_data2021UPDATE_6_21_DW_2019.csv"), stringsAsFactors = FALSE)
-btag <- read.csv(file.path(RAW, "ForestGEO_data2021UPDATE_6_21_DW_bytag.csv"), stringsAsFactors = FALSE)
+# fileEncoding strips the byte-order mark the file starts with. Without it the first
+# column is "X...Quadrat" under a C locale and "Quadrat" under UTF-8, so the
+# uncensused-quadrat check below passed or failed depending on the shell's locale.
+btag <- read.csv(file.path(RAW, "ForestGEO_data2021UPDATE_6_21_DW_bytag.csv"), stringsAsFactors = FALSE,
+                 fileEncoding = "UTF-8-BOM")
 
 A <- fg19 %>% transmute(
   source = "fg19", tag = Tag,
   stem   = if ("Stem_Tag" %in% names(fg19)) as.character(Stem_Tag) else NA_character_,
   species_code = trimws(Species_Code),
   dbh_cm_raw = num(DBH),                     # centimetres
-  PX = num(PX), PY = num(PY)) %>%
-  distinct(tag, stem, .keep_all = TRUE)
+  PX = num(PX), PY = num(PY),
+  quadrat = num(Quadrat),
+  position = ifelse(is.finite(num(PX)), "measured", NA_character_),
+  notes = Notes) %>%
+  # REPEATED TAGS ARE MOSTLY DIFFERENT STEMS (2026-09-30). This was distinct(tag, stem),
+  # which kept only the first row of each tag: 169 rows, 5.5 m2 of basal area, were
+  # dropped. Of the 165 repeated tags, 70 carry different species (tag numbers reused)
+  # and most same-species pairs lie metres apart. Only exact re-entries (same species,
+  # position and diameter: 14) are duplicates, plus the two the census notes flag.
+  distinct(tag, stem, species_code, dbh_cm_raw, PX, PY, .keep_all = TRUE) %>%
+  filter(!grepl("^\\s*same stem as|also tagged with", notes, ignore.case = TRUE)) %>%
+  select(-notes)
 
+# 2018 POSITIONS ARE RECOMPUTED FROM QUADRAT + LOCAL COORDINATES (2026-09-30).
+# The file's own PX/PY reproduce quadrat*20 + local for 911 of 940 stems; the 29 in
+# quadrat 907 were offset to row 8 (PY = 160 + y instead of 180 + y), placing them
+# 20 m south. 41 stems carry no local coordinates but do record their 5 x 5 m
+# subquadrat (4 x 4 grid, index 1-4 along each axis), including all 33 in quadrat
+# 505; they are placed at the subquadrat centre (+/- 2.5 m) rather than left
+# unlocated. Nothing is placed at random.
 B <- btag %>% transmute(
   source = "bytag", tag = Tag.ID, stem = NA_character_,
   species_code = trimws(Species..4.char.),
   dbh_cm_raw = num(Diam..mm.) / 10,          # millimetres -> centimetres
-  PX = num(PX), PY = num(PY)) %>%
-  distinct(tag, .keep_all = TRUE)
+  quadrat = num(Quadrat),
+  .lx = num(X.coord..m.), .ly = num(Y.coord..m.), .sx = num(Subquad..x.), .sy = num(Subquad..y.),
+  PX = (quadrat %% 100) * 20 + dplyr::coalesce(.lx, (.sx - 1) * 5 + 2.5),
+  PY = (quadrat %/% 100) * 20 + dplyr::coalesce(.ly, (.sy - 1) * 5 + 2.5),
+  position = ifelse(is.finite(.lx) & is.finite(.ly), "measured",
+                    ifelse(is.finite(.sx) & is.finite(.sy), "subquadrat centre", NA_character_))) %>%
+  select(-.lx, -.ly, -.sx, -.sy) %>%
+  distinct(tag, quadrat, species_code, dbh_cm_raw, PX, PY, .keep_all = TRUE)   # tag 10 is two trees
+
+# 2018 MULTI-STEM TREES (2026-09-30). Per the census codes sheet, a stem coded M has
+# its diameters "entered on multiple stem sheet", so its by-tag row has NO diameter
+# and was dropped below by the dbh > 0 filter -- 17 trees, several of them among the
+# largest in the 2018 block. fg_2018_multiple_stems.csv restores them: each diameter
+# is a stem at the tree's position, species from the by-tag row. Entry artefacts:
+# one row (tag 428) is repeated by five data enterers, and three trees list their own
+# tag number as a diameter (428, 150, 152); repeats are collapsed and those values dropped.
+MS <- read.csv(file.path(RAW, "fg_2018_multiple_stems.csv"), stringsAsFactors = FALSE)
+MS <- MS[!duplicated(MS[, setdiff(names(MS), "entered_by")]), ]
+MS$quadrat <- (num(MS$quadrat_y) + 4) * 100 + (num(MS$quadrat_x) + 4)
+ms_stems <- do.call(rbind, lapply(seq_len(nrow(MS)), function(i) {
+  d <- num(unlist(MS[i, grep("^diam_mm_", names(MS))])); d <- d[is.finite(d) & d > 0 & d != MS$tag_id[i]]
+  parent <- B[B$tag == MS$tag_id[i] & B$quadrat == MS$quadrat[i], ][1, ]
+  if (!length(d) || is.na(parent$tag)) return(NULL)
+  data.frame(source = "bytag", tag = parent$tag, stem = paste0("ms", seq_along(d)),
+             species_code = parent$species_code, dbh_cm_raw = d / 10, quadrat = parent$quadrat,
+             PX = parent$PX, PY = parent$PY, position = paste0(parent$position, ", multi-stem"),
+             stringsAsFactors = FALSE)
+}))
+N_MS <- nrow(ms_stems); N_MS_TREES <- length(unique(ms_stems$tag))
+B <- bind_rows(B, ms_stems)
 
 INV <- bind_rows(A, B) %>% filter(is.finite(dbh_cm_raw), dbh_cm_raw > 0)
 
@@ -111,6 +160,30 @@ INV <- INV %>% mutate(
 
 stopifnot(max(INV$dbh_cm) <= MAX_DBH_CM, all(INV$dbh_m > 0))
 
+# ---- 2019 coordinates that contradict their own quadrat label -----------------
+# Most of the ~110 label/coordinate disagreements are one quadrat over, the usual
+# edge effect. A stem more than one quadrat from its label has an unreliable
+# position: it is kept, but as unlocated (stand-mean moisture), not placed.
+.qr <- function(px, py) floor(py / 20) * 100 + floor(px / 20)
+.far <- with(INV, source == "fg19" & located & is.finite(quadrat) &
+               (abs((.qr(PX, PY) %/% 100) - (quadrat %/% 100)) > 1 |
+                abs((.qr(PX, PY) %% 100)  - (quadrat %% 100))  > 1))
+INV <- INV %>% mutate(position = ifelse(.far, "contradicts quadrat label", position),
+                      located = located & !.far,
+                      in_notch = located & in_notch,
+                      in_square = located & in_square,
+                      in_stand = ifelse(located, in_square & !in_notch(PX, PY), TRUE))
+N_FAR <- sum(.far)
+
+# ---- stems recorded by both censuses? Tested, none found (2026-09-30) ----------
+# The 2018 and 2019 censuses split 14 quadrats along the east edge. A same-species,
+# similar-diameter stem within 1 m looks like a double count, but in dense sapling
+# patches it is not evidence: 2019 stems match ANOTHER 2019 stem that way 42% of the
+# time (multi-stem sprouts), against 4% for 2018 stems matching a 2019 stem. Among
+# stems >= 5 cm, where the test is informative (baseline 0.7%), 0 of 384 2018 stems
+# match. So no record is dropped. (code/09_tables_stats has no copy of this test;
+# rerun the comparison if the census files change.)
+
 # ---- verify the uncensused quadrats against the raw census ------------------
 # UNCENSUSED_QUADRATS in geometry.R is a constant so the geometry is stable
 # and auditable, but it must keep matching the raw tables. Re-derive it here from
@@ -118,7 +191,7 @@ stopifnot(max(INV$dbh_cm) <= MAX_DBH_CM, all(INV$dbh_m > 0))
 # that we are excluding would silently delete real ground.
 local({
   qn <- function(v) suppressWarnings(as.integer(v))
-  present <- sort(unique(na.omit(c(qn(fg19$Quadrat), qn(btag$X...Quadrat)))))
+  present <- sort(unique(na.omit(c(qn(fg19$Quadrat), qn(btag$Quadrat)))))
   grid <- expand.grid(row = 0:9, col = 0:9)
   grid$q <- grid$row*100 + grid$col
   got <- sort(grid$q[!(grid$q %in% present)])
@@ -196,7 +269,11 @@ wr("  stand area %d m2 (%.2f ha); nominal %d m2; gap %d m2\n",
    STAND_AREA_M2, STAND_AREA_M2/1e4, PLOT_AREA_M2, GAP_AREA_M2)
 wr("\nRECORD COUNTS\n  fg19 %d | bytag %d | total %d\n",
    sum(INV$source == "fg19"), sum(INV$source == "bytag"), nrow(INV))
-wr("  de-duplicated WITHIN source only (tag namespaces are disjoint)\n")
+wr("  tags de-duplicated WITHIN source only (tag namespaces are disjoint)\n")
+wr("  cross-census duplicates: none (tested; see the note above the dedupe section)\n")
+wr("  2018 multi-stem sheet: %d stems on %d trees added\n", N_MS, N_MS_TREES)
+wr("\nPOSITIONS\n"); for (k in names(table(INV$position, useNA = "ifany"))) wr("  %-28s %d\n", ifelse(is.na(k), "none (unlocated)", k), sum(INV$position %in% k | (is.na(k) & is.na(INV$position))))
+wr("  2019 stems > 1 quadrat from their label, now unlocated: %d\n", N_FAR)
 wr("\nDBH\n  units: fg19 cm, bytag mm; repaired if > %d cm by /10 until in range\n", MAX_DBH_CM)
 wr("  repaired %d stems:\n", sum(INV$dbh_shifts > 0))
 for (i in which(INV$dbh_shifts > 0))

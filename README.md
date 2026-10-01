@@ -44,8 +44,8 @@ renv::restore()
 All commands are run from the repository root.
 
 ```bash
-Rscript code/run_all.R            # full pipeline, stages 01-09
-Rscript code/make_figures.R       # all publication figures and tables
+Rscript code/run_all.R            # full pipeline: analyses, then make_figures.R
+Rscript code/make_figures.R       # figures and assembly only (run_all.R calls it)
 Rscript code/check_consistency.R  # verify the canonical outputs agree
 ```
 
@@ -95,7 +95,7 @@ Scripts are numbered within each stage to indicate run order. Scripts prefixed `
 | Stage | Purpose | Key outputs |
 |-------|---------|-------------|
 | `01_import` | Tree-ID consensus, wood cores, internal gas, ddPCR import, stem inventory | `tree_id_comprehensive_mapping.csv`, `processed_ddpcr_data.csv`, `inventory_stems.csv` |
-| `02_flux` | Chamber geometry, goFlux flux calculation, quality screens, detection limits | `semirigid_tree_final_complete_dataset.csv`, `methanogen_tree_flux_complete_dataset.csv` |
+| `02_flux` | Chamber geometry, goFlux flux calculation, quality screens, detection limits | `semirigid_tree_final_complete_dataset.csv`, `tree_flux_2021_multiheight.csv`, `tree_flux_2023_cross_species.csv` |
 | `03_merge` | Soil flux correction and harmonization across sources | `merged_tree_dataset_final.csv` |
 | `04_drivers` | Reference evapotranspiration, moisture surface, soil temperature climatology | `moisture_surface_grid.csv`, monthly climatologies |
 | `05_model` | Random forest fitting, grouped cross-validation, per-species calibration | `RF_MODELS.RData`, `rf_grouped_cv.csv` |
@@ -125,7 +125,8 @@ This runs every figure generator and then assembles the numbered manuscript set 
 | File | Location | Description |
 |------|----------|-------------|
 | `merged_tree_dataset_final.csv` | `data/processed/integrated/` | Tree-level attributes, one row per tree (235 trees, 2020–2021 campaign), joined to measurement-level flux by `tree_id` |
-| `methanogen_tree_flux_complete_dataset.csv` | `data/processed/flux/` | Static chamber flux measurements (2023) |
+| `tree_flux_2023_cross_species.csv` | `data/processed/flux/` | Static chamber flux measurements (2023 cross-species survey) |
+| `tree_flux_2021_multiheight.csv` | `data/processed/flux/` | Static chamber flux measurements (2021 multi-height survey; 50, 125, 200 cm) |
 | `semirigid_tree_final_complete_dataset.csv` | `data/processed/flux/` | Semi-rigid chamber flux measurements (2020–2021) |
 | `rf_workflow_input_data_with_2023.RData` | `data/processed/integrated/` | Integrated frame used to fit the random forests |
 | `processed_ddpcr_data.csv` | `data/processed/molecular/` | ddPCR gene quantification |

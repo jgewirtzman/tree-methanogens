@@ -9,7 +9,7 @@
 #
 # Inputs:
 #   - goflux_auxfile.csv (from data/processed/flux/) — has measurement_height
-#   - CH4_best_flux_lgr_results.csv (from data/processed/flux/) — has CH4_best.flux
+#   - CH4_best_flux_lgr_results_2021_multiheight.csv (from data/processed/flux/) — has CH4_best.flux
 #   - merged_tree_dataset_final.csv (from data/processed/integrated/)
 #   - tree_id_comprehensive_mapping.csv (from data/processed/tree_data/)
 #
@@ -37,7 +37,7 @@ library(gghalves)
 # ==============================================================================
 
 aux <- read.csv('data/processed/flux/goflux_auxfile.csv')
-ch4_flux <- read.csv('data/processed/flux/CH4_best_flux_lgr_results.csv')
+ch4_flux <- read.csv('data/processed/flux/CH4_best_flux_lgr_results_2021_multiheight.csv')
 final_dataset <- merge(ch4_flux, aux[, c("UniqueID", "measurement_height", "tree_id",
                                           "species", "plot")],
                        by = "UniqueID", all.x = TRUE)

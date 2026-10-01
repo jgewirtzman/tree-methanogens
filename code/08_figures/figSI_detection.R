@@ -49,7 +49,7 @@ pc <- ggplot(cs, aes(sigma, pct)) +
   scale_size_continuous(range=c(2.5,5), guide="none") +
   expand_limits(y=c(-1,13), x=c(1.0,2.5)) +
   labs(title="c  apparent stem uptake tracks instrument precision",
-       subtitle="the quietest period detects none",
+       subtitle="the quietest period detects the fewest",
        x=expression(sigma~(ppb~CH[4])), y="% of stem measurements detected as uptake") +
   theme_bw(base_size=8)
 

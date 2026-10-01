@@ -33,9 +33,9 @@ fd <- "data/processed/flux"; comp <- "data/compiled"
 # ============================================================== A. STEM FLUX ===
 srt <- read.csv(file.path(fd, "semirigid_tree_final_complete_dataset_with_untagged.csv"))  # monthly 2020-21 + recovered untagged/dead-snag trees
 srs <- read.csv(file.path(fd, "semirigid_tree_final_complete_dataset_soil.csv"))  # monthly soil
-ch4 <- read.csv(file.path(fd, "CH4_best_flux_lgr_results.csv"))                   # 2021 height flux
+ch4 <- read.csv(file.path(fd, "CH4_best_flux_lgr_results_2021_multiheight.csv"))                   # 2021 height flux
 aux <- read.csv(file.path(fd, "goflux_auxfile.csv"))                             # 2021 height metadata
-y23 <- read.csv(file.path(fd, "methanogen_tree_flux_complete_dataset.csv"))       # 2023 cross-species
+y23 <- read.csv(file.path(fd, "tree_flux_2023_cross_species.csv"))       # 2023 cross-species
 
 n_monthly <- nn(srt$CH4_best.flux.x); n_soil <- nn(srs$CH4_best.flux)
 n_height  <- nn(ch4$best.flux);       n_2023 <- nn(y23$CH4_best.flux)
@@ -86,7 +86,7 @@ union_trees <- length(ids)
 # ============================================================= B. COVARIATES ===
 cov_has <- function(f, pat){ h <- names(read.csv(f, nrows=1, check.names=FALSE)); any(grepl(pat, h, ignore.case=TRUE)) }
 cov_monthly <- cov_has(file.path(fd,"semirigid_tree_final_complete_dataset.csv"), "vwc|dbh|diam|temp|moist")
-cov_2023    <- cov_has(file.path(fd,"methanogen_tree_flux_complete_dataset.csv"), "vwc")
+cov_2023    <- cov_has(file.path(fd,"tree_flux_2023_cross_species.csv"), "vwc")
 cov_2021    <- cov_has("data/processed/integrated/merged_tree_dataset_final.csv", "VWC")
 
 # ============================================== C. MOLECULAR / COMMUNITY / GAS ==
