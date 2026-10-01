@@ -1,0 +1,56 @@
+# Data changes not yet in the Zenodo archive
+
+`data/` is git-ignored: it is the Zenodo drop-in. Anything below exists only on the
+local/Drive copy until the next archive upload. Code to reproduce every derived file is
+committed; the **raw** additions cannot be regenerated and must be uploaded.
+
+Recorded 2026-09-30.
+
+## 1. New raw inputs — must be uploaded (no script can recreate them)
+
+| file | source |
+|---|---|
+| `data/raw/inventory/fg_2018_multiple_stems.csv` | sheet "multiple stems" of `deprecated/to-organize/yale-forest-ch4/Yale Myers Methane Project/ForestGEO_data2021UPDATE_6_21_DW.xlsx` (md5 e981d571732545b4c7c04591dd751ae3). 40 stems on 17 multi-stem 2018 trees; without it they are lost. |
+| `data/raw/inventory/fg_2018_codes.csv` | sheet "codes" (census code legend; no dead code) |
+| `data/raw/inventory/fg_2018_problems.csv` | sheet "problems" |
+| `data/raw/inventory/README_fg_2018_sheets.txt` | provenance note |
+
+## 1b. Interactive products kept under outputs/ — copy archived, must be uploaded
+
+The July 2026 rescue of the untagged monthly stems (archive/revision/rev_rescue_untagged_click.R) chose
+flux windows by hand. Its products live in `outputs/data/`, which is neither in git nor in the archive:
+`untagged_manID.rds` (the window selections), `untagged_fluxes.csv`, `untagged_monthly_trees.csv`.
+They cannot be regenerated without repeating the clicking. Copies (as of 2026-07-24) are in
+`data/processed/flux/untagged_rescue/` so the archive carries them; readers still use `outputs/data/`.
+
+## 2. Renamed files — an older archive still has the old names
+
+Run `Rscript code/02_flux/migrate_campaign_filenames.R` on a restored archive; it renames by content.
+
+| old name | new name |
+|---|---|
+| `methanogen_tree_flux_complete_dataset.csv` | `tree_flux_2023_cross_species.csv` |
+| `CH4_best_flux_lgr_results.csv` | `CH4_best_flux_lgr_results_2021_multiheight.csv` |
+| `CO2_best_flux_lgr_results.csv` | `CO2_best_flux_lgr_results_2021_multiheight.csv` |
+| `CH4_flux_lgr_results.csv` | `CH4_flux_lgr_results_2021_multiheight.csv` |
+| `CO2_flux_lgr_results.csv` | `CO2_flux_lgr_results_2023_cross_species.csv` (it held 2023 data) |
+| `lgr_manual_identification_results.csv` | `lgr_manual_identification_2021_multiheight.csv` |
+| `lgr_manual_identification_results_final.csv` | `lgr_manual_identification_2021_multiheight_final.csv` |
+| `lgr_manual_identification_summary_final.csv` | `lgr_manual_identification_summary_2021_multiheight_final.csv` |
+
+## 3. Regenerated — reproducible from committed code, in this order
+
+1. `Rscript code/02_flux/assemble_campaign_flux.R 2021_multiheight` → `data/processed/flux/tree_flux_2021_multiheight.csv`
+2. `Rscript code/03_merge/compile_soil_env.R` → `data/processed/environmental/soil_env_by_collar.csv` (now includes `Soil_temp_moisture_2020.xlsx`: 291 records, 22 dates)
+3. `(cd code/01_import && Rscript 03_process_internal_gas.R)` → `data/processed/internal_gas/{sample_data_only,processed_GC_data_internal_conc,internal_gas_calibration_check}.csv`
+4. `Rscript code/01_import/03b_process_internal_gas_2024.R` → `data/processed/internal_gas/stem_gas_2024_calibrated.csv`
+5. `(cd code/03_merge && Rscript 02_harmonize_all_data.R)` → `data/processed/integrated/merged_tree_dataset_final.csv` (needs a UTF-8 locale)
+6. `(cd code/05_model && Rscript 01_load_and_prep_data.R && Rscript 02_rf_models.R)` → `data/processed/integrated/rf_workflow_input_data_with_2023.RData`, `outputs/models/*`
+7. `Rscript code/run_all.R` → every output, figure and audit
+8. `Rscript code/zenodo/compile_zenodo_datasets.R` → `data/compiled/*` (then upload `data/`)
+
+## 4. Analyzer volume (merged 2026-09-30, fa7e721)
+
+After the auxfile scripts, `Rscript code/02_flux/apply_auxfile_vtot.R` rescales the stored goFlux
+results to the 28 cm³ analyzer volume (20 tables; idempotent). The flux tables in `data/processed/flux/`
+are at 28 cm³; an older archive is at 70 cm³ and needs this step.

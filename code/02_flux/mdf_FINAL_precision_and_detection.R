@@ -37,7 +37,12 @@ source("code/lib/outputs.R")
 #       recommended for future campaigns; none was recorded here.
 #
 # DETECTION
-#   MDF = z * sigma / t * flux.term,  z at 90% confidence.
+#   MDF = z * sigma / t * flux.term,  z at 90% confidence, t = closure length in SECONDS.
+#   t is recovered per closure from goFlux's own MDF column (MDF_goFlux = prec/t*flux.term,
+#   t in seconds), so it is exact for every logging interval. nb.obs is the number of
+#   logged samples and is NOT t: the Height+molecular campaign logged every 5 s, so
+#   using nb.obs there overstated its MDF ~4.94x (fixed 2026-09-25; nb.obs is kept
+#   only for the n >= 3 filters).
 #   This is the conventional chamber form. It is CONSERVATIVE: it treats the
 #   detectable change as a single-sample criterion and so discards the averaging
 #   benefit of fitting a slope to t points. Regression theory gives a detection
@@ -55,7 +60,7 @@ SIGMA <- c(`Height+molecular`=1.200, `Cross-species`=1.725, `Monthly survey`=2.1
 Z <- qnorm(0.95)
 
 G <- bind_rows(
-  read.csv("data/processed/flux/CH4_best_flux_lgr_results.csv",stringsAsFactors=FALSE) %>%
+  read.csv("data/processed/flux/CH4_best_flux_lgr_results_2021_multiheight.csv",stringsAsFactors=FALSE) %>%
     mutate(camp="Height+molecular", type="stem"),
   read.csv("data/processed/flux/CH4_best_flux_lgr_results_soil.csv",stringsAsFactors=FALSE) %>%
     mutate(camp="Monthly survey", type="soil"),
@@ -71,13 +76,18 @@ gc <- function(b){for(s in c(".y",".x","")){n<-paste0("CH4_",b,s)
   rep(NA_real_,nrow(st))}
 G <- bind_rows(G, data.frame(UniqueID=st$UniqueID, camp="Monthly survey", type="stem",
   best.flux=gc("best.flux"), flux.term=gc("flux.term"), nb.obs=gc("nb.obs"),
+  MDF=gc("MDF"), prec=gc("prec"),
   LM.p.val=gc("LM.p.val"), LM.r2=gc("LM.r2"), stringsAsFactors=FALSE)) %>%
   filter(is.finite(best.flux),is.finite(flux.term),is.finite(nb.obs),nb.obs>2) %>%
   distinct(UniqueID,.keep_all=TRUE)
 excl <- read.csv(out_path("qc_excluded_measurements.csv"),stringsAsFactors=FALSE)$UniqueID
 G <- G[!(G$UniqueID %in% excl),]
 G$sigma <- SIGMA[G$camp]
-G$MDF   <- Z*G$sigma/G$nb.obs*G$flux.term
+# closure length in seconds, from goFlux's MDF = prec/t*flux.term (t in seconds).
+# nb.obs is a sample count: equal to t only at 1 Hz, 5x too small at 5 s logging.
+G$t_sec <- G$prec*G$flux.term/G$MDF
+stopifnot(all(is.finite(G$t_sec)), all(G$t_sec > 0))
+G$MDF   <- Z*G$sigma/G$t_sec*G$flux.term
 G$detected <- abs(G$best.flux) > G$MDF
 G$class <- ifelse(G$best.flux > G$MDF, "emission",
            ifelse(G$best.flux < -G$MDF, "uptake", "below detection"))
@@ -86,7 +96,7 @@ S <- G[G$type=="stem",]; SO <- G[G$type=="soil",]
 rule("PRECISION AND DETECTION LIMITS")
 cat("\n"); print(G %>% group_by(camp) %>% summarise(n=n(), sigma_ppb=sigma[1],
   x_spec=round(sigma[1]/0.9,2), median_MDF=round(median(MDF),4),
-  closure_s=sprintf("%d-%d", min(nb.obs), max(nb.obs)), .groups="drop") %>%
+  closure_s=sprintf("%.0f-%.0f", min(t_sec), max(t_sec)), .groups="drop") %>%
   as.data.frame(), row.names=FALSE)
 
 rule("DETECTION STATUS")

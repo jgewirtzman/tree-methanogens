@@ -2,7 +2,8 @@ source("code/lib/outputs.R")
 # ==============================================================================
 # Variance partition: reconcile the published Figure 3 with the revised one
 # ==============================================================================
-# The manuscript reports ~82.9% unexplained. The revised Figure 3 reports 65.3%.
+# The manuscript reports ~82.9% unexplained; the revised Figure 3's value is
+# printed in row 4 of the output (read it there, do not copy it here).
 # This script computes both from the same data so the change can be attributed to
 # specific decisions rather than asserted, and states which decision moves what.
 #
@@ -27,7 +28,8 @@ SP <- c("ACRU","ACSA","BEAL","BELE","BEPA","FAGR","FRAM","PIST","QURU","TSCA",
 SIGMA <- 0.1
 GROWING_SEASON <- 5:9
 
-D <- read.csv("data/compiled/flux_measurements_tree.csv") %>%
+# Every stem deployment, not only the model's training rows (see in_rf_training).
+D <- read.csv("outputs/data/flux_measurements_tree.csv") %>%   # the pipeline product, not the archive copy
   filter(species_code %in% SP) %>%
   transmute(tree_id, sp = species_code, DBH = dbh_m * 100, Air = air_temp_C,
             SoilT = soil_temp_C, VWC = soil_moisture_abs * 100,
@@ -86,20 +88,19 @@ for (nm in names(steps)) {
   cat(sprintf("%-52s %6d %6d %6.1f %8.1f %8.1f %7.1f\n",
               nm, v["n"], v["trees"], v["env"], v["species"], v["interaction"], v["unexplained"]))
 }
-cat("\nReading the table:\n")
-cat("  TWO decisions move the number, by about the same amount, in OPPOSITE\n")
-cat("  directions on unexplained variance.\n")
-cat("  Scale (row 0 -> 1) lowers it ~11 points. On the raw scale the top 1% of\n")
-cat("  measurements carry ~80% of total variance, so the partition describes a\n")
-cat("  handful of extreme fluxes rather than the population; the figure's own\n")
-cat("  panel (a) was already drawn on an arcsinh axis.\n")
-cat("  Unit of analysis (row 3 -> 4) raises it ~12 points, and roughly doubles the\n")
-cat("  species share. A per-measurement model borrows strength from repeated\n")
-cat("  measurements on 9% of the trees; averaging estimates every component from\n")
-cat("  all trees equally, and the higher unexplained figure is the honest one.\n")
-cat("  Height and season (rows 2, 3) barely move anything. They are about what the\n")
-cat("  figure is ABOUT -- height is Figure 2's subject, season is Figure 1's --\n")
-cat("  rather than about the numbers.\n")
+# The reading is computed from the table, not typed: an earlier hand-written version
+# said the tree-as-unit step RAISED unexplained variance by ~12 points when the
+# table showed it falling, and called the height step negligible when it moved ~7.
+u  <- sapply(steps, function(v) v[["unexplained"]]); sp <- sapply(steps, function(v) v[["species"]])
+mv <- function(i) { d <- u[i + 1] - u[i]; sprintf("%s it %.1f points", if (d < 0) "lowers" else "raises", abs(d)) }
+cat("\nReading the table (changes in unexplained variance, computed):\n")
+cat(sprintf("  Scale (row 0 -> 1) %s. On the raw scale a handful of extreme fluxes\n", mv(1)))
+cat("  carry most of the variance, so the partition describes them, not the population.\n")
+cat(sprintf("  Breast height only (1 -> 2) %s; growing season (2 -> 3) %s.\n", mv(2), mv(3)))
+cat(sprintf("  Tree as unit (3 -> 4) %s and moves the species share from %.1f%% to %.1f%%:\n",
+            mv(4), sp[4], sp[5]))
+cat("  averaging removes within-tree measurement noise and weights every tree equally,\n")
+cat("  instead of letting the 9% of trees with repeated visits dominate.\n")
 cat("\nRow 0 reproduces the published 82.9% to within 0.2 points; the small gap is\n")
 cat("the data source, since it is computed here from the merged measurement table.\n")
 cat("Row 4 differs from the figure by ~0.1 point because the figure also carries a\n")

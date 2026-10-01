@@ -52,7 +52,10 @@ cat(sprintf("  %d tree stem flux measurements\n", nrow(tree_flux_clean)))
 # 1b. SEMIRIGID CHAMBER FLUX — Soil (2020–2021)
 # ============================================================================
 cat("--- 1b. Semirigid soil flux ---\n")
-soil_flux <- read_csv("data/processed/flux/semirigid_tree_final_complete_dataset_soil_CORRECTED.csv",
+# Same file the model reads (01_load_and_prep_data.R). The _CORRECTED copy written by
+# 03_merge/01_fix_soil_flux.R has identical CH4 fluxes (288/288) and differs only in
+# CO2_quality.check; archiving a different file from the one modelled invites drift.
+soil_flux <- read_csv("data/processed/flux/semirigid_tree_final_complete_dataset_soil.csv",
                        show_col_types = FALSE)
 
 soil_flux_clean <- soil_flux %>%
@@ -81,6 +84,14 @@ cat(sprintf("  %d soil flux measurements\n", nrow(soil_flux_clean)))
 
 # Combine tree + soil
 semirigid_flux <- bind_rows(tree_flux_clean, soil_flux_clean)
+# Chamber-integrity QC flags, from code/02_flux/qc_c0_screen.R's outputs (that script
+# used to rewrite this file in place). Rows are kept and flagged, not deleted.
+.qx <- "outputs/data/qc_excluded_measurements.csv"; .qs <- "outputs/data/qc_c0_screened_ids.csv"
+if (!file.exists(.qx) || !file.exists(.qs)) stop("run code/02_flux/qc_c0_screen.R first (missing ", .qx, " or ", .qs, ")", call. = FALSE)
+.ex <- read.csv(.qx, stringsAsFactors = FALSE); .sc <- read.csv(.qs, stringsAsFactors = FALSE)$UniqueID
+semirigid_flux$qc_pass        <- !(semirigid_flux$unique_id %in% .ex$UniqueID)
+semirigid_flux$qc_reason      <- .ex$reason[match(semirigid_flux$unique_id, .ex$UniqueID)]
+semirigid_flux$qc_c0_screened <- semirigid_flux$unique_id %in% .sc
 write_csv(semirigid_flux, file.path(out_dir, "semirigid_chamber_flux.csv"))
 cat(sprintf("  -> Wrote semirigid_chamber_flux.csv (%d rows)\n\n", nrow(semirigid_flux)))
 
@@ -89,7 +100,7 @@ cat(sprintf("  -> Wrote semirigid_chamber_flux.csv (%d rows)\n\n", nrow(semirigi
 # 2. STATIC CHAMBER FLUX (2021 + 2023)
 # ============================================================================
 cat("--- 2. Static chamber flux ---\n")
-static_flux <- read_csv("data/processed/flux/methanogen_tree_flux_complete_dataset.csv",
+static_flux <- read_csv("data/processed/flux/tree_flux_2023_cross_species.csv",
                          show_col_types = FALSE)
 
 # Fix special-char column names (degree symbols, etc.)
@@ -148,7 +159,7 @@ cat("--- 2b. Height chamber flux (2021 multi-height campaign) ---\n")
 # no archived source and the model could not be refit from the archive. Keeps the
 # goFlux fit diagnostics and chamber geometry, which the merged model table drops
 # and which the detection-limit analysis needs.
-height_flux <- read_csv("data/processed/flux/CH4_best_flux_lgr_results.csv",
+height_flux <- read_csv("data/processed/flux/CH4_best_flux_lgr_results_2021_multiheight.csv",
                         show_col_types = FALSE)
 height_aux  <- read_csv("data/processed/flux/goflux_auxfile.csv", show_col_types = FALSE)
 
@@ -418,7 +429,7 @@ cat("--- 10. Methanotroph definitions ---\n")
 # figure loads the revised file via load_methanotroph_defs(). A reader
 # re-running the analysis from the archive would have got different methanotroph
 # classifications from the published figures.
-methano_def <- read_csv("data/processed/molecular/methanotroph_definitions_revised.csv",
+methano_def <- read_csv("code/lib/methanotroph_definitions.csv",
                          show_col_types = FALSE)
 write_csv(methano_def, file.path(out_dir, "methanotroph_definitions.csv"))
 cat(sprintf("  -> Wrote methanotroph_definitions.csv (%d taxa)\n\n", nrow(methano_def)))

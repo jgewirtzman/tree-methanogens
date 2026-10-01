@@ -103,10 +103,10 @@ moisture_data  <- read.csv("data/raw/field_data/ipad_data/Cleaned data/soilmoist
                            fileEncoding = "UTF-8-BOM")
 
 ymf2021 <- read.csv("data/processed/integrated/merged_tree_dataset_final.csv")
-ymf2023 <- read.csv("data/processed/flux/methanogen_tree_flux_complete_dataset.csv")
+ymf2023 <- read.csv("data/processed/flux/tree_flux_2023_cross_species.csv")
 
 aux      <- read.csv("data/processed/flux/goflux_auxfile.csv")
-ch4_flux <- read.csv("data/processed/flux/CH4_best_flux_lgr_results.csv")
+ch4_flux <- read.csv("data/processed/flux/CH4_best_flux_lgr_results_2021_multiheight.csv")
 
 # CANONICAL BUDGET is authoritative for every stand-level number (2026-07-30).
 # This script is named "manuscript statistics" and was quoting the LEGACY
@@ -404,7 +404,10 @@ section_header("SECTION 3: VARIANCE PARTITIONING (Figure 3)")
 # Combine datasets (matches 04_variance_partition.R)
 data_2023 <- ymf2023 %>%
   select(Species.Code, DBH = DBH..cm., Air_temp = air_temp_C,
-         Soil_temp = Soil.Temp....C., VWC = vwc_mean, CH4_flux = CH4_best.flux) %>%
+         # the degree sign in "Soil Temp (°C)" is mangled differently by locale
+         # ("Soil.Temp....C." under C, "Soil.Temp...C." under UTF-8), so match by pattern
+         Soil_temp = all_of(grep("^Soil\\.Temp", names(ymf2023), value = TRUE)[1]),
+         VWC = vwc_mean, CH4_flux = CH4_best.flux) %>%
   mutate(Year = "2023", Species_Latin = species_mapping[Species.Code]) %>%
   drop_na(CH4_flux)
 
@@ -715,7 +718,7 @@ if (nrow(hw_with_mcra) > 5) {
 
 # Methanotroph composition (VERIFY taxonomy)
 sub_header("Methanotroph families detected (known/putative)")
-mt_defs <- read.csv("data/processed/molecular/methanotroph_definitions_revised.csv")  # revision R2 #2: Methylacidiphilaceae Known->Putative
+mt_defs <- read.csv("code/lib/methanotroph_definitions.csv")  # revision R2 #2: Methylacidiphilaceae Known->Putative
 known_families <- mt_defs %>% filter(Taxon_rank == "Family", Include_known == "YES") %>% pull(Taxon)
 known_genera <- mt_defs %>% filter(Taxon_rank == "Genus", Include_known == "YES") %>% pull(Taxon)
 putative_families <- mt_defs %>% filter(Taxon_rank == "Family", Include_putative == "YES") %>% pull(Taxon)

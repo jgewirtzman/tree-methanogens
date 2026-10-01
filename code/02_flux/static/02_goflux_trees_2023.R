@@ -12,7 +12,7 @@
 #   - Raw LGR3 2023 files (from data/raw/lgr/static_2023/)
 #
 # Outputs:
-#   - Updates methanogen_tree_flux_complete_dataset.csv
+#   - Updates tree_flux_2023_cross_species.csv
 # ==============================================================================
 
 library(goFlux)
@@ -240,7 +240,7 @@ manID.lgr3 <- do.call(rbind, manID_batches)
 cat("\nManual identification complete! Total:", nrow(manID.lgr3), "measurements\n")
 
 # Save manual identification results
-write_csv(manID.lgr3, "../../../data/processed/flux/lgr_manual_identification_results.csv")
+write_csv(manID.lgr3, "../../../data/processed/flux/lgr_manual_identification_2023_cross_species.csv")
 
 # =============================================================================
 # STEP 4: FLUX CALCULATIONS
@@ -271,9 +271,9 @@ if("CH4dry_ppb" %in% names(manID.lgr3)) {
 }
 
 # Save flux results
-write_csv(CO2_flux_lgr3, "../../../data/processed/flux/CO2_flux_lgr_results.csv")
+write_csv(CO2_flux_lgr3, "../../../data/processed/flux/CO2_flux_lgr_results_2023_cross_species.csv")
 if(exists("CH4_flux_lgr3")) {
-  write_csv(CH4_flux_lgr3, "../../../data/processed/flux/CH4_flux_lgr_results.csv")
+  write_csv(CH4_flux_lgr3, "../../../data/processed/flux/CH4_flux_lgr_results_2023_cross_species.csv")
 }
 
 cat("CO2 flux calculation complete:", nrow(CO2_flux_lgr3), "measurements\n")
@@ -323,9 +323,9 @@ cat("Clean measurements:", quality_summary$clean_measurements, "\n")
 cat("Flagged measurements:", quality_summary$flagged_measurements, "\n")
 
 # Save best flux results
-write_csv(CO2_best_lgr3, "../../../data/processed/flux/CO2_best_flux_lgr_results.csv")
+write_csv(CO2_best_lgr3, "../../../data/processed/flux/CO2_best_flux_lgr_results_2023_cross_species.csv")
 if(exists("CH4_best_lgr3")) {
-  write_csv(CH4_best_lgr3, "../../../data/processed/flux/CH4_best_flux_lgr_results.csv")
+  write_csv(CH4_best_lgr3, "../../../data/processed/flux/CH4_best_flux_lgr_results_2023_cross_species.csv")
 }
 
 # =============================================================================
@@ -595,34 +595,12 @@ save_flux_plots(
 
 cat("\n=== STEP 7: CREATING FINAL DATASET ===\n")
 
-# Load original tree data
-original_data <- read_csv('../../../data/processed/flux/ymf2023_goflux_auxfile.csv')
-
-# Filter for LGR3 only
-lgr3_original <- original_data #%>% filter(analyzer_id == "LGR3")
-
-# Add CO2_ prefix to all flux columns except UniqueID
-co2_results <- CO2_best_lgr3 %>%
-  rename_with(~ paste0("CO2_", .), -UniqueID)
-
-# Add CH4 results if they exist
-if(exists("CH4_best_lgr3")) {
-  ch4_results <- CH4_best_lgr3 %>%
-    rename_with(~ paste0("CH4_", .), -UniqueID)
-}
-
-# Merge everything together
-final_dataset <- lgr3_original %>%
-  left_join(co2_results, by = "UniqueID")
-
-# Add CH4 if it exists
-if(exists("ch4_results")) {
-  final_dataset <- final_dataset %>%
-    left_join(ch4_results, by = "UniqueID")
-}
-
-# Save the final dataset
-write_csv(final_dataset, "../../../data/processed/flux/methanogen_tree_flux_complete_dataset.csv")
+# Assembly moved to code/02_flux/assemble_campaign_flux.R (2026-09-30), so the
+# campaign table can be rebuilt without repeating the interactive window
+# selection above. Every file this script writes now carries the campaign name:
+# the three tree goFlux scripts used to share filenames and overwrite each other.
+source("../assemble_campaign_flux.R")
+final_dataset <- assemble_campaign("2023_cross_species")
 
 # =============================================================================
 # SUMMARY

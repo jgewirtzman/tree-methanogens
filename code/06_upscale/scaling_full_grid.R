@@ -200,29 +200,31 @@ WAIS <- c(`1.50 W&W Brookhaven (low bound)` = 1.50,
           `3.07 Gauci 2024 (high bound)` = 3.07)
 WAIS <- WAIS[order(WAIS)]
 cat(sprintf("WAI axis (%d levels): %s\n", length(WAIS), paste(names(WAIS), collapse=" | ")))
-# NEGATIVE BOUND for the linear form, from the detected stem uptakes surviving Tier 1
-# QC (MDF at 90% confidence, precision per field period; n = 89).
+# NEGATIVE BOUND for the linear form: the median detected stem uptake, READ from
+# outputs/data/flux_FINAL.csv (code/02_flux/mdf_FINAL_precision_and_detection.R), not typed.
+# It was a typed literal (-0.0262) until 2026-09-25, when the MDF was corrected to divide by
+# closure seconds rather than logged samples (the 2021 campaign logged every 5 s) and the
+# literal silently went stale. Now -0.0248, n = 66.
 #
-#   USED:  -0.0262, the median detected stem uptake. This is 2.5% of the median
-#          detected soil uptake (-1.057): any stem sink implied here is ~40x weaker
-#          than the soil sink.
-#
-#   The 5th percentile (-0.0984) was tested and REJECTED. Uptake prevalence tracks
+#   The 5th percentile (-0.0943) was tested and REJECTED. Uptake prevalence tracks
 #   instrument precision, not any biological covariate:
-#       Height+molecular  sigma 1.200 ppb   0.0% uptake  (none detected)
-#       Cross-species     sigma 1.725 ppb  10.4% uptake   deepest -0.3912   median r2 0.38
+#       Height+molecular  sigma 1.200 ppb   1.4% uptake   deepest -0.0283   median r2 0.38
+#       Cross-species     sigma 1.725 ppb  10.1% uptake   deepest -0.3912   median r2 0.39
 #       Monthly survey    sigma 2.181 ppb   7.0% uptake   deepest -0.1757   median r2 0.21
 #   The 5th percentile is 3x deeper than anything seen under the best instrument
-#   conditions and is drawn entirely from the two noisy campaigns' tails, where fits
-#   are poor. Because the floor applies to ~90% of woody surface, adopting it would
-#   make an extreme tail value the modal assumption for the whole canopy rather than a
-#   mild outer bound.
+#   conditions and is drawn from the two noisy campaigns' tails. Because the floor applies
+#   to ~90% of woody surface, adopting it would make an extreme tail value the modal
+#   assumption for the whole canopy rather than a mild outer bound.
 #
-#   The campaign with the lowest instrument noise detects NO stem uptake at all, so the
-#   bound rests entirely on the two noisier periods. It is further contradicted by the
+#   The lowest-noise campaign contributes only six shallow uptakes (none deeper than -0.03),
+#   so the bound rests mainly on the two noisier periods. It is further contradicted by the
 #   climbed tree (Felled black oak), where all four measurements above 2 m are positive
 #   and each exceeds this bound in magnitude.
-NEG_MEDIAN <- -0.0262
+.ff <- read.csv(out_path("flux_FINAL.csv"), stringsAsFactors = FALSE)
+NEG_MEDIAN <- round(median(.ff$best.flux[.ff$type == "stem" & .ff$class == "uptake"]), 4)
+stopifnot(is.finite(NEG_MEDIAN), NEG_MEDIAN < 0)
+cat(sprintf("NEG_MEDIAN (median detected stem uptake, from flux_FINAL.csv) = %.4f\n", NEG_MEDIAN))
+rm(.ff)
 FORMS <- c("constant","exponential","power","linear_floored",
            "linear_bounded_median","exp_band_slope")
 

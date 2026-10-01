@@ -3466,6 +3466,11 @@
       ],
       "Hash": "0154ac5b9ef4df1a7be3a54602e781cf"
     },
+    "pwalign": {
+      "Package": "pwalign",
+      "Version": "1.2.0",
+      "Source": "Bioconductor"
+    },
     "quadprog": {
       "Package": "quadprog",
       "Version": "1.5-8",

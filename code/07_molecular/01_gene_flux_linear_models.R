@@ -8,7 +8,7 @@
 # Run after: 00_harmonization/02_harmonize_all_data.R
 #
 # Inputs:
-#   - methanogen_tree_flux_complete_dataset.csv (from data/processed/flux/)
+#   - tree_flux_2023_cross_species.csv (from data/processed/flux/)
 #   - merged_tree_dataset_final.csv (from data/processed/integrated/)
 #
 # Outputs:
@@ -31,7 +31,7 @@ suppressPackageStartupMessages({
 # LOAD DATA
 # ============================================================
 
-ymf2023 <- read.csv("../../data/processed/flux/methanogen_tree_flux_complete_dataset.csv")
+ymf2023 <- read.csv("../../data/processed/flux/tree_flux_2023_cross_species.csv")
 ymf2021 <- read.csv('../../data/processed/integrated/merged_tree_dataset_final.csv')
 merged_final <- ymf2021
 

@@ -18,8 +18,10 @@ library(dplyr)
 library(readr)
 library(lubridate)
 
+source("../../lib/chamber_constants.R")  # ANALYZER_VOLUME_CM3
+
 # Read the CSV file with explicit column types to prevent auto-parsing
-flux_data <- read_csv("../../../data/raw/lgr/semirigid_2020-2021/ipad_data/Cleaned data/soilflux_total.csv",
+flux_data <- read_csv("../../../data/raw/field_data/ipad_data/Cleaned data/soilflux_total.csv",
                       col_types = cols(
                         Date = col_character(),
                         Site = col_character(),
@@ -55,7 +57,7 @@ cat("=== SOIL FLUX CHAMBER SPECIFICATIONS ===\n")
 cat("Chamber surface area: 507.7 cm² (from 10.01\" interior diameter)\n")
 cat("Chamber volume: 17.75 L (cap + collar headspace)\n")
 cat("Tubing: 1/8\" ID × 12 ft\n")
-cat("System volume: 70 cm³\n\n")
+cat("System volume:", ANALYZER_VOLUME_CM3, "cm³\n\n")
 
 # Define chamber geometry constants
 CHAMBER_SURFACE_AREA_CM2 <- 507.7  # Based on 25.43 cm interior diameter
@@ -63,7 +65,7 @@ CHAMBER_VOLUME_L <- 17.75  # Cap (14.42 L) + collar headspace (3.33 L)
 
 # Calculate system volumes
 tubing_volume_cm3 <- pi * (1/16)^2 * 12 * 12 * 16.387  # ≈ 18.6 cm³
-system_volume_cm3 <- 70  # Given analyzer volume
+system_volume_cm3 <- ANALYZER_VOLUME_CM3  # analyzer internal volume (lab convention, see lib)
 total_system_volume_cm3 <- CHAMBER_VOLUME_L * 1000 + tubing_volume_cm3 + system_volume_cm3
 
 cat("=== VOLUME CALCULATIONS ===\n")
@@ -259,16 +261,16 @@ time_summary <- auxfile %>%
 print(time_summary)
 
 # Save the auxfile with weather integration
-write.table(auxfile, "auxfile_goFlux_soilflux_with_weather.txt", 
+write.table(auxfile, "../../../data/processed/flux/auxfile_goFlux_soilflux_with_weather.txt", 
             sep = "\t", row.names = FALSE, quote = FALSE)
 
-write_csv(auxfile, "auxfile_goFlux_soilflux_with_weather.csv")
+write_csv(auxfile, "../../../data/processed/flux/auxfile_goFlux_soilflux_with_weather.csv")
 
 # Create a version with readable datetime formatting
 auxfile_readable <- auxfile %>%
   mutate(start.time_formatted = format(start.time, "%Y-%m-%d %H:%M:%S %Z"))
 
-write_csv(auxfile_readable, "auxfile_goFlux_soilflux_with_weather_formatted.csv")
+write_csv(auxfile_readable, "../../../data/processed/flux/auxfile_goFlux_soilflux_with_weather_formatted.csv")
 
 cat("\n=== FILES SAVED ===\n")
 cat("Main auxfile: auxfile_goFlux_soilflux_with_weather.txt\n")

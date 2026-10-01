@@ -9,7 +9,7 @@ and is git-tracked; **data** lives in the one consolidated `data/` tree (Zenodo 
 ```
 Rscript code/run_all.R
 ```
-Runs the original figure pipeline first (`generate_all_figures.R`, which populates the
+Runs the original figure pipeline first (`make_figures.R`, which populates the
 **unchanged** figures like Fig 8 and several SI — two scripts fail there by design, fig5 &
 S12, both replaced by revision versions), then every revision generator (stats then figures
 via glob), then assembles the numbered set into `outputs/figures/{main,SI,photos}/`.
@@ -49,7 +49,7 @@ specific curated inputs were added there, alongside the existing files:
 - `outputs/scratch/` — outputs of the exploratory scripts (incl. `explore_*.png`).
 - `outputs/figures/original/main/`, `.../SI/`, `.../photos/` — the numbered manuscript figure set
   (photos = field plates, e.g. cross-sections + chamber photos; separate from SI data figures).
-- Some assembled figures are original-pipeline figures (unchanged); run `generate_all_figures.R`
+- Some assembled figures are original-pipeline figures (unchanged); run `make_figures.R`
   first to populate them, else the assembler reports them MISSING.
 
 ## Notes

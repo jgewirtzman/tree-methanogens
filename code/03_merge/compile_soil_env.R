@@ -115,6 +115,35 @@ all_env <- bind_rows(lapply(files, function(f) {
   r
 }))
 
+# ---- second source: the 2020 master workbook ----------------------------------
+# RECOVERED 2026-09-30. The per-date sheets alone give 236 records on 19 dates:
+# three sheets are skipped (20200617 and 20200618 have the plot letter and collar
+# number in swapped columns; 20201106_upland has no collar labels), and several
+# dates are incomplete. data/raw/environmental/Soil_temp_moisture_2020.xlsx records
+# Site + Plot + Subplot for 213 collar-dates in 2020-21, including 2020-06-17/18 and
+# 2020-07-21 and fuller 2020-11-06 and 2020-12-14 visits. The archive the model was
+# frozen on (291 records on 22 dates, matching 235 of 266 soil measurements) was the
+# union of the two sources -- this block was lost before being committed, and the
+# file was regenerated from the sheets alone an hour after the freeze. Records with
+# neither temperature nor moisture are dropped; where both sources hold a collar-date
+# the values are averaged, as duplicate sheets already are.
+MASTER <- file.path(ROOT, "data/raw/environmental/Soil_temp_moisture_2020.xlsx")
+if (file.exists(MASTER)) {
+  m <- as.data.frame(read_excel(MASTER, sheet = 1, .name_repair = "minimal"))[, 1:6]
+  names(m) <- c("Date", "Site", "Plot", "Subplot", "Soil.temp", "VWC")
+  site_map <- c(Upland = "U", Intermediate = "I", "Wetland dry" = "WD", "Wetland swamp" = "WS")
+  master_env <- m %>%
+    transmute(Date = as.Date(Date), plot_letter = unname(site_map[trimws(Site)]),
+              plot_tag = paste0(Plot, "-", Subplot),
+              soil_temp_C = suppressWarnings(as.numeric(Soil.temp)),
+              soil_moisture_pct = suppressWarnings(as.numeric(VWC)),
+              source = basename(MASTER)) %>%
+    filter(!is.na(Date), !is.na(plot_letter), grepl("^\\d+-\\d+$", plot_tag),
+           !(is.na(soil_temp_C) & is.na(soil_moisture_pct)))
+  cat(sprintf("  %-46s %3d rows  (2020-21 master workbook)\n", basename(MASTER), nrow(master_env)))
+  all_env <- bind_rows(all_env, master_env)
+}
+
 all_env <- all_env %>%
   filter(!is.na(Date)) %>%
   group_by(Date, plot_letter, plot_tag) %>%

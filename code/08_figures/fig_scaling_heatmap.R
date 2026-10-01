@@ -37,7 +37,7 @@ FO <- c("constant","exp_band_slope","power","exponential","linear_floored",
 R$flux <- factor(R$flux, levels = rev(FO))
 # linear_bounded_median is CONTRADICTED by the only direct evidence above 2 m: all
 # four climbed-tree measurements there are positive (0.031-0.354 nmol m-2 s-1),
-# each larger in magnitude than the -0.0262 sink it assumes, and the profile's only
+# each larger in magnitude than the (median detected stem uptake) sink it assumes, and the profile's only
 # negative value is at 0.5 m where the flux routine flags it below detection.
 # Retained because n = 1 tree cannot exclude uptake in other species or conditions,
 # but marked so it is not read as an equal member of the set.

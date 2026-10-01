@@ -9,7 +9,7 @@
 #
 # Inputs:
 #   - merged_tree_dataset_final.csv (from data/processed/integrated/)
-#   - methanogen_tree_flux_complete_dataset.csv (from data/processed/flux/)
+#   - tree_flux_2023_cross_species.csv (from data/processed/flux/)
 #   - semirigid flux datasets (from data/processed/flux/)
 #   - ForestGEO inventory CSVs (from data/raw/inventory/)
 #   - weather and moisture data (from data/raw/field_data/)
@@ -35,7 +35,7 @@ cat("Started at:", format(Sys.time()), "\n\n")
 
 paths <- list(
   merged_tree = "../../data/processed/integrated/merged_tree_dataset_final.csv",
-  tree_2023 = "../../data/processed/flux/methanogen_tree_flux_complete_dataset.csv",
+  tree_2023 = "../../data/processed/flux/tree_flux_2023_cross_species.csv",
   # NOTE (2026 revision): use the dataset that includes the recovered untagged/dead-snag
   # monthly trees (+45 fluxes, +7 trees). The revision analyses all use this file.
   semirigid_tree = "../../data/processed/flux/semirigid_tree_final_complete_dataset_with_untagged.csv",
@@ -625,7 +625,17 @@ if (!is.null(tree_2023_data)) {
         year = year(date_clean),
         stem_flux_umol_m2_s = CH4_best.flux
       ) %>%
-      filter(!is.na(stem_flux_umol_m2_s), !is.na(tree_tag_num))
+      filter(!is.na(stem_flux_umol_m2_s)) %>%
+      # NOTE (2026-09-30): non-numeric tags ("Ash1".."Ash16", "untagged") used to be
+      # dropped here by !is.na(tree_tag_num) -- 22 measurements, 17 of them low-emitting
+      # ash trees. They carry their own DBH and covariates and need no inventory link,
+      # so they are kept under a campaign-prefixed id. Each "untagged" row is its own
+      # stem, numbered so none collapse together.
+      mutate(tree_id_2023 = ifelse(!is.na(tree_tag_num), as.character(tree_tag_num),
+                                   paste0("2023_", gsub("[^A-Za-z0-9]", "", .data[[tree_tag_col]]))),
+             tree_id_2023 = ifelse(duplicated(tree_id_2023) | duplicated(tree_id_2023, fromLast = TRUE),
+                                   ifelse(is.na(tree_tag_num), paste0(tree_id_2023, "_", ave(seq_along(tree_id_2023), tree_id_2023, FUN = seq_along)),
+                                          tree_id_2023), tree_id_2023))
     
     # Match with inventory
     # =========================================================================
@@ -652,7 +662,7 @@ if (!is.null(tree_2023_data)) {
     tree_2023_clean$air_temp_own      <- .pick(tree_2023_clean, "^air_temp_C$")
 
     tree_2023_matched <- tree_2023_clean %>%
-      mutate(tree_id = as.character(tree_tag_num)) %>%
+      mutate(tree_id = tree_id_2023) %>%
       left_join(INVENTORY %>% select(tree_id, x, y, dbh_m), by = "tree_id") %>%
       mutate(
         species = species_mapping[species_code],
@@ -679,7 +689,7 @@ if (!is.null(tree_2023_data)) {
     
     # Check for unmatched trees
     unmatched_2023 <- tree_2023_clean %>%
-      mutate(tree_id = as.character(tree_tag_num)) %>%  # Same format as above
+      mutate(tree_id = tree_id_2023) %>%  # Same format as above
       anti_join(INVENTORY, by = "tree_id")
     
     cat("✓ 2023 data:", nrow(TREE_JULY_2023), "measurements matched to inventory\n")
@@ -807,7 +817,12 @@ if (!is.null(semirigid_data)) {
   
   TREE_YEAR <- semirigid_data %>%
     mutate(
-      Date = as.POSIXct(start.time, tz = "UTC"),
+      # NOTE (2026-09-30): the 45 recovered untagged / dead-snag rows have a Date but no
+      # start.time. With Date = NA, the closest-match step below (group_by(tree_id, Date)
+      # + slice(1)) collapsed each stem's visits into ONE row: 45 measurements became 7,
+      # all undated. Fall back to the calendar date (noon UTC).
+      Date = dplyr::coalesce(as.POSIXct(start.time, tz = "UTC"),
+                             as.POSIXct(paste(as.Date(Date), "12:00:00"), tz = "UTC")),
       tree_id_raw = as.character(`Plot Tag`),
       plot_letter = toupper(trimws(`Plot Letter`)),
       stem_flux_umol_m2_s = CH4_best.flux.x,
@@ -834,7 +849,15 @@ if (!is.null(semirigid_data)) {
     TREE_YEAR_match2 %>% filter(!is.na(species)),
     TREE_YEAR_match1 %>% filter(is.na(species)) %>% mutate(tree_id = tree_id_raw)
   ) %>%
-    distinct()
+    distinct() %>%
+    # NOTE (2026-09-30): untagged stems have no inventory record, so species stayed NA
+    # and 02_rf_models.R (which requires species) dropped them. Their label carries it:
+    # UNTAG_<position>_<SPECIES>[_dead].
+    mutate(.sp_tag = ifelse(grepl("^UNTAG_", tree_id_raw),
+                            sub("^UNTAG_[A-Za-z]+_([A-Z]{4}).*$", "\\1", tree_id_raw), NA_character_),
+           species_code = dplyr::coalesce(species_code, .sp_tag),
+           species = dplyr::coalesce(species, unname(species_mapping[.sp_tag]))) %>%
+    select(-.sp_tag)
   
   # Add met tower temperature
   TREE_YEAR <- add_met_tower_temp(TREE_YEAR, weather_clean, "Date")

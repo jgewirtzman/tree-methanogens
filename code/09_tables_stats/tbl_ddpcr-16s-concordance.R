@@ -15,7 +15,7 @@ mgfam<-c("Methanobacteriaceae","Methanomassiliicoccaceae","Methanoregulaceae","M
          "Methanosaetaceae","Methanomicrobiaceae","Methanosarcinaceae","Methanomethyliaceae","Methanocorpusculaceae")
 mg_asv<-rownames(otu)[tax$Family %in% mgfam]
 source("code/lib/load_methanotroph_definitions.R")
-dp<-if(file.exists("data/processed/molecular/methanotroph_definitions_revised.csv"))"data/processed/molecular/methanotroph_definitions_revised.csv" else "data/compiled/methanotroph_definitions.csv"
+dp<-"code/lib/methanotroph_definitions.csv"
 tax$mt<-classify_methanotrophs(tax,load_methanotroph_defs(dp),include_conditional=TRUE)
 mt_asv<-rownames(otu)[tax$mt %in% c("Known","Putative")]
 s16<-data.frame(key=sub("[.]16S[.]S[0-9]*$","",colnames(cnt)),

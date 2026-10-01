@@ -19,6 +19,8 @@ library(dplyr)
 library(readr)
 library(lubridate)
 
+source("../../lib/chamber_constants.R")  # ANALYZER_VOLUME_CM3
+
 # Read the CSV file
 flux_data <- read_csv("../../../data/processed/flux/flux_with_geometry_fixed.csv")
 
@@ -131,7 +133,7 @@ auxfile <- flux_data %>%
     # Tubing: 1/8" ID × 12 ft = π × (1/16)² × 12 × 12 = π × (0.0625)² × 144 in³
     # Convert to cm³: × 16.387 
     tubing_volume_cm3 = pi * (1/16)^2 * 12 * 12 * 16.387, # ≈ 18.6 cm³
-    system_volume_cm3 = 70, # Given system volume
+    system_volume_cm3 = ANALYZER_VOLUME_CM3, # analyzer internal volume (lab convention, see lib)
     
     # Total volume = chamber + tubing + system, convert to L
     Vtot = (volume_cm3 + tubing_volume_cm3 + system_volume_cm3) / 1000
@@ -219,7 +221,7 @@ str(auxfile)
 
 # SAVE WITH PROPER DATETIME FORMAT
 # Save the auxfile ensuring datetime format is preserved
-write.table(auxfile, "auxfile_goFlux_with_weather.txt", 
+write.table(auxfile, "../../../data/processed/flux/auxfile_goFlux_with_weather.txt", 
             sep = "\t", row.names = FALSE, quote = FALSE)
 
 # Also save as CSV for easier viewing
@@ -297,7 +299,7 @@ removed_rows <- flux_data %>%
                             tz = "UTC"),
     Area = surface_area_cm2,
     tubing_volume_cm3 = pi * (1/16)^2 * 12 * 12 * 16.387,
-    system_volume_cm3 = 70,
+    system_volume_cm3 = ANALYZER_VOLUME_CM3,
     Vtot = (volume_cm3 + tubing_volume_cm3 + system_volume_cm3) / 1000
   ) %>%
   filter(is.na(start.time) | is.na(Area) | is.na(Vtot)) %>%

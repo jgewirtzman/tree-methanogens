@@ -11,7 +11,7 @@
 #   - tree_id_comprehensive_mapping.csv (from 03_tree_data/)
 #   - tree_dbh_consensus_comprehensive.csv (from 03_tree_data/)
 #   - sample_data_only.csv (from 03_tree_data/)
-#   - methanogen_tree_flux_complete_dataset.csv (from 01_flux_processing/static/)
+#   - tree_flux_2021_multiheight.csv (from 01_flux_processing/static/)
 #   - soil_tree_level_means.csv (from 00_harmonization/)
 #   - tree_core_filled_complete.csv (from 03_tree_data/)
 #   - processed_ddpcr_data.csv (from 02_ddpcr/)
@@ -133,7 +133,7 @@ cat("Gas data: ", nrow(gas_processed), " records for ", length(unique(gas_proces
 
 cat("=== PROCESSING FLUX DATA ===\n")
 
-flux <- read_csv("../../data/processed/flux/methanogen_tree_flux_complete_dataset.csv")
+flux <- read_csv("../../data/processed/flux/tree_flux_2021_multiheight.csv")
 
 flux_processed <- flux %>%
   dplyr::select(

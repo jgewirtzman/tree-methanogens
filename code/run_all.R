@@ -66,12 +66,6 @@ local({
         "the model may need rebuilding.\n")
 })
 
-# --- 0) original-pipeline figures the assembler copies through ---------------
-# Two fail here by design (fig5, S12 methanome); both are replaced by revision
-# versions, so the assembler still finds them.
-cat(">>> generate_all_figures.R (original pipeline -- unchanged figures)\n")
-run("code/generate_all_figures.R")
-
 # --- 1) CORE CHAIN: each step consumes the previous one's output -------------
 # inventory -> per-stem tree flux -> soil surface -> budget -> scaling grid.
 # Fatal, because everything downstream reads what these write.
@@ -81,6 +75,9 @@ run("code/generate_all_figures.R")
 # prediction script. Both prediction scripts now read the same two climatologies
 # and the same moisture surface, so those have to be built before either runs.
 CORE <- c(
+  # Every stem deployment, flagged in_rf_training; reads the model files. Cheap, and
+  # until 2026-09-30 it ran only by hand, so its table could go stale against the model.
+  "code/05_model/03_export_canonical_tables.R",
   "code/05_model/rf_grouped_cv.R",             # -> rf_grouped_cv.csv (budget reads it)
   "code/01_import/inventory_build.R",           # raw -> inventory_stems.csv
   "code/04_drivers/wb_reference_et.R",           # -> water balance (climatology input)
@@ -129,7 +126,8 @@ SUPPORT <- c(
   "code/05_model/rf_species_fallback_loso.R",
   "code/05_model/rf_species_pooling.R",
   "code/05_model/rf_species_bias_audit.R",
-  "code/08_figures/figS21_rf-model-summary.R",   # absorbed fig_model_findings.R
+  # figS21_rf-model-summary.R runs once, with the figures (make_figures.R); it was
+  # listed here too and ran twice (~10 min of permutation importance each time).
   "code/05_model/model_family_comparison.R",
   "code/05_model/rf_height_extrapolation.R",
   "code/06_upscale/scaling_assumptions_audit.R",
@@ -151,33 +149,9 @@ for (f in SUPPORT) run(f)
 # disk keep all 28 invariants passing. Select on meaning, never on spelling.
 # This list was generated from the glob it replaces and verified set-identical.
 rest <- c(
-  "code/08_figures/fig01_temporal-flux.R",
-  "code/08_figures/fig02_height-flux.R",
-  "code/08_figures/fig02a_axis-support.R",
-  "code/08_figures/fig03_variance-partition.R",
-  "code/08_figures/fig04_gene-abundance.R",
-  "code/08_figures/fig05_methane-cycling.R",
-  "code/08_figures/fig06_hydrogenotrophy.R",
-  "code/08_figures/fig07_decay-methanogenesis.R",
-  "code/08_figures/fig07b_copies-per-g.R",
-  "code/08_figures/fig07c_flux-unit.R",
-  "code/08_figures/fig09_budget.R",
-  "code/08_figures/figS02_height-slope-moisture.R",
-  "code/08_figures/figS04_pmoa-mmox-coupling.R",
-  "code/08_figures/figS11_scale-dependent.R",
-  "code/08_figures/figS12_isotope-sources.R",
-  "code/08_figures/figS15_black-oak-methanome.R",
-  "code/08_figures/figS17_plant-traits.R",
-  "code/08_figures/figS19_mcra-probe-validation.R",
-  "code/08_figures/figS20_stem-deterioration.R",
-  "code/08_figures/figSI_detection.R",
-  "code/08_figures/figS_black-oak-cross-sections.R",
-  "code/08_figures/figS_rf-calibration.R",
-  "code/08_figures/fig_height_curves.R",
-  "code/08_figures/fig_scaling_diagnostics.R",
-  "code/08_figures/fig_scaling_heatmap.R",
-  "code/08_figures/fig_scaling_profiles.R",
   "code/09_tables_stats/stat_campaign_counts.R",
+  "code/09_tables_stats/stat_clade-census.R",
+  "code/09_tables_stats/stat_mass-basis-sensitivity.R",
   "code/09_tables_stats/stat_copies-per-gram.R",
   "code/09_tables_stats/stat_dbh_by_species_campaign.R",
   "code/09_tables_stats/stat_faprotax-caveats.R",
@@ -208,12 +182,25 @@ for (f in rest) run(f)
 # makes that true; without it the claim drifted through four rounds of changes.
 run("code/09_tables_stats/write_parameter_record.R")
 
-# --- 4) assemble -------------------------------------------------------------
-cat("\n>>> assembling numbered manuscript figures\n")
-source("code/08_figures/00_assemble_figures.R")
+# --- 4) figures and assembly -------------------------------------------------
+# One runner for every figure: make_figures.R runs each generator in its own
+# process (a leaked graphics device once drew the moisture map into Figure S12),
+# then the assembler, which refuses figures older than this run. Until 2026-09-30
+# this file instead called generate_all_figures.R -- the leaky runner that
+# make_figures.R was written to replace -- and kept its own copy of the figure list.
+run("code/make_figures.R")
+
+# --- 4b) archive tables -------------------------------------------------------
+# data/compiled/ is the Zenodo copy of the canonical tables. It was never rebuilt by
+# this script, so it went stale after every run (check_consistency.R compares it).
+run("code/zenodo/compile_zenodo_datasets.R")
 
 # --- 5) report anything never reached ----------------------------------------
+source("code/lib/figure_scripts.R")         # run by make_figures.R (step 4)
 SOURCED <- c("code/lib/geometry.R",        # sourced by others, not run alone
+             "code/lib/figure_scripts.R",
+             names(FIGURE_SCRIPTS_ORIGINAL), FIGURE_SCRIPTS_REVISION,
+             "code/make_figures.R",
              "code/lib/species_levels.R",  # ditto -- the species->level mapping
              "code/lib/prep_species_data.R")
 # Scans the whole live tree, not one directory. This used to read
@@ -226,6 +213,7 @@ allR <- setdiff(
   list.files("code/archive", "\\.R$", recursive = TRUE, full.names = TRUE))
 never <- setdiff(allR, c(CORE, SUPPORT, rest, SOURCED,
                          "code/run_all.R",
+                         "code/zenodo/compile_zenodo_datasets.R",
                          "code/08_figures/00_assemble_figures.R",
                          # Run standalone at step 3b, not via CORE/SUPPORT/rest, so it
                          # was absent here and got reported as "never run" on every
