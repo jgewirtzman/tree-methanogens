@@ -17,6 +17,15 @@ Recorded 2026-09-30.
 
 | `data/raw/photos/{semirigid,rigid}_chamber.jpg` | chamber photographs (SI Fig. S2), copied 2026-10-01 from `outputs/figures/photos/`, which is git-ignored and not regenerable |
 
+## 1a. Closure windows and model choices — must be uploaded
+
+The goFlux fitting scripts re-fit from saved windows rather than opening the picker:
+`data/processed/flux/lgr_manual_identification_{semirigid_tree,2023_cross_species}.csv`
+(recovered 2026-10-01 by `code/tools/rebuild_closure_windows.R`; never saved before),
+`lgr_manual_identification_2021_multiheight_final.csv`, `lgr_manual_identification_results_soil.csv`,
+`lgr_manual_identification_results_december_soil.csv`, and `flux_model_choices.csv`. Without them
+stage A cannot run non-interactively.
+
 ## 1b. Hand-picked untagged-stem windows — must be uploaded
 
 `data/processed/flux/untagged_rescue/untagged_manID.rds` holds the closure windows picked by hand
