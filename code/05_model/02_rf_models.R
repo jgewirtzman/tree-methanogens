@@ -119,11 +119,18 @@ cat("  SOIL_YEAR: [", round(min(SOIL_YEAR$soil_flux_umol_m2_s, na.rm=T), 6), ","
 # silently trained on the July campaign alone (353 rows, months 6-7, rigid chamber only)
 # and the chamber harmonisation in §2.5 never had any semirigid data to correct.
 # Fix: keep TREE_YEAR's own species and fill only genuine gaps from the inventory.
+# Tags are not unique in the inventory: the 2019 census reuses tag numbers for different
+# trees, and since 2026-09-30 those stems are kept. Join on one species per tag, and
+# only where every stem carrying that tag agrees -- otherwise rows would be copied.
+.n_before <- nrow(TREE_YEAR)
 TREE_YEAR <- TREE_YEAR %>%
-  left_join(INVENTORY %>% dplyr::select(tree_id, species_from_inventory = species),
+  left_join(INVENTORY %>% dplyr::group_by(tree_id) %>%
+              dplyr::summarise(species_from_inventory = if (dplyr::n_distinct(species) == 1) dplyr::first(species) else NA_character_,
+                               .groups = "drop"),
             by = "tree_id") %>%
   mutate(species = dplyr::coalesce(species, species_from_inventory)) %>%
   dplyr::select(-species_from_inventory)
+stopifnot(nrow(TREE_YEAR) == .n_before)   # a join must never add measurements
 
 cat("  TREE_YEAR after species fill:", sum(!is.na(TREE_YEAR$species)), "of",
     nrow(TREE_YEAR), "rows have species\n")
