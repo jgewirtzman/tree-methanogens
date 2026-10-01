@@ -9,4 +9,5 @@
 | `migrate_campaign_filenames.R` | Once, on a data archive older than 2026-09-30, to rename the flux files to the per-campaign names (it identifies files by content). |
 | `mmo_capacity_screen.R` | Queries NCBI. Rebuilds `outputs/data/mmo_capacity_screen.csv` (Table S5); needs network access and is not deterministic over time as databases grow. |
 | `vendor_traits.R` | Copies per-species plant traits from the sibling tree-gas-traits analysis into `data/processed/traits/ymf_species_traits.csv`. Needs that repository's `ymf_with_traits.csv`; the vendored file is an archived input. |
+| `ddpcr_check_completeness.R`, `ddpcr_confirm_import.R` | Checks run inside an interactive session after the ddPCR import and harmonisation (they read objects left in memory, `merged_data_final` and `ddpcr_full`); not standalone. |
 | `harvest_dictionary.R` | Once, to seed `code/zenodo/column_dictionary.csv` from hand-written column notes. The dictionary is then edited directly. |
