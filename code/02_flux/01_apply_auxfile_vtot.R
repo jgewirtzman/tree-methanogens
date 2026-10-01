@@ -33,6 +33,7 @@
 # ==============================================================================
 suppressMessages({ library(readr); library(dplyr) })
 source("code/lib/chamber_constants.R")
+source("code/lib/monthly_cols.R")
 
 FLUX <- "data/processed/flux"
 RESC <- "data/processed/flux/untagged_rescue"   # the rescued untagged stems (02_flux/rescue/)
@@ -149,14 +150,15 @@ new <- setNames(lapply(csv_files, function(f) rescale(rd(f), f)), csv_files)
 # The monthly table with the rescued untagged stems. Its tagged rows carry a
 # UniqueID; the 45 untagged rows were appended without one, in the row order of
 # untagged_monthly_fluxes.csv (archive/revision/rev_merge_untagged_monthly.R), and
-# hold only CH4_best.flux.x/.y. Match them by position and prove it by value.
+# hold only CH4_best.flux (CH4_best.flux.x/.y in files written before 2026-10-01;
+# monthly_plain() reads either). Match them by position and prove it by value.
 f_wu <- file.path(FLUX, "semirigid_tree_final_complete_dataset_with_untagged.csv")
-wu <- rescale(rd(f_wu), f_wu)
+wu <- monthly_plain(rescale(rd(f_wu), f_wu))
 um_old <- rd(file.path(RESC, "untagged_monthly_fluxes.csv")); um_new <- new[[file.path(RESC, "untagged_monthly_fluxes.csv")]]
 k <- which(wu$UniqueID == "NA" | wu$UniqueID == "")
 stopifnot(length(k) == nrow(um_old),
-          isTRUE(all.equal(num(wu$CH4_best.flux.x[k]), num(um_old$CH4_best.flux))))
-wu$CH4_best.flux.x[k] <- wu$CH4_best.flux.y[k] <- um_new$CH4_best.flux
+          isTRUE(all.equal(num(wu$CH4_best.flux[k]), num(um_old$CH4_best.flux))))
+wu$CH4_best.flux[k] <- um_new$CH4_best.flux
 cat(sprintf("  %-62s %5d untagged rows matched by position\n", "", length(k)))
 new[[f_wu]] <- wu
 

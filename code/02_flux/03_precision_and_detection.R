@@ -69,11 +69,11 @@ G <- bind_rows(
   read.csv("data/processed/flux/CH4_best_flux_lgr_results_2023_cross_species.csv",stringsAsFactors=FALSE) %>%
     mutate(camp="Cross-species", type="stem")) %>%
   filter(is.finite(best.flux),is.finite(flux.term),is.finite(nb.obs),nb.obs>2)
-st <- read.csv("data/processed/flux/semirigid_tree_final_complete_dataset_with_untagged.csv",
-               stringsAsFactors=FALSE, check.names=TRUE)
-gc <- function(b){for(s in c(".y",".x","")){n<-paste0("CH4_",b,s)
-  if(n %in% names(st)){v<-suppressWarnings(as.numeric(st[[n]])); if(any(is.finite(v))) return(v)}}
-  rep(NA_real_,nrow(st))}
+source("code/lib/monthly_cols.R")
+st <- monthly_plain(read.csv("data/processed/flux/semirigid_tree_final_complete_dataset_with_untagged.csv",
+               stringsAsFactors=FALSE, check.names=TRUE))
+gc <- function(b){n<-paste0("CH4_",b)
+  if(n %in% names(st)) suppressWarnings(as.numeric(st[[n]])) else rep(NA_real_,nrow(st))}
 G <- bind_rows(G, data.frame(UniqueID=st$UniqueID, camp="Monthly survey", type="stem",
   best.flux=gc("best.flux"), flux.term=gc("flux.term"), nb.obs=gc("nb.obs"),
   MDF=gc("MDF"), prec=gc("prec"),

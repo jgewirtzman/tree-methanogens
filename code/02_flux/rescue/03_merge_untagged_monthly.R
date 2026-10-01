@@ -4,13 +4,15 @@
 # Folds the recovered untagged/dead-snag monthly measurements into the monthly
 # tree-flux dataset, producing a REVISION merged file (original left untouched):
 #   data/processed/flux/semirigid_tree_final_complete_dataset_with_untagged.csv
-# Schema-matched to the original (Plot.Tag, Plot.Letter, Date, CH4_best.flux.x,
-# CH4_LM.r2.x, CH4_HM.r2.x, CO2_LM.r2/HM.r2) + a new `dead` flag. The tagged trees
+# Schema-matched to the original (Plot.Tag, Plot.Letter, Date, CH4_best.flux,
+# CH4_LM.r2, CH4_HM.r2, CO2_LM.r2/HM.r2; plain names, see code/lib/monthly_cols.R)
+# + a new `dead` flag. The tagged trees
 # 4156 & 5091 (flagged dead in field notes) get dead=TRUE too.
 # Revision Fig 1 + manuscript-stat recompute read this file.
 # ==============================================================================
 suppressMessages(library(dplyr)); options(warn=-1); num<-function(x)suppressWarnings(as.numeric(x))
-srt<-read.csv("data/processed/flux/semirigid_tree_final_complete_dataset.csv")   # check.names=TRUE
+source("code/lib/monthly_cols.R")
+srt<-monthly_plain(read.csv("data/processed/flux/semirigid_tree_final_complete_dataset.csv"))   # check.names=TRUE
 # dead tagged trees from field notes
 suppressMessages(library(readxl))
 tf<-read_excel("data/raw/field_data/ipad_data/treeflux_total.xlsx",sheet="Sheet1"); tf$PT<-trimws(as.character(tf[["Plot Tag"]])); tf$NO<-as.character(tf$Notes)
@@ -25,9 +27,8 @@ n<-nrow(u); untag<-srt[rep(NA_integer_,n),,drop=FALSE]; rownames(untag)<-NULL   
 untag$Plot.Tag        <- u$tree_id                              # per-TREE id (measurements share it)
 untag$Plot.Letter     <- dplyr::recode(u$Plot_Type, U="U", I="I", W="WS")
 untag$Date            <- as.character(u$Date)
-untag$CH4_best.flux.x <- u$CH4_best.flux ; untag$CH4_best.flux.y <- u$CH4_best.flux
-untag$CH4_LM.r2.x     <- num(u$CH4_LM.r2); untag$CH4_HM.r2.x     <- num(u$CH4_HM.r2)
-untag$CH4_LM.r2.y     <- num(u$CH4_LM.r2); untag$CH4_HM.r2.y     <- num(u$CH4_HM.r2)
+untag$CH4_best.flux   <- u$CH4_best.flux
+untag$CH4_LM.r2       <- num(u$CH4_LM.r2); untag$CH4_HM.r2       <- num(u$CH4_HM.r2)
 untag$dead            <- u$dead
 
 merged<-bind_rows(srt, untag)

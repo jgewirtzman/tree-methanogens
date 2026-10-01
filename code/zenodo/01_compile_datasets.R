@@ -21,6 +21,7 @@
 # ==============================================================================
 suppressPackageStartupMessages(library(tidyverse))
 source("code/lib/dead_stems.R"); source("code/lib/soil_collars.R"); source("code/lib/isotope_samples.R")
+source("code/lib/monthly_cols.R")
 out_dir <- "data/compiled"
 dir.create(out_dir, showWarnings = FALSE)
 old <- c("semirigid_chamber_flux.csv", "static_chamber_flux.csv", "height_chamber_flux.csv",
@@ -31,15 +32,14 @@ key <- function(x) sprintf("%.8f", as.numeric(x))  # deployments are matched by 
 wr <- function(d, f) { write_csv(d, file.path(out_dir, f)); cat(sprintf("  %-32s %6d rows x %2d cols\n", f, nrow(d), ncol(d))) }
 
 # ---------------------------------------------------------------- flux_stem --
-mon_all <- read.csv(file.path(fd, "semirigid_tree_final_complete_dataset_with_untagged.csv"), check.names = FALSE)
+mon_all <- monthly_plain(read.csv(file.path(fd, "semirigid_tree_final_complete_dataset_with_untagged.csv"), check.names = FALSE))
 mon_tag <- read.csv(file.path(fd, "semirigid_tree_final_complete_dataset.csv"), check.names = FALSE)
-stopifnot(isTRUE(all.equal(mon_all$CH4_best.flux.x, mon_all$CH4_best.flux.y)))
-mon <- mon_all %>% filter(!is.na(CH4_best.flux.x)) %>% transmute(
+mon <- mon_all %>% filter(!is.na(CH4_best.flux)) %>% transmute(
   unique_id = UniqueID, campaign = "monthly_2020_2021", date = as.Date(Date),
   tree_tag = as.character(Plot.Tag), landscape_position = Plot.Letter, chamber_type = "semirigid",
   height_label = "125", chamber_id = as.character(Chamber_ID), chamber_area_m2 = Area, chamber_vol_L = Vtot,
-  chamber_temp_C = Tcham, CH4_flux_nmol_m2_s = CH4_best.flux.x, CH4_model = CH4_model.x,
-  CH4_quality = CH4_quality.check.x, CH4_LM_r2 = CH4_LM.r2.x, CH4_LM_pval = CH4_LM.p.val.x,
+  chamber_temp_C = Tcham, CH4_flux_nmol_m2_s = CH4_best.flux, CH4_model,
+  CH4_quality = CH4_quality.check, CH4_LM_r2 = CH4_LM.r2, CH4_LM_pval = CH4_LM.p.val,
   CO2_flux_umol_m2_s = CO2_best.flux, notes = Notes,
   untagged_rescue = !UniqueID %in% mon_tag$UniqueID)
 h21 <- read.csv(file.path(fd, "tree_flux_2021_multiheight.csv"), check.names = FALSE) %>%

@@ -31,13 +31,14 @@ P  <- function(...) cat(sprintf(...), "\n")
 fd <- "data/processed/flux"; comp <- "data/compiled"
 
 # ============================================================== A. STEM FLUX ===
-srt <- read.csv(file.path(fd, "semirigid_tree_final_complete_dataset_with_untagged.csv"))  # monthly 2020-21 + recovered untagged/dead-snag trees
+source("code/lib/monthly_cols.R")
+srt <- monthly_plain(read.csv(file.path(fd, "semirigid_tree_final_complete_dataset_with_untagged.csv")))  # monthly 2020-21 + recovered untagged/dead-snag trees
 srs <- read.csv(file.path(fd, "semirigid_tree_final_complete_dataset_soil.csv"))  # monthly soil
 ch4 <- read.csv(file.path(fd, "CH4_best_flux_lgr_results_2021_multiheight.csv"))                   # 2021 height flux
 aux <- read.csv(file.path(fd, "goflux_auxfile.csv"))                             # 2021 height metadata
 y23 <- read.csv(file.path(fd, "tree_flux_2023_cross_species.csv"))       # 2023 cross-species
 
-n_monthly <- nn(srt$CH4_best.flux.x); n_soil <- nn(srs$CH4_best.flux)
+n_monthly <- nn(srt$CH4_best.flux); n_soil <- nn(srs$CH4_best.flux)
 n_height  <- nn(ch4$best.flux);       n_2023 <- nn(y23$CH4_best.flux)
 stem_total <- n_monthly + n_height + n_2023
 
@@ -49,10 +50,10 @@ hd <- hd[!is.na(hd$best.flux), ]
 # campaign reports 17 species instead of the correct 16.
 hd$species[hd$species == "TSLA"] <- "TSCA"
 h_by <- sort(table(hd$measurement_height), decreasing = TRUE)
-mon_trees <- uq(srt$Plot.Tag[!is.na(srt$CH4_best.flux.x)])
-mon_pos   <- table(srt$Plot.Letter[!is.na(srt$CH4_best.flux.x)])   # U/I/WD/WS
+mon_trees <- uq(srt$Plot.Tag[!is.na(srt$CH4_best.flux)])
+mon_pos   <- table(srt$Plot.Letter[!is.na(srt$CH4_best.flux)])   # U/I/WD/WS
 # monthly species: not in the flux file; resolve from the field tree list (fallback: 2023 map)
-mon_tags <- unique(as.character(srt$Plot.Tag[!is.na(srt$CH4_best.flux.x)]))
+mon_tags <- unique(as.character(srt$Plot.Tag[!is.na(srt$CH4_best.flux)]))
 ymt <- read.csv("data/raw/field_data/static_chamber_field/YM_trees_measured.csv.csv", check.names=FALSE)
 sp_lut <- setNames(as.character(ymt$Species), as.character(ymt$Label))
 sp23   <- setNames(as.character(y23$Species.Code), as.character(y23$Tree.Tag))
@@ -80,7 +81,7 @@ if (file.exists(map_f)) {
   lut <- c(); for (cc in vcols) { v <- norm(M[[cc]]); ok <- v != "" & !is.na(v); lut[v[ok]] <- norm(prim[ok]) }
   canon <- function(x) { x <- norm(x); ifelse(x %in% names(lut), lut[x], x) }
 }
-ids <- unique(c(canon(srt$Plot.Tag[!is.na(srt$CH4_best.flux.x)]), canon(hd$tree_id), canon(t23_key[t23_ok])))
+ids <- unique(c(canon(srt$Plot.Tag[!is.na(srt$CH4_best.flux)]), canon(hd$tree_id), canon(t23_key[t23_ok])))
 union_trees <- length(ids)
 
 # ============================================================= B. COVARIATES ===

@@ -30,6 +30,7 @@
 #   outputs/data/flux_measurements_soil.csv     266 soil measurements
 # ==============================================================================
 source("code/lib/outputs.R")
+source("code/lib/monthly_cols.R")
 
 NEED <- "outputs/models/TRAINING_DATA.RData"
 if (!file.exists(NEED))
@@ -86,10 +87,10 @@ tree_out$in_rf_training   <- TRUE
 tree_out$exclusion_reason <- NA_character_
 
 src <- list(
-  monthly_2020_2021 = read.csv(file.path(fd, "semirigid_tree_final_complete_dataset_with_untagged.csv"),
-                               check.names = FALSE) %>%
-    filter(!is.na(CH4_best.flux.x)) %>%
-    transmute(tree_id = Plot.Tag, flux = CH4_best.flux.x, Date = as.character(Date), height = NA_real_,
+  monthly_2020_2021 = monthly_plain(read.csv(file.path(fd, "semirigid_tree_final_complete_dataset_with_untagged.csv"),
+                               check.names = FALSE)) %>%
+    filter(!is.na(CH4_best.flux)) %>%
+    transmute(tree_id = Plot.Tag, flux = CH4_best.flux, Date = as.character(Date), height = NA_real_,
               species_code = sub("^UNTAG_[A-Za-z]+_([A-Z]{4}).*$", "\\1", Plot.Tag),
               dbh_m = NA_real_, air_temp_C = suppressWarnings(as.numeric(Tcham)),
               soil_temp_C = NA_real_, soil_moisture_abs = NA_real_, chamber_type = "semirigid"),
