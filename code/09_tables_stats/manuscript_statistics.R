@@ -102,6 +102,12 @@ cat("\nLoading data...\n")
 # smaller set than the figure beside it.
 semirigid_tree <- read.csv("data/processed/flux/semirigid_tree_final_complete_dataset_with_untagged.csv")
 semirigid_soil <- read.csv("data/processed/flux/semirigid_tree_final_complete_dataset_soil.csv")
+
+# Measurements are excluded only for procedural failure: the chamber screen in
+# qc_c0_screen.R (two soil chambers not at ambient at closure). The r2 >= 0.7 and
+# -100..200 filters that stood here were removed 2026-10-01: an r2 screen is not a
+# detection criterion and inflated the mean stem flux 144% (Methods S4).
+QC_EXCLUDED <- read.csv("outputs/data/qc_excluded_measurements.csv")$UniqueID
 moisture_data  <- read.csv("data/raw/field_data/ipad_data/Cleaned data/soilmoisture_total.csv",
                            fileEncoding = "UTF-8-BOM")
 
@@ -147,8 +153,7 @@ section_header("SECTION 1: TEMPORAL FLUX PATTERNS (Figure 1)")
 
 # Quality filter (matches 06_soil_tree_timeseries.R)
 soil_qc <- semirigid_soil %>%
-  filter((CO2_LM.r2 >= 0.7 | CO2_HM.r2 >= 0.7 | CH4_LM.r2 >= 0.7 | CH4_HM.r2 >= 0.7),
-         CH4_best.flux >= -100 & CH4_best.flux <= 200) %>%
+  filter(!is.na(CH4_best.flux), !UniqueID %in% QC_EXCLUDED) %>%
   mutate(Plot_Type = case_when(
     Plot.letter %in% c("WD", "WS") ~ "W",
     Plot.letter == "I" ~ "I",
@@ -157,8 +162,7 @@ soil_qc <- semirigid_soil %>%
   ))
 
 tree_qc <- semirigid_tree %>%
-  filter((CO2_LM.r2 >= 0.7 | CO2_HM.r2 >= 0.7 | CH4_LM.r2.x >= 0.7 | CH4_HM.r2.x >= 0.7),
-         CH4_best.flux.x >= -100 & CH4_best.flux.x <= 200) %>%
+  filter(!is.na(CH4_best.flux.x)) %>%
   mutate(
     Plot_Type = case_when(
       Plot.Letter %in% c("WD", "WS") ~ "W",
