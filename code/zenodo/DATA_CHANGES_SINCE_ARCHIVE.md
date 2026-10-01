@@ -17,13 +17,12 @@ Recorded 2026-09-30.
 
 | `data/raw/photos/{semirigid,rigid}_chamber.jpg` | chamber photographs (SI Fig. S2), copied 2026-10-01 from `outputs/figures/photos/`, which is git-ignored and not regenerable |
 
-## 1b. Interactive products kept under outputs/ — copy archived, must be uploaded
+## 1b. Hand-picked untagged-stem windows — must be uploaded
 
-The July 2026 rescue of the untagged monthly stems (archive/revision/rev_rescue_untagged_click.R) chose
-flux windows by hand. Its products live in `outputs/data/`, which is neither in git nor in the archive:
-`untagged_manID.rds` (the window selections), `untagged_fluxes.csv`, `untagged_monthly_trees.csv`.
-They cannot be regenerated without repeating the clicking. Copies (as of 2026-07-24) are in
-`data/processed/flux/untagged_rescue/` so the archive carries them; readers still use `outputs/data/`.
+`data/processed/flux/untagged_rescue/untagged_manID.rds` holds the closure windows picked by hand
+for the 45 untagged monthly stems (with `untagged_fluxes.csv`, the picker's first output). Stage A
+(`code/02_flux/rescue/`) regenerates everything else from them; they cannot themselves be
+regenerated without repeating the clicking.
 
 ## 2. Renamed files — an older archive still has the old names
 

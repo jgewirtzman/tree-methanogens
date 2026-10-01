@@ -20,6 +20,9 @@ A,code/02_flux/static/02_prep_auxfile_2023.R,script,TRUE,2023 cross-species: goF
 A,code/02_flux/static/03_goflux_trees_2021.R,script,TRUE,2021 multi-height: stem flux fits (goFlux)
 A,code/02_flux/static/04_goflux_trees_2023.R,script,TRUE,2023 cross-species: stem flux fits (goFlux)
 A,code/02_flux/static/05_fix_failed.R,script,TRUE,refit deployments whose default windows failed
+A,code/02_flux/rescue/01_untagged_auxfile.R,root,TRUE,untagged monthly stems: goFlux aux file from field sheets and chamber geometry
+A,code/02_flux/rescue/02_untagged_fluxes.R,root,TRUE,untagged monthly stems: fluxes from the hand-picked windows (untagged_manID.rds)
+A,code/02_flux/rescue/03_merge_untagged_monthly.R,root,TRUE,monthly survey file including the rescued untagged stems
 A,code/02_flux/01_apply_auxfile_vtot.R,root,TRUE,carry the 28 cm3 analyzer volume through every stored fit
 A,code/02_flux/02_qc_c0_screen.R,root,TRUE,procedural screen: chamber not at ambient at closure
 A,code/02_flux/03_precision_and_detection.R,root,TRUE,analyzer precision; minimum detectable flux; detection status

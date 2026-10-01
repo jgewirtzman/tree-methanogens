@@ -1,18 +1,19 @@
 #!/usr/bin/env Rscript
 # ==============================================================================
-# rev_rescue_untagged_click.R  (revision "rescue" — INTERACTIVE, run in RStudio)
+# code/tools/click_untagged_windows.R  (revision "rescue" — INTERACTIVE, run in RStudio)
 # Computes CH4 (+CO2) fluxes for the 49 monthly untagged/dead-snag measurements
 # that were dropped before flux calc. Follows the standard semirigid workflow:
 # import LGR (import2RData) -> obs.win -> click.peak2 (YOU click ~49 peaks) -> goFlux.
-# Prereq: run code/revision/rev_rescue_untagged_prep.R first (writes untagged_auxfile.csv).
+# Prereq: run code/02_flux/rescue/01_untagged_auxfile.R first (writes untagged_auxfile.csv).
 # Run from repo ROOT, interactively (needs a graphics device for clicking).
-# Writes outputs/revision/untagged_fluxes.csv
+# Writes data/processed/flux/untagged_rescue/untagged_fluxes.csv
 # ==============================================================================
 suppressMessages({library(goFlux);library(dplyr);library(readr)})
 
 # ---- 1. import LGR3 traces (same as 04_goflux_trees.R: flatten subfolders + unzip) ----
 # cached after first import so re-runs (after a clicking mistake) are instant
-cache <- "outputs/revision/.lgr_cache.rds"
+dir.create("outputs/cache", showWarnings = FALSE, recursive = TRUE)
+cache <- "outputs/cache/untagged_lgr_cache.rds"
 if (file.exists(cache)) {
   lgr_data <- readRDS(cache); cat("Loaded cached LGR (delete", cache, "to force re-import)\n")
 } else {
@@ -32,8 +33,8 @@ if (file.exists(cache)) {
 cat("LGR loaded:", nrow(lgr_data), "rows;",
     "time range", as.character(min(lgr_data$POSIX.time)), "to", as.character(max(lgr_data$POSIX.time)), "\n")
 
-# ---- 2. untagged auxfile (from rev_rescue_untagged_prep.R) -------------------
-auxfile <- read.csv("outputs/revision/untagged_auxfile.csv")
+# ---- 2. untagged auxfile (from 01_untagged_auxfile.R) -------------------
+auxfile <- read.csv("data/processed/flux/untagged_rescue/untagged_auxfile.csv")
 auxfile$start.time <- as.POSIXct(auxfile$start.time_formatted, tz = "UTC")
 cat("Auxfile:", nrow(auxfile), "untagged measurements\n")
 stopifnot(all(c("UniqueID","start.time","Area","Vtot","Tcham","Pcham") %in% names(auxfile)))
@@ -50,13 +51,13 @@ if (Sys.info()["sysname"] == "Darwin") options(device = "quartz")
 # Click START then END of the chamber-closure change on each plot (~49 total).
 # Do it in batches to avoid fatigue, e.g.:
 #   manID   <- click.peak2(ow, gastype="CH4dry_ppb", seq = 1:25,
-#                          plot.lim=c(1800,2500), save.plots="outputs/revision/untagged_ID_b1")
+#                          plot.lim=c(1800,2500), save.plots="outputs/figures/untagged_ID_b1")
 #   manID2  <- click.peak2(ow, gastype="CH4dry_ppb", seq = 26:length(ow),
-#                          plot.lim=c(1800,2500), save.plots="outputs/revision/untagged_ID_b2")
+#                          plot.lim=c(1800,2500), save.plots="outputs/figures/untagged_ID_b2")
 #   manID   <- rbind(manID, manID2)
 cat("\n>>> Now click the", length(ow), "windows interactively, in 2 batches, e.g.:\n",
-    '    manID  <- click.peak2(ow, gastype="CH4dry_ppb", seq=1:23,            plot.lim=c(1800,6000), save.plots="outputs/revision/untagged_ID_b1")\n',
-    '    manID2 <- click.peak2(ow, gastype="CH4dry_ppb", seq=24:length(ow),   plot.lim=c(1800,6000), save.plots="outputs/revision/untagged_ID_b2")\n',
+    '    manID  <- click.peak2(ow, gastype="CH4dry_ppb", seq=1:23,            plot.lim=c(1800,6000), save.plots="outputs/figures/untagged_ID_b1")\n',
+    '    manID2 <- click.peak2(ow, gastype="CH4dry_ppb", seq=24:length(ow),   plot.lim=c(1800,6000), save.plots="outputs/figures/untagged_ID_b2")\n',
     "    manID  <- rbind(manID, manID2); compute_and_save(manID)\n",
     ">>> Widen plot.lim if a peak is clipped. The 4 dropped measurements (missing LGR) appear as NA in the output.\n")
 
@@ -69,8 +70,8 @@ compute_and_save <- function(manID) {
     left_join(ch4 %>% transmute(UniqueID, CH4_best.flux = best.flux, CH4_model = model, CH4_quality = quality.check), by = "UniqueID") %>%
     left_join(co2 %>% transmute(UniqueID, CO2_best.flux = best.flux), by = "UniqueID") %>%
     mutate(dead = grepl("dead|snag", Sample, ignore.case = TRUE))
-  write.csv(out, "outputs/revision/untagged_fluxes.csv", row.names = FALSE)
-  cat("Wrote outputs/revision/untagged_fluxes.csv (", nrow(out), "trees-measurements)\n")
+  write.csv(out, "data/processed/flux/untagged_rescue/untagged_fluxes.csv", row.names = FALSE)
+  cat("Wrote data/processed/flux/untagged_rescue/untagged_fluxes.csv (", nrow(out), "trees-measurements)\n")
   print(out %>% group_by(site, dead) %>%
           summarise(n = n(), CH4_median = round(median(CH4_best.flux, na.rm = TRUE), 3), .groups = "drop"))
   invisible(out)
