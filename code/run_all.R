@@ -39,7 +39,7 @@ run <- function(f, fatal = FALSE) {
 }
 
 # --- run marker ---------------------------------------------------------------
-# 00_assemble_figures.R compares every file it assembles against this marker's
+# zz_assemble_figures.R compares every file it assembles against this marker's
 # timestamp, so a generator that failed cannot slip its previous output into the
 # manuscript set unnoticed. Written before anything else runs.
 dir.create("outputs", showWarnings = FALSE, recursive = TRUE)
@@ -78,27 +78,27 @@ CORE <- c(
   # Every stem deployment, flagged in_rf_training; reads the model files. Cheap, and
   # until 2026-09-30 it ran only by hand, so its table could go stale against the model.
   "code/05_model/03_export_canonical_tables.R",
-  "code/05_model/rf_grouped_cv.R",             # -> rf_grouped_cv.csv (budget reads it)
-  "code/01_import/inventory_build.R",           # raw -> inventory_stems.csv
-  "code/04_drivers/wb_reference_et.R",           # -> water balance (climatology input)
-  "code/04_drivers/moisture_climatology.R",      # -> moisture_climatology_monthly.csv
-  "code/04_drivers/soil_temp_climatology.R",     # -> soil_temp_climatology_monthly.csv
-  "code/04_drivers/moisture_surface.R",          # -> moisture_surface_grid.csv
-  "code/06_upscale/predict_tree_flux_current.R", # -> tree_flux_predictions.csv, tree_monthly_stand.csv
-  "code/06_upscale/predict_soil_surface.R",      # -> soil_surface_{monthly,annual}.csv
-  "code/06_upscale/budget_canonical.R",          # -> canonical_{budget,monthly}.csv
-  # MUST precede the grid: scaling_full_grid.R now stop()s if wai_bottomup.csv is
+  "code/05_model/04_rf_grouped_cv.R",             # -> rf_grouped_cv.csv (budget reads it)
+  "code/01_import/08_inventory_build.R",           # raw -> inventory_stems.csv
+  "code/04_drivers/01_wb_reference_et.R",           # -> water balance (climatology input)
+  "code/04_drivers/02_moisture_climatology.R",      # -> moisture_climatology_monthly.csv
+  "code/04_drivers/03_soil_temp_climatology.R",     # -> soil_temp_climatology_monthly.csv
+  "code/04_drivers/04_moisture_surface.R",          # -> moisture_surface_grid.csv
+  "code/06_upscale/01_predict_tree_flux.R", # -> tree_flux_predictions.csv, tree_monthly_stand.csv
+  "code/06_upscale/02_predict_soil_surface.R",      # -> soil_surface_{monthly,annual}.csv
+  "code/06_upscale/03_budget_canonical.R",          # -> canonical_{budget,monthly}.csv
+  # MUST precede the grid: 07_scaling_full_grid.R now stop()s if wai_bottomup.csv is
   # absent, and outputs/ is gitignored, so with this in SUPPORT (which runs AFTER the
   # fatal CORE block) a clean checkout aborted at the last CORE step. That is the exact
   # failure this file's header describes for the driver builders.
-  "code/06_upscale/wai_bottomup_and_rf_interactions.R",  # -> wai_bottomup.csv
+  "code/06_upscale/04_wai_bottomup.R",  # -> wai_bottomup.csv
   # The grid reads its uptake bound (median detected stem uptake) from flux_FINAL.csv.
   # These two ran in SUPPORT, AFTER the grid, so the grid always used the previous
   # run's bound: on 2026-09-30 it read -0.0248 a minute before mdf_FINAL rewrote it
   # as -0.0243 at the 28 cm3 analyzer volume.
-  "code/02_flux/qc_c0_screen.R",
-  "code/02_flux/mdf_FINAL_precision_and_detection.R",   # -> flux_FINAL.csv
-  "code/06_upscale/scaling_full_grid.R")
+  "code/02_flux/02_qc_c0_screen.R",
+  "code/02_flux/03_precision_and_detection.R",   # -> flux_FINAL.csv
+  "code/06_upscale/07_scaling_full_grid.R")
 # fig_scaling_profiles / heatmap read the grid exports and run in the figure block         # -> scaling_full_grid.csv
 cat(sprintf("\n== CORE CHAIN (%d steps, dependency-ordered) ==\n", length(CORE)))
 for (f in CORE) run(f, fatal = TRUE)
@@ -110,35 +110,35 @@ SUPPORT <- c(
   # monthly tree its OWN measured temperature and moisture rather than a plot-level
   # constant. It was never in this pipeline, so that dependency was real but unwired
   # and the CSV survived only from a manual run on 2026-07-25.
-  "code/03_merge/compile_soil_env.R",
-  "code/04_drivers/moisture_elevation_check.R",
-  "code/04_drivers/moisture_interpolation.R",
-  "code/06_upscale/surface_area_model.R",
+  "code/03_merge/02_compile_soil_env.R",
+  "code/04_drivers/06_moisture_elevation_check.R",
+  "code/04_drivers/05_moisture_interpolation.R",
+  "code/06_upscale/05_surface_area_model.R",
   # Promoted out of exploratory/ 2026-07-29. Figure 6 panel (b) reads
   # outputs/data/FAPROTAX_all_functions_HW_SW.csv, and this is its ONLY
   # producer -- but it lived in exploratory/, which the glob below never reaches
   # (non-recursive, by design). So fig06_hydrogenotrophy.R aborted on every
-  # run since 2026-07-23, and because 00_assemble_figures.R tests only
+  # run since 2026-07-23, and because zz_assemble_figures.R tests only
   # file.exists() and never mtime, the assembler copied a stale PNG and reported
   # success. A load-bearing producer must not sit in a directory documented as
   # not-run. It reads raw data only, so it has no ordering constraint beyond
   # preceding the figure block.
-  "code/07_molecular/faprotax_dump_HW_SW.R",
-  "code/06_upscale/area_distribution_scenarios.R",
-  "code/05_model/height_form_crossvalidation.R",
-  "code/05_model/rf_model_diagnostics.R",
-  "code/05_model/rf_species_fallback_loso.R",
-  "code/05_model/rf_species_pooling.R",
-  "code/05_model/rf_species_bias_audit.R",
-  # figS21_rf-model-summary.R runs once, with the figures (make_figures.R); it was
+  "code/07_molecular/01_faprotax_dump_HW_SW.R",
+  "code/06_upscale/06_area_distribution_scenarios.R",
+  "code/05_model/13_height_form_crossvalidation.R",
+  "code/05_model/06_rf_model_diagnostics.R",
+  "code/05_model/09_rf_species_fallback_loso.R",
+  "code/05_model/10_rf_species_pooling.R",
+  "code/05_model/11_rf_species_bias_audit.R",
+  # figS24_rf-model-summary.R runs once, with the figures (make_figures.R); it was
   # listed here too and ran twice (~10 min of permutation importance each time).
-  "code/05_model/model_family_comparison.R",
-  "code/05_model/rf_height_extrapolation.R",
-  "code/06_upscale/scaling_assumptions_audit.R",
+  "code/05_model/12_model_family_comparison.R",
+  "code/05_model/14_rf_height_extrapolation.R",
+  "code/06_upscale/08_scaling_assumptions_audit.R",
   # Referee-facing evidence produced in the 2026-07-30 pass. Both were written but
   # never wired in, which is the same defect this file exists to prevent.
-  "code/05_model/rf_predictor_selection_current.R",  # -> rf_predictor_selection_current.csv
-  "code/05_model/rf_calibration_sensitivity.R")      # -> rf_calibration_sensitivity.csv
+  "code/05_model/07_rf_predictor_selection.R",  # -> rf_predictor_selection_current.csv
+  "code/05_model/08_rf_calibration_sensitivity.R")      # -> rf_calibration_sensitivity.csv
 SUPPORT <- SUPPORT[file.exists(SUPPORT)]
 cat(sprintf("\n== SUPPORTING ANALYSES (%d) ==\n", length(SUPPORT)))
 for (f in SUPPORT) run(f)
@@ -153,24 +153,24 @@ for (f in SUPPORT) run(f)
 # disk keep all 28 invariants passing. Select on meaning, never on spelling.
 # This list was generated from the glob it replaces and verified set-identical.
 rest <- c(
-  "code/09_tables_stats/stat_campaign_counts.R",
-  "code/09_tables_stats/stat_clade-census.R",
-  "code/09_tables_stats/stat_mass-basis-sensitivity.R",
-  "code/09_tables_stats/stat_copies-per-gram.R",
-  "code/09_tables_stats/stat_dbh_by_species_campaign.R",
-  "code/09_tables_stats/stat_faprotax-caveats.R",
-  "code/09_tables_stats/stat_isotopes-canonical.R",
-  "code/09_tables_stats/stat_gene-rf.R",            # -> gene_rf_cv.csv (SI Methods S4)
-  "code/09_tables_stats/stat_known-putative-table.R",
-  "code/09_tables_stats/stat_multigene-models.R",
-  "code/09_tables_stats/stat_pmoa-mmox-robustness.R",
-  "code/09_tables_stats/stat_s1-rf-soil-arcsinh.R",
-  "code/09_tables_stats/stat_s1s2-arcsinh.R",
-  "code/09_tables_stats/stat_species-aggregation-rma.R",
-  "code/09_tables_stats/stat_tree-distribution.R",
-  "code/09_tables_stats/stat_tree_flux_merged.R",
-  "code/09_tables_stats/stat_variance-partition.R",
-  "code/09_tables_stats/tbl_ddpcr-16s-concordance.R"
+  "code/09_tables_stats/02_campaign_counts.R",
+  "code/09_tables_stats/03_clade-census.R",
+  "code/09_tables_stats/07_mass-basis-sensitivity.R",
+  "code/09_tables_stats/06_copies-per-gram.R",
+  "code/09_tables_stats/08_dbh_by_species_campaign.R",
+  "code/09_tables_stats/13_faprotax-caveats.R",
+  "code/09_tables_stats/12_isotopes-canonical.R",
+  "code/09_tables_stats/19_gene-rf.R",            # -> gene_rf_cv.csv (SI Methods S4)
+  "code/09_tables_stats/04_known-putative-table.R",
+  "code/09_tables_stats/14_multigene-models.R",
+  "code/09_tables_stats/18_pmoa-mmox-robustness.R",
+  "code/09_tables_stats/16_s1-rf-soil-arcsinh.R",
+  "code/09_tables_stats/15_s1s2-arcsinh.R",
+  "code/09_tables_stats/17_species-aggregation-rma.R",
+  "code/09_tables_stats/09_tree-distribution.R",
+  "code/09_tables_stats/10_tree_flux_merged.R",
+  "code/09_tables_stats/11_variance-partition.R",
+  "code/09_tables_stats/05_table_ddpcr-16s-concordance.R"
 )
 rest <- setdiff(rest, c(CORE, SUPPORT))
 local({
@@ -185,7 +185,7 @@ for (f in rest) run(f)
 # --- 3b) regenerate the parameter record from the canonical outputs ----------
 # scaling_parameters.md section 0 claims "nothing here is typed by hand". This is what
 # makes that true; without it the claim drifted through four rounds of changes.
-run("code/09_tables_stats/write_parameter_record.R")
+run("code/09_tables_stats/21_write_parameter_record.R")
 
 # --- 4) figures and assembly -------------------------------------------------
 # One runner for every figure: make_figures.R runs each generator in its own
@@ -198,7 +198,7 @@ run("code/make_figures.R")
 # --- 4b) archive tables -------------------------------------------------------
 # data/compiled/ is the Zenodo copy of the canonical tables. It was never rebuilt by
 # this script, so it went stale after every run (check_consistency.R compares it).
-run("code/zenodo/compile_zenodo_datasets.R")
+run("code/zenodo/01_compile_datasets.R")
 
 # --- 5) report anything never reached ----------------------------------------
 source("code/lib/figure_scripts.R")         # run by make_figures.R (step 4)
@@ -218,14 +218,14 @@ allR <- setdiff(
   list.files("code/archive", "\\.R$", recursive = TRUE, full.names = TRUE))
 never <- setdiff(allR, c(CORE, SUPPORT, rest, SOURCED,
                          "code/run_all.R",
-                         "code/zenodo/compile_zenodo_datasets.R",
-                         "code/08_figures/00_assemble_figures.R",
+                         "code/zenodo/01_compile_datasets.R",
+                         "code/08_figures/zz_assemble_figures.R",
                          # Run standalone at step 3b, not via CORE/SUPPORT/rest, so it
                          # was absent here and got reported as "never run" on every
                          # pass -- immediately after this script had just run it. The
                          # 2026-07-31 reorg audit nearly archived it on that evidence;
                          # it is the only producer of scaling_parameters.md section 0.
-                         "code/09_tables_stats/write_parameter_record.R",
+                         "code/09_tables_stats/21_write_parameter_record.R",
                          # The gate. Deliberately not part of the pipeline (it checks
                          # agreement BETWEEN outputs, so it runs after, by hand), but
                          # it is not dead either.

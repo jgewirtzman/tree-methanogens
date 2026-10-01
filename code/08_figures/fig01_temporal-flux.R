@@ -25,7 +25,7 @@ soil_dataset <- read.csv('data/processed/flux/semirigid_tree_final_complete_data
 tree_dataset <- read.csv('data/processed/flux/semirigid_tree_final_complete_dataset_with_untagged.csv')  # includes recovered untagged/dead-snag monthly trees
 
 # Measurements are excluded only for procedural failure: the chamber screen in
-# qc_c0_screen.R (two soil chambers not at ambient at closure). The r2 >= 0.7 and
+# 02_qc_c0_screen.R (two soil chambers not at ambient at closure). The r2 >= 0.7 and
 # -100..200 filters that stood here were removed 2026-10-01: an r2 screen is not a
 # detection criterion and inflated the mean stem flux 144% (Methods S4).
 QC_EXCLUDED <- read.csv("outputs/data/qc_excluded_measurements.csv")$UniqueID

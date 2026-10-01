@@ -24,7 +24,7 @@
 # whose mean is 7x their own. It carried 11.81% of the tree flux on 3.81% of the
 # band area, and the fix moves the measured band term down ~7%.
 #
-# It also made rf_species_pooling.R inert: the scheme its cross-validation
+# It also made 10_rf_species_pooling.R inert: the scheme its cross-validation
 # selected was not the scheme the budget used.
 #
 # The mapping is fully determined by `trained` -- no taxonomy table is needed,

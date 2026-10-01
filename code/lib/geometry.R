@@ -53,7 +53,7 @@ GAP_CELL_M  <- 20          # ForestGEO quadrat size; the census's own survey uni
 
 # The seven quadrats absent from the raw census, as codes row*100 + col with row
 # and col 0-indexed from the plot origin. Verified against the raw tables on every
-# run by inventory_build.R.
+# run by 08_inventory_build.R.
 UNCENSUSED_QUADRATS <- c(7, 8, 9, 108, 109, 208, 209)
 
 # Per 20 m PY band, the PX at which uncensused ground begins; NA = fully censused.
@@ -91,7 +91,7 @@ in_square <- function(PX, PY) {
 }
 #' TRUE for points on censused ground. Points with no coordinate return FALSE;
 #' such stems are real and must still be carried in the budget (see
-#' inventory_build.R), so test `located` separately from `in_stand`.
+#' 08_inventory_build.R), so test `located` separately from `in_stand`.
 in_stand <- function(PX, PY) in_square(PX, PY) & !in_gap(PX, PY)
 
 # Retained for readability at call sites that predate the staircase.
@@ -170,7 +170,7 @@ local({
 # missing, over the nominal square rather than the censused stand. So those scripts
 # reported a stand 12% short of stems on ground 7.5% too large -- 3,554 m2 of band
 # area and a stem-area index of 0.0888 against the canonical 4,325.9 and 0.1163,
-# i.e. 24% low. One of them, wai_bottomup_and_rf_interactions.R, is the sole
+# i.e. 24% low. One of them, 04_wai_bottomup.R, is the sole
 # producer of the bottom-up woody area index, which came out 1.69/2.11/2.57 when the
 # canonical inventory gives 2.23/2.82/3.40 -- 32% low in a quantity that multiplies
 # roughly 70% of the headline scaling estimate.
@@ -184,7 +184,7 @@ local({
 # been migrated; four unreached model-selection scripts still read the placeholder
 # (rf_model_selection.R, rf_predictor_selection.R,
 # rf_predictor_significance.R, mdf_11_ambient_map.R) and are superseded by
-# rf_predictor_selection_current.R.
+# 07_rf_predictor_selection.R.
 # ==============================================================================
 
 # Hulshof et al. 2015 Ecol Evol 5:1193-1204 exponents; site-specific scale.
@@ -204,7 +204,7 @@ stem_height_m <- function(dbh_m, species, canopy_h = CANOPY_H_M) {
   1.37 + a * dbh_m^ifelse(gy, ALLOM_B_GYMNO, ALLOM_B_ANGIO)
 }
 
-#' THE stem list. Reads what inventory_build.R wrote; adds dbh, H and band area.
+#' THE stem list. Reads what 08_inventory_build.R wrote; adds dbh, H and band area.
 #' in_stand_only = TRUE gives the 8,006 stems the budget is defined over.
 canonical_inventory <- function(in_stand_only = TRUE,
                                 file = "outputs/tables/inventory_stems.csv") {
@@ -213,14 +213,14 @@ canonical_inventory <- function(in_stand_only = TRUE,
     file <- file.path("../..", file)
   if (!file.exists(file))
     stop("canonical_inventory(): missing ", file,
-         " -- run: Rscript code/01_import/inventory_build.R")
+         " -- run: Rscript code/01_import/08_inventory_build.R")
   INV <- utils::read.csv(file, stringsAsFactors = FALSE)
   INV <- INV[is.finite(INV$dbh_m) & INV$dbh_m > 0, ]
   if (in_stand_only) INV <- INV[INV$in_stand, ]
   INV$dbh <- INV$dbh_m
   INV$H   <- stem_height_m(INV$dbh_m, INV$species)
   # Kalmia is a shrub measured over 0.75 m, not 2 m -- matches the band used by
-  # predict_tree_flux_current.R. %in% is NA-safe; 41 stems have species = NA.
+  # 01_predict_tree_flux.R. %in% is NA-safe; 41 stems have species = NA.
   INV$band_m     <- ifelse(INV$species %in% "Kalmia latifolia", 0.75, 2.00)
   INV$A_band_m2  <- pi * INV$dbh_m * INV$band_m
   INV

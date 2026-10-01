@@ -1,8 +1,8 @@
 # ==============================================================================
 # isotope_samples.R -- the one definition of the whole-tree delta13C sample set
 # ------------------------------------------------------------------------------
-# Used by stat_isotopes-canonical.R, figS12_isotope-sources.R,
-# 11a_isotope_d13ch4_single.R and manuscript_statistics.R. Until 2026-10-01 each
+# Used by 12_isotopes-canonical.R, figS17_isotope-sources.R,
+# 11a_isotope_d13ch4_single.R and 20_manuscript_statistics.R. Until 2026-10-01 each
 # selected samples its own way, and the paper quoted two sets that disagreed
 # (n = 125, median -63.7 vs n = 130, median -63.0):
 #   - three scripts kept only samples whose name matched a species in the ddPCR

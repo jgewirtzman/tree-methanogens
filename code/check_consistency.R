@@ -172,7 +172,7 @@ live <- setdiff(list.files("code", "\\.R$", recursive = TRUE, full.names = TRUE)
 wpat <- "(write\\.csv|write_csv|write\\.table|saveRDS|save|ggsave|fwrite|write_tsv)\\s*\\("
 # Scripts that write model files only into a temporary SANDBOX directory (never
 # outputs/models): they reuse the canonical file names by design.
-SANDBOX_WRITERS <- c("code/05_model/audit_training_population.R")
+SANDBOX_WRITERS <- c("code/05_model/05_audit_training_population.R")
 pathre <- "[\"'][^\"']+\\.(csv|rds|RData|rda|tsv|png|pdf|txt)[\"']"
 writers <- list()
 for (f in setdiff(live, SANDBOX_WRITERS)) {
@@ -195,10 +195,10 @@ chk("every output file has exactly one writing script", !length(multi),
     sprintf("%d files scanned", length(writers)))
 
 # 1b. only the data stages write into data/. Analysis, model, upscaling, figure and
-#     stats scripts write outputs/. qc_c0_screen.R rewrote data/compiled/ in place
+#     stats scripts write outputs/. 02_qc_c0_screen.R rewrote data/compiled/ in place
 #     through a variable (f <- "data/compiled/..."), which the literal-path scan above
 #     cannot see, so paths held in variables are followed here.
-DATA_STAGES <- c("code/01_import", "code/02_flux", "code/03_merge", "code/zenodo", "code/05_model/01_load_and_prep_data.R")
+DATA_STAGES <- c("code/01_import", "code/02_flux", "code/03_merge", "code/zenodo", "code/tools", "code/05_model/01_load_and_prep_data.R")  # stages that build data/; tools/ holds the hand-run window picker
 analysis <- live[!vapply(live, function(f) any(startsWith(f, DATA_STAGES)), TRUE) & !grepl("check_consistency", live)]
 writes_data <- character(0)
 for (f in analysis) {
@@ -268,7 +268,7 @@ if (!is.null(GS)) chk("no internal-gas CH4 is exactly 0 (the old clamp)", !any(G
 if (!is.null(GS) && !is.null(MG))
   chk("merged table carries the current gas calibration",
       isTRUE(all.equal(sort(GS$CH4_concentration), sort(MG$CH4_concentration[!is.na(MG$CH4_concentration)]))),
-      "rerun code/03_merge/02_harmonize_all_data.R after 03_process_internal_gas.R")
+      "rerun code/03_merge/04_harmonize_all_data.R after 03_process_internal_gas.R")
 
 cat(sprintf("\n%s  %d check(s) failed\n\n", if (FAILS == 0L) "ALL CONSISTENT." else "INCONSISTENT.", FAILS))
 if (FAILS > 0L) quit(status = 1L)

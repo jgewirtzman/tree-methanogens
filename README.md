@@ -104,7 +104,7 @@ Scripts are numbered within each stage to indicate run order. Scripts prefixed `
 | `08_figures` | Figure generation and assembly of the numbered manuscript set | `outputs/figures/{main,SI}/` |
 | `09_tables_stats` | Manuscript statistics and summary tables | `outputs/tables/`, `outputs/audit/` |
 
-`code/09_tables_stats/manuscript_statistics.R` recomputes every quantitative result reported in the manuscript from the underlying data, organized by manuscript section.
+`code/09_tables_stats/20_manuscript_statistics.R` recomputes every quantitative result reported in the manuscript from the underlying data, organized by manuscript section.
 
 `code/check_consistency.R` verifies that the canonical outputs agree with one another — that the budget recomputes from the per-stem predictions, that monthly values sum to annual totals, and so on. It runs in seconds and exits non-zero on failure.
 
@@ -116,7 +116,7 @@ Rscript code/make_figures.R
 
 This runs every figure generator and then assembles the numbered manuscript set into `outputs/figures/main/` and `outputs/figures/SI/`. The current set is 9 main-text figures, 25 supplementary figures, photo plates, and 5 tables.
 
-`code/08_figures/00_assemble_figures.R` maps each manuscript figure number to the script output that produces it, and writes `outputs/figures/MANIFEST.md` describing the assembled set.
+`code/08_figures/zz_assemble_figures.R` maps each manuscript figure number to the script output that produces it, and writes `outputs/figures/MANIFEST.md` describing the assembled set.
 
 ## Key datasets
 
@@ -139,13 +139,13 @@ Written to `outputs/data/`. These are pipeline results rather than input data, s
 
 | File | Produced by | Contents |
 |------|-------------|----------|
-| `canonical_budget.csv` | `06_upscale/budget_canonical.R` | Stand area, stem area, tree and soil flux terms, net budget, model skill |
-| `canonical_monthly.csv` | `06_upscale/budget_canonical.R` | Monthly tree and soil terms |
-| `scaling_full_grid.csv` | `06_upscale/scaling_full_grid.R` | All 240 scaling scenario combinations |
-| `scaling_headline.csv` | `06_upscale/scaling_full_grid.R` | The reported scaling scenario |
-| `wai_bottomup.csv` | `06_upscale/wai_bottomup_and_rf_interactions.R` | Bottom-up woody area index |
-| `rf_grouped_cv.csv` | `05_model/rf_grouped_cv.R` | Cross-validated model skill, grouped by tree and by collar |
-| `inventory_stems.csv` | `01_import/inventory_build.R` | One row per stem for the censused stand (8,006 stems) |
+| `canonical_budget.csv` | `06_upscale/03_budget_canonical.R` | Stand area, stem area, tree and soil flux terms, net budget, model skill |
+| `canonical_monthly.csv` | `06_upscale/03_budget_canonical.R` | Monthly tree and soil terms |
+| `scaling_full_grid.csv` | `06_upscale/07_scaling_full_grid.R` | All 240 scaling scenario combinations |
+| `scaling_headline.csv` | `06_upscale/07_scaling_full_grid.R` | The reported scaling scenario |
+| `wai_bottomup.csv` | `06_upscale/04_wai_bottomup.R` | Bottom-up woody area index |
+| `rf_grouped_cv.csv` | `05_model/04_rf_grouped_cv.R` | Cross-validated model skill, grouped by tree and by collar |
+| `inventory_stems.csv` | `01_import/08_inventory_build.R` | One row per stem for the censused stand (8,006 stems) |
 
 ## Methanotroph definitions
 

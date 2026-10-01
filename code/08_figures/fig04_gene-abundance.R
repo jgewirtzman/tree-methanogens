@@ -2,12 +2,12 @@ source("code/lib/outputs.R")
 # ==============================================================================
 # REVISION — Fig 4 final: methanogen (mcrA) / methanotroph (pmoA,mmoX) gene
 # abundance by compartment (heartwood/sapwood/soil), (a) species barplot + (b) scatter.
-# Copy of the original generator (code/08_figures/util_combined_plot.R) with a
+# Copy of the original generator (code/archive/superseded_2026-10-01/08_figures/util_combined_plot.R) with a
 # DILUTION_10X toggle (default 1) on the absolute ddPCR copies — flip to 10 if Wyatt
 # confirms the dropped template->reaction dilution (A1). Original scripts untouched.
 #
 # UNITS: the ddpcr_*_loose columns are ALREADY copies g^-1 — the harmonization step
-# (code/03_merge/02_harmonize_all_data.R:317) applies concentration_per_g =
+# (code/03_merge/04_harmonize_all_data.R:317) applies concentration_per_g =
 # copies/uL * 75 / sample_mass * 1000 (elution / sample mass). Basis: DRY for wood
 # (freeze-dried cores); soil uses fresh sample mass (the pending A2 dry-basis
 # harmonization would move soil to a dry basis and needs soil moisture we don't have).
@@ -23,8 +23,8 @@ merged_final <- read_csv("data/processed/integrated/merged_tree_dataset_final.cs
 ddpcr_cols <- grep("^ddpcr_.*_loose$", names(merged_final), value = TRUE)
 merged_final[ddpcr_cols] <- merged_final[ddpcr_cols] * DILUTION_10X   # x10 toggle (absolute copies only)
 
-source("code/08_figures/04_species_barplots.R")   # defines create_mcra_barplot_by_species + species_mapping
-source("code/07_molecular/util_ridge_plots.R")       # defines create_gene_scatter_ggside_transformed_probe_mcra
+source("code/08_figures/helper_species_barplots.R")   # defines create_mcra_barplot_by_species + species_mapping
+source("code/07_molecular/helper_ridge_plots.R")       # defines create_gene_scatter_ggside_transformed_probe_mcra
 
 result      <- create_mcra_barplot_by_species(merged_final, species_mapping)
 scatterplot <- create_gene_scatter_ggside_transformed_probe_mcra(merged_final)
