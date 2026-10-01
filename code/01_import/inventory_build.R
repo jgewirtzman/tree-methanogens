@@ -90,8 +90,16 @@ A <- fg19 %>% transmute(
   dbh_cm_raw = num(DBH),                     # centimetres
   PX = num(PX), PY = num(PY),
   quadrat = num(Quadrat),
-  position = ifelse(is.finite(num(PX)), "measured", NA_character_)) %>%
-  distinct(tag, stem, .keep_all = TRUE)
+  position = ifelse(is.finite(num(PX)), "measured", NA_character_),
+  notes = Notes) %>%
+  # REPEATED TAGS ARE MOSTLY DIFFERENT STEMS (2026-09-30). This was distinct(tag, stem),
+  # which kept only the first row of each tag: 169 rows, 5.5 m2 of basal area, were
+  # dropped. Of the 165 repeated tags, 70 carry different species (tag numbers reused)
+  # and most same-species pairs lie metres apart. Only exact re-entries (same species,
+  # position and diameter: 14) are duplicates, plus the two the census notes flag.
+  distinct(tag, stem, species_code, dbh_cm_raw, PX, PY, .keep_all = TRUE) %>%
+  filter(!grepl("^\\s*same stem as|also tagged with", notes, ignore.case = TRUE)) %>%
+  select(-notes)
 
 # 2018 POSITIONS ARE RECOMPUTED FROM QUADRAT + LOCAL COORDINATES (2026-09-30).
 # The file's own PX/PY reproduce quadrat*20 + local for 911 of 940 stems; the 29 in
@@ -111,7 +119,29 @@ B <- btag %>% transmute(
   position = ifelse(is.finite(.lx) & is.finite(.ly), "measured",
                     ifelse(is.finite(.sx) & is.finite(.sy), "subquadrat centre", NA_character_))) %>%
   select(-.lx, -.ly, -.sx, -.sy) %>%
-  distinct(tag, .keep_all = TRUE)
+  distinct(tag, quadrat, species_code, dbh_cm_raw, PX, PY, .keep_all = TRUE)   # tag 10 is two trees
+
+# 2018 MULTI-STEM TREES (2026-09-30). Per the census codes sheet, a stem coded M has
+# its diameters "entered on multiple stem sheet", so its by-tag row has NO diameter
+# and was dropped below by the dbh > 0 filter -- 17 trees, several of them among the
+# largest in the 2018 block. fg_2018_multiple_stems.csv restores them: each diameter
+# is a stem at the tree's position, species from the by-tag row. Entry artefacts:
+# one row (tag 428) is repeated by five data enterers, and three trees list their own
+# tag number as a diameter (428, 150, 152); repeats are collapsed and those values dropped.
+MS <- read.csv(file.path(RAW, "fg_2018_multiple_stems.csv"), stringsAsFactors = FALSE)
+MS <- MS[!duplicated(MS[, setdiff(names(MS), "entered_by")]), ]
+MS$quadrat <- (num(MS$quadrat_y) + 4) * 100 + (num(MS$quadrat_x) + 4)
+ms_stems <- do.call(rbind, lapply(seq_len(nrow(MS)), function(i) {
+  d <- num(unlist(MS[i, grep("^diam_mm_", names(MS))])); d <- d[is.finite(d) & d > 0 & d != MS$tag_id[i]]
+  parent <- B[B$tag == MS$tag_id[i] & B$quadrat == MS$quadrat[i], ][1, ]
+  if (!length(d) || is.na(parent$tag)) return(NULL)
+  data.frame(source = "bytag", tag = parent$tag, stem = paste0("ms", seq_along(d)),
+             species_code = parent$species_code, dbh_cm_raw = d / 10, quadrat = parent$quadrat,
+             PX = parent$PX, PY = parent$PY, position = paste0(parent$position, ", multi-stem"),
+             stringsAsFactors = FALSE)
+}))
+N_MS <- nrow(ms_stems); N_MS_TREES <- length(unique(ms_stems$tag))
+B <- bind_rows(B, ms_stems)
 
 INV <- bind_rows(A, B) %>% filter(is.finite(dbh_cm_raw), dbh_cm_raw > 0)
 
@@ -241,6 +271,7 @@ wr("\nRECORD COUNTS\n  fg19 %d | bytag %d | total %d\n",
    sum(INV$source == "fg19"), sum(INV$source == "bytag"), nrow(INV))
 wr("  tags de-duplicated WITHIN source only (tag namespaces are disjoint)\n")
 wr("  cross-census duplicates: none (tested; see the note above the dedupe section)\n")
+wr("  2018 multi-stem sheet: %d stems on %d trees added\n", N_MS, N_MS_TREES)
 wr("\nPOSITIONS\n"); for (k in names(table(INV$position, useNA = "ifany"))) wr("  %-28s %d\n", ifelse(is.na(k), "none (unlocated)", k), sum(INV$position %in% k | (is.na(k) & is.na(INV$position))))
 wr("  2019 stems > 1 quadrat from their label, now unlocated: %d\n", N_FAR)
 wr("\nDBH\n  units: fg19 cm, bytag mm; repaired if > %d cm by /10 until in range\n", MAX_DBH_CM)
