@@ -192,192 +192,30 @@ if(!lon_overlap || !lat_overlap) {
 
 
 
-# Alternative methods to extend moisture interpolation beyond convex hull
-# Load additional required libraries
-library(fields)
-library(MBA)
-library(mgcv)
-
-# Method 1: Add boundary points to extend the interpolation domain
-extend_moisture_with_boundary_points <- function(combined_moisture, stem_extent, buffer = 0.1) {
-  
-  # Get current moisture data extent
-  moisture_extent <- list(
-    lon = range(combined_moisture$Longitude),
-    lat = range(combined_moisture$Latitude)
-  )
-  
-  # Calculate expanded extent to cover stem map
-  extended_extent <- list(
-    lon = c(min(stem_extent$lon[1], moisture_extent$lon[1]), 
-            max(stem_extent$lon[2], moisture_extent$lon[2])),
-    lat = c(min(stem_extent$lat[1], moisture_extent$lat[1]), 
-            max(stem_extent$lat[2], moisture_extent$lat[2]))
-  )
-  
-  # Add buffer
-  lon_buffer <- diff(extended_extent$lon) * buffer
-  lat_buffer <- diff(extended_extent$lat) * buffer
-  extended_extent$lon <- extended_extent$lon + c(-lon_buffer, lon_buffer)
-  extended_extent$lat <- extended_extent$lat + c(-lat_buffer, lat_buffer)
-  
-  # Create boundary points with extrapolated moisture values
-  # Use edge points to estimate boundary values
-  boundary_points <- expand.grid(
-    Longitude = c(extended_extent$lon[1], extended_extent$lon[2]),
-    Latitude = seq(extended_extent$lat[1], extended_extent$lat[2], length.out = 10)
-  )
-  boundary_points <- rbind(boundary_points,
-                           expand.grid(
-                             Longitude = seq(extended_extent$lon[1], extended_extent$lon[2], length.out = 10),
-                             Latitude = c(extended_extent$lat[1], extended_extent$lat[2])
-                           )
-  )
-  
-  # Estimate VWC for boundary points using inverse distance weighting
-  boundary_points$VWC <- NA
-  for(i in 1:nrow(boundary_points)) {
-    distances <- sqrt((combined_moisture$Longitude - boundary_points$Longitude[i])^2 + 
-                        (combined_moisture$Latitude - boundary_points$Latitude[i])^2)
-    weights <- 1 / (distances^2 + 1e-6)  # Add small constant to avoid division by zero
-    boundary_points$VWC[i] <- sum(combined_moisture$VWC * weights) / sum(weights)
-  }
-  
-  # Combine original data with boundary points
-  extended_data <- rbind(combined_moisture, boundary_points)
-  
-  return(list(data = extended_data, extent = extended_extent))
-}
-
-# Method 2: Use Thin Plate Splines (fields package)
-create_tps_interpolation <- function(data, extent, resolution = 150) {
-  
-  # Create interpolation grid
-  grid_x <- seq(extent$lon[1], extent$lon[2], length.out = resolution)
-  grid_y <- seq(extent$lat[1], extent$lat[2], length.out = resolution)
-  grid_locations <- expand.grid(Longitude = grid_x, Latitude = grid_y)
-  
-  # Fit thin plate spline
-  tps_fit <- Tps(x = cbind(data$Longitude, data$Latitude), Y = data$VWC)
-  
-  # Predict on grid
-  grid_locations$VWC <- predict(tps_fit, x = cbind(grid_locations$Longitude, grid_locations$Latitude))
-  
-  return(grid_locations)
-}
-
-# Method 3: Use GAM (mgcv package) 
-create_gam_interpolation <- function(data, extent, resolution = 150) {
-  
-  # Fit GAM model
-  gam_fit <- gam(VWC ~ s(Longitude, Latitude, k = 20), data = data)
-  
-  # Create prediction grid
-  grid_x <- seq(extent$lon[1], extent$lon[2], length.out = resolution)
-  grid_y <- seq(extent$lat[1], extent$lat[2], length.out = resolution)
-  grid_locations <- expand.grid(Longitude = grid_x, Latitude = grid_y)
-  
-  # Predict on grid
-  grid_locations$VWC <- predict(gam_fit, newdata = grid_locations)
-  
-  return(grid_locations)
-}
-
-# Get stem map extent
-stem_extent <- list(
-  lon = range(fg_final$Longitude_final, na.rm = TRUE),
-  lat = range(fg_final$Latitude_final, na.rm = TRUE)
-)
-
-cat("=== EXTENDED INTERPOLATION METHODS ===\n")
-cat("Stem map extent:\n")
-cat("  Longitude:", round(stem_extent$lon, 6), "\n")
-cat("  Latitude:", round(stem_extent$lat, 6), "\n\n")
-
-# Method 1: Boundary point extension
-cat("Method 1: Adding boundary points...\n")
-extended_result <- extend_moisture_with_boundary_points(combined_moisture, stem_extent)
-extended_moisture_akima <- interp(x = extended_result$data$Longitude,
-                                  y = extended_result$data$Latitude,
-                                  z = extended_result$data$VWC,
-                                  xo = seq(extended_result$extent$lon[1], extended_result$extent$lon[2], length = 150),
-                                  yo = seq(extended_result$extent$lat[1], extended_result$extent$lat[2], length = 150),
-                                  duplicate = "mean")
-
-extended_akima_df <- expand.grid(Longitude = extended_moisture_akima$x, 
-                                 Latitude = extended_moisture_akima$y)
-extended_akima_df$VWC <- as.vector(extended_moisture_akima$z)
-extended_akima_df <- extended_akima_df[!is.na(extended_akima_df$VWC), ]
-cat("  Grid points:", nrow(extended_akima_df), "\n")
-
-# Method 2: Thin Plate Splines
-cat("Method 2: Thin Plate Splines...\n")
-tps_df <- create_tps_interpolation(combined_moisture, extended_result$extent)
-tps_df <- tps_df[!is.na(tps_df$VWC), ]
-cat("  Grid points:", nrow(tps_df), "\n")
-
-# Method 3: GAM interpolation
-cat("Method 3: GAM interpolation...\n")
-gam_df <- create_gam_interpolation(combined_moisture, extended_result$extent)
-gam_df <- gam_df[!is.na(gam_df$VWC), ]
-cat("  Grid points:", nrow(gam_df), "\n\n")
-
-# Check tree coverage for each method
-check_coverage <- function(trees, interp_df, method_name) {
-  in_bounds <- trees$Longitude_final >= min(interp_df$Longitude) & 
-    trees$Longitude_final <= max(interp_df$Longitude) &
-    trees$Latitude_final >= min(interp_df$Latitude) & 
-    trees$Latitude_final <= max(interp_df$Latitude)
-  
-  cat(method_name, "coverage:", sum(in_bounds), "/", nrow(trees), 
-      "(", round(sum(in_bounds)/nrow(trees)*100, 1), "%)\n")
-  return(in_bounds)
-}
-
-cat("=== COVERAGE ANALYSIS ===\n")
-akima_coverage <- check_coverage(fg_final, extended_akima_df, "Extended Akima")
-tps_coverage <- check_coverage(fg_final, tps_df, "Thin Plate Splines")
-gam_coverage <- check_coverage(fg_final, gam_df, "GAM")
-cat("\n")
-
-# Create comparison plots
-create_method_plot <- function(interp_df, trees, title, method_name) {
-  ggplot() +
-    geom_raster(data = interp_df, aes(x = Longitude, y = Latitude, fill = VWC), alpha = 0.7) +
-    geom_point(data = trees, aes(x = Longitude_final, y = Latitude_final, size = BasalArea_m2), 
-               alpha = 0.6, color = "black", stroke = 0.2) +
-    geom_point(data = combined_moisture, aes(x = Longitude, y = Latitude), 
-               color = "red", size = 1, alpha = 0.8) +
-    scale_fill_viridis_c(name = "VWC %", option = "viridis", direction = -1) +
-    scale_size_continuous(name = "Basal Area\n(m²)", range = c(0.3, 2)) +
-    coord_equal() +
-    labs(title = title,
-         subtitle = paste("Red dots = moisture data points, Black dots = trees"),
-         x = "Longitude", y = "Latitude") +
-    theme_minimal() +
-    theme(legend.position = "right")
-}
-
-# Create plots for each method
-p1 <- create_method_plot(extended_akima_df, fg_final, 
-                         "Extended Akima (Boundary Points)", "akima")
-p2 <- create_method_plot(tps_df, fg_final, 
-                         "Thin Plate Splines", "tps")
-p3 <- create_method_plot(gam_df, fg_final, 
-                         "GAM Interpolation", "gam")
-
-print(p1)
-print(p2)
-print(p3)
-
-# Choose the best method (highest coverage) for final overlay
-best_coverage <- which.max(c(sum(akima_coverage), sum(tps_coverage), sum(gam_coverage)))
-best_method <- c("Extended Akima", "Thin Plate Splines", "GAM")[best_coverage]
-best_df <- list(extended_akima_df, tps_df, gam_df)[[best_coverage]]
-
-cat("=== RECOMMENDED METHOD ===\n")
-cat("Best coverage achieved by:", best_method, "\n")
-cat("Using this method for final overlay plot...\n\n")
+# Moisture background: THE surface the analysis uses, not a separate interpolation.
+# 04_moisture_surface.R fits a thin-plate spline to the December 2020 survey (survey
+# points only) and saves the fit. Here it is predicted on a regular lon/lat grid so it
+# can be drawn with geom_raster, floored at the survey minimum as there, and masked to
+# the convex hull of the survey points, outside which the spline has no data.
+# This replaces a choice among akima-with-boundary-points, TPS and GAM surfaces that
+# included stream points at an assumed 100% VWC, which the analysis does not use.
+source("code/lib/geometry.R")
+suppressPackageStartupMessages(library(fields))
+MS <- readRDS("outputs/models/moisture_surface_tps.rds")
+tr_ms <- geo_transforms()
+ext <- list(lon = range(c(fg_final$Longitude_final, plot_tree_ellipses$Longitude), na.rm = TRUE),
+            lat = range(c(fg_final$Latitude_final, plot_tree_ellipses$Latitude), na.rm = TRUE))
+pad <- 0.03
+ext$lon <- ext$lon + c(-1, 1) * pad * diff(ext$lon); ext$lat <- ext$lat + c(-1, 1) * pad * diff(ext$lat)
+best_df <- expand.grid(Longitude = seq(ext$lon[1], ext$lon[2], length.out = 300),
+                       Latitude  = seq(ext$lat[1], ext$lat[2], length.out = 300))
+pl <- tr_ms$inv(best_df$Latitude, best_df$Longitude)
+hull <- MS$points[chull(MS$points$PX, MS$points$PY), ]
+best_df <- best_df[sp::point.in.polygon(pl$PX, pl$PY, hull$PX, hull$PY) > 0, ]
+pl <- tr_ms$inv(best_df$Latitude, best_df$Longitude)
+best_df$VWC <- pmax(as.numeric(predict(MS$fit, cbind(pl$PX, pl$PY))), MS$floor)
+cat(sprintf("Moisture surface (04_moisture_surface.R fit): %d cells inside the survey hull, VWC %.1f-%.1f%%\n",
+            nrow(best_df), min(best_df$VWC), max(best_df$VWC)))
 
 # Function to calculate minimum area bounding box with rotation
 calculate_minimum_bounding_box <- function(points, buffer_pct = 0.01) {

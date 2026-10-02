@@ -25,11 +25,12 @@
 # skill is poor -- LOO RMSE ~16 VWC% against a survey mean of 22.6 -- so 71 points
 # at 13 m median spacing support large-scale structure and nothing finer.
 #
-# Caveat inherited from the input, and worth stating in the methods: river points
-# are inserted into the survey with an ASSUMED VWC of 100%, which is not a
-# measurement, and it anchors the wet end of the gradient.
+# Input: the survey points only. The old akima surface added stream points at an
+# assumed 100% VWC; this one does not, so the wet end is set by the wettest survey
+# readings (max 79.8%).
 #
 # Output: outputs/tables/moisture_surface_grid.csv
+#         outputs/models/moisture_surface_tps.rds (the fit, so Figure S1 draws this surface)
 # ==============================================================================
 suppressPackageStartupMessages({library(dplyr); library(fields)})
 set.seed(42)
@@ -63,6 +64,9 @@ cat(sprintf("survey points inside the 200 m square: %d of %d\n", sum(inside), nr
 fit <- suppressWarnings(Tps(cbind(D$PX, D$PY), D$vwc))
 cat(sprintf("spline fitted on all %d survey points (%d of them outside the square)\n",
             nrow(D), sum(!in_square(D$PX, D$PY))))
+dir.create("outputs/models", showWarnings = FALSE, recursive = TRUE)
+MS_FIT <- list(fit = fit, floor = min(D$vwc), points = D)
+saveRDS(MS_FIT, "outputs/models/moisture_surface_tps.rds")
 half <- CELL_M/2
 G <- expand.grid(PX = seq(half, PLOT_SIDE_M - half, by = CELL_M),
                  PY = seq(half, PLOT_SIDE_M - half, by = CELL_M))
