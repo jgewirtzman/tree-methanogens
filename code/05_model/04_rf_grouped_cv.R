@@ -33,7 +33,10 @@ load("outputs/models/TRAINING_DATA.RData")
 # over 30 independent seeds the grouped R2 ranges 0.043-0.156. A 5-repeat SD came out
 # at 0.0060 and understated the true spread (~0.025) by about four-fold, and this
 # number is quoted in canonical_budget.csv and on the main-text model panel.
-NREP <- 30; NFOLD <- 5
+# 100, not 30 (2026-10-01): with a per-repeat SD of ~0.027 the 30-repeat mean has a
+# standard error of ~0.005, enough to flip the second decimal between runs; at 100 it
+# is ~0.003.
+NREP <- 100; NFOLD <- 5
 r2 <- function(a, b) 1 - sum((a - b)^2) / sum((a - mean(a))^2)
 
 # Score one locked spec: OOB (as reported) vs grouped CV (honest), NREP x NFOLD.
@@ -45,7 +48,7 @@ grouped_cv <- function(X, y, grp, rf, label, unit) {
 
   per_rep <- numeric(NREP); ratio <- numeric(NREP)
   for (rep in seq_len(NREP)) {
-    ut <- unique(grp)
+    ut <- sort(unique(grp), method = "radix")   # fold draw independent of row order
     set.seed(1000 + rep)
     gm <- setNames(sample(rep(seq_len(NFOLD), length.out = length(ut))), ut)
     f  <- unname(gm[grp])
