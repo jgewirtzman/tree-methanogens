@@ -49,7 +49,8 @@ panel<-function(metric,xlab,catlabs){
 pA<-panel("bark","Bark loss (decay)",c("healthy","moderate","severe","dead"))
 pB<-panel("wound","Wounding (damage)",c("1","2","3","4"))
 ggsave("outputs/figures/generated/figS20_stem_deterioration.png",
-  (pA | pB+labs(y=NULL))+plot_annotation(
-    caption="Species-controlled (1|species), n=282. Rise into moderate deterioration robust to mean/median/rank."),
-  width=11,height=5,dpi=300)
+  # model note (species random intercept, n = 282; robustness) is in the SI caption
+  (pA | pB+labs(y=NULL))+plot_annotation(tag_levels="a", tag_prefix="(", tag_suffix=")") &
+    theme(plot.tag=element_text(size=14, face="bold")),
+  width=11,height=5,dpi=300,bg="white")
 cat("wrote outputs/figures/generated/figS20_stem_deterioration.png\n")

@@ -30,10 +30,10 @@ PRED <- tibble(
   key   = c("mcrA", "pmoA", "mmoX", "methanotroph", "ratio"),
   label = c("mcrA", "pmoA", "mmoX", "pmoA+mmoX", "Ratio"),
   lg    = c("lg_mcra", "lg_pmoa", "lg_mmox", "lg_meth", "lg_ratio"),
-  col   = c("#E74C3C", "#3498DB", "#5DADE2", "#1F618D", "#9B59B6"))
-xlab_i  <- list(mcrA=expression(log[10]~mcrA), pmoA=expression(log[10]~pmoA), mmoX=expression(log[10]~mmoX), methanotroph=expression(log[10]~(pmoA+mmoX)), ratio=expression(log[10]~ratio))
-xlab_md <- list(mcrA=expression(median~log[10]~mcrA), pmoA=expression(median~log[10]~pmoA), mmoX=expression(median~log[10]~mmoX), methanotroph=expression(median~log[10]~(pmoA+mmoX)), ratio=expression(median~log[10]~ratio))
-xlab_mn <- list(mcrA=expression(mean~log[10]~mcrA), pmoA=expression(mean~log[10]~pmoA), mmoX=expression(mean~log[10]~mmoX), methanotroph=expression(mean~log[10]~(pmoA+mmoX)), ratio=expression(mean~log[10]~ratio))
+  col   = c("#C03221", "#4A6FA5", "#7FA7D0", "#2C4A73", "#6B5B95"))   # as in Figure 8
+xlab_i  <- list(mcrA=expression(log[10]~italic(mcrA)), pmoA=expression(log[10]~italic(pmoA)), mmoX=expression(log[10]~italic(mmoX)), methanotroph=expression(log[10]~(italic(pmoA)+italic(mmoX))), ratio=expression(log[10]~ratio))
+xlab_md <- list(mcrA=expression(Median~log[10]~italic(mcrA)), pmoA=expression(Median~log[10]~italic(pmoA)), mmoX=expression(Median~log[10]~italic(mmoX)), methanotroph=expression(Median~log[10]~(italic(pmoA)+italic(mmoX))), ratio=expression(Median~log[10]~ratio))
+xlab_mn <- list(mcrA=expression(Mean~log[10]~italic(mcrA)), pmoA=expression(Mean~log[10]~italic(pmoA)), mmoX=expression(Mean~log[10]~italic(mmoX)), methanotroph=expression(Mean~log[10]~(italic(pmoA)+italic(mmoX))), ratio=expression(Mean~log[10]~ratio))
 
 # per-individual log-gene + arcsinh flux
 TL <- tree_level_complete %>% mutate(
@@ -55,14 +55,15 @@ mk <- function(k, level, tag, ylab="") {
   else                   { d <- spp %>% transmute(species, xv=.data[[paste0(lg,"_mean")]], yv=mean_af); xlab<-xlab_mn[[k]] }
   d <- d %>% filter(is.finite(xv), is.finite(yv))
   f <- lm(yv ~ xv, d); s<-coef(f)[2]; r2<-summary(f)$r.squared; p<-summary(f)$coef[2,4]
-  ggplot(d, aes(xv, yv, color=species)) +
-    geom_point(size=if (level %in% c("sp","spm")) 3.1 else 1.9, alpha=if (level %in% c("sp","spm")) 0.85 else 0.6) +
+  ggplot(d, aes(xv, yv)) +
+    geom_point(size=if (level %in% c("sp","spm")) 2.6 else 1.5, alpha=if (level %in% c("sp","spm")) 0.9 else 0.45,
+               colour="grey35", stroke=0) +
     geom_smooth(aes(group=1), method="lm", formula=y~x, se=TRUE, color=col, fill=col, alpha=0.15, linewidth=1) +
     geom_hline(yintercept=0, linetype="dashed", color="gray50") +
-    annotate("label", x=Inf, y=Inf, label=sprintf("slope=%.3f\nR2=%.3f  p=%.3f", s, r2, p), hjust=1.04, vjust=1.04, size=2.5, fill="white", alpha=0.9, label.size=0.15, lineheight=0.92) +
     scale_y_continuous(breaks=ybrk, labels=c("0","0.1","1")) +
-    scale_color_manual(values=species_palette, name="Species") +
-    labs(tag=tag, x=xlab, y=ylab) + theme_pub_gene + theme(legend.position="none") -> g
+    labs(tag=tag, x=xlab, y=ylab) + theme_pub_gene +
+    theme(legend.position="none", axis.title=element_text(size=10.5), axis.text=element_text(size=9.5),
+          plot.tag=element_text(size=11, face="bold")) -> g
   list(panel=g, r2=r2, p=p)
 }
 
@@ -79,19 +80,20 @@ bar_df <- function(lv) data.frame(Model=PRED$label, R2=sapply(PRED$key, function
 D <- lapply(levs, bar_df); names(D) <- levs
 y_lim <- max(sapply(D, function(x) max(x$R2))) * 1.2
 bar_panel <- function(dat, tag, ylab="") ggplot(dat, aes(Model, R2, fill=Significant)) +
-  geom_col(alpha=0.85) + geom_text(aes(label=sprintf("%.3f", R2)), vjust=-0.3, size=2.7) +
-  scale_fill_manual(values=c("FALSE"="gray70","TRUE"="#27AE60"), labels=c("NS","p < 0.05"), name="") +
+  geom_col(width=0.75) + geom_text(aes(label=sprintf("%.2f", R2)), vjust=-0.3, size=3.2) +
+  scale_fill_manual(values=c("FALSE"="grey75","TRUE"="#285238"), labels=c("NS","p < 0.05"), name="") +
+  scale_x_discrete(labels=c(mcrA=expression(italic(mcrA)), pmoA=expression(italic(pmoA)), mmoX=expression(italic(mmoX)),
+                            `pmoA+mmoX`=expression(italic(pmoA)*"+"*italic(mmoX)), Ratio="Ratio")) +
   ylim(0, y_lim) + labs(tag=tag, x="", y=ylab) + theme_pub_gene +
-  theme(legend.position="none", axis.text.x=element_text(angle=35, hjust=1, size=7.5))
+  theme(legend.position="none", axis.text.x=element_text(angle=35, hjust=1, size=9.5), plot.tag=element_text(size=11, face="bold"))
 bars <- list(bar_panel(D$ind,"(u)",expression(italic(R)^2~"(gene only)")), bar_panel(D$agg,"(v)"), bar_panel(D$sp,"(w)"), bar_panel(D$spm,"(x)"))
 
-hh <- function(txt) wrap_elements(full=textGrob(txt, gp=gpar(fontface="bold", fontsize=11)))
-H <- list(hh("Individual\n(individual x, individual y)"), hh("Aggregate predictor\n(species-median x, individual y)"),
-          hh("Species-median\n(median of arcsinh flux & log-gene)"), hh("Species-mean\n(mean of arcsinh flux & log-gene)"))
+hh <- function(txt) wrap_elements(full=textGrob(txt, gp=gpar(fontface="bold", fontsize=12)))
+H <- list(hh("Individual trees"), hh("Species gene value,\nindividual flux"), hh("Species medians"), hh("Species means"))
 hts <- c(0.13, 1, 1, 1, 1, 1, 0.92)
 P <- function(k, lv) res[[paste(k, lv)]]$panel
 mkcol <- function(cc) H[[cc]] / P("mcrA",levs[cc]) / P("pmoA",levs[cc]) / P("mmoX",levs[cc]) / P("methanotroph",levs[cc]) / P("ratio",levs[cc]) / bars[[cc]] + plot_layout(ncol=1, heights=hts)
-combined <- (mkcol(1) | mkcol(2) | mkcol(3) | mkcol(4)) / legend_panel + plot_layout(heights=c(1, 0.05))
-ggsave(out_path("figS11_final.png"), combined, width=21, height=16, dpi=300, bg="white")
+combined <- (mkcol(1) | mkcol(2) | mkcol(3) | mkcol(4))   # no species legend: points are grey
+ggsave(out_path("figS11_final.png"), combined, width=14, height=16, dpi=300, bg="white")
 for (lv in levs) cat(sprintf("%-4s gene R2: %s\n", lv, paste(sprintf("%s=%.3f(p%.3f)", D[[lv]]$Model, D[[lv]]$R2, D[[lv]]$P), collapse="  ")))
 cat("Wrote figS11_final.png\n")

@@ -84,12 +84,12 @@ decouple_panel <- function(comps, basis) {
     scale_color_manual(values = COMP4[comps], name = NULL)
   for (i in seq_along(comps)) {
     k <- comps[i]; r <- decstat[decstat$comp == k, ]
-    p <- p + annotate("text", x = -Inf, y = Inf, hjust = -0.06, vjust = 1.3 + (i-1)*1.7, size = 2.7, color = COMP4[[k]],
-                      label = sprintf("%s (n=%d): slope=%.2f  R2%s  p%s", k, r$n, r$slope, fmtr(r$r2), fmtp(r$p)))
+    p <- p + annotate("text", x = -Inf, y = Inf, hjust = -0.06, vjust = 1.3 + (i-1)*1.7, size = 3.3, color = COMP4[[k]],
+                      label = gsub("([=<])(?=[0-9])", "\\1 ", sprintf("%s (n = %d): slope %.2f, R\u00b2 %s, p %s", k, r$n, r$slope, fmtr(r$r2), fmtp(r$p)), perl = TRUE))
   }
   p + coord_fixed(ratio = 1, xlim = lim, ylim = lim) +
-    labs(x = bquote(log[10]~"pmoA (copies g"^-1*" "*.(basis)*" + 1)"),
-         y = bquote(log[10]~"mmoX (copies g"^-1*" "*.(basis)*" + 1)")) + th + theme(legend.position = "none")
+    labs(x = bquote(log[10]~italic(pmoA)~"(copies g"^-1*" "*.(basis)*" + 1)"),
+         y = bquote(log[10]~italic(mmoX)~"(copies g"^-1*" "*.(basis)*" + 1)")) + th + theme(legend.position = "none")
 }
 pa <- decouple_panel(WOODC, "dry"); pb <- decouple_panel(SOILC, "fresh")
 
@@ -102,11 +102,11 @@ comp_panel <- function(comps) {
     scale_color_manual(values = COMP4[comps], name = NULL)
   for (i in seq_len(nrow(st))) {
     r <- st[i, ]
-    p <- p + annotate("text", x = -Inf, y = Inf, hjust = -0.05, vjust = 1.3 + (i-1)*1.6, size = 2.6, color = COMP4[[r$comp]],
-                      label = sprintf("%s: slope=%.2f  R2=%.2f  perm p %s", r$comp, r$slope, r$r2, permlab(r$permp)))
+    p <- p + annotate("text", x = -Inf, y = Inf, hjust = -0.05, vjust = 1.3 + (i-1)*1.6, size = 3.3, color = COMP4[[r$comp]],
+                      label = gsub("([=<])(?=[0-9])", "\\1 ", sprintf("%s: slope %.2f, R\u00b2 = %.2f, permutation p %s", r$comp, r$slope, r$r2, permlab(r$permp)), perl = TRUE))
   }
-  p + labs(x = expression("size  "*frac(1,2)*"[log"[10]*" pmoA + log"[10]*" mmoX]"),
-           y = expression("balance  log"[10]*"(pmoA / mmoX)")) + th + theme(legend.position = "none")
+  p + labs(x = expression("Size, "*frac(1,2)*"(log"[10]*" "*italic(pmoA)*" + log"[10]*" "*italic(mmoX)*")"),
+           y = expression("Balance, log"[10]*"("*italic(pmoA)*" / "*italic(mmoX)*")")) + th + theme(legend.position = "none")
 }
 pc <- comp_panel(WOODC); pd <- comp_panel(SOILC)
 
@@ -125,9 +125,10 @@ p_sep <- ggplot(sep, aes(comp, med, color = comp, shape = gene)) +
   geom_pointrange(aes(ymin = lo, ymax = hi), position = position_dodge(width = 0.5),
                   size = 0.55, linewidth = 0.8) +
   scale_color_manual(values = COMP4, guide = "none") +
-  scale_shape_manual(values = c("pmoA (pMMO)" = 16, "mmoX (sMMO)" = 17), name = NULL) +
+  scale_shape_manual(values = c("pmoA (pMMO)" = 16, "mmoX (sMMO)" = 17), name = NULL,
+                     labels = c(expression(italic(pmoA)*" (pMMO)"), expression(italic(mmoX)*" (sMMO)"))) +
   scale_y_log10(labels = scales::label_number(big.mark = ",")) +
-  labs(x = NULL, y = expression("copies g"^-1*" (median, IQR)")) +
+  labs(x = NULL, y = expression("Copies g"^-1*" (median, IQR)")) +
   theme_bw(base_size = 11) + theme(panel.grid.minor = element_blank(), legend.position = "top")
 write.csv(sep, out_path("pmoa_mmox_by_compartment.csv"), row.names = FALSE)
 

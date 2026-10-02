@@ -236,7 +236,7 @@ p_a <- ggplot(panel_a_long, aes(x = Core_Type, y = display_name, fill = log_pct)
     name = expression(log[10]*"(% + 1)")
   ) +
   scale_x_discrete(position = "bottom") +
-  labs(x = "Core Type", y = NULL) +
+  labs(x = "Compartment", y = NULL) +
   theme_minimal(base_size = 11) +
   theme(
     strip.placement = "outside",
