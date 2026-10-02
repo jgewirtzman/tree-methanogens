@@ -75,9 +75,9 @@ D,code/09_tables_stats/16_s1-rf-soil-arcsinh.R,root,FALSE,soil-gene check for tr
 D,code/09_tables_stats/17_species-aggregation-rma.R,root,FALSE,species aggregation with measurement error
 D,code/09_tables_stats/18_pmoa-mmox-robustness.R,root,FALSE,pmoA/mmoX robustness checks
 D,code/09_tables_stats/19_gene-rf.R,root,FALSE,gene random forests on held-out trees (Methods S4)
-D,code/09_tables_stats/22_chamber-excess.R,root,FALSE,chamber excess over local ambient vs apparent uptake (SI Methods S2)
 D,code/09_tables_stats/20_manuscript_statistics.R,root,FALSE,every quantitative statement in the text
 D,code/09_tables_stats/21_write_parameter_record.R,root,FALSE,generated scaling parameter record
+D,code/09_tables_stats/22_chamber-excess.R,root,FALSE,chamber excess over local ambient vs apparent uptake (SI Methods S2)
 E,code/08_figures/fig01_temporal-flux.R,root,FALSE,Figure 1
 E,code/08_figures/fig02_height-flux.R,root,FALSE,Figure 2
 E,code/08_figures/fig03_variance-partition.R,root,FALSE,Figure 3
