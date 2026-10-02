@@ -146,8 +146,8 @@ create_gene_scatter_ggside_transformed_probe_mcra <- function(
     scale_color_manual(values = category_colors, breaks = legend_order, name = "Sample Type") +
     scale_fill_manual(values = category_colors, breaks = legend_order, guide = "none") +
     labs(
-      x = expression("mcrA (copies g"^-1*")"),
-      y = expression("pmoA + mmoX (copies g"^-1*")")
+      x = expression(italic(mcrA)~"(copies g"^-1*")"),
+      y = expression(italic(pmoA)~"+"~italic(mmoX)~"(copies g"^-1*")")
     ) +
     ggside::ggside(x.pos = "top", y.pos = "right") +
     theme_minimal(base_size = 12) +
