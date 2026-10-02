@@ -115,6 +115,16 @@ fig <- (pa | pb) / pc + plot_layout(heights = c(1, 0.42), guides = "collect") +
   theme(plot.tag = element_text(size = 14, face = "bold"), legend.position = "right")
 ggsave(out_path("fig_scaling_heatmap.png"), fig, width = 13, height = 9, dpi = 300, bg = "white")
 
+# Both leverage statistics, for the text: the range of the median total across an
+# assumption's levels (main text, Methods S7), and the median range with all other
+# assumptions held fixed (panel c).
+RM <- sapply(FACT, function(v) { m <- tapply(R$total_mg, R[[v]], median); max(m) - min(m) })
+write.csv(data.frame(assumption = FACT, range_of_medians_mg = round(RM[FACT], 2),
+                     median_range_others_fixed_mg = round(LEVS$med[match(FACT, LEVS$assumption)], 2),
+                     iqr_lo = round(LEVS$q1[match(FACT, LEVS$assumption)], 2),
+                     iqr_hi = round(LEVS$q3[match(FACT, LEVS$assumption)], 2)),
+          out_path("scaling_leverage.csv"), row.names = FALSE)
+
 cat(sprintf("=== LEVERAGE: range spanned by each assumption, others held fixed (%d combinations) ===\n", N_COMB))
 print(as.data.frame(LEVS %>% arrange(-med) %>%
       transmute(assumption, levels = n_levels,
