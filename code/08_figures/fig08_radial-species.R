@@ -59,7 +59,7 @@ p_mcra_data$species_label <- sapply(as.character(p_mcra_data$species_label), bre
 p_mcra <- ggplot(p_mcra_data, aes(x = x, y = y, fill = Clog)) +
   geom_raster(interpolate = TRUE) +
   scale_fill_viridis_c(
-    name = bquote("log"[10] ~ "(mcrA)"),
+    name = bquote("log"[10] ~ "(" * italic(mcrA) * ")"),
     option = "inferno",
     direction = 1,
     breaks = function(x) c(min(x), mean(c(min(x), max(x))), max(x)),
@@ -98,7 +98,7 @@ p_sum_data$species_label <- sapply(as.character(p_sum_data$species_label), break
 p_sum <- ggplot(p_sum_data, aes(x = x, y = y, fill = Clog)) +
   geom_raster(interpolate = TRUE) +
   scale_fill_viridis_c(
-    name = bquote("log"[10] ~ "(pmoA+mmoX)"),
+    name = bquote("log"[10] ~ "(" * italic(pmoA) * " + " * italic(mmoX) * ")"),
     option = "mako",
     direction = 1,
     breaks = function(x) c(min(x), mean(c(min(x), max(x))), max(x)),
@@ -139,7 +139,7 @@ p_overlay <- ggplot(overlay_data_modified, aes(x = x, y = y)) +
   scale_fill_gradient(
     low = "white", 
     high = "#1E88E5",
-    name = bquote("log"[10] ~ "(pmoA+mmoX)"),
+    name = bquote("log"[10] ~ "(" * italic(pmoA) * " + " * italic(mmoX) * ")"),
     breaks = function(x) {
       min_val <- min(overlay_data_modified$Clog_methan)
       max_val <- max(overlay_data_modified$Clog_methan)
@@ -152,7 +152,7 @@ p_overlay <- ggplot(overlay_data_modified, aes(x = x, y = y)) +
   scale_fill_gradient(
     low = "white", 
     high = "#E53935",
-    name = bquote("log"[10] ~ "(mcrA)"),
+    name = bquote("log"[10] ~ "(" * italic(mcrA) * ")"),
     breaks = function(x) {
       min_val <- min(overlay_data_modified$Clog_mcra)
       max_val <- max(overlay_data_modified$Clog_mcra)
@@ -219,22 +219,23 @@ p_species_mcra_2x2 <- ggplot(analysis_mcra,
   geom_smooth(method = "lm", se = TRUE, color = "#C03221",
               fill = "#F5C9C3", alpha = 0.2, linewidth = 1) +
   geom_point(size = 3.25, alpha = 0.85, color = "#C03221") +
-  geom_text_repel(aes(label = species), size = 3.5, fontface = "italic",
+  geom_text_repel(aes(label = species), size = 3.5, fontface = "italic", seed = 42, min.segment.length = 0, force = 3, max.time = 2,
                   box.padding = 0.2, max.overlaps = 20) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
-  annotate("label", x = Inf, y = Inf,
+  annotate("label", x = -Inf, y = Inf,
            label = sprintf("R\u00B2 = %.3f\np = %.3f",
                            cor_area_mcra$estimate^2,
                            cor_area_mcra$p.value),
-           hjust = 1.05, vjust = 1.2, size = 5,
+           hjust = -0.05, vjust = 1.2, size = 5,
            fill = "white", alpha = 0.9) +
   coord_cartesian(clip = "off") +
-  labs(x = expression("log"[10]*" median mcrA"),
+  labs(x = expression("log"[10]*" median "*italic(mcrA)),
        y = expression("Median CH"[4]*" flux (nmol m"^-2*" s"^-1*")")) +
   theme_classic(base_size = 11.7) +
   theme(
-    axis.title = element_text(size = 16),
-    axis.text = element_text(size = 14),
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 13),
+    plot.margin = margin(5, 18, 5, 5),
     panel.grid.major = element_line(color = "gray95", linewidth = 0.3),
     panel.border = element_rect(color = "black", fill = NA, linewidth = 0.8)
   )
@@ -245,7 +246,7 @@ p_species_methanotroph_2x2 <- ggplot(analysis_methanotroph,
   geom_smooth(method = "lm", se = TRUE, color = "#4A6FA5",
               fill = "#C5D5E8", alpha = 0.2, linewidth = 1) +
   geom_point(size = 3.25, alpha = 0.85, color = "#4A6FA5") +
-  geom_text_repel(aes(label = species), size = 3.5, fontface = "italic",
+  geom_text_repel(aes(label = species), size = 3.5, fontface = "italic", seed = 42, min.segment.length = 0, force = 3, max.time = 2,
                   box.padding = 0.2, max.overlaps = 20) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
   annotate("label", x = Inf, y = Inf,
@@ -255,12 +256,13 @@ p_species_methanotroph_2x2 <- ggplot(analysis_methanotroph,
            hjust = 1.05, vjust = 1.2, size = 5,
            fill = "white", alpha = 0.9) +
   coord_cartesian(clip = "off") +
-  labs(x = expression("log"[10]*" median (pmoA+mmoX)"),
+  labs(x = expression("log"[10]*" median ("*italic(pmoA)*" + "*italic(mmoX)*")"),
        y = expression("Median CH"[4]*" flux (nmol m"^-2*" s"^-1*")")) +
   theme_classic(base_size = 11.7) +
   theme(
-    axis.title = element_text(size = 16),
-    axis.text = element_text(size = 14),
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 13),
+    plot.margin = margin(5, 18, 5, 5),
     panel.grid.major = element_line(color = "gray95", linewidth = 0.3),
     panel.border = element_rect(color = "black", fill = NA, linewidth = 0.8)
   )
@@ -271,15 +273,15 @@ p_species_ratio_2x2 <- ggplot(analysis_ratio,
   geom_smooth(method = "lm", se = TRUE, color = "#6B5B95",
               fill = "#D7D2E0", alpha = 0.2, linewidth = 1) +
   geom_point(size = 3.25, alpha = 0.85, color = "#6B5B95") +
-  geom_text_repel(aes(label = species), size = 3.5, fontface = "italic",
+  geom_text_repel(aes(label = species), size = 3.5, fontface = "italic", seed = 42, min.segment.length = 0, force = 3, max.time = 2,
                   box.padding = 0.2, max.overlaps = 20) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
   geom_vline(xintercept = 0, linetype = "dotted", color = "gray50", alpha = 0.5) +
-  annotate("label", x = Inf, y = Inf,
+  annotate("label", x = -Inf, y = Inf,
            label = sprintf("R\u00B2 = %.3f\np = %.3f",
                            pearson_ratio$estimate^2,
                            pearson_ratio$p.value),
-           hjust = 1.05, vjust = 1.2, size = 5,
+           hjust = -0.05, vjust = 1.2, size = 5,
            fill = "white", alpha = 0.9) +
   coord_cartesian(clip = "off") +
   labs(x = expression("log"[10]*" ratio"),
@@ -302,10 +304,10 @@ p_species_comparison_2x2 <- ggplot(species_comparison_data,
   scale_fill_manual(values = c("FALSE" = "gray70", "TRUE" = "#285238"),
                     labels = c("NS", "p < 0.05"),
                     name = "") +
-  scale_x_discrete(labels = c("mcrA" = "mcrA", 
-                              "pmoA" = "pmoA",
-                              "mmoX" = "mmoX",
-                              "pmoA+mmoX" = "pmoA+\nmmoX",
+  scale_x_discrete(labels = c("mcrA" = expression(italic(mcrA)),
+                              "pmoA" = expression(italic(pmoA)),
+                              "mmoX" = expression(italic(mmoX)),
+                              "pmoA+mmoX" = expression(italic(pmoA)*"+"*italic(mmoX)),
                               "Ratio" = "Ratio")) +
   ylim(0, y_limit) +
   labs(x = "", y = expression("Model R"^2)) +
@@ -353,7 +355,7 @@ side_by_side
 
 ggsave("outputs/figures/original/main/fig8_radial_species_comparison.png",
        side_by_side,
-       width = 16.5,
+       width = 17.5,
        height = 10,
        dpi = 300,
        limitsize = FALSE)
