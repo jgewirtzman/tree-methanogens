@@ -222,6 +222,18 @@ ss <- smooth.spline(rp$PY, rp$PX, df = 6)
 py <- seq(min(rp$PY), max(rp$PY), length.out = 200)
 sl <- tr_ms$fwd(predict(ss, py)$y, py)
 stream_line <- data.frame(Longitude = sl$lon, Latitude = sl$lat)
+# The channel itself is water: cells within STREAM_HALF_WIDTH_M of the centreline are
+# set to 100% AFTER the fit, so the stream never enters the spline and cannot pull
+# the measured bank readings toward saturation; the change at the bank is abrupt.
+STREAM_HALF_WIDTH_M <- 1.5
+spx <- predict(ss, py)$y
+d_stream <- sapply(seq_len(nrow(best_df)), function(i) min((spx - pl$PX[i])^2 + (py - pl$PY[i])^2))
+best_df$VWC[sqrt(d_stream) <= STREAM_HALF_WIDTH_M] <- 100
+# extent of the survey: the convex hull of the survey points; outside it the spline extrapolates
+sh <- MS$points[chull(MS$points$PX, MS$points$PY), ]
+sh <- rbind(sh, sh[1, ])
+shl <- tr_ms$fwd(sh$PX, sh$PY)
+survey_hull <- data.frame(Longitude = shl$lon, Latitude = shl$lat)
 
 # Function to calculate minimum area bounding box with rotation
 calculate_minimum_bounding_box <- function(points, buffer_pct = 0.01) {
@@ -357,8 +369,10 @@ plots_plot_data$point_type <- "Research Plots"
 final_extended_plot <- ggplot() +
   # Clipped moisture interpolation background
   geom_raster(data = clipped_moisture_df, aes(x = Longitude, y = Latitude, fill = VWC), alpha = 0.7) +
+  # Extent of the moisture survey
+  geom_path(data = survey_hull, aes(x = Longitude, y = Latitude), colour = "grey20", linewidth = 0.6, linetype = "22") +
   # Stream
-  geom_path(data = stream_line, aes(x = Longitude, y = Latitude), colour = "#2b6cb0", linewidth = 1.6, lineend = "round") +
+  geom_path(data = stream_line, aes(x = Longitude, y = Latitude), colour = "#2b6cb0", linewidth = 0.8, lineend = "round") +
   # Plot ellipses
   geom_polygon(data = plot_tree_ellipses, aes(x = Longitude, y = Latitude, group = Site_Plot),
                fill = NA, color = "black", linewidth = 0.8, alpha = 0.8) +
