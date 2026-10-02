@@ -220,7 +220,11 @@ MS <- readRDS("outputs/models/moisture_surface_tps.rds")
 tr_ms <- geo_transforms()
 to_utm <- function(lon, lat) st_coordinates(st_transform(st_as_sf(data.frame(lon = lon, lat = lat), coords = c("lon", "lat"), crs = 4326), UTM))
 
-TR  <- as.data.frame(to_utm(fg_final$Longitude_final, fg_final$Latitude_final)); TR$BA <- fg_final$BasalArea_m2
+# stems: the canonical inventory the upscaling uses (in-stand, located), not the older fg_final join
+INVc <- canonical_inventory(); INVc <- INVc[INVc$located, ]
+llc <- tr_ms$fwd(INVc$PX, INVc$PY)
+TR  <- as.data.frame(to_utm(llc$lon, llc$lat)); TR$BA <- pi * (INVc$dbh_m / 2)^2; TR$species <- INVc$species
+cat(sprintf("map stems: %d located of %d in the canonical inventory\n", nrow(INVc), nrow(canonical_inventory())))
 MT  <- as.data.frame(to_utm(trees_with_plots$Longitude, trees_with_plots$Latitude))
 PL  <- as.data.frame(to_utm(plots_data$Longitude, plots_data$Latitude))
 EL  <- cbind(as.data.frame(to_utm(plot_tree_ellipses$Longitude, plot_tree_ellipses$Latitude)), g = plot_tree_ellipses$Site_Plot)
@@ -229,7 +233,7 @@ SR  <- stand_ring_lonlat(); SRu <- as.data.frame(to_utm(c(SR$lon, SR$lon[1]), c(
 sh  <- MS$points[chull(MS$points$PX, MS$points$PY), ]; sh <- rbind(sh, sh[1, ])
 SHu <- as.data.frame(to_utm(tr_ms$fwd(sh$PX, sh$PY)$lon, tr_ms$fwd(sh$PX, sh$PY)$lat))
 
-allx <- c(TR$X, RV$X, EL$X); ally <- c(TR$Y, RV$Y, EL$Y)
+allx <- c(TR$X, RV$X, EL$X, SRu$X); ally <- c(TR$Y, RV$Y, EL$Y, SRu$Y)
 E <- c(floor(min(allx)) - 25, ceiling(max(allx)) + 15, floor(min(ally)) - 15, ceiling(max(ally)) + 15)
 
 dem <- rast("data/raw/inventory/spatial_data/lidar_3dep_1m_utm18n.tif"); crs(dem) <- paste0("EPSG:", UTM)
@@ -274,27 +278,77 @@ STREAM_HALF_WIDTH_M <- 0.75   # a 1-2 m brook (Jon, 2026-10-02)
 G$VWC[chan_d(G, CH) <= STREAM_HALF_WIDTH_M] <- 100
 cat(sprintf("Moisture surface (04_moisture_surface.R fit) over the map: %d cells, VWC %.1f-%.1f%%\n", nrow(G), min(G$VWC), max(G$VWC)))
 
-main <- ggplot() +
-  geom_raster(data = HS, aes(x, y, fill = hs)) + scale_fill_gradient(low = "grey25", high = "white", guide = "none") +
-  new_scale_fill() +
+# Moisture is shown only where the analysis has it or the survey measured it: inside the
+# censused plot (where the upscaling uses it, extrapolated beyond the dashed survey hull)
+# or inside the survey hull. Outside both, only the terrain is drawn.
+inpoly <- function(P, R) sp::point.in.polygon(P$X, P$Y, R$X, R$Y) > 0
+G <- G[inpoly(G, SRu) | inpoly(G, SHu), ]
+
+# shared layers
+# hillshade as a fixed grey image, so it takes no fill scale
+hsc <- crop(hs, ext(E)); hm <- as.matrix(hsc, wide = TRUE)
+hm <- (hm - min(hm, na.rm = TRUE)) / diff(range(hm, na.rm = TRUE)); hm[is.na(hm)] <- 1
+HSIMG <- matrix(grDevices::grey(0.25 + 0.75 * hm), nrow(hm)); he <- as.vector(ext(hsc))
+terrain_layers <- list(annotation_raster(HSIMG, xmin = he[1], xmax = he[2], ymin = he[3], ymax = he[4]))
+map_frame <- list(
+  coord_sf(crs = UTM, xlim = E[1:2], ylim = E[3:4], expand = FALSE, datum = NA),
+  theme_void(),
+  theme(legend.title = element_text(size = 10, face = "bold"), legend.text = element_text(size = 9),
+        plot.background = element_rect(fill = "white", colour = NA), plot.margin = margin(4, 4, 4, 4)))
+CONT <- geom_sf(data = CN, colour = "grey30", linewidth = 0.15, alpha = 0.5)
+PT_BREAKS <- c("Inventory stem", "Monthly-survey tree", "Soil collar", "Stream GPS flag")
+LN_BREAKS <- c("Censused plot", "Moisture survey extent", "Monthly-survey plot", "Stream channel")
+
+# (a) sampling design and soil moisture
+pa <- ggplot() + terrain_layers +
   geom_raster(data = G, aes(X, Y, fill = VWC), alpha = 0.6) +
   scale_fill_viridis_c(option = "mako", direction = -1, name = "Soil moisture\n(VWC, %)", limits = c(0, 100)) +
-  geom_sf(data = CN, colour = "grey30", linewidth = 0.15, alpha = 0.5) +
+  CONT +
   geom_path(data = SRu, aes(X, Y), colour = "black", linewidth = 0.5) +
   geom_path(data = SHu, aes(X, Y), colour = "grey10", linewidth = 0.5, linetype = "22") +
-  geom_path(data = CH, aes(X, Y), colour = "#2166ac", linewidth = 1.1, lineend = "round", linejoin = "round") +
-  geom_point(data = RV, aes(X, Y), shape = 21, fill = "#6baed6", colour = "#08519c", size = 1.4, stroke = 0.4) +
+  geom_path(data = CH, aes(X, Y), colour = "#2166ac", linewidth = 1.1, lineend = "round") +
   geom_point(data = TR, aes(X, Y, size = BA), colour = "grey15", alpha = 0.55, stroke = 0) +
   scale_size_area(max_size = 3, name = "Basal area (m²)", breaks = c(0.01, 0.05, 0.1, 0.2)) +
   geom_path(data = EL, aes(X, Y, group = g), colour = "black", linewidth = 0.6) +
   geom_point(data = MT, aes(X, Y), shape = 8, colour = "black", size = 2, stroke = 0.6) +
   geom_point(data = PL, aes(X, Y), shape = 21, fill = "white", colour = "black", size = 2.2, stroke = 0.7) +
+  geom_point(data = RV, aes(X, Y), shape = 21, fill = "#6baed6", colour = "#08519c", size = 1.4, stroke = 0.4) +
+  # legend-only layers, placed off the map: one key per point type and per line type
+  geom_point(data = data.frame(X = E[1] - 1e4, Y = E[3] - 1e4, k = factor(PT_BREAKS, PT_BREAKS)), aes(X, Y, shape = k)) +
+  geom_path(data = data.frame(X = E[1] - 1e4 + rep(0:1, 4), Y = E[3] - 1e4, k = factor(rep(LN_BREAKS, each = 2), LN_BREAKS)),
+            aes(X, Y, group = k, linetype = k)) +
+  scale_shape_manual(name = "Points", breaks = PT_BREAKS, values = c(16, 8, 21, 21),
+    guide = guide_legend(order = 3, override.aes = list(shape = c(16, 8, 21, 21), colour = c("grey15", "black", "black", "#08519c"),
+                                                        fill = c(NA, NA, "white", "#6baed6"), size = c(2, 2, 2.2, 1.8), alpha = 1, stroke = c(0, 0.6, 0.7, 0.4)))) +
+  scale_linetype_manual(name = "Lines", breaks = LN_BREAKS, values = c("solid", "22", "solid", "solid"),
+    guide = guide_legend(order = 4, override.aes = list(colour = c("black", "grey10", "black", "#2166ac"), linewidth = c(0.5, 0.5, 0.6, 1.1)))) +
+  guides(fill = guide_colourbar(order = 1), size = guide_legend(order = 2)) +
   annotation_scale(location = "bl", width_hint = 0.2, style = "ticks", line_col = "black", text_col = "black") +
   annotation_north_arrow(location = "tr", height = unit(0.8, "cm"), width = unit(0.6, "cm"), style = north_arrow_minimal()) +
-  coord_sf(crs = UTM, xlim = E[1:2], ylim = E[3:4], expand = FALSE, datum = NA) +
-  theme_void() +
-  theme(legend.position = "right", legend.title = element_text(size = 10, face = "bold"), legend.text = element_text(size = 9),
-        plot.background = element_rect(fill = "white", colour = NA))
+  map_frame
+
+# (b) species: seven groups in fixed colour order by basal area, the rest grey. Eighteen
+# species cannot carry eighteen distinguishable colours; these seven hold ~99% of basal
+# area and Betula alleghaniensis is kept because the text discusses it.
+SP_GROUPS <- c("Tsuga canadensis", "Pinus strobus", "Quercus spp.", "Acer rubrum", "Betula lenta",
+               "Betula alleghaniensis", "Kalmia latifolia", "Other")
+SP_COLS <- c("#008300", "#eb6834", "#4a3aa7", "#2a78d6", "#e87ba4", "#1baf7a", "#eda100", "#8c8c8c")
+TR$grp <- ifelse(grepl("^Quercus", TR$species), "Quercus spp.",
+          ifelse(TR$species %in% SP_GROUPS, TR$species, "Other"))
+TR$grp <- factor(TR$grp, levels = SP_GROUPS)
+TRb <- TR[order(TR$grp == "Other", TR$grp == "Kalmia latifolia", TR$BA, decreasing = c(TRUE, TRUE, FALSE), method = "radix"), ]
+pb <- ggplot() + terrain_layers + CONT +
+  geom_path(data = SRu, aes(X, Y), colour = "black", linewidth = 0.5) +
+  geom_path(data = CH, aes(X, Y), colour = "#0d366b", linewidth = 1.1, lineend = "round") +
+  geom_point(data = TRb, aes(X, Y, size = BA, colour = grp), alpha = 0.85, stroke = 0) +
+  scale_colour_manual(values = setNames(SP_COLS, SP_GROUPS), breaks = SP_GROUPS, name = "Species", drop = FALSE,
+    labels = c(expression(italic("Tsuga canadensis")), expression(italic("Pinus strobus")), expression(italic("Quercus")~"spp."),
+               expression(italic("Acer rubrum")), expression(italic("Betula lenta")), expression(italic("Betula alleghaniensis")),
+               expression(italic("Kalmia latifolia")), "Other"),
+    guide = guide_legend(override.aes = list(size = 3, alpha = 1))) +
+  scale_size(range = c(0.35, 3.2), guide = "none") +
+  annotation_scale(location = "bl", width_hint = 0.2, style = "ticks", line_col = "black", text_col = "black") +
+  map_frame
 
 # location inset: northeastern US, Connecticut shaded, site marked
 st <- st_as_sf(maps::map("state", plot = FALSE, fill = TRUE))
@@ -307,7 +361,14 @@ inset <- ggplot() +
   geom_sf(data = site, shape = 21, fill = "red", colour = "black", size = 2.2, stroke = 0.5) +
   coord_sf(crs = 5070, expand = FALSE) + theme_void() +
   theme(panel.border = element_rect(fill = NA, colour = "grey30", linewidth = 0.4), plot.background = element_rect(fill = "white", colour = NA))
-final_extended_plot <- main + inset_element(inset, left = 0.0, bottom = 0.72, right = 0.24, top = 1.0, align_to = "panel")
+
+# layout: each map with its legends in a right-hand column; the inset sits above (a)'s legends
+legA <- cowplot::get_legend(pa); legB <- cowplot::get_legend(pb)
+pa0 <- pa + theme(legend.position = "none"); pb0 <- pb + theme(legend.position = "none")
+colA <- cowplot::plot_grid(inset, legA, ncol = 1, rel_heights = c(0.42, 1))
+rowA <- cowplot::plot_grid(pa0, colA, nrow = 1, rel_widths = c(1, 0.28))
+rowB <- cowplot::plot_grid(pb0, legB, nrow = 1, rel_widths = c(1, 0.28))
+final_extended_plot <- cowplot::plot_grid(rowA, rowB, ncol = 1, labels = c("a", "b"), label_size = 14)
 
 print(final_extended_plot)
-ggsave("outputs/figures/original/supplementary/figS1_moisture_overlay.png", final_extended_plot, width = 11, height = 8, dpi = 300)
+ggsave("outputs/figures/original/supplementary/figS1_moisture_overlay.png", final_extended_plot, width = 11, height = 15.5, dpi = 300, bg = "white")
