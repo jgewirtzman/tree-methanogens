@@ -44,7 +44,7 @@ w <- d %>% filter(comp %in% c("Heartwood", "Sapwood")) %>% left_join(tp, by = "k
   mutate(fresh = cpg * (1 - mc))
 
 # soil GWC from the black-oak soils, as in 06_copies-per-gram.R
-bo  <- read.csv("data/processed/molecular/black_oak/bo_soil_moisture.csv", check.names = FALSE)
+bo  <- read.csv("data/raw/field_data/black_oak/bo_soil_moisture.csv", check.names = FALSE)
 g   <- suppressWarnings(as.numeric(bo$GWC))
 gwc <- c(Soil_Organic = median(g[grepl("Organic", bo$`Sample Name`)], na.rm = TRUE),
          Soil_Mineral = median(g[grepl("Mineral", bo$`Sample Name`)], na.rm = TRUE))

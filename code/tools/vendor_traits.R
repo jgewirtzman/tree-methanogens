@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 # ==============================================================================
-# 03_vendor_traits.R -- build data/processed/traits/ymf_species_traits.csv
+# vendor_traits.R -- build data/raw/external/tree-gas-traits/ymf_species_traits.csv
 #
 # Figure S17 relates plant traits to methane cycling. The trait table is
 # maintained in the companion tree-gas-traits repository; this copies the
@@ -36,9 +36,9 @@ cat("columns varying WITHIN a species:", if (length(bad)) paste(bad, collapse = 
 out <- x %>% group_by(spcode) %>% slice(1) %>% ungroup() %>%
   select(spcode, any_of(keep)) %>% arrange(spcode)
 
-dir.create("data/processed/traits", showWarnings = FALSE, recursive = TRUE)
-write_csv(out, "data/processed/traits/ymf_species_traits.csv")
-cat("wrote data/processed/traits/ymf_species_traits.csv:",
+dir.create("data/raw/external/tree-gas-traits", showWarnings = FALSE, recursive = TRUE)
+write_csv(out, "data/raw/external/tree-gas-traits/ymf_species_traits.csv")
+cat("wrote data/raw/external/tree-gas-traits/ymf_species_traits.csv:",
     nrow(out), "species x", ncol(out), "cols,",
-    file.size("data/processed/traits/ymf_species_traits.csv"), "bytes\n")
+    file.size("data/raw/external/tree-gas-traits/ymf_species_traits.csv"), "bytes\n")
 cat("species:", paste(out$spcode, collapse = ", "), "\n")

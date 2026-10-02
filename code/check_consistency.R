@@ -185,7 +185,7 @@ SEQUENTIAL_STAGES <- c(   # interactive 2020-21 soil processing: goFlux, then th
   # order, by hand; not part of run_all.R. The model reads the end state.
   "CH4_best_flux_lgr_results_soil.csv", "CH4_flux_lgr_results_soil.csv",
   "CO2_best_flux_lgr_results_soil.csv", "CO2_flux_lgr_results_soil.csv",
-  "lgr_manual_identification_results_soil.csv", "semirigid_tree_final_complete_dataset_soil.csv")
+  "semirigid_tree_final_complete_dataset_soil.csv")
 live <- setdiff(list.files("code", "\\.R$", recursive = TRUE, full.names = TRUE),
                 list.files("code/archive", "\\.R$", recursive = TRUE, full.names = TRUE))
 wpat <- "(write\\.csv|write_csv|write\\.table|saveRDS|save|ggsave|fwrite|write_tsv)\\s*\\("
@@ -253,7 +253,8 @@ chk("analysis scripts never write into data/", !length(writes_data), paste(write
 
 # 1c. no write to a bare filename. Such a file lands in whatever directory the script
 #     runs from -- 03_prep_soil_auxfile.R wrote its auxfiles into code/02_flux/semirigid/,
-#     leaving the copies in data/processed/flux/ stale. out_path("x.csv") is fine.
+#     leaving the copies in data/processed/flux/ stale. out_path("x.csv") is fine, as are
+#     repick_path()/window_path()/repo_path() (lib/flux_windows.R), which resolve from the root.
 bare <- character(0)
 for (f in live) {
   L0 <- readLines(f, warn = FALSE); L0[grepl("^\\s*#", L0)] <- ""
@@ -261,7 +262,7 @@ for (f in live) {
   # so look at each write line together with the two after it
   i <- which(grepl(wpat, L0))
   L <- vapply(i, function(k) paste(L0[k:min(k + 2, length(L0))], collapse = " "), "")
-  L <- L[!grepl("out_path\\(|file\\.path\\(", L)]
+  L <- L[!grepl("out_path\\(|file\\.path\\(|repick_path\\(|window_path\\(|repo_path\\(", L)]
   p <- unlist(regmatches(L, gregexpr("[\"'][^\"'/]+\\.(csv|txt|rds|RData|tsv)[\"']", L)))
   if (length(p)) bare <- c(bare, sprintf("%s (%s)", f, paste(unique(p), collapse = " ")))
 }

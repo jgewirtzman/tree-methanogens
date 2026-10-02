@@ -37,7 +37,7 @@ cat("Using chamber volume:", CORRECT_CHAMBER_VOLUME_L, "L\n")
 cat("Using total system volume:", round(CORRECT_VTOT_L, 3), "L\n\n")
 
 # Load the manual identification data with correct volume
-manID.lgr3 <- read_csv("../../data/processed/flux/lgr_manual_identification_results_soil.csv", 
+manID.lgr3 <- read_csv(window_path("lgr_manual_identification_results_soil.csv"), 
                        show_col_types = FALSE)
 
 # Ensure correct volume is set

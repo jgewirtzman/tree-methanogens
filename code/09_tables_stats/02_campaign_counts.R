@@ -111,7 +111,7 @@ s16_none <- sum(s16$Material %in% c("Wood","Soil") & !(s16$core_type %in% c(wood
 s16_oak_all <- sum(s16$Material=="QUVE")
 s16_oak <- sum(s16$Material=="QUVE" & !(s16$core_type %in% c("None","empty","")) & !is.na(s16$core_type))
 n_gas <- nn(read.csv("data/processed/internal_gas/sample_data_only.csv", check.names=FALSE)[[1]])
-iso <- read.csv("data/processed/internal_gas/stem_gas_isotopes_picarro_run.csv", check.names=FALSE)
+iso <- read.csv("data/raw/internal_gas/stem_gas_isotopes_picarro_run.csv", check.names=FALSE)
 iso_stcol <- grep("Sample.Type|Sample Type", names(iso), value=TRUE)[1]
 # whole-tree d13C samples: the one definition in code/lib/isotope_samples.R, so the
 # table, the text and Fig. 6d count the same set (the Sample-Type tally gave 125)
@@ -126,7 +126,7 @@ bom <- read.csv("data/raw/ddpcr/black_oak_mcrA.csv", check.names=FALSE)
 bo_sid <- grep("Sample ID|Sample Name", names(bom), value=TRUE)[1]
 bo_ddpcr <- length(unique(bom[[bo_sid]]))                       # total felled-tree ddPCR samples (mcrA)
 bo_mcra_h <- length(unique(bom[[grep("Height", names(bom))[1]]]))
-bo_ext <- nrow(read.csv("data/processed/molecular/black_oak/bo_extraction_mass.csv", check.names=FALSE))
+bo_ext <- nrow(read.csv("data/raw/field_data/black_oak/bo_extraction_mass.csv", check.names=FALSE))
 bo_tiss <- table(s16$core_type[s16$Material=="QUVE"])
 
 # ============================================== E. WOOD PROPERTIES + INVENTORY ==

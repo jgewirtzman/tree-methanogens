@@ -122,7 +122,7 @@ if(length(failed_window_indices) > 0) {
   print(quality_stats)
   
   # Save updated results
-  write_csv(manID.lgr3, "../../../data/processed/flux/lgr_manual_identification_2021_multiheight_final.csv")
+  write_csv(manID.lgr3, "../../../data/raw/flux_windows/lgr_manual_identification_2021_multiheight_final.csv")
   write_csv(final_summary, "../../../data/processed/flux/lgr_manual_identification_summary_2021_multiheight_final.csv")
   
   cat("\n=== REPROCESSING COMPLETE ===\n")

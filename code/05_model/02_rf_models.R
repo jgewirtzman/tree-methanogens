@@ -874,6 +874,17 @@ tree_train <- build_features_tree(tree_combined, DRIVERS, Mhat, SI_TABLES,
                                   TAXONOMY, TAXONOMY_PRIORS)
 soil_train <- build_features_soil(SOIL_YEAR, DRIVERS, Mhat, SI_TABLES)
 
+# One fixed row order. A seeded random forest still depends on the order of its rows,
+# and the order here followed how upstream files happened to be appended (a run from
+# raw data put the December 2020 soil collars elsewhere and moved soil OOB R2 by 0.001).
+# radix sorts text in C-locale order, so the order does not depend on the machine's locale.
+tree_train <- tree_train[order(as.character(tree_train$tree_id), tree_train$Date,
+                               tree_train$measurement_height_cm, tree_train$chamber_type,
+                               tree_train$stem_flux_umol_m2_s, method = "radix"), ]
+soil_train <- soil_train[order(as.character(soil_train$site_id), soil_train$Date,
+                               soil_train$soil_flux_umol_m2_s, method = "radix"), ]
+rownames(tree_train) <- NULL; rownames(soil_train) <- NULL
+
 cat("✓ Features built for training\n\n")
 
 # =============================================================================

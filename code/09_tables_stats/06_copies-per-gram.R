@@ -71,7 +71,7 @@ wood_conv <- tibble(
 # ---- estimated soil DRY-basis copies/g using black-oak GWC (organic vs mineral)
 # Main-study soils lack gravimetric moisture; use black-oak soil GWC as typical.
 # GWC = water/dry, so copies/g_dry = copies/g_fresh * (1 + GWC).
-bo_sm <- tryCatch(read_csv("data/processed/molecular/black_oak/bo_soil_moisture.csv", show_col_types = FALSE),
+bo_sm <- tryCatch(read_csv("data/raw/field_data/black_oak/bo_soil_moisture.csv", show_col_types = FALSE),
                   error = function(e) NULL)
 soil_dry <- NULL
 if (!is.null(bo_sm)) {

@@ -9,9 +9,27 @@
 # Model choices: goFlux 0.2.0 (renv.lock) converges the Hutchinson-Mosier fit on some
 # deployments where the version used when these data were processed (2025) did not,
 # and so selects differently for ~9% of deployments. The selection made at the time
-# is recorded in data/processed/flux/flux_model_choices.csv and applied here, so a
+# is recorded in data/raw/flux_windows/flux_model_choices.csv and applied here, so a
 # re-fit reproduces the stored fluxes. (Built by code/tools/rebuild_closure_windows.R.)
+#
+# Where they live: saved windows and model choices are inputs, in data/raw/flux_windows/,
+# and no pipeline script writes there. A re-pick (FLUX_REPICK=1) writes its windows to
+# data/processed/flux/repicked/; copy them into data/raw/flux_windows/ to adopt them.
 # ==============================================================================
+# Paths from the repository root, valid from the root or a script's own folder.
+repo_path <- function(rel) {
+  for (up in c("", "../", "../../", "../../../"))
+    if (file.exists(paste0(up, "code/pipeline.csv"))) return(paste0(up, rel))
+  stop("cannot find the repository root from ", getwd(), call. = FALSE)
+}
+window_path <- function(name) repo_path(file.path("data/raw/flux_windows", name))
+repick_path <- function(name) {
+  d <- repo_path("data/processed/flux/repicked"); dir.create(d, showWarnings = FALSE, recursive = TRUE)
+  f <- file.path(d, name)
+  message("re-picked windows written to ", f, "; copy into data/raw/flux_windows/ to adopt them")
+  f
+}
+
 use_saved_windows <- function(path) {
   if (Sys.getenv("FLUX_REPICK") == "1") {
     if (!interactive()) stop("FLUX_REPICK=1 needs an interactive session (the picker is graphical)", call. = FALSE)

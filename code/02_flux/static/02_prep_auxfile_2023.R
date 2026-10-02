@@ -330,7 +330,7 @@ base_path <- "../../../data/raw/field_data"
 
 # Create the auxfile
 auxfile_2023 <- create_ymf2023_auxfile(
-  data_path = "../../../data/processed/flux/Compiled YMF Data 2023 - Sheet1.csv",
+  data_path = "../../../data/raw/field_data/static_chamber_field/Compiled YMF Data 2023 - Sheet1.csv",
   surface_area_file = file.path(base_path, "static_chamber_dims/surface_area.csv"),
   additional_vol_file = file.path(base_path, "static_chamber_dims/additional_vol.csv"),
   simplified_vol_file = file.path(base_path, "static_chamber_dims/simplified_volume.csv")

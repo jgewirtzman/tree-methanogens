@@ -156,8 +156,8 @@ cat("Good windows (>=30 obs):", length(good_windows), "\n")
 
 cat("\n=== STEP 3: MANUAL IDENTIFICATION ===\n")
 source("../../lib/flux_windows.R")
-MC_PATH <- "../../../data/processed/flux/flux_model_choices.csv"
-WIN <- "../../../data/processed/flux/lgr_manual_identification_results_soil.csv"
+MC_PATH <- window_path("flux_model_choices.csv")
+WIN <- window_path("lgr_manual_identification_results_soil.csv")
 # Saved hand-picked windows are the record; the picker below runs only without them
 # (or with FLUX_REPICK=1, interactively). See code/lib/flux_windows.R.
 if (use_saved_windows(WIN)) {
@@ -166,7 +166,7 @@ if (use_saved_windows(WIN)) {
 } else {
 
 # Check if manual ID already exists
-if(file.exists("../../../data/processed/flux/lgr_manual_identification_results_soil.csv")) {
+if(file.exists(WIN)) {
   cat("Found existing manual identification file!\n")
   cat("Do you want to:\n")
   cat("1. Use existing manual identification (skip click.peak2)\n")
@@ -177,7 +177,7 @@ if(file.exists("../../../data/processed/flux/lgr_manual_identification_results_s
   
   if(choice == "1") {
     cat("Loading existing manual identification...\n")
-    manID.lgr3 <- read_csv("../../../data/processed/flux/lgr_manual_identification_results_soil.csv", 
+    manID.lgr3 <- read_csv(WIN, 
                            show_col_types = FALSE)
     
     # Update volume in loaded data
@@ -289,7 +289,7 @@ if(file.exists("../../../data/processed/flux/lgr_manual_identification_results_s
 }
 
 # Save manual identification results (with correct volume)
-write_csv(manID.lgr3, "../../../data/processed/flux/lgr_manual_identification_results_soil.csv")
+write_csv(manID.lgr3, repick_path(basename(WIN)))
 }
 
 # =============================================================================
@@ -603,7 +603,7 @@ if(exists("CH4_best_lgr3")) {
 cat("- data/processed/flux/LGR3_flux_plots_complete_soil.pdf\n")
 cat("- auxfile_goFlux_soilflux_with_weather.txt\n")
 cat("- auxfile_goFlux_soilflux_with_weather_formatted.csv\n")
-cat("- data/processed/flux/lgr_manual_identification_results_soil.csv\n")
+cat("- closure windows: data/raw/flux_windows/ (saved) or data/processed/flux/repicked/ (re-pick)\n")
 
 cat("\nSummary:\n")
 cat("- Total measurements processed:", nrow(final_dataset), "\n")

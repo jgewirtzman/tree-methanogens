@@ -207,7 +207,7 @@ wr(read_csv("data/raw/field_data/black_oak/ymf_black_oak_flux_compiled.csv", sho
      CH4_best_flux_nmol_m2_s = CH4_best.flux, CH4_model, CH4_quality = CH4_quality.check,
      CH4_LM_flux = CH4_LM.flux, CH4_LM_r2 = CH4_LM.r2, CO2_best_flux_umol_m2_s = CO2_best.flux,
      CO2_model, CO2_quality = CO2_quality.check, notes = Notes), "black_oak_experiment.csv")
-wr(read_csv("data/processed/molecular/black_oak/bo_its_load.csv", show_col_types = FALSE) %>%
+wr(read_csv("data/raw/external/tree-microbiome/bo_its_load.csv", show_col_types = FALSE) %>%
      transmute(sample_id = `Sample ID`, ITS_copies_uL = ITS_per_ul, material = Material), "black_oak_its_load.csv")
 wr(read_csv("code/lib/methanotroph_definitions.csv", show_col_types = FALSE), "methanotroph_definitions.csv")
 cat(sprintf("\n%d datasets in %s/\n", length(list.files(out_dir, "\\.csv$")), out_dir))

@@ -6,7 +6,7 @@
 # import LGR (import2RData) -> obs.win -> click.peak2 (YOU click ~49 peaks) -> goFlux.
 # Prereq: run code/02_flux/rescue/01_untagged_auxfile.R first (writes untagged_auxfile.csv).
 # Run from repo ROOT, interactively (needs a graphics device for clicking).
-# Writes data/processed/flux/untagged_rescue/untagged_fluxes.csv
+# Writes data/raw/flux_windows/untagged/untagged_fluxes.csv
 # ==============================================================================
 suppressMessages({library(goFlux);library(dplyr);library(readr)})
 
@@ -70,8 +70,8 @@ compute_and_save <- function(manID) {
     left_join(ch4 %>% transmute(UniqueID, CH4_best.flux = best.flux, CH4_model = model, CH4_quality = quality.check), by = "UniqueID") %>%
     left_join(co2 %>% transmute(UniqueID, CO2_best.flux = best.flux), by = "UniqueID") %>%
     mutate(dead = grepl("dead|snag", Sample, ignore.case = TRUE))
-  write.csv(out, "data/processed/flux/untagged_rescue/untagged_fluxes.csv", row.names = FALSE)
-  cat("Wrote data/processed/flux/untagged_rescue/untagged_fluxes.csv (", nrow(out), "trees-measurements)\n")
+  write.csv(out, "data/raw/flux_windows/untagged/untagged_fluxes.csv", row.names = FALSE)
+  cat("Wrote data/raw/flux_windows/untagged/untagged_fluxes.csv (", nrow(out), "trees-measurements)\n")
   print(out %>% group_by(site, dead) %>%
           summarise(n = n(), CH4_median = round(median(CH4_best.flux, na.rm = TRUE), 3), .groups = "drop"))
   invisible(out)

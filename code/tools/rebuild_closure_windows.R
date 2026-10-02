@@ -15,16 +15,17 @@
 #
 # Writes, in the format click.peak2() produces (columns, flag, Etime and the corrected
 # start/end times), keeping only the rows inside each picked window:
-#   data/processed/flux/lgr_manual_identification_semirigid_tree.csv
-#   data/processed/flux/lgr_manual_identification_2023_cross_species.csv
+#   data/raw/flux_windows/lgr_manual_identification_semirigid_tree.csv
+#   data/raw/flux_windows/lgr_manual_identification_2023_cross_species.csv
 # and the stored model choices for every campaign:
-#   data/processed/flux/flux_model_choices.csv
+#   data/raw/flux_windows/flux_model_choices.csv
+# (written to data/processed/flux/ on 2026-10-01; moved to data/raw/ the same day)
 # The goFlux fitting scripts load these instead of opening the picker.
 #
 # Usage (repository root):  Rscript code/tools/rebuild_closure_windows.R [monthly|2023]
 # ==============================================================================
 suppressPackageStartupMessages({ library(goFlux); library(dplyr); library(readr) })
-FD <- "data/processed/flux"
+FD <- "data/processed/flux"; OUT <- "data/raw/flux_windows"
 CFG <- list(
   monthly = list(raw = "data/raw/lgr/semirigid_2020-2021", aux = "auxfile_goFlux_with_weather.csv", ol = 600, sh = 300,
                  stored = "semirigid_tree_final_complete_dataset.csv", sfx = ".x",
@@ -76,7 +77,7 @@ for (cp in camps) {
   stopifnot(all(score < 1e-9))                   # every window must reproduce its stored fit exactly
   # only the picked window is kept (flag == 1): goFlux fits those rows alone, and the full
   # observation windows made the 2023 file 0.5 GB
-  write_csv(bind_rows(out) %>% filter(flag == 1), file.path(FD, cfg$out))
+  write_csv(bind_rows(out) %>% filter(flag == 1), file.path(OUT, cfg$out))
   cat(sprintf("%d of %d stored fits: windows recovered (max mismatch %.1e) -> %s\n",
               length(out), length(ids), max(score), cfg$out))
 }
@@ -96,6 +97,6 @@ MC <- bind_rows(
   pick("tree_flux_2021_multiheight.csv", campaign = "2021_multiheight"),
   pick("tree_flux_2023_cross_species.csv", campaign = "2023_cross_species")) %>% distinct()
 stopifnot(!anyDuplicated(MC[, c("UniqueID", "gas")]))
-write_csv(MC, file.path(FD, "flux_model_choices.csv"))
+write_csv(MC, file.path(OUT, "flux_model_choices.csv"))
 cat(sprintf("\nflux_model_choices.csv: %d choices (%s)\n", nrow(MC),
             paste(names(table(MC$campaign)), table(MC$campaign), collapse = "; ")))

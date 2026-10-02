@@ -131,7 +131,7 @@ check_data_quality <- function(merged_final) {
 
 # Main Bar Plot Function with Fixed Ordering
 create_mcra_barplot_by_species <- function(merged_final, species_mapping, 
-                                           tree_file = "data/processed/metadata/PhytoPhylo",
+                                           tree_file = "data/raw/external/phylogeny/PhytoPhylo",
                                            error_bar_width = 0.2) {
   
   # Process data
