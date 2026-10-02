@@ -278,11 +278,14 @@ STREAM_HALF_WIDTH_M <- 0.75   # a 1-2 m brook (Jon, 2026-10-02)
 G$VWC[chan_d(G, CH) <= STREAM_HALF_WIDTH_M] <- 100
 cat(sprintf("Moisture surface (04_moisture_surface.R fit) over the map: %d cells, VWC %.1f-%.1f%%\n", nrow(G), min(G$VWC), max(G$VWC)))
 
-# Moisture is shown over the rectangle spanned by the inventory stems, aligned with the
-# plot grid (plot-local PX/PY), so every mapped stem sits on the surface the upscaling
-# gives it; beyond the dashed survey hull those values are extrapolated. Outside the
+# Moisture is shown over the rectangle spanning every tree and collar drawn (inventory
+# stems, monthly-survey trees, soil collars), aligned with the plot grid (plot-local
+# PX/PY); beyond the dashed survey hull those values are extrapolated. Outside the
 # rectangle only the terrain is drawn.
-in_rect <- pl$PX >= min(INVc$PX) & pl$PX <= max(INVc$PX) & pl$PY >= min(INVc$PY) & pl$PY <= max(INVc$PY)
+mt_p <- tr_ms$inv(trees_with_plots$Latitude, trees_with_plots$Longitude)
+pl_p <- tr_ms$inv(plots_data$Latitude, plots_data$Longitude)
+RX <- range(c(INVc$PX, mt_p$PX, pl_p$PX), na.rm = TRUE) + c(-5, 5); RY <- range(c(INVc$PY, mt_p$PY, pl_p$PY), na.rm = TRUE) + c(-5, 5)   # 5 m margin
+in_rect <- pl$PX >= RX[1] & pl$PX <= RX[2] & pl$PY >= RY[1] & pl$PY <= RY[2]
 G <- G[in_rect, ]
 
 # shared layers
