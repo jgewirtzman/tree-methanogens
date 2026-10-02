@@ -1,3 +1,4 @@
+source("code/lib/rf_spec.R")   # RF_NUM_TREES, RF_THREADS
 source("code/lib/outputs.R")
 #!/usr/bin/env Rscript
 # ==============================================================================
@@ -177,7 +178,7 @@ g$dbh_m <- median(d$dbh_m,na.rm=TRUE)
 g$soil_temp_C_mean <- mean(jm$soil_temp_C_mean,na.rm=TRUE)
 g$air_temp_C_mean  <- mean(jm$air_temp_C_mean, na.rm=TRUE)
 g$species <- factor(g$species, levels=levels(factor(d$species_clean)))
-g$pred <- predict(TreeRF, g, num.threads=1)$predictions
+g$pred <- predict(TreeRF, g, num.threads=RF_THREADS)$predictions
 mo <- g %>% group_by(soil_moisture_at_tree, height_cm) %>%
   summarise(f=mean(pred), .groups="drop") %>%
   pivot_wider(names_from=height_cm, values_from=f, names_prefix="h") %>%

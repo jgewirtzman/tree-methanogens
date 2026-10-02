@@ -18,6 +18,7 @@
 #   Rscript code/05_model/05_audit_training_population.R
 # ~1 min per fit. Writes outputs/audit/training_population_audit.{txt,csv}
 # ==============================================================================
+source("code/lib/rf_spec.R")   # RF_NUM_TREES, RF_THREADS
 source("code/lib/outputs.R"); source("code/lib/geometry.R")
 suppressMessages({ library(ranger); library(dplyr) })
 
@@ -47,7 +48,7 @@ rows <- list()
 for (v in names(VARIANTS)) for (s in SEEDS) {
   d <- cand[VARIANTS[[v]]$keep, ]; X <- design(d, VARIANTS[[v]]$dead_pred)
   TreeRF <- ranger(x = X, y = d$y_asinh, num.trees = e$TreeRF$num.trees, min.node.size = e$TreeRF$min.node.size,
-                   mtry = floor(sqrt(ncol(X))), importance = "impurity", num.threads = 1, oob.error = TRUE, seed = s)
+                   mtry = floor(sqrt(ncol(X))), importance = "impurity", num.threads = RF_THREADS, oob.error = TRUE, seed = s)
   SoilRF <- e$SoilRF
   sb <- tempfile("treepred_"); dir.create(sb)
   tree_train_complete <- d; X_tree <- X

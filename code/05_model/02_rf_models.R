@@ -16,6 +16,7 @@
 #   - diagnostic plots (to outputs/figures/)
 # ==============================================================================
 
+source("../lib/rf_spec.R")   # RF_NUM_TREES, RF_THREADS
 library(dplyr)
 library(tidyr)
 library(readr)
@@ -452,10 +453,10 @@ compute_empirical_SI <- function(df, flux_col, group_name, use_soil_temp = FALSE
     rf0 <- ranger(
       x = X,
       y = df_clean$y_asinh,
-      num.trees = 200,
+      num.trees = RF_NUM_TREES,
       min.node.size = 5,
       mtry = max(1, floor(sqrt(ncol(X)))),
-      num.threads = 1,
+      num.threads = RF_THREADS,
       keep.inbag = TRUE,
       seed = 42                      # reproducibility: this RF's residuals define the seasonal index
     )
@@ -530,9 +531,9 @@ compute_taxon_prior <- function(tree_df, taxonomy_df) {
   rf_env <- ranger(
     x = X_env,
     y = df_clean$y_asinh,
-    num.trees = 200,
+    num.trees = RF_NUM_TREES,
     min.node.size = 5,
-    num.threads = 1,
+    num.threads = RF_THREADS,
     seed = 42                        # reproducibility: residuals here define the taxonomy prior (a TreeRF feature)
   )
   
@@ -757,7 +758,7 @@ build_features_tree <- function(df, drivers, Mhat_fn, SI_table, taxonomy, taxon_
   # over-predicts least, which is also the conservative direction here.
   #
   # Giving every measured species its own level was tried and is NOT better: three
-  # records cannot reshape an 800-tree forest, and shrinking min.node.size to 2 to
+  # records cannot reshape the forest, and shrinking min.node.size to 2 to
   # let them try made it worse. Empirical-Bayes shrinkage of a species offset
   # toward genus toward the grand mean -- effectively the old taxon prior -- was
   # the worst of the five.
@@ -1040,11 +1041,11 @@ cat("  Species×moisture interactions for ALL species including OTHER\n")
 TreeRF <- ranger(
   x = as.data.frame(X_tree),
   y = y_tree,
-  num.trees = 800,
+  num.trees = RF_NUM_TREES,
   min.node.size = 5,
   mtry = floor(sqrt(ncol(X_tree))),
   importance = "impurity",
-  num.threads = 1,
+  num.threads = RF_THREADS,
   oob.error = TRUE,
   seed = 42
 )
@@ -1103,11 +1104,11 @@ X_soil_template <- X_soil
 SoilRF <- ranger(
   x = as.data.frame(X_soil),
   y = y_soil,
-  num.trees = 800,
+  num.trees = RF_NUM_TREES,
   min.node.size = 5,
   mtry = floor(sqrt(ncol(X_soil))),
   importance = "impurity",
-  num.threads = 1,
+  num.threads = RF_THREADS,
   oob.error = TRUE,
   seed = 42
 )

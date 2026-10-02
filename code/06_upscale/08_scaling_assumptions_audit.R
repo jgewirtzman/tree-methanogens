@@ -1,3 +1,4 @@
+source("code/lib/rf_spec.R")   # RF_NUM_TREES, RF_THREADS
 source("code/lib/outputs.R")
 #!/usr/bin/env Rscript
 # ==============================================================================
@@ -99,7 +100,7 @@ grid$soil_moisture_at_tree <- mean(jm$soil_moisture_at_tree, na.rm=TRUE)
 grid$soil_temp_C_mean <- mean(jm$soil_temp_C_mean, na.rm=TRUE)
 grid$air_temp_C_mean  <- mean(jm$air_temp_C_mean,  na.rm=TRUE)
 grid$species <- factor(grid$species, levels = levels(factor(d$species_clean)))
-grid$pred <- predict(TreeRF, grid, num.threads=1)$predictions
+grid$pred <- predict(TreeRF, grid, num.threads=RF_THREADS)$predictions
 rfw <- grid %>% dplyr::select(species, height_cm, pred) %>%
   pivot_wider(names_from=height_cm, values_from=pred, names_prefix="rf") %>%
   mutate(ratio_200_50 = rf200/rf50)

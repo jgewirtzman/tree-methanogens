@@ -42,6 +42,7 @@
 #         outputs/tables/soil_surface_annual.csv   (cell, annual mean)
 #         outputs/audit/soil_surface_summary.txt
 # ==============================================================================
+source("code/lib/rf_spec.R")   # RF_NUM_TREES, RF_THREADS
 suppressPackageStartupMessages({library(ranger); library(dplyr)})
 set.seed(42)
 source("code/lib/geometry.R")
@@ -117,7 +118,7 @@ for (m in 1:12) {
   out[[m]] <- data.frame(cell = seq_len(nrow(S)), PX = S$PX, PY = S$PY,
                          x = S$x, y = S$y, month = m,
                          soil_moisture_at_site = moist,
-                         flux_nmol_m2_s = predict(SoilRF, nd, num.threads = 1)$predictions)
+                         flux_nmol_m2_s = predict(SoilRF, nd, num.threads = RF_THREADS)$predictions)
 }
 M <- bind_rows(out)
 A <- M %>% group_by(cell, PX, PY, x, y) %>%
