@@ -35,6 +35,7 @@
 # Output: outputs/tables/tree_flux_predictions.csv  (per-stem; map + budget + grid anchor)
 #         outputs/tables/tree_monthly_stand.csv     (stand monthly series)
 # ==============================================================================
+source("code/lib/rf_spec.R")   # RF_NUM_TREES, RF_THREADS
 suppressPackageStartupMessages({library(ranger); library(dplyr)})
 set.seed(42)
 source("code/lib/geometry.R")
@@ -142,7 +143,7 @@ pred_at <- function(h, mo, idx = seq_len(nrow(INV))) predict(TreeRF, data.frame(
     soil_temp_C_mean = DR$soil_temp_C_mean[mo],
     air_temp_C_mean = DR$air_temp_C_mean[mo],
     height_cm = h,
-    dead_stem = 0), num.threads = 1)$predictions   # inventory is live stems; ignored unless a variant uses it
+    dead_stem = 0), num.threads = RF_THREADS)$predictions   # inventory is live stems; ignored unless a variant uses it
 
 # --- locate the steps, rather than assuming where they are --------------------
 # Split thresholds are a property of the forest, so a sample of stems reveals all

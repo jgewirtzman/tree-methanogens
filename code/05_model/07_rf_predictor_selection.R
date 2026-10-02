@@ -33,6 +33,7 @@
 #
 # Output: outputs/data/rf_predictor_selection_current.csv / .txt
 # ==============================================================================
+source("code/lib/rf_spec.R")   # RF_NUM_TREES, RF_THREADS
 suppressPackageStartupMessages({library(ranger)})
 
 load("outputs/models/RF_MODELS.RData")
@@ -83,7 +84,7 @@ score <- function(cols) {
     for (k in seq_len(NFOLD)) {
       tr <- which(fold != k); te <- which(fold == k)
       m <- ranger(x = X[tr, , drop = FALSE], y = y[tr], num.trees = nt,
-                  min.node.size = nn, mtry = mt, num.threads = 1, seed = 42)
+                  min.node.size = nn, mtry = mt, num.threads = RF_THREADS, seed = 42)
       pr[te] <- predict(m, X[te, , drop = FALSE])$predictions
     }
     ok <- is.finite(pr) & is.finite(y)
@@ -92,7 +93,7 @@ score <- function(cols) {
   }
   # OOB on the full data, for comparison with what gets quoted
   oob <- ranger(x = X, y = y, num.trees = nt, min.node.size = nn, mtry = mt,
-                num.threads = 1, seed = 42)$r.squared
+                num.threads = RF_THREADS, seed = 42)$r.squared
   data.frame(n_pred = ncol(X), oob_r2 = oob,
              grouped_r2 = mean(r2), grouped_r2_se = sd(r2)/sqrt(NREP),
              sum_ratio = mean(ratio), sum_ratio_se = sd(ratio)/sqrt(NREP))

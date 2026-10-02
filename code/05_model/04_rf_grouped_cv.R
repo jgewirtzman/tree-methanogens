@@ -22,6 +22,7 @@
 # Output: outputs/data/rf_grouped_cv.csv   (read by 03_budget_canonical.R)
 #         outputs/audit/rf_grouped_cv.txt
 # ==============================================================================
+source("code/lib/rf_spec.R")   # RF_NUM_TREES, RF_THREADS
 suppressPackageStartupMessages({library(ranger)})
 
 load("outputs/models/RF_MODELS.RData")
@@ -52,7 +53,7 @@ grouped_cv <- function(X, y, grp, rf, label, unit) {
     for (k in seq_len(NFOLD)) {
       tr <- which(f != k); te <- which(f == k)
       m <- ranger(x = X[tr, , drop = FALSE], y = y[tr], num.trees = nt,
-                  min.node.size = nn, mtry = mt, num.threads = 1, seed = 42)
+                  min.node.size = nn, mtry = mt, num.threads = RF_THREADS, seed = 42)
       pr[te] <- predict(m, X[te, , drop = FALSE])$predictions
     }
     # R2 per repeat, then averaged. Averaging the PREDICTIONS across repeats and
