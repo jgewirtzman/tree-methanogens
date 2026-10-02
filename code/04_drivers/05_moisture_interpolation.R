@@ -23,9 +23,7 @@
 # Compared here by leave-one-out over the survey points, plus roughness, because
 # the two together separate "captures the gradient" from "chases noise".
 #
-# A CAVEAT ON THE INPUT worth stating in the methods: river points are inserted
-# with an assumed VWC of 100%, which is not a measurement. Every method inherits
-# that, and it anchors the wet end of the gradient.
+# Input: the survey points only (no stream points at an assumed 100% VWC).
 #
 # Output: outputs/data/moisture_interpolation.csv / .txt
 #         outputs/figures/generated/fig_moisture_interpolation.png
