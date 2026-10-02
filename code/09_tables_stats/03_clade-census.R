@@ -93,5 +93,18 @@ cat("CLADE CENSUS -- every defined category: ASVs, mean % of community, prevalen
 cat(sprintf("Analysed samples (rarefied 3,500): %s\n\n", paste(names(table(sd$comp)), table(sd$comp), sep = "=", collapse = ", ")))
 for (t in unique(C$tier)) { cat("====", t, "====\n"); x <- C[C$tier == t, -1]
   print(x, row.names = FALSE); cat("\n") }
+# Tier totals with the shared classifier (lib/load_methanotroph_definitions.R): the one
+# source for the methanotroph ASV counts and compartment means quoted in Results §5.
+names(st) <- rownames(TX_ALL)
+tier_tot <- do.call(rbind, lapply(c("Known", "Putative"), function(tr) {
+  idx <- (st == tr & !is.na(st))[rownames(otu)]
+  row <- data.frame(tier = tr, ASVs_analysed = sum(idx & rowSums(otu) > 0))
+  for (k in COMPS) row[[paste0(k, "_pct")]] <- round(mean(colSums(otu[idx, sd$comp == k, drop = FALSE])), 3)
+  row }))
+tot <- tier_tot[1, ]; tot$tier <- "Known + Putative"; tot[, -1] <- colSums(tier_tot[, -1])
+tier_tot <- rbind(tier_tot, tot)
+cat("==== Tier totals (shared classifier, analysed samples; mean % of community) ====\n")
+print(tier_tot, row.names = FALSE)
+write.csv(tier_tot, out_path("methanotroph_tier_totals.csv"), row.names = FALSE)
 sink()
 cat(readLines(out_path("clade_census.txt")), sep = "\n")
