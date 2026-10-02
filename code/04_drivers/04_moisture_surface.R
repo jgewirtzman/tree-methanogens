@@ -89,3 +89,23 @@ dir.create("outputs/tables", showWarnings = FALSE, recursive = TRUE)
 write.csv(G[, c("PX","PY","x","y","vwc","vwc_rel")],
           "outputs/tables/moisture_surface_grid.csv", row.names = FALSE)
 cat("written: outputs/tables/moisture_surface_grid.csv\n")
+
+# --- coverage of the inventory (SI Methods S7) ---------------------------------
+# Every located stem takes a value from this surface; those outside the convex hull of
+# the survey points get an extrapolated one. Reported, not corrected.
+INVc <- canonical_inventory()
+Lc <- INVc[INVc$located, ]
+hull <- D[chull(D$PX, D$PY), ]
+out_hull <- sp::point.in.polygon(Lc$PX, Lc$PY, hull$PX, hull$PY) == 0
+dmin <- sapply(seq_len(nrow(Lc)), function(i) min(sqrt((D$PX - Lc$PX[i])^2 + (D$PY - Lc$PY[i])^2)))
+COV <- data.frame(quantity = c("stems", "stems_located", "stems_unlocated", "stems_outside_survey_hull",
+                               "pct_stems_outside_survey_hull", "pct_basal_area_outside_survey_hull",
+                               "stand_cells_pct_outside_survey_hull", "max_dist_to_survey_point_m",
+                               "median_dist_to_survey_point_m"),
+                  value = c(nrow(INVc), nrow(Lc), sum(!INVc$located), sum(out_hull),
+                            100 * mean(out_hull), 100 * sum(Lc$dbh_m[out_hull]^2) / sum(Lc$dbh_m^2),
+                            100 * mean(sp::point.in.polygon(G$PX, G$PY, hull$PX, hull$PY) == 0),
+                            max(dmin), median(dmin)))
+dir.create("outputs/data", showWarnings = FALSE, recursive = TRUE)
+write.csv(COV, "outputs/data/moisture_surface_coverage.csv", row.names = FALSE)
+print(COV, row.names = FALSE)

@@ -95,7 +95,9 @@ report_species_levels(INV$species, INV$sp, trained)
 # The stand has a moisture FIELD, not a value. Each stem now takes its local
 # relative wetness from the TPS surface (vwc_rel, mean 1 over the stand) and that
 # is scaled by the monthly climatology level, exactly as the soil grid is. The
-# 51 unlocated stems (0.6%) take vwc_rel = 1, the stand mean. Averaging over 8,006
+# 34 unlocated in-stand stems (0.4%) take vwc_rel = 1, the stand mean; 5.3% of located
+# stems lie outside the survey hull and take extrapolated values (counts in
+# outputs/data/moisture_surface_coverage.csv). Averaging over ~8,000
 # stems spread across the field crosses many thresholds instead of one, so the
 # month-to-month curve reflects the climatology rather than a split location.
 GRIDFILE <- "outputs/tables/moisture_surface_grid.csv"
