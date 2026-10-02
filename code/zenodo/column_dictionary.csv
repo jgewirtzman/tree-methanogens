@@ -183,7 +183,7 @@ flux_stem.csv,tree_tag,character,,Tree tag as recorded in the field (campaign-sp
 flux_stem.csv,chamber_type,character,,semirigid (monthly survey) or rigid
 flux_stem.csv,height_label,character,,Measurement height as recorded (cm; felled oak in m; includes 'Root Crown' and 'Seam')
 flux_stem.csv,chamber_id,character,,Chamber identifier
-flux_stem.csv,chamber_area_m2,numeric,m2,Enclosed surface area
+flux_stem.csv,chamber_area_cm2,numeric,cm2,Enclosed surface area
 flux_stem.csv,chamber_vol_L,numeric,L,"Total system volume: chamber, 18.6 cm3 tubing and the 28 cm3 analyzer cell"
 flux_stem.csv,chamber_temp_C,numeric,degC,Chamber (or stem) temperature during the deployment
 flux_stem.csv,CH4_flux_nmol_m2_s,numeric,nmol m-2 s-1,CH4 flux from the selected goFlux fit (positive = emission)
@@ -219,7 +219,7 @@ flux_soil.csv,campaign,character,,"monthly_2020_2021, 2021_multiheight, 2023_cro
 flux_soil.csv,date,date,,Measurement date (felled oak: felling date; the standing-tree fluxes were measured before it)
 flux_soil.csv,site_id,character,,Soil collar: landscape position and collar number
 flux_soil.csv,landscape_position,character,,"Monthly survey: U upland, I intermediate, WD/WS wetland margin (dry/saturated); 2021: plot label"
-flux_soil.csv,chamber_area_m2,numeric,m2,Enclosed surface area
+flux_soil.csv,chamber_area_cm2,numeric,cm2,Enclosed surface area
 flux_soil.csv,chamber_vol_L,numeric,L,"Total system volume: chamber, 18.6 cm3 tubing and the 28 cm3 analyzer cell"
 flux_soil.csv,chamber_temp_C,numeric,degC,Chamber (or stem) temperature during the deployment
 flux_soil.csv,CH4_flux_nmol_m2_s,numeric,nmol m-2 s-1,CH4 flux from the selected goFlux fit (positive = emission)

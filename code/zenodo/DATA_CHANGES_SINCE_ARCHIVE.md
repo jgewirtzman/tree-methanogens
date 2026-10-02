@@ -93,3 +93,5 @@ deployment with all flags) and `picrust_pathway_associations.csv` (moved to `res
 New: `internal_gas.csv`, `isotopes.csv`, and `results/` (budget, grid, model skill,
 isotope summary, Tables 1 and S2-S5). The previous archive's monthly stem file omitted the
 45 hand-rescued untagged deployments; `flux_stem.csv` includes them.
+
+- `flux_stem.csv`, `flux_soil.csv`: `chamber_area_m2` renamed `chamber_area_cm2`. The values were always cm² (goFlux convention; rigid ≈462, semi-rigid ≈4,190); only the name and the dictionary unit were wrong. Fluxes unaffected (2026-10-02).

@@ -37,7 +37,7 @@ mon_tag <- read.csv(file.path(fd, "semirigid_tree_final_complete_dataset.csv"), 
 mon <- mon_all %>% filter(!is.na(CH4_best.flux)) %>% transmute(
   unique_id = UniqueID, campaign = "monthly_2020_2021", date = as.Date(Date),
   tree_tag = as.character(Plot.Tag), landscape_position = Plot.Letter, chamber_type = "semirigid",
-  height_label = "125", chamber_id = as.character(Chamber_ID), chamber_area_m2 = Area, chamber_vol_L = Vtot,
+  height_label = "125", chamber_id = as.character(Chamber_ID), chamber_area_cm2 = Area, chamber_vol_L = Vtot,
   chamber_temp_C = Tcham, CH4_flux_nmol_m2_s = CH4_best.flux, CH4_model,
   CH4_quality = CH4_quality.check, CH4_LM_r2 = CH4_LM.r2, CH4_LM_pval = CH4_LM.p.val,
   CO2_flux_umol_m2_s = CO2_best.flux, notes = Notes,
@@ -46,7 +46,7 @@ h21 <- read.csv(file.path(fd, "tree_flux_2021_multiheight.csv"), check.names = F
   filter(!is.na(CH4_best.flux)) %>% transmute(
   unique_id = UniqueID, campaign = "2021_multiheight", date = as.Date(substr(start.time, 1, 10)),
   tree_tag = as.character(tree_id), landscape_position = as.character(plot), chamber_type = "rigid",
-  height_label = as.character(measurement_height), chamber_id = NA_character_, chamber_area_m2 = Area,
+  height_label = as.character(measurement_height), chamber_id = NA_character_, chamber_area_cm2 = Area,
   chamber_vol_L = Vtot, chamber_temp_C = Tcham, CH4_flux_nmol_m2_s = CH4_best.flux, CH4_model,
   CH4_quality = CH4_quality.check, CH4_LM_r2 = CH4_LM.r2, CH4_LM_pval = CH4_LM.p.val,
   CO2_flux_umol_m2_s = CO2_best.flux, notes = NA_character_, untagged_rescue = FALSE)
@@ -55,7 +55,7 @@ names(y23)[grepl("^Bark", names(y23))][1] -> .bark; names(y23)[grepl("^Wounding"
 c23 <- y23 %>% filter(!is.na(CH4_best.flux)) %>% transmute(
   unique_id = UniqueID, campaign = "2023_cross_species", date = as.Date(date_clean),
   tree_tag = as.character(`Tree Tag`), landscape_position = NA_character_, chamber_type = "rigid",
-  height_label = "125", chamber_id = as.character(`Chamber ID`), chamber_area_m2 = Area, chamber_vol_L = Vtot,
+  height_label = "125", chamber_id = as.character(`Chamber ID`), chamber_area_cm2 = Area, chamber_vol_L = Vtot,
   chamber_temp_C = Tcham, CH4_flux_nmol_m2_s = CH4_best.flux, CH4_model, CH4_quality = CH4_quality.check,
   CH4_LM_r2 = CH4_LM.r2, CH4_LM_pval = CH4_LM.p.val, CO2_flux_umol_m2_s = CO2_best.flux,
   notes = as.character(Notes), untagged_rescue = FALSE,
@@ -64,7 +64,7 @@ oak <- read.csv("data/raw/field_data/black_oak/ymf_black_oak_flux_compiled.csv",
   filter(!is.na(CH4_best.flux)) %>% transmute(
   unique_id = UniqueID, campaign = "2022_felled_oak", date = as.Date("2022-10-04"),
   tree_tag = "felled black oak", landscape_position = NA_character_, chamber_type = "rigid",
-  height_label = paste(as.character(Height_m), "m"), chamber_id = as.character(Chamber), chamber_area_m2 = NA_real_,
+  height_label = paste(as.character(Height_m), "m"), chamber_id = as.character(Chamber), chamber_area_cm2 = NA_real_,
   chamber_vol_L = NA_real_, chamber_temp_C = Stem_Temp_C, CH4_flux_nmol_m2_s = CH4_best.flux,
   CH4_model, CH4_quality = CH4_quality.check, CH4_LM_r2 = CH4_LM.r2, CH4_LM_pval = CH4_LM.p.val,
   CO2_flux_umol_m2_s = CO2_best.flux, notes = as.character(Notes), untagged_rescue = FALSE,
@@ -108,7 +108,7 @@ soil <- read.csv(file.path(fd, "semirigid_tree_final_complete_dataset_soil.csv")
   filter(!is.na(CH4_best.flux)) %>% transmute(
   unique_id = UniqueID, campaign = "monthly_2020_2021", date = as.Date(Date),
   site_id = paste0(`Plot letter`, "_", `Plot Tag`), landscape_position = `Plot letter`,
-  chamber_area_m2 = Area, chamber_vol_L = Vtot, chamber_temp_C = Tcham,
+  chamber_area_cm2 = Area, chamber_vol_L = Vtot, chamber_temp_C = Tcham,
   CH4_flux_nmol_m2_s = CH4_best.flux, CH4_model, CH4_quality = CH4_quality.check,
   CH4_LM_r2 = CH4_LM.r2, CH4_LM_pval = CH4_LM.p.val, CO2_flux_umol_m2_s = CO2_best.flux, notes = Notes) %>%
   left_join(read.csv("outputs/data/flux_FINAL.csv") %>% filter(type == "soil") %>%
