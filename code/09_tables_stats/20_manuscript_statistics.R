@@ -1698,6 +1698,14 @@ stat("Overall CH4 mean", round(mean(gas_data$CH4_concentration), 0), "ppm")
 stat("Overall CH4 median", round(median(gas_data$CH4_concentration), 0), "ppm")
 stat("Overall CH4 range", paste(round(min(gas_data$CH4_concentration), 0), "to",
                                  round(max(gas_data$CH4_concentration), 0)), "ppm")
+# Share of trees above thresholds (Discussion: comparison with Wang et al. 2026, who report
+# >= 1,000 ppm in ~5% of upland stems)
+for (thr in c(10, 1000)) {
+  stat(sprintf("Trees with internal CH4 >= %g ppm", thr),
+       sprintf("%d of %d (%.0f%%)", sum(gas_data$CH4_concentration >= thr), nrow(gas_data),
+               100 * mean(gas_data$CH4_concentration >= thr)), "")
+  record(sprintf("internal_ch4_pct_ge_%g", thr), 100 * mean(gas_data$CH4_concentration >= thr))
+}
 
 # Species with highest/lowest
 sp_ch4 <- gas_data %>%
