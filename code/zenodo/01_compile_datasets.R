@@ -203,7 +203,8 @@ wr(read_csv("data/raw/weather/ymf_clean_sorted.csv", show_col_types = FALSE) %>%
      dewpoint_C = TdewPointC, ET_ref = ETos), "environmental_timeseries.csv")
 wr(read_csv("data/raw/field_data/black_oak/ymf_black_oak_flux_compiled.csv", show_col_types = FALSE) %>% transmute(
      unique_id = UniqueID, height_m = Height_m, chamber = Chamber, stem_temp_C = Stem_Temp_C,
-     stem_diam_mm = Stem_Diam_mm, air_temp_C = Air_Temp_C, obs_length_s = obs_length_sec,
+     stem_diam_cm = Stem_Diam_mm,   # the source column says mm, but the values (38.5-46) are cm (Jon, 2026-10-03)
+     air_temp_C = Air_Temp_C, obs_length_s = obs_length_sec,
      CH4_best_flux_nmol_m2_s = CH4_best.flux, CH4_model, CH4_quality = CH4_quality.check,
      CH4_LM_flux = CH4_LM.flux, CH4_LM_r2 = CH4_LM.r2, CO2_best_flux_umol_m2_s = CO2_best.flux,
      CO2_model, CO2_quality = CO2_quality.check, notes = Notes), "black_oak_experiment.csv")
