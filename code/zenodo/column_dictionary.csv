@@ -12,7 +12,7 @@ black_oak_experiment.csv,chamber,character,NA,Chamber identifier
 black_oak_experiment.csv,height_m,numeric,m,Measurement height on stem
 black_oak_experiment.csv,notes,character,NA,Field notes
 black_oak_experiment.csv,obs_length_s,numeric,s,Observation length
-black_oak_experiment.csv,stem_diam_mm,numeric,mm,Stem diameter at measurement point
+black_oak_experiment.csv,stem_diam_cm,numeric,cm,Stem diameter at measurement point
 black_oak_experiment.csv,stem_temp_C,numeric,C,Stem temperature
 black_oak_experiment.csv,unique_id,character,NA,Measurement identifier
 black_oak_its_load.csv,ITS_copies_uL,numeric,copies uL-1,ITS copy concentration in the extract
