@@ -122,10 +122,20 @@ n_rows_mt_p <- max(n_distinct(heatmap_mt_p$Row_Label), 1)
 
 shared_heatmap_theme <- theme_minimal() +
   theme(
-    axis.text.y = element_text(size = 8),
+    axis.text.y = element_text(size = 10),
     axis.text.x = element_text(size = 10, angle = 45, hjust = 1),
     axis.title.x = element_blank()
   )
+
+# Row labels: "Family: Genus" with the genus italic, or "Family (genus unresolved)".
+taxon_labels <- function(v) {
+  out <- lapply(v, function(x) {
+    p <- strsplit(x, " | ", fixed = TRUE)[[1]]; fam <- p[1]; gen <- if (length(p) > 1) trimws(p[2]) else ""
+    if (is.na(gen) || gen == "" || gen == "NA") bquote(.(paste0(fam, " (genus unresolved)")))
+    else bquote(.(paste0(fam, ": ")) * italic(.(gen)))
+  })
+  do.call(expression, out)
+}
 
 # Methanogen panel (top)
 p_mg <- ggplot(heatmap_mg, aes(x = Media, y = Row_Label, fill = Abundance)) +
@@ -135,7 +145,7 @@ p_mg <- ggplot(heatmap_mg, aes(x = Media, y = Row_Label, fill = Abundance)) +
   theme(axis.text.x = element_blank(),
         axis.title.y = element_blank(),
         plot.margin = margin(5, 5, 0, 5)) +
-  labs(subtitle = "Methanogen") +
+  labs(subtitle = "Methanogen") + scale_y_discrete(labels = taxon_labels) +
   scale_fill_viridis_c(option = "C", name = expression(log[10]~"(Abundance + 1)"))
 
 # Known methanotroph panel (middle)
@@ -145,7 +155,7 @@ p_mt_k <- ggplot(heatmap_mt_k, aes(x = Media, y = Row_Label, fill = Abundance)) 
   shared_heatmap_theme +
   theme(axis.text.x = element_blank(),
         plot.margin = margin(0, 5, 0, 5)) +
-  labs(y = "Taxa (Family | Genus)", subtitle = "Methanotroph (known)") +
+  labs(y = "Taxon", subtitle = "Methanotroph (known)") + scale_y_discrete(labels = taxon_labels) +
   scale_fill_viridis_c(option = "C", name = expression(log[10]~"(Abundance + 1)"))
 
 # Putative methanotroph panel (bottom)
@@ -154,7 +164,7 @@ p_mt_p <- ggplot(heatmap_mt_p, aes(x = Media, y = Row_Label, fill = Abundance)) 
   coord_fixed(ratio = 1) +
   shared_heatmap_theme +
   theme(plot.margin = margin(0, 5, 5, 5)) +
-  labs(y = "Taxa (Family | Genus)", subtitle = "Methanotroph (putative)") +
+  labs(y = "Taxon", subtitle = "Methanotroph (putative)") + scale_y_discrete(labels = taxon_labels) +
   scale_fill_viridis_c(option = "C", name = expression(log[10]~"(Abundance + 1)"))
 
 # Stack with heights proportional to row counts
@@ -181,7 +191,7 @@ p_abs <- Reduce(`/`, panels) +
 print(p_abs)
 
 ggsave("outputs/figures/generated/black_oak_methanome_revised.png",
-       p_abs, width = 12, height = 8, dpi = 300)
+       p_abs, width = 12, height = 8, dpi = 300, bg = "white")
 
 # ==============================================================================
 # STEP 4: Relative abundance heatmap

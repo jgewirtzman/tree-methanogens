@@ -91,9 +91,7 @@ p <- ggplot(grid, aes(response, trait_label, fill=rho)) +
   scale_fill_gradient2(low="#2166ac", mid="white", high="#b2182b", midpoint=0, limits=c(-1,1), name="Spearman\nrho") +
   facet_grid(category ~ ., scales="free_y", space="free_y", switch="y") +
   scale_x_discrete(position="top") +
-  labs(x=NULL, y=NULL, title=NULL,
-       caption=paste0("*  p<0.10      **  p<0.05      ***  FDR<0.10      ****  FDR<0.05  (Benjamini-Hochberg, all cells)",
-                      "\nBold outline: robust to the gymnosperm/angiosperm split (partial rank correlation)")) +
+  labs(x=NULL, y=NULL, title=NULL) +   # significance key and bold-outline meaning are in the SI caption
   theme_minimal(base_size=9) +
   theme(axis.text.x.top=element_text(angle=15, hjust=0, size=8.5), axis.text.y=element_text(size=8),
         strip.text.y.left=element_text(angle=0, face="bold", size=8), strip.placement="outside",

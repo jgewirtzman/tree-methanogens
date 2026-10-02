@@ -529,7 +529,7 @@ p3 <- ggplot(mcra_data, aes(x = mcra_copies, y = CH4_concentration)) +
   scale_y_continuous(trans = scales::pseudo_log_trans(base = 10, sigma = 1),
                      breaks = c(0, 10, 100, 1000, 10000, 100000),
                      labels = format_mixed_labels) +
-  labs(x = expression("Heartwood mcrA (copies g"^-1*")"),
+  labs(x = expression("Heartwood "*italic(mcrA)*" (copies g"^-1*")"),
        y = expression(CH[4]~concentration)) +
   theme_bw() +
   theme(
@@ -582,10 +582,11 @@ core_grid <- ((p1 | p2 | p3) / p4) +
                   tag_suffix = ")")
 
 # Place the extracted legend to the right of the whole patchwork
-final_plot <- cowplot::plot_grid(core_grid, legend_grob, ncol = 2, rel_widths = c(1, 0.22))
+final_plot <- cowplot::ggdraw() + cowplot::draw_plot(cowplot::plot_grid(core_grid, legend_grob, ncol = 2, rel_widths = c(1, 0.22))) +
+  theme(plot.background = element_rect(fill = "white", colour = NA))
 
 print(final_plot)
 
 # Save combined internal gas figure (Fig S8)
 ggsave("outputs/figures/original/supplementary/figS8_internal_gas_profiles.png",
-       final_plot, width = 12, height = 7.5, dpi = 300)
+       final_plot, width = 12, height = 7.5, dpi = 300, bg = "white")

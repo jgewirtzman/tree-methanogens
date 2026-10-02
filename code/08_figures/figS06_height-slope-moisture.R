@@ -16,7 +16,7 @@ source("code/lib/outputs.R")
 # Outputs: outputs/figures/generated/height_slope_vs_moisture.png, height_slope_moisture_summary.txt
 # ==============================================================================
 
-suppressPackageStartupMessages({ library(tidyverse) })
+suppressPackageStartupMessages({ library(tidyverse); library(patchwork) })
 out_dir <- "outputs"; dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
 
 sp_map <- c(ACRU="Acer rubrum",ACSA="Acer saccharum",BEAL="Betula alleghaniensis",
@@ -57,25 +57,23 @@ p1 <- ggplot(slopes, aes(VWC_mean, height_slope)) +
   geom_point(aes(color = species == "Betula alleghaniensis"), alpha = .7, size = 2) +
   geom_smooth(method = "lm", se = TRUE, color = "black", formula = y ~ x) +
   scale_color_manual(values = c(`FALSE` = "gray50", `TRUE` = "firebrick"),
-                     labels = c("other", "B. alleghaniensis"), name = NULL) +
-  annotate("text", -Inf, Inf, hjust = -0.05, vjust = 1.4, size = 3,
-           label = sprintf("r = %.2f, %s, n = %d", ct_all$estimate,
-                           ifelse(ct_all$p.value < 0.001, "p < 0.001", sprintf("p = %.3f", ct_all$p.value)), nrow(slopes))) +
-  labs(x = "Soil VWC (%)", y = "Height slope (flux change per cm)") + theme_bw(base_size = 10)
+                     labels = c("Other species", expression(italic("B. alleghaniensis"))), name = NULL) +
+  labs(x = "Soil VWC (%)", y = expression("Height slope (nmol m"^-2*" s"^-1*" per cm)")) +
+  theme_bw(base_size = 12)
 
 # R3's specific birch check: birch flux (base height) vs VWC
 birch <- slopes %>% filter(species == "Betula alleghaniensis")
 p2 <- ggplot(birch, aes(VWC_mean, flux_base)) +
   geom_point(size = 2.5, color = "firebrick") +
   geom_smooth(method = "lm", se = TRUE, color = "black", formula = y ~ x) +
-  annotate("text", -Inf, Inf, hjust = -0.05, vjust = 1.4, size = 3,
-           label = if (nrow(birch) > 2) sprintf("r = %.2f, p = %.3f, n = %d",
-                    cor(birch$VWC_mean, birch$flux_base), cor.test(birch$VWC_mean, birch$flux_base)$p.value, nrow(birch)) else "n too small") +
-  labs(x = "Soil VWC (%)", y = "Base-height CH4 flux") + theme_bw(base_size = 10)
+  labs(x = "Soil VWC (%)", y = expression(CH[4]~"flux at the lowest height (nmol m"^-2*" s"^-1*")")) +
+  theme_bw(base_size = 12)
 
-if (requireNamespace("gridExtra", quietly = TRUE))
-  ggsave(out_path("height_slope_vs_moisture.png"),
-         gridExtra::arrangeGrob(p1, p2, nrow = 1), width = 12, height = 5, dpi = 150)
+# statistics (r, p, n for each panel) are in the SI caption, from the summary below
+ggsave(out_path("height_slope_vs_moisture.png"),
+       (p1 | p2) + patchwork::plot_annotation(tag_levels = "a", tag_prefix = "(", tag_suffix = ")") &
+         theme(plot.tag = element_text(size = 14, face = "bold")),
+       width = 12, height = 5, dpi = 300)
 
 # ---- Summary -----------------------------------------------------------------
 sink(out_path("height_slope_moisture_summary.txt"))

@@ -103,13 +103,13 @@ imp_panel <- function(D, ttl, col) {
     geom_text(aes(x = share + share_se, label = sprintf("%.0f%%", 100 * share)),
               hjust = -0.3, size = 2.9) +
     scale_x_continuous(labels = scales::percent, limits = c(0, 1.16), expand = c(0, 0)) +
-    labs(title = ttl, x = "share of total importance", y = NULL) +
-    theme_bw(base_size = 9) +
+    labs(title = ttl, x = "Share of total importance", y = NULL) +
+    theme_bw(base_size = 11) +
     theme(panel.grid.major.y = element_blank(),
-          plot.title = element_text(face = "bold", size = 10))
+          plot.title = element_text(face = "bold", size = 13))
 }
-pc_ <- imp_panel(IMP_T, "(c) Tree feature importance", TREE_COL)
-pd_ <- imp_panel(IMP_S, "(d) Soil feature importance", SOIL_COL)
+pc_ <- imp_panel(IMP_T, "(c)", TREE_COL)
+pd_ <- imp_panel(IMP_S, "(d)", SOIL_COL)
 
 # ---- observed against predicted, calibrated ----------------------------------
 # Per-species calibration, UNCLAMPED, matching 01_predict_tree_flux.R.
@@ -137,7 +137,7 @@ obs_panel <- function(D, o, p, ttl, col, r2g) {
   # Plain "R2", not a superscript-2 glyph: the original wrote "R²" here and the
   # device font dropped it, so the shipped SI panel read "R.. = 0.236". ASCII
   # renders on every device.
-  lab <- sprintf("CCC = %.3f\nR2 = %.3f (OOB)\nR2 = %.3f (grouped CV)\nn = %d",
+  lab <- sprintf("CCC = %.2f\nR\u00b2 = %.2f (out-of-bag)\nR\u00b2 = %.2f (grouped CV)\nn = %d",
                  ccc(D[[o]], D[[p]]), r2, r2g, nrow(D))
   # EQUAL AXES. With independent x and y ranges (here roughly 0-2.5 against
   # 0-6.2) a true slope-1 line renders as a shallow diagonal through the cloud
@@ -150,20 +150,20 @@ obs_panel <- function(D, o, p, ttl, col, r2g) {
     geom_hex(bins = 40) +
     geom_abline(slope = 1, intercept = 0, color = "red", linewidth = 0.8, alpha = 0.8) +
     annotate("text", x = -Inf, y = Inf, hjust = -0.1, vjust = 1.2,
-             label = lab, size = 2.7, lineheight = 1.05) +
+             label = lab, size = 3.3, lineheight = 1.05) +
     scale_fill_viridis_c(name = "Count", trans = "log10", option = "magma") +
     coord_equal(xlim = rng, ylim = rng) +
     labs(title = ttl,
          x = expression("Predicted (nmol m"^-2*" s"^-1*")"),
          y = expression("Observed (nmol m"^-2*" s"^-1*")")) +
-    theme_bw(base_size = 9) +
+    theme_bw(base_size = 11) +
     theme(panel.grid.minor = element_blank(),
           legend.key.width = unit(0.25, "cm"), legend.key.height = unit(0.5, "cm"),
           legend.title = element_text(size = 7.5), legend.text = element_text(size = 6.8),
-          plot.title = element_text(face = "bold", size = 10))
+          plot.title = element_text(face = "bold", size = 13))
 }
-pa_ <- obs_panel(calT, "o", "pc", "(a) Tree stems", TREE_COL, R2G[1])
-pb_ <- obs_panel(calS, "o", "p",  "(b) Soil",       SOIL_COL, R2G[2])
+pa_ <- obs_panel(calT, "o", "pc", "(a)", TREE_COL, R2G[1])
+pb_ <- obs_panel(calS, "o", "p",  "(b)", SOIL_COL, R2G[2])
 
 # ---- partial dependence ------------------------------------------------------
 # Air and soil temperature are shown SEPARATELY here even though importance pools
@@ -177,13 +177,13 @@ pdp <- function(m, dat, xv, n = 40) {
   data.frame(x = g, y = vapply(g, function(v) { D <- dat; D[[xv]] <- v
     mean(predict(m, D, num.threads = 1)$predictions) }, numeric(1)))
 }
-PD_LAB <- c(soil_moisture_at_tree = "soil moisture (m^3 m^-3)",
-            soil_moisture_at_site = "soil moisture (m^3 m^-3)",
-            soil_temp_C_mean = "soil temperature (C)",
-            air_temp_C_mean  = "air temperature (C)",
+PD_LAB <- c(soil_moisture_at_tree = "Soil moisture (m\u00b3 m\u207b\u00b3)",
+            soil_moisture_at_site = "Soil moisture (m\u00b3 m\u207b\u00b3)",
+            soil_temp_C_mean = "Soil temperature (\u00b0C)",
+            air_temp_C_mean  = "Air temperature (\u00b0C)",
             dbh_m = "DBH (m)",                       # was mislabelled a z-score
-            height_cm = "measurement height (cm)",
-            month = "month")
+            height_cm = "Measurement height (cm)",
+            month = "Month")
 
 pd_grid <- function(m, X, vars, ttl, col) {
   D <- bind_rows(lapply(vars, function(v)
@@ -210,23 +210,23 @@ pd_grid <- function(m, X, vars, ttl, col) {
     facet_wrap(~var, scales = "free_x", nrow = 2) +
     labs(title = ttl, x = NULL,
          y = expression("CH"[4]*" flux (nmol m"^-2*" s"^-1*")")) +
-    theme_bw(base_size = 9) +
+    theme_bw(base_size = 11) +
     theme(panel.grid.minor = element_blank(),
           strip.text = element_text(size = 7.4),
-          plot.title = element_text(face = "bold", size = 10))
+          plot.title = element_text(face = "bold", size = 13))
 }
 pe_ <- pd_grid(TreeRF, Xt, c("soil_moisture_at_tree", "dbh_m",
                              "height_cm", "soil_temp_C_mean"),
-               "(e) Tree partial dependence", TREE_COL)
+               "(e)", TREE_COL)
 pf_ <- pd_grid(SoilRF, Xs, c("soil_moisture_at_site", "soil_temp_C_mean",
                              "air_temp_C_mean", "month"),
-               "(f) Soil partial dependence", SOIL_COL)
+               "(f)", SOIL_COL)
 
 fig <- (pa_ | pc_ | pe_) / (pb_ | pd_ | pf_) +
   plot_layout(widths = c(0.85, 0.9, 1.15)) +
   plot_annotation(theme = theme(plot.margin = margin(5, 5, 5, 5)))
 ggsave(out_path("figS21_rf_model_summary.png"), fig,
-       width = 15, height = 8.4, dpi = 200, bg = "white")
+       width = 15, height = 8.4, dpi = 300, bg = "white")
 
 cat("=== grouped permutation importance (held-out), share within model ===\n")
 for (M in list(IMP_T, IMP_S)) {

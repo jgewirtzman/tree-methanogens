@@ -102,28 +102,21 @@ p <- ggplot(R, aes(compartment, group)) +
   geom_tile(data = R[R$tested, ], aes(fill = rho), colour = "white", linewidth = 1) +
   geom_tile(data = R[!R$tested, ], fill = NA, colour = "#b9b8b3", linewidth = .35,
             linetype = "22", width = .9, height = .85) +
-  geom_text(aes(label = label, colour = ink), size = 2.35, lineheight = .9) +
+  geom_text(aes(label = label, colour = ink), size = 2.9, lineheight = .9) +
   scale_colour_manual(values = c(primary = "#1a1a19", inverse = "#ffffff"), guide = "none") +
   scale_fill_gradient2(low = "#2a78d6", mid = "#f0efec", high = "#e34948", midpoint = 0,
                        limits = c(-.5, .5), oob = scales::squish,
                        name = "Spearman ρ", breaks = c(-.5, -.25, 0, .25, .5)) +
   facet_grid(tier ~ gene, scales = "free", space = "free", labeller = labeller(gene = label_parsed)) +
-  labs(x = NULL, y = NULL,
-       title = "16S group abundance vs. the gene measured by ddPCR in the same sample",
-       subtitle = paste0("Cells: ρ, significance after Benjamini-Hochberg across all ",
-                         sum(R$tested), " tests (* q<.05, ** q<.01, *** q<.001; † p<.05 uncorrected only),\n",
-                         "[samples in which the group is present]. Dashed: group present in <5 samples, not tested. ",
-                         "The pmoA primers do not amplify verrucomicrobial or NC10 pmoA.")) +
-  theme_minimal(base_size = 8) +
+  labs(x = NULL, y = NULL) +   # key (BH across all tests; dagger; dashed cells) is in the SI caption
+  theme_minimal(base_size = 10) +
   theme(panel.grid = element_blank(),
         strip.text.y = element_text(angle = 0, hjust = 0, face = "bold"),
-        strip.text.x = element_text(size = 9),
+        strip.text.x = element_text(size = 11),
         axis.text.x  = element_text(angle = 30, hjust = 1),
-        plot.title = element_text(face = "bold", size = 9),
-        plot.subtitle = element_text(size = 7, colour = "#55544f"),
         legend.position = "bottom", legend.key.width = unit(1.4, "cm"),
         plot.background = element_rect(fill = "white", colour = NA))
-ggsave(out_path("figSI_16s_ddpcr_association.png"), p, width = 9, height = 6.2, dpi = 300, bg = "white",
+ggsave(out_path("figSI_16s_ddpcr_association.png"), p, width = 9.5, height = 6.4, dpi = 300, bg = "white",
        device = ragg::agg_png)   # ragg: the default png device drops the rho and dagger glyphs
 cat("Wrote figSI_16s_ddpcr_association.png and 16s_ddpcr_association.csv\n")
 cat(sprintf("%d tests; %d significant after BH (q<.05); %d nominal only\n",
