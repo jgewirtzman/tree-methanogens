@@ -192,30 +192,36 @@ if(!lon_overlap || !lat_overlap) {
 
 
 
-# Moisture background: THE surface the analysis uses, not a separate interpolation.
+# Moisture background: the analysis surface, drawn over the whole study area.
 # 04_moisture_surface.R fits a thin-plate spline to the December 2020 survey (survey
-# points only) and saves the fit. Here it is predicted on a regular lon/lat grid so it
-# can be drawn with geom_raster, floored at the survey minimum as there, and masked to
-# the convex hull of the survey points, outside which the spline has no data.
-# This replaces a choice among akima-with-boundary-points, TPS and GAM surfaces that
-# included stream points at an assumed 100% VWC, which the analysis does not use.
+# points only; 9 of them lie within 5 m of the stream, so the stream bank is measured,
+# not assumed) and saves the fit. The figure predicts that fit on a regular lon/lat
+# grid over the full map, out to the edges of the plot, so trees outside the survey's
+# coverage still sit on the same surface the upscaling gives them. Values are bounded
+# to the survey's range, since a spline extrapolates linearly beyond its data. The
+# stream is drawn as a line rather than written into the surface as 100% VWC.
 source("code/lib/geometry.R")
 suppressPackageStartupMessages(library(fields))
 MS <- readRDS("outputs/models/moisture_surface_tps.rds")
 tr_ms <- geo_transforms()
-ext <- list(lon = range(c(fg_final$Longitude_final, plot_tree_ellipses$Longitude), na.rm = TRUE),
-            lat = range(c(fg_final$Latitude_final, plot_tree_ellipses$Latitude), na.rm = TRUE))
+ext <- list(lon = range(c(fg_final$Longitude_final, plot_tree_ellipses$Longitude, river_data$Longitude), na.rm = TRUE),
+            lat = range(c(fg_final$Latitude_final, plot_tree_ellipses$Latitude, river_data$Latitude), na.rm = TRUE))
 pad <- 0.03
 ext$lon <- ext$lon + c(-1, 1) * pad * diff(ext$lon); ext$lat <- ext$lat + c(-1, 1) * pad * diff(ext$lat)
 best_df <- expand.grid(Longitude = seq(ext$lon[1], ext$lon[2], length.out = 300),
                        Latitude  = seq(ext$lat[1], ext$lat[2], length.out = 300))
 pl <- tr_ms$inv(best_df$Latitude, best_df$Longitude)
-hull <- MS$points[chull(MS$points$PX, MS$points$PY), ]
-best_df <- best_df[sp::point.in.polygon(pl$PX, pl$PY, hull$PX, hull$PY) > 0, ]
-pl <- tr_ms$inv(best_df$Latitude, best_df$Longitude)
-best_df$VWC <- pmax(as.numeric(predict(MS$fit, cbind(pl$PX, pl$PY))), MS$floor)
-cat(sprintf("Moisture surface (04_moisture_surface.R fit): %d cells inside the survey hull, VWC %.1f-%.1f%%\n",
+best_df$VWC <- pmin(pmax(as.numeric(predict(MS$fit, cbind(pl$PX, pl$PY))), MS$floor), max(MS$points$vwc))
+cat(sprintf("Moisture surface (04_moisture_surface.R fit) over the map: %d cells, VWC %.1f-%.1f%%\n",
             nrow(best_df), min(best_df$VWC), max(best_df$VWC)))
+# stream as a line: a smoothed centreline through the 21 GPS flags (handheld GPS
+# jitter of a few metres makes the raw flag sequence double back). Plot-local PY runs
+# along the stream, so the cross-stream position PX is smoothed as a function of PY.
+rp <- tr_ms$inv(river_data$Latitude, river_data$Longitude)
+ss <- smooth.spline(rp$PY, rp$PX, df = 6)
+py <- seq(min(rp$PY), max(rp$PY), length.out = 200)
+sl <- tr_ms$fwd(predict(ss, py)$y, py)
+stream_line <- data.frame(Longitude = sl$lon, Latitude = sl$lat)
 
 # Function to calculate minimum area bounding box with rotation
 calculate_minimum_bounding_box <- function(points, buffer_pct = 0.01) {
@@ -297,8 +303,8 @@ point_in_rotated_box <- function(test_points, box_info) {
 
 # Get all feature coordinates
 all_features_coords <- data.frame(
-  x = c(fg_final$Longitude_final, plot_tree_ellipses$Longitude),
-  y = c(fg_final$Latitude_final, plot_tree_ellipses$Latitude)
+  x = c(fg_final$Longitude_final, plot_tree_ellipses$Longitude, river_data$Longitude),
+  y = c(fg_final$Latitude_final, plot_tree_ellipses$Latitude, river_data$Latitude)
 )
 
 cat("=== CALCULATING MINIMUM AREA BOUNDING BOX ===\n")
@@ -351,6 +357,8 @@ plots_plot_data$point_type <- "Research Plots"
 final_extended_plot <- ggplot() +
   # Clipped moisture interpolation background
   geom_raster(data = clipped_moisture_df, aes(x = Longitude, y = Latitude, fill = VWC), alpha = 0.7) +
+  # Stream
+  geom_path(data = stream_line, aes(x = Longitude, y = Latitude), colour = "#2b6cb0", linewidth = 1.6, lineend = "round") +
   # Plot ellipses
   geom_polygon(data = plot_tree_ellipses, aes(x = Longitude, y = Latitude, group = Site_Plot),
                fill = NA, color = "black", linewidth = 0.8, alpha = 0.8) +
