@@ -501,7 +501,7 @@ create_mcra_barplot_by_species <- function(merged_final, species_mapping,
     }) +
     labs(
       x = NULL,
-      y = expression("mcrA gene abundance (copies g"^-1*")"),
+      y = expression(italic(mcrA)~"gene abundance (copies g"^-1*")"),
     ) +
     theme_minimal(base_size = 12) +
     theme(
