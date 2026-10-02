@@ -192,239 +192,122 @@ if(!lon_overlap || !lat_overlap) {
 
 
 
-# Moisture background: the analysis surface, drawn over the whole study area.
-# 04_moisture_surface.R fits a thin-plate spline to the December 2020 survey (survey
-# points only; 9 of them lie within 5 m of the stream, so the stream bank is measured,
-# not assumed) and saves the fit. The figure predicts that fit on a regular lon/lat
-# grid over the full map, out to the edges of the plot, so trees outside the survey's
-# coverage still sit on the same surface the upscaling gives them. Values are bounded
-# to the survey's range, since a spline extrapolates linearly beyond its data. The
-# stream is drawn as a line rather than written into the surface as 100% VWC.
+# ==============================================================================
+# FIGURE S1 (publication version)
+# ------------------------------------------------------------------------------
+# Drawn in UTM 18N metres (EPSG:26918), so distances are true; the earlier
+# longitude/latitude version with coord_equal stretched the map ~1.35x east-west.
+#
+# Basemap: hillshade from the 2016 Connecticut statewide lidar (USGS 3DEP 1 m,
+#   data/raw/inventory/spatial_data/lidar_3dep_1m_utm18n.tif).
+# Moisture: the analysis surface. 04_moisture_surface.R fits a thin-plate spline to
+#   the December 2020 survey points and saves the fit; it is predicted here on a 1 m
+#   grid out to the map edges (values outside the survey's convex hull, dashed, are
+#   extrapolated) and bounded to the survey range.
+# Stream: the 21 GPS flags in walked order. Lidar flow routing shows the defined
+#   channel is the middle reach (flags 4-12: contributing area >4,000 m2), draining
+#   west from a low point at flags 8-12 (~198 m); the southern and northern flags sit
+#   on near-flat wet ground (contributing area <1,100 m2). The outlet is traced
+#   downslope along lidar flow directions from flag 10. Only the defined channel and
+#   outlet (1-2 m wide) are set to 100% VWC, after the fit, so the measured bank
+#   readings are not altered.
+# ==============================================================================
+suppressPackageStartupMessages({library(fields); library(sf); library(terra); library(ggnewscale)
+                                library(ggspatial); library(patchwork); library(maps)})
 source("code/lib/geometry.R")
-suppressPackageStartupMessages(library(fields))
+UTM <- 26918
 MS <- readRDS("outputs/models/moisture_surface_tps.rds")
 tr_ms <- geo_transforms()
-ext <- list(lon = range(c(fg_final$Longitude_final, plot_tree_ellipses$Longitude, river_data$Longitude), na.rm = TRUE),
-            lat = range(c(fg_final$Latitude_final, plot_tree_ellipses$Latitude, river_data$Latitude), na.rm = TRUE))
-pad <- 0.03
-ext$lon <- ext$lon + c(-1, 1) * pad * diff(ext$lon); ext$lat <- ext$lat + c(-1, 1) * pad * diff(ext$lat)
-best_df <- expand.grid(Longitude = seq(ext$lon[1], ext$lon[2], length.out = 300),
-                       Latitude  = seq(ext$lat[1], ext$lat[2], length.out = 300))
-pl <- tr_ms$inv(best_df$Latitude, best_df$Longitude)
-best_df$VWC <- pmin(pmax(as.numeric(predict(MS$fit, cbind(pl$PX, pl$PY))), MS$floor), max(MS$points$vwc))
-cat(sprintf("Moisture surface (04_moisture_surface.R fit) over the map: %d cells, VWC %.1f-%.1f%%\n",
-            nrow(best_df), min(best_df$VWC), max(best_df$VWC)))
-# stream as a line: a smoothed centreline through the 21 GPS flags (handheld GPS
-# jitter of a few metres makes the raw flag sequence double back). Plot-local PY runs
-# along the stream, so the cross-stream position PX is smoothed as a function of PY.
-rp <- tr_ms$inv(river_data$Latitude, river_data$Longitude)
-ss <- smooth.spline(rp$PY, rp$PX, df = 6)
-py <- seq(min(rp$PY), max(rp$PY), length.out = 200)
-sl <- tr_ms$fwd(predict(ss, py)$y, py)
-stream_line <- data.frame(Longitude = sl$lon, Latitude = sl$lat)
-# The channel itself is water: cells within STREAM_HALF_WIDTH_M of the centreline are
-# set to 100% AFTER the fit, so the stream never enters the spline and cannot pull
-# the measured bank readings toward saturation; the change at the bank is abrupt.
+to_utm <- function(lon, lat) st_coordinates(st_transform(st_as_sf(data.frame(lon = lon, lat = lat), coords = c("lon", "lat"), crs = 4326), UTM))
+
+TR  <- as.data.frame(to_utm(fg_final$Longitude_final, fg_final$Latitude_final)); TR$BA <- fg_final$BasalArea_m2
+MT  <- as.data.frame(to_utm(trees_with_plots$Longitude, trees_with_plots$Latitude))
+PL  <- as.data.frame(to_utm(plots_data$Longitude, plots_data$Latitude))
+EL  <- cbind(as.data.frame(to_utm(plot_tree_ellipses$Longitude, plot_tree_ellipses$Latitude)), g = plot_tree_ellipses$Site_Plot)
+RV  <- as.data.frame(to_utm(river_data$Longitude, river_data$Latitude))
+SR  <- stand_ring_lonlat(); SRu <- as.data.frame(to_utm(c(SR$lon, SR$lon[1]), c(SR$lat, SR$lat[1])))
+sh  <- MS$points[chull(MS$points$PX, MS$points$PY), ]; sh <- rbind(sh, sh[1, ])
+SHu <- as.data.frame(to_utm(tr_ms$fwd(sh$PX, sh$PY)$lon, tr_ms$fwd(sh$PX, sh$PY)$lat))
+
+allx <- c(TR$X, RV$X, EL$X); ally <- c(TR$Y, RV$Y, EL$Y)
+E <- c(floor(min(allx)) - 25, ceiling(max(allx)) + 15, floor(min(ally)) - 15, ceiling(max(ally)) + 15)
+
+dem <- rast("data/raw/inventory/spatial_data/lidar_3dep_1m_utm18n.tif"); crs(dem) <- paste0("EPSG:", UTM)
+dem[dem < -100] <- NA
+demc <- crop(dem, ext(E[1] - 50, E[2] + 50, E[3] - 50, E[4] + 50))
+hs  <- shade(terrain(demc, "slope", unit = "radians"), terrain(demc, "aspect", unit = "radians"), 40, 315)
+HS  <- as.data.frame(crop(hs, ext(E)), xy = TRUE); names(HS)[3] <- "hs"
+demS <- focal(demc, w = 5, fun = "mean", na.rm = TRUE)
+CN  <- st_as_sf(as.contour(crop(demS, ext(E)), levels = seq(180, 320, by = 2)))
+
+# moisture on a 1 m grid
+G <- expand.grid(X = seq(E[1] + 0.5, E[2] - 0.5, by = 1), Y = seq(E[3] + 0.5, E[4] - 0.5, by = 1))
+ll <- st_coordinates(st_transform(st_as_sf(G, coords = c("X", "Y"), crs = UTM), 4326))
+pl <- tr_ms$inv(ll[, 2], ll[, 1])
+G$VWC <- pmin(pmax(as.numeric(predict(MS$fit, cbind(pl$PX, pl$PY))), MS$floor), max(MS$points$vwc))
+
+# stream: defined channel = flags 4-12; outlet traced downslope from flag 10 along D8 directions
+fd <- terrain(demS, v = "flowdir")
+step <- list(`1` = c(1, 0), `2` = c(1, -1), `4` = c(0, -1), `8` = c(-1, -1), `16` = c(-1, 0), `32` = c(-1, 1), `64` = c(0, 1), `128` = c(1, 1))
+p <- as.numeric(RV[10, c("X", "Y")]); OUT <- matrix(p, 1)
+for (k in 1:600) {
+  d <- extract(fd, matrix(p, 1))[[1]]
+  if (is.na(d) || !(as.character(d) %in% names(step))) break
+  p <- p + step[[as.character(d)]] * res(fd)[1]
+  if (p[1] < E[1] || p[1] > E[2] || p[2] < E[3] || p[2] > E[4]) break
+  OUT <- rbind(OUT, p)
+}
+OUT <- as.data.frame(OUT); names(OUT) <- c("X", "Y")
+cat(sprintf("stream outlet traced %d m from flag 10\n", nrow(OUT) - 1))
+# The defined channel is drawn as one smooth course through the main-stem flags
+# (4-8, then the low point at 10) and on along the traced outlet; the flags clustered
+# at the confluence (9, 11, 12) and the flags on the flat ground north and south are
+# shown as points. Smoothing removes the 1 m D8 stair-steps and a few metres of GPS jitter.
+P0 <- rbind(RV[c(4, 5, 6, 7, 8, 10), c("X", "Y")], OUT[-1, ])
+tt <- c(0, cumsum(sqrt(diff(P0$X)^2 + diff(P0$Y)^2)))
+dfk <- max(4, round(nrow(P0) / 4))
+tq <- seq(0, max(tt), by = 0.5)
+CH <- data.frame(X = predict(smooth.spline(tt, P0$X, df = dfk), tq)$y, Y = predict(smooth.spline(tt, P0$Y, df = dfk), tq)$y)
+seg_d <- function(px, py, ax, ay, bx, by) { vx <- bx - ax; vy <- by - ay; t <- pmin(1, pmax(0, ((px - ax) * vx + (py - ay) * vy) / (vx^2 + vy^2 + 1e-12))); sqrt((px - ax - t * vx)^2 + (py - ay - t * vy)^2) }
+chan_d <- function(P, L) { d <- rep(Inf, nrow(P)); for (j in seq_len(nrow(L) - 1)) d <- pmin(d, seg_d(P$X, P$Y, L$X[j], L$Y[j], L$X[j + 1], L$Y[j + 1])); d }
 STREAM_HALF_WIDTH_M <- 0.75   # a 1-2 m brook (Jon, 2026-10-02)
-spx <- predict(ss, py)$y
-d_stream <- sapply(seq_len(nrow(best_df)), function(i) min((spx - pl$PX[i])^2 + (py - pl$PY[i])^2))
-best_df$VWC[sqrt(d_stream) <= STREAM_HALF_WIDTH_M] <- 100
-# extent of the survey: the convex hull of the survey points; outside it the spline extrapolates
-sh <- MS$points[chull(MS$points$PX, MS$points$PY), ]
-sh <- rbind(sh, sh[1, ])
-shl <- tr_ms$fwd(sh$PX, sh$PY)
-survey_hull <- data.frame(Longitude = shl$lon, Latitude = shl$lat)
+G$VWC[chan_d(G, CH) <= STREAM_HALF_WIDTH_M] <- 100
+cat(sprintf("Moisture surface (04_moisture_surface.R fit) over the map: %d cells, VWC %.1f-%.1f%%\n", nrow(G), min(G$VWC), max(G$VWC)))
 
-# Function to calculate minimum area bounding box with rotation
-calculate_minimum_bounding_box <- function(points, buffer_pct = 0.01) {
-  
-  # Extract coordinates
-  x <- points$x
-  y <- points$y
-  
-  # Test rotation angles from 0 to 180 degrees (every 1 degree)
-  angles <- seq(0, 179, by = 1) * pi / 180
-  min_area <- Inf
-  best_angle <- 0
-  best_box <- NULL
-  
-  for(angle in angles) {
-    # Rotate points
-    cos_a <- cos(angle)
-    sin_a <- sin(angle)
-    
-    x_rot <- x * cos_a - y * sin_a
-    y_rot <- x * sin_a + y * cos_a
-    
-    # Calculate bounding box in rotated space
-    x_range <- range(x_rot)
-    y_range <- range(y_rot)
-    
-    # Calculate area
-    area <- diff(x_range) * diff(y_range)
-    
-    # Keep track of minimum area
-    if(area < min_area) {
-      min_area <- area
-      best_angle <- angle
-      
-      # Add buffer
-      x_buffer <- diff(x_range) * buffer_pct
-      y_buffer <- diff(y_range) * buffer_pct
-      x_range_buffered <- x_range + c(-x_buffer, x_buffer)
-      y_range_buffered <- y_range + c(-y_buffer, y_buffer)
-      
-      # Create corner points in rotated space
-      corners_rot <- expand.grid(x = x_range_buffered, y = y_range_buffered)
-      
-      # Rotate back to original space
-      corners_orig <- data.frame(
-        x = corners_rot$x * cos(-angle) - corners_rot$y * sin(-angle),
-        y = corners_rot$x * sin(-angle) + corners_rot$y * cos(-angle)
-      )
-      
-      best_box <- list(
-        corners = corners_orig,
-        angle = best_angle * 180 / pi,
-        area = min_area,
-        rotated_ranges = list(x = x_range_buffered, y = y_range_buffered)
-      )
-    }
-  }
-  
-  return(best_box)
-}
+main <- ggplot() +
+  geom_raster(data = HS, aes(x, y, fill = hs)) + scale_fill_gradient(low = "grey25", high = "white", guide = "none") +
+  new_scale_fill() +
+  geom_raster(data = G, aes(X, Y, fill = VWC), alpha = 0.6) +
+  scale_fill_viridis_c(option = "mako", direction = -1, name = "Soil moisture\n(VWC, %)", limits = c(0, 100)) +
+  geom_sf(data = CN, colour = "grey30", linewidth = 0.15, alpha = 0.5) +
+  geom_path(data = SRu, aes(X, Y), colour = "black", linewidth = 0.5) +
+  geom_path(data = SHu, aes(X, Y), colour = "grey10", linewidth = 0.5, linetype = "22") +
+  geom_path(data = CH, aes(X, Y), colour = "#2166ac", linewidth = 1.1, lineend = "round", linejoin = "round") +
+  geom_point(data = RV, aes(X, Y), shape = 21, fill = "#6baed6", colour = "#08519c", size = 1.4, stroke = 0.4) +
+  geom_point(data = TR, aes(X, Y, size = BA), colour = "grey15", alpha = 0.55, stroke = 0) +
+  scale_size_area(max_size = 3, name = "Basal area (m²)", breaks = c(0.01, 0.05, 0.1, 0.2)) +
+  geom_path(data = EL, aes(X, Y, group = g), colour = "black", linewidth = 0.6) +
+  geom_point(data = MT, aes(X, Y), shape = 8, colour = "black", size = 2, stroke = 0.6) +
+  geom_point(data = PL, aes(X, Y), shape = 21, fill = "white", colour = "black", size = 2.2, stroke = 0.7) +
+  annotation_scale(location = "bl", width_hint = 0.2, style = "ticks", line_col = "black", text_col = "black") +
+  annotation_north_arrow(location = "tr", height = unit(0.8, "cm"), width = unit(0.6, "cm"), style = north_arrow_minimal()) +
+  coord_sf(crs = UTM, xlim = E[1:2], ylim = E[3:4], expand = FALSE, datum = NA) +
+  theme_void() +
+  theme(legend.position = "right", legend.title = element_text(size = 10, face = "bold"), legend.text = element_text(size = 9),
+        plot.background = element_rect(fill = "white", colour = NA))
 
-# Function to check if points are inside rotated bounding box
-point_in_rotated_box <- function(test_points, box_info) {
-  
-  angle <- box_info$angle * pi / 180
-  cos_a <- cos(angle)
-  sin_a <- sin(angle)
-  
-  # Rotate test points
-  x_rot <- test_points$x * cos_a - test_points$y * sin_a
-  y_rot <- test_points$x * sin_a + test_points$y * cos_a
-  
-  # Check if in rotated bounding box
-  x_in <- x_rot >= box_info$rotated_ranges$x[1] & x_rot <= box_info$rotated_ranges$x[2]
-  y_in <- y_rot >= box_info$rotated_ranges$y[1] & y_rot <= box_info$rotated_ranges$y[2]
-  
-  return(x_in & y_in)
-}
-
-# Get all feature coordinates
-all_features_coords <- data.frame(
-  x = c(fg_final$Longitude_final, plot_tree_ellipses$Longitude, river_data$Longitude),
-  y = c(fg_final$Latitude_final, plot_tree_ellipses$Latitude, river_data$Latitude)
-)
-
-cat("=== CALCULATING MINIMUM AREA BOUNDING BOX ===\n")
-cat("Total feature points:", nrow(all_features_coords), "\n")
-
-# Calculate minimum bounding box
-min_bbox <- calculate_minimum_bounding_box(all_features_coords, buffer_pct = 0.01)
-
-cat("Optimal rotation angle:", round(min_bbox$angle, 2), "degrees\n")
-cat("Minimum bounding box area:", round(min_bbox$area, 8), "\n")
-
-# Compare with axis-aligned bounding box
-axis_aligned_area <- diff(range(all_features_coords$x)) * diff(range(all_features_coords$y))
-area_reduction <- (1 - min_bbox$area / axis_aligned_area) * 100
-
-cat("Axis-aligned area:", round(axis_aligned_area, 8), "\n")
-cat("Area reduction:", round(area_reduction, 1), "%\n\n")
-
-# Clip moisture raster using rotated bounding box
-moisture_coords <- data.frame(x = best_df$Longitude, y = best_df$Latitude)
-inside_box <- point_in_rotated_box(moisture_coords, min_bbox)
-clipped_moisture_df <- best_df[inside_box, ]
-
-cat("=== CLIPPING MOISTURE RASTER ===\n")
-cat("Original moisture grid points:", nrow(best_df), "\n")
-cat("Clipped moisture grid points:", nrow(clipped_moisture_df), "\n")
-cat("Points removed:", nrow(best_df) - nrow(clipped_moisture_df), "\n")
-cat("Reduction:", round((1 - nrow(clipped_moisture_df)/nrow(best_df)) * 100, 1), "%\n\n")
-
-# Create bounding box polygon for visualization
-bbox_polygon <- data.frame(
-  Longitude = c(min_bbox$corners$x, min_bbox$corners$x[1]),  # Close the polygon
-  Latitude = c(min_bbox$corners$y, min_bbox$corners$y[1])
-)
-
-# Create clean publication figure (figS1) with clipped moisture overlay
-# Three point types: All Trees (filled circle), Measured Trees (asterisk),
-#   Research Plots (open circle) — matching the "Point Type" legend
-
-# Add point_type column to each dataset for unified legend
-fg_plot_data <- fg_final
-fg_plot_data$point_type <- "All Trees"
-
-measured_plot_data <- trees_with_plots
-measured_plot_data$point_type <- "Measured Trees"
-
-plots_plot_data <- plots_data
-plots_plot_data$point_type <- "Research Plots"
-
-final_extended_plot <- ggplot() +
-  # Clipped moisture interpolation background
-  geom_raster(data = clipped_moisture_df, aes(x = Longitude, y = Latitude, fill = VWC), alpha = 0.7) +
-  # Extent of the moisture survey
-  geom_path(data = survey_hull, aes(x = Longitude, y = Latitude), colour = "grey20", linewidth = 0.6, linetype = "22") +
-  # Stream
-  geom_path(data = stream_line, aes(x = Longitude, y = Latitude), colour = "#2b6cb0", linewidth = 0.8, lineend = "round") +
-  # Plot ellipses
-  geom_polygon(data = plot_tree_ellipses, aes(x = Longitude, y = Latitude, group = Site_Plot),
-               fill = NA, color = "black", linewidth = 0.8, alpha = 0.8) +
-  # ForestGEO trees (all stems) — filled circles colored by species
-  geom_point(data = fg_plot_data,
-             aes(x = Longitude_final, y = Latitude_final,
-                 size = BasalArea_m2, color = Species_Name, shape = point_type),
-             alpha = 0.8, stroke = 0.3) +
-  # Measured/sampled trees — asterisk symbol
-  geom_point(data = measured_plot_data,
-             aes(x = Longitude, y = Latitude, shape = point_type),
-             color = "black", size = 3, stroke = 0.8, alpha = 0.9) +
-  # Soil collars — white open circles
-  geom_point(data = plots_plot_data,
-             aes(x = Longitude, y = Latitude, shape = point_type),
-             color = "black", fill = NA, size = 2.5, stroke = 1, alpha = 0.9) +
-
-  scale_fill_viridis_c(name = "Soil Moisture\n(VWC %)", option = "mako", direction = -1) +
-  scale_color_manual(values = final_colors, breaks = legend_order, name = "Tree Species") +
-  scale_size_continuous(name = "Basal Area\n(m\u00b2)", range = c(0.5, 4),
-                        breaks = c(0.001, 0.01, 0.05, 0.1, 0.2),
-                        guide = guide_legend(override.aes = list(alpha = 1))) +
-  scale_shape_manual(name = "Point Type",
-                     values = c("All Trees" = 16, "Measured Trees" = 8, "Research Plots" = 1),
-                     guide = guide_legend(override.aes = list(size = c(3, 3, 3),
-                                                               color = c("black", "black", "black"),
-                                                               alpha = 1))) +
-
-  coord_equal() +
-  labs(x = "Longitude", y = "Latitude") +
-  theme_minimal() +
-  theme(
-    legend.position = "right",
-    legend.box = "vertical",
-    legend.key.size = unit(0.5, "cm"),
-    legend.text = element_text(size = 10),
-    legend.title = element_text(size = 11, face = "bold"),
-    axis.text = element_text(size = 10),
-    axis.title = element_text(size = 12),
-    panel.grid.major = element_line(color = "grey80", linewidth = 0.3),
-    panel.grid.minor = element_blank(),
-    panel.background = element_blank()
-  ) +
-  guides(
-    color = guide_legend(override.aes = list(size = 3, alpha = 1), ncol = 1),
-    size = guide_legend(ncol = 1)
-  )
+# location inset: northeastern US, Connecticut shaded, site marked
+st <- st_as_sf(maps::map("state", plot = FALSE, fill = TRUE))
+ne <- st[st$ID %in% c("connecticut", "massachusetts", "rhode island", "new york", "new jersey", "pennsylvania",
+                      "vermont", "new hampshire", "maine"), ]
+site <- st_as_sf(data.frame(lon = mean(river_data$Longitude), lat = mean(river_data$Latitude)), coords = c("lon", "lat"), crs = 4326)
+inset <- ggplot() +
+  geom_sf(data = ne, fill = "grey92", colour = "grey55", linewidth = 0.2) +
+  geom_sf(data = ne[ne$ID == "connecticut", ], fill = "grey70", colour = "grey40", linewidth = 0.3) +
+  geom_sf(data = site, shape = 21, fill = "red", colour = "black", size = 2.2, stroke = 0.5) +
+  coord_sf(crs = 5070, expand = FALSE) + theme_void() +
+  theme(panel.border = element_rect(fill = NA, colour = "grey30", linewidth = 0.4), plot.background = element_rect(fill = "white", colour = NA))
+final_extended_plot <- main + inset_element(inset, left = 0.0, bottom = 0.72, right = 0.24, top = 1.0, align_to = "panel")
 
 print(final_extended_plot)
-
-# Save figS1 publication figure
-ggsave("outputs/figures/original/supplementary/figS1_moisture_overlay.png", final_extended_plot, width = 15, height = 9, dpi = 300)
-
-# Store the best interpolation for future use
-best_moisture_df <- best_df
+ggsave("outputs/figures/original/supplementary/figS1_moisture_overlay.png", final_extended_plot, width = 11, height = 8, dpi = 300)

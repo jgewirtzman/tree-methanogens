@@ -95,3 +95,5 @@ isotope summary, Tables 1 and S2-S5). The previous archive's monthly stem file o
 45 hand-rescued untagged deployments; `flux_stem.csv` includes them.
 
 - `flux_stem.csv`, `flux_soil.csv`: `chamber_area_m2` renamed `chamber_area_cm2`. The values were always cm² (goFlux convention; rigid ≈462, semi-rigid ≈4,190); only the name and the dictionary unit were wrong. Fluxes unaffected (2026-10-02).
+
+- New raw input `data/raw/inventory/spatial_data/lidar_3dep_1m_utm18n.tif` (2026-10-02): 1 m bare-earth DEM, Connecticut statewide lidar 2016, exported from the USGS 3DEP ImageServer (elevation.nationalmap.gov `3DEPElevation/ImageServer/exportImage`, bbox −72.1340, 41.9870, −72.1260, 41.9930 WGS84, EPSG:26918, 680 × 680 px, bilinear). Public domain. Used only for the Figure S1 basemap and stream course; it does not enter any analysis.
