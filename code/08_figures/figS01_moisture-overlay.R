@@ -333,28 +333,35 @@ pa <- ggplot() + terrain_layers +
   annotation_north_arrow(location = "tr", height = unit(0.8, "cm"), width = unit(0.6, "cm"), style = north_arrow_minimal()) +
   map_frame
 
-# (b) species: seven groups in fixed colour order by basal area, the rest grey. Eighteen
-# species cannot carry eighteen distinguishable colours; these seven hold ~99% of basal
-# area and Betula alleghaniensis is kept because the text discusses it.
-SP_GROUPS <- c("Tsuga canadensis", "Pinus strobus", "Quercus spp.", "Acer rubrum", "Betula lenta",
+# (b) species: eight groups, each its own colour, in Paul Tol's muted scheme plus two
+# darks, assigned by tree: hemlock green, white pine pale cyan, oaks near-black, red maple
+# wine, sugar maple blue, black birch indigo, yellow birch sand, mountain laurel rose.
+# Checked by simulation (OKLab dE x100, Machado 2009): normal 17.8, deutan 9.0, protan
+# 9.5 (tritan 5.8, sugar maple vs black birch; tritanopia is rare). The remaining species
+# are hollow, since a ninth colour fails the normal-vision floor; they are listed with
+# their shares in the caption. Legend labels carry each group's share of basal area,
+# computed from the full canonical inventory.
+SP_GROUPS <- c("Tsuga canadensis", "Pinus strobus", "Quercus spp.", "Acer rubrum", "Acer saccharum", "Betula lenta",
                "Betula alleghaniensis", "Kalmia latifolia", "Other")
-# Paul Tol's "muted" scheme, assigned by tree: hemlock green, white pine pale cyan, oak
-# olive, red maple wine, black birch indigo, yellow birch sand, mountain laurel rose.
-# Checked by simulation (OKLab dE x100, Machado 2009): normal 17.8, deutan 8.2, protan
-# 9.5, tritan 14.2. "Other" is hollow grey rather than an eighth colour, which would fail.
-SP_COLS <- c("#117733", "#88CCEE", "#999933", "#882255", "#332288", "#DDCC77", "#CC6677", "white")
-TR$grp <- ifelse(grepl("^Quercus", TR$species), "Quercus spp.",
-          ifelse(TR$species %in% SP_GROUPS, TR$species, "Other"))
-TR$grp <- factor(TR$grp, levels = SP_GROUPS)
+SP_COLS <- c("#117733", "#88CCEE", "#222222", "#882255", "#0072B2", "#332288", "#DDCC77", "#CC6677", "white")
+grp_of <- function(sp) factor(ifelse(grepl("^Quercus", sp), "Quercus spp.", ifelse(sp %in% SP_GROUPS, sp, "Other")), levels = SP_GROUPS)
+TR$grp <- grp_of(TR$species)
+INVall <- canonical_inventory(); BAall <- pi * (INVall$dbh_m / 2)^2
+PCT <- tapply(BAall, grp_of(INVall$species), sum) / sum(BAall) * 100
+fmt <- function(x) ifelse(x < 1, sprintf("%.1f%%", x), sprintf("%.0f%%", x))
+SP_LABS <- lapply(SP_GROUPS, function(g) {
+  pc <- fmt(PCT[[g]])
+  if (g == "Quercus spp.") bquote(italic("Quercus")~"spp. ("*.(pc)*")")
+  else if (g == "Other") bquote("Other species ("*.(pc)*")")
+  else bquote(italic(.(g))~"("*.(pc)*")") })
+cat("basal-area shares (%):\n"); print(round(PCT, 2))
 TRb <- TR[order(TR$grp == "Other", TR$grp == "Kalmia latifolia", TR$BA, decreasing = c(TRUE, TRUE, FALSE), method = "radix"), ]
 pb <- ggplot() + terrain_light + CONT +
   geom_path(data = SRu, aes(X, Y), colour = "black", linewidth = 0.5) +
   geom_path(data = CH, aes(X, Y), colour = "#0d366b", linewidth = 1.1, lineend = "round") +
   geom_point(data = TRb, aes(X, Y, size = BA, fill = grp), shape = 21, colour = "grey20", stroke = 0.12, alpha = 0.9) +
-  scale_fill_manual(values = setNames(SP_COLS, SP_GROUPS), breaks = SP_GROUPS, name = "Species", drop = FALSE,
-    labels = c(expression(italic("Tsuga canadensis")), expression(italic("Pinus strobus")), expression(italic("Quercus")~"spp."),
-               expression(italic("Acer rubrum")), expression(italic("Betula lenta")), expression(italic("Betula alleghaniensis")),
-               expression(italic("Kalmia latifolia")), "Other"),
+  scale_fill_manual(values = setNames(SP_COLS, SP_GROUPS), breaks = SP_GROUPS, name = "Species (share of basal area)", drop = FALSE,
+    labels = SP_LABS,
     guide = guide_legend(override.aes = list(size = 3.2, alpha = 1, stroke = 0.4))) +
   scale_size(range = c(0.45, 3.4), guide = "none") +
   annotation_scale(location = "bl", width_hint = 0.2, style = "ticks", line_col = "black", text_col = "black") +
