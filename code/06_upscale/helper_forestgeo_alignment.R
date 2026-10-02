@@ -434,7 +434,7 @@ print(transformation_summary)
 cat("\n")
 
 # PHYLOGENETIC COLORS
-tree_file <- "data/processed/metadata/PhytoPhylo"
+tree_file <- "data/raw/external/phylogeny/PhytoPhylo"
 
 all_species <- unique(fg_final$Species_Name)
 known_species <- all_species[!grepl("Unknown", all_species)]

@@ -10,7 +10,7 @@
 # Prereq: 01_untagged_auxfile.R (writes untagged_auxfile.csv with species/dead/geometry).
 # ==============================================================================
 suppressMessages({library(goFlux);library(dplyr)}); options(warn=-1)
-manID<-readRDS("data/processed/flux/untagged_rescue/untagged_manID.rds")
+manID<-readRDS("data/raw/flux_windows/untagged/untagged_manID.rds")
 aux<-read.csv("data/processed/flux/untagged_rescue/untagged_auxfile.csv",check.names=FALSE)
 aux$key<-aux$start.time_formatted
 stopifnot(!any(duplicated(aux$key)))                      # start.time is a unique measurement key

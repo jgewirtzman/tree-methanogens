@@ -63,7 +63,7 @@ colnames(ab) <- sapply(G, `[[`, 1)
 s16 <- data.frame(key = sub("[.]16S[.]S[0-9]*$", "", colnames(cnt)), ab, check.names = FALSE)
 
 # ---- ddPCR: gene copies per bacterial 16S copy --------------------------------
-o <- read.csv("data/processed/molecular/tree_data_methanogen_group.csv", check.names = FALSE)
+o <- read.csv("data/raw/external/tree-microbiome/tree_data_methanogen_group.csv", check.names = FALSE)
 o <- o[, names(o) != ""]
 o$pmoA <- num(o$pmoa_loose); o$mmoX <- num(o$mmox_loose); o$mcrA <- num(o$mcra_probe_loose)
 o$b16  <- num(o$X16S_per_ul); o$key <- paste0(o$seq_id, o$core_type)

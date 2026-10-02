@@ -21,7 +21,7 @@ mt_asv<-rownames(otu)[tax$mt %in% c("Known","Putative")]
 s16<-data.frame(key=sub("[.]16S[.]S[0-9]*$","",colnames(cnt)),
                 mg16=100*colSums(cnt[mg_asv,,drop=FALSE],na.rm=TRUE)/tot,
                 mt16=100*colSums(cnt[mt_asv,,drop=FALSE],na.rm=TRUE)/tot)
-o<-read.csv("data/processed/molecular/tree_data_methanogen_group.csv",check.names=FALSE); o<-o[,names(o)!=""]
+o<-read.csv("data/raw/external/tree-microbiome/tree_data_methanogen_group.csv",check.names=FALSE); o<-o[,names(o)!=""]
 o$mcra<-num(o$mcra_probe_loose); o$pmoa<-num(o$pmoa_loose); o$mmox<-num(o$mmox_loose); o$key<-paste0(o$seq_id,o$core_type)
 m<-merge(o[,c("key","material","mcra","pmoa","mmox")],s16,by="key")
 row1<-function(gene,func,glab,mat){

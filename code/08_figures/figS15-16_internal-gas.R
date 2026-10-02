@@ -339,7 +339,7 @@ format_mixed_labels <- function(x) {
 }
 
 # --- PHYLOGENETIC COLOR CALCULATION ---
-tree_file <- "data/processed/metadata/PhytoPhylo"
+tree_file <- "data/raw/external/phylogeny/PhytoPhylo"
 
 all_species <- unique(c(conc_data$Species_Latin, o2_data$Species_Latin, 
                         flux_conc_data$Species_Latin, mcra_data$Species_Latin))

@@ -135,9 +135,8 @@ csv_files <- c(
     "CH4_best_flux_lgr_results_2021_multiheight.csv", "CO2_best_flux_lgr_results_2021_multiheight.csv",
     "CH4_flux_lgr_results_2021_multiheight.csv",
     "CH4_best_flux_lgr_results_2023_cross_species.csv", "CO2_flux_lgr_results_2023_cross_species.csv",
-    # saved window selections: Vtot only, so a later goFlux run from them is right
-    "lgr_manual_identification_results_soil.csv", "lgr_manual_identification_results_december_soil.csv",
-    "lgr_manual_identification_2021_multiheight.csv", "lgr_manual_identification_2021_multiheight_final.csv",
+    # (saved closure windows are inputs in data/raw/flux_windows/ and are never rewritten:
+    # this step rescales the regenerated tables after every fit, so a rerun is identical)
     # assembled tables (the state files come last within each campaign)
     "semirigid_tree_final_complete_dataset_soil_CORRECTED.csv", "semirigid_tree_final_complete_dataset_soil.csv",
     "tree_flux_2021_multiheight.csv", "tree_flux_2023_cross_species.csv",

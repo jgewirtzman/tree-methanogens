@@ -14,7 +14,7 @@
 # The input file is left untouched. Calibrated columns go to a new file.
 #
 # Run from the repo root:  Rscript code/01_import/04_process_internal_gas_2024.R
-# Reads:  data/processed/internal_gas/stem_gas_isotopes_picarro_run.csv
+# Reads:  data/raw/internal_gas/stem_gas_isotopes_picarro_run.csv
 #         data/raw/internal_gas/Internal Concentration.xlsx (certified SB tanks)
 # Writes: data/processed/internal_gas/stem_gas_2024_calibrated.csv
 #         outputs/audit/internal_gas_2024_calibration.txt
@@ -22,7 +22,7 @@
 source("code/lib/outputs.R")
 suppressMessages({ library(readr); library(dplyr); library(readxl) })
 
-IN  <- "data/processed/internal_gas/stem_gas_isotopes_picarro_run.csv"
+IN  <- "data/raw/internal_gas/stem_gas_isotopes_picarro_run.csv"
 OUT <- "data/processed/internal_gas/stem_gas_2024_calibrated.csv"
 d   <- read_csv(IN, show_col_types = FALSE)
 

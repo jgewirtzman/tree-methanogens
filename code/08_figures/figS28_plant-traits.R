@@ -21,7 +21,7 @@ out <- "outputs"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
 # Species-level trait table, one row per species. Vendored from the companion
 # tree-gas-traits repository so this figure builds from a clean checkout;
 # regenerate with code/03_merge/03_vendor_traits.R if the upstream table changes.
-TRAITS <- "data/processed/traits/ymf_species_traits.csv"
+TRAITS <- "data/raw/external/tree-gas-traits/ymf_species_traits.csv"
 sp_map <- c(ACRU="Acer rubrum",ACSA="Acer saccharum",BEAL="Betula alleghaniensis",BELE="Betula lenta",
   BEPA="Betula papyrifera",CAOV="Carya ovata",FAGR="Fagus grandifolia",FRAM="Fraxinus americana",
   KALA="Kalmia latifolia",PIST="Pinus strobus",PRSE="Prunus serotina",QUAL="Quercus alba",

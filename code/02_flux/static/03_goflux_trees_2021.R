@@ -124,8 +124,8 @@ cat("Good windows (>=60 obs):", length(good_windows), "\n")
 
 cat("\n=== STEP 3: MANUAL IDENTIFICATION ===\n")
 source("../../lib/flux_windows.R")
-MC_PATH <- "../../../data/processed/flux/flux_model_choices.csv"
-WIN <- "../../../data/processed/flux/lgr_manual_identification_2021_multiheight_final.csv"
+MC_PATH <- window_path("flux_model_choices.csv")
+WIN <- window_path("lgr_manual_identification_2021_multiheight_final.csv")
 # Saved hand-picked windows are the record; the picker below runs only without them
 # (or with FLUX_REPICK=1, interactively). See code/lib/flux_windows.R.
 if (use_saved_windows(WIN)) {
@@ -248,7 +248,7 @@ manID.lgr3 <- do.call(rbind, manID_batches)
 cat("\nManual identification complete! Total:", nrow(manID.lgr3), "measurements\n")
 
 # Save manual identification results
-write_csv(manID.lgr3, "../../../data/processed/flux/lgr_manual_identification_2021_multiheight.csv")
+write_csv(manID.lgr3, repick_path("lgr_manual_identification_2021_multiheight.csv"))   # then tools/repick_failed_2021_windows.R
 }
 
 # =============================================================================

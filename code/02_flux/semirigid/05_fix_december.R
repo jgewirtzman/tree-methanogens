@@ -125,12 +125,13 @@ cat("Good December windows (>=30 obs):", length(good_windows), "\n")
 
 cat("\n=== STEP 3: MANUAL IDENTIFICATION (DECEMBER ONLY) ===\n")
 source("../../lib/flux_windows.R")
-MC_PATH <- "../../../data/processed/flux/flux_model_choices.csv"
-WIN <- "../../../data/processed/flux/lgr_manual_identification_results_december_soil.csv"
+MC_PATH <- window_path("flux_model_choices.csv")
+WIN <- window_path("lgr_manual_identification_results_december_soil.csv")
 # Saved hand-picked windows are the record; the picker below runs only without them
 # (or with FLUX_REPICK=1, interactively). See code/lib/flux_windows.R.
 source("../../lib/chamber_constants.R")   # SOIL_VTOT_L, SOIL_COLLAR_AREA_CM2
-if (use_saved_windows(WIN)) {
+SAVED_WINDOWS <- use_saved_windows(WIN)
+if (SAVED_WINDOWS) {
   # the saved December windows still carry the pre-correction collar volume
   manID.lgr3.december <- load_windows(WIN) %>% mutate(Vtot = SOIL_VTOT_L, Area = SOIL_COLLAR_AREA_CM2)
 } else {
@@ -179,7 +180,7 @@ manID.lgr3.december <- do.call(rbind, manID_batches)
 cat("\nDecember manual identification complete! Total:", nrow(manID.lgr3.december), "measurements\n")
 
 # Save December manual identification results
-write_csv(manID.lgr3.december, "../../../data/processed/flux/lgr_manual_identification_results_december_soil.csv")
+write_csv(manID.lgr3.december, repick_path(basename(WIN)))
 }
 
 # =============================================================================
@@ -328,11 +329,17 @@ december_unique_ids <- unique(manID.lgr3.december$UniqueID)
 # UPDATE MANUAL IDENTIFICATION RESULTS
 # =============================================================================
 
+# The saved soil windows (data/raw/flux_windows/) already hold the December windows.
+# Only a re-pick needs merging, and it goes to data/processed/flux/repicked/.
+SOIL_WIN <- window_path("lgr_manual_identification_results_soil.csv")
+if (SAVED_WINDOWS) {
+  cat("December windows loaded from the saved record; soil window file unchanged\n")
+} else {
 cat("Updating manual identification results...\n")
 
 # Load existing manual ID results
-if(file.exists("../../../data/processed/flux/lgr_manual_identification_results_soil.csv")) {
-  existing_manID <- read_csv("../../../data/processed/flux/lgr_manual_identification_results_soil.csv") %>%
+if(file.exists(SOIL_WIN)) {
+  existing_manID <- read_csv(SOIL_WIN) %>%
     mutate(DATE = as.character(DATE))  # Convert DATE to character to match new data
   
   # Remove existing December 8th data
@@ -347,15 +354,16 @@ if(file.exists("../../../data/processed/flux/lgr_manual_identification_results_s
   updated_manID <- bind_rows(non_december_8_manID, manID.lgr3.december_fixed)
   
   # Save updated manual ID results
-  write_csv(updated_manID, "../../../data/processed/flux/lgr_manual_identification_results_soil.csv")
+  write_csv(updated_manID, repick_path(basename(SOIL_WIN)))
   
   cat("Manual ID results updated:", nrow(updated_manID), "total rows\n")
   cat("December 8th rows removed:", nrow(existing_manID) - nrow(non_december_8_manID), "\n")
   cat("December 14th rows added:", nrow(manID.lgr3.december_fixed), "\n")
 } else {
   # If original doesn't exist, just save December data
-  write_csv(manID.lgr3.december, "../../../data/processed/flux/lgr_manual_identification_results_soil.csv")
+  write_csv(manID.lgr3.december, repick_path(basename(SOIL_WIN)))
   cat("Created new manual ID results file\n")
+}
 }
 
 # =============================================================================
@@ -535,7 +543,7 @@ cat("Creating updated complete plots with new December data...\n")
 
 # Create plots for all updated data (you may want to regenerate all plots to be safe)
 # Load the updated complete manual ID data for plotting
-updated_manID_complete <- read_csv("../../../data/processed/flux/lgr_manual_identification_results_soil.csv")
+updated_manID_complete <- read_csv(SOIL_WIN)
 updated_CO2_best_complete <- read_csv("../../../data/processed/flux/CO2_best_flux_lgr_results_soil.csv")
 
 # Create complete CO2 plots with updated data
@@ -595,7 +603,7 @@ if(exists("CH4_best_lgr3_december")) {
 cat("\n=== DECEMBER LGR3 PROCESSING COMPLETE ===\n")
 cat("ALL ORIGINAL OUTPUT FILES UPDATED with new December data\n")
 cat("\nFiles updated:\n")
-cat("- data/processed/flux/lgr_manual_identification_results_soil.csv (UPDATED)\n")
+cat("- closure windows: unchanged (saved) or data/processed/flux/repicked/ (re-pick)\n")
 cat("- data/processed/flux/CO2_flux_lgr_results_soil.csv (UPDATED)\n")
 cat("- data/processed/flux/CO2_best_flux_lgr_results_soil.csv (UPDATED)\n")
 if(file.exists("../../../data/processed/flux/CH4_flux_lgr_results_soil.csv")) {
