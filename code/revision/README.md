@@ -40,9 +40,9 @@ code/revision/
 ## Data
 All inputs come from the consolidated `data/` archive (drop-in from Zenodo). Revision-
 specific curated inputs were added there, alongside the existing files:
-- `data/processed/molecular/methanotroph_definitions_revised.csv` (Known→Putative reclass)
-- `data/processed/molecular/black_oak/` — extraction/core/soil masses (felled-oak copies/g) and
-  `bo_its_load.csv` (felled-oak QUVE ITS load for Fig 7 panel f; makes Fig 7 standalone)
+- `code/lib/methanotroph_definitions.csv` (methanotroph classification; tracked)
+- `data/raw/field_data/black_oak/bo_*.csv` — extraction/core/soil masses (felled-oak copies/g)
+- `data/raw/external/tree-microbiome/bo_its_load.csv` (felled-oak QUVE ITS load for Fig 7 panel f)
 
 ## Outputs
 - `outputs/revision/` — all generated figures, reports, tables (CSV/TXT/PNG).
