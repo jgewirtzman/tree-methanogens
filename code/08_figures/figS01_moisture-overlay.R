@@ -278,11 +278,12 @@ STREAM_HALF_WIDTH_M <- 0.75   # a 1-2 m brook (Jon, 2026-10-02)
 G$VWC[chan_d(G, CH) <= STREAM_HALF_WIDTH_M] <- 100
 cat(sprintf("Moisture surface (04_moisture_surface.R fit) over the map: %d cells, VWC %.1f-%.1f%%\n", nrow(G), min(G$VWC), max(G$VWC)))
 
-# Moisture is shown only where the analysis has it or the survey measured it: inside the
-# censused plot (where the upscaling uses it, extrapolated beyond the dashed survey hull)
-# or inside the survey hull. Outside both, only the terrain is drawn.
-inpoly <- function(P, R) sp::point.in.polygon(P$X, P$Y, R$X, R$Y) > 0
-G <- G[inpoly(G, SRu) | inpoly(G, SHu), ]
+# Moisture is shown over the rectangle spanned by the inventory stems, aligned with the
+# plot grid (plot-local PX/PY), so every mapped stem sits on the surface the upscaling
+# gives it; beyond the dashed survey hull those values are extrapolated. Outside the
+# rectangle only the terrain is drawn.
+in_rect <- pl$PX >= min(INVc$PX) & pl$PX <= max(INVc$PX) & pl$PY >= min(INVc$PY) & pl$PY <= max(INVc$PY)
+G <- G[in_rect, ]
 
 # shared layers
 # hillshade as a fixed grey image, so it takes no fill scale
@@ -290,6 +291,8 @@ hsc <- crop(hs, ext(E)); hm <- as.matrix(hsc, wide = TRUE)
 hm <- (hm - min(hm, na.rm = TRUE)) / diff(range(hm, na.rm = TRUE)); hm[is.na(hm)] <- 1
 HSIMG <- matrix(grDevices::grey(0.25 + 0.75 * hm), nrow(hm)); he <- as.vector(ext(hsc))
 terrain_layers <- list(annotation_raster(HSIMG, xmin = he[1], xmax = he[2], ymin = he[3], ymax = he[4]))
+HSIMG_L <- matrix(grDevices::grey(0.55 + 0.45 * hm), nrow(hm))
+terrain_light <- list(annotation_raster(HSIMG_L, xmin = he[1], xmax = he[2], ymin = he[3], ymax = he[4]))
 map_frame <- list(
   coord_sf(crs = UTM, xlim = E[1:2], ylim = E[3:4], expand = FALSE, datum = NA),
   theme_void(),
@@ -332,21 +335,25 @@ pa <- ggplot() + terrain_layers +
 # area and Betula alleghaniensis is kept because the text discusses it.
 SP_GROUPS <- c("Tsuga canadensis", "Pinus strobus", "Quercus spp.", "Acer rubrum", "Betula lenta",
                "Betula alleghaniensis", "Kalmia latifolia", "Other")
-SP_COLS <- c("#008300", "#eb6834", "#4a3aa7", "#2a78d6", "#e87ba4", "#1baf7a", "#eda100", "#8c8c8c")
+# Paul Tol's "muted" scheme, assigned by tree: hemlock green, white pine pale cyan, oak
+# olive, red maple wine, black birch indigo, yellow birch sand, mountain laurel rose.
+# Checked by simulation (OKLab dE x100, Machado 2009): normal 17.8, deutan 8.2, protan
+# 9.5, tritan 14.2. "Other" is hollow grey rather than an eighth colour, which would fail.
+SP_COLS <- c("#117733", "#88CCEE", "#999933", "#882255", "#332288", "#DDCC77", "#CC6677", "white")
 TR$grp <- ifelse(grepl("^Quercus", TR$species), "Quercus spp.",
           ifelse(TR$species %in% SP_GROUPS, TR$species, "Other"))
 TR$grp <- factor(TR$grp, levels = SP_GROUPS)
 TRb <- TR[order(TR$grp == "Other", TR$grp == "Kalmia latifolia", TR$BA, decreasing = c(TRUE, TRUE, FALSE), method = "radix"), ]
-pb <- ggplot() + terrain_layers + CONT +
+pb <- ggplot() + terrain_light + CONT +
   geom_path(data = SRu, aes(X, Y), colour = "black", linewidth = 0.5) +
   geom_path(data = CH, aes(X, Y), colour = "#0d366b", linewidth = 1.1, lineend = "round") +
-  geom_point(data = TRb, aes(X, Y, size = BA, colour = grp), alpha = 0.85, stroke = 0) +
-  scale_colour_manual(values = setNames(SP_COLS, SP_GROUPS), breaks = SP_GROUPS, name = "Species", drop = FALSE,
+  geom_point(data = TRb, aes(X, Y, size = BA, fill = grp), shape = 21, colour = "grey20", stroke = 0.12, alpha = 0.9) +
+  scale_fill_manual(values = setNames(SP_COLS, SP_GROUPS), breaks = SP_GROUPS, name = "Species", drop = FALSE,
     labels = c(expression(italic("Tsuga canadensis")), expression(italic("Pinus strobus")), expression(italic("Quercus")~"spp."),
                expression(italic("Acer rubrum")), expression(italic("Betula lenta")), expression(italic("Betula alleghaniensis")),
                expression(italic("Kalmia latifolia")), "Other"),
-    guide = guide_legend(override.aes = list(size = 3, alpha = 1))) +
-  scale_size(range = c(0.35, 3.2), guide = "none") +
+    guide = guide_legend(override.aes = list(size = 3.2, alpha = 1, stroke = 0.4))) +
+  scale_size(range = c(0.45, 3.4), guide = "none") +
   annotation_scale(location = "bl", width_hint = 0.2, style = "ticks", line_col = "black", text_col = "black") +
   map_frame
 
