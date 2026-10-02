@@ -47,6 +47,7 @@
 source("code/lib/outputs.R")
 suppressMessages({library(dplyr); library(ranger); library(ggplot2)
                   library(patchwork); library(tidyr)})
+source("code/lib/rf_spec.R")   # RF_THREADS
 set.seed(42)
 load("outputs/models/RF_MODELS.RData"); load("outputs/models/TRAINING_DATA.RData")
 
@@ -67,18 +68,21 @@ GROUPS <- list(
                 temperature = c("soil_temp_C_mean", "air_temp_C_mean"),
                 month = "month"))
 
-gimp <- function(X, y, groups, lab, nsplit = 10, nrep = 20) {
+# 50 random 70/30 splits, not 10: with 10 the stem shares moved by up to 7 points between
+# seeds (height 12-18%); the split, not the forest size, is the noise (2026-10-01).
+gimp <- function(X, y, groups, lab, nsplit = 50, nrep = 20) {
   k <- is.finite(y) & complete.cases(X); X <- X[k, , drop = FALSE]; y <- y[k]
   R <- replicate(nsplit, {
     tr <- sample(nrow(X), floor(0.7 * nrow(X)))
     m  <- ranger(x = X[tr, , drop = FALSE], y = y[tr], num.trees = 800,
-                 min.node.size = 5, mtry = max(1, floor(sqrt(ncol(X)))), num.threads = 1)
+                 min.node.size = 5, mtry = max(1, floor(sqrt(ncol(X)))), num.threads = RF_THREADS,
+                 seed = sample.int(1e6, 1))
     Xh <- X[-tr, , drop = FALSE]; yh <- y[-tr]
-    base <- mean((yh - predict(m, Xh, num.threads = 1)$predictions)^2)
+    base <- mean((yh - predict(m, Xh, num.threads = RF_THREADS)$predictions)^2)
     sapply(groups, function(g) mean(replicate(nrep, {
       Xp <- Xh; i <- sample(nrow(Xp))
       for (v in g) Xp[[v]] <- Xp[[v]][i]          # ONE shared permutation per group
-      mean((yh - predict(m, Xp, num.threads = 1)$predictions)^2) - base
+      mean((yh - predict(m, Xp, num.threads = RF_THREADS)$predictions)^2) - base
     })))
   })
   mu <- pmax(rowMeans(R), 0)
