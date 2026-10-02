@@ -225,7 +225,7 @@ stream_line <- data.frame(Longitude = sl$lon, Latitude = sl$lat)
 # The channel itself is water: cells within STREAM_HALF_WIDTH_M of the centreline are
 # set to 100% AFTER the fit, so the stream never enters the spline and cannot pull
 # the measured bank readings toward saturation; the change at the bank is abrupt.
-STREAM_HALF_WIDTH_M <- 1.5
+STREAM_HALF_WIDTH_M <- 0.75   # a 1-2 m brook (Jon, 2026-10-02)
 spx <- predict(ss, py)$y
 d_stream <- sapply(seq_len(nrow(best_df)), function(i) min((spx - pl$PX[i])^2 + (py - pl$PY[i])^2))
 best_df$VWC[sqrt(d_stream) <= STREAM_HALF_WIDTH_M] <- 100
