@@ -69,11 +69,14 @@ stopifnot(length(REP_WAI) == 1, !is.na(REP_WAI))
 REP_BRANCH <- "gaussian_75"; REP_BOLE <- "cone"; REP_FLUX <- "exp_band_slope"
 
 COLF <- setNames(c("#b2182b","#d6604d","#f4a582","#92c5de","#4393c3","#2166ac"), FO)
-th <- theme_bw(base_size = 9) +
-  theme(plot.title = element_text(face = "bold", size = 10),
-        plot.subtitle = element_text(size = 7.1, colour = "grey30"),
-        panel.grid.minor = element_blank(), legend.title = element_blank(),
-        legend.key.size = unit(0.32, "cm"), legend.text = element_text(size = 6.4))
+th <- theme_bw(base_size = 11) +
+  theme(panel.grid.minor = element_blank(), legend.title = element_blank(),
+        legend.key.size = unit(0.45, "cm"), legend.text = element_text(size = 9.5))
+FLUX_LAB <- c(constant = "Constant", exp_band_slope = "Per-stem exponential (named)", power = "Power",
+              exponential = "Exponential", linear_floored = "Linear, floored at zero",
+              linear_bounded_median = "Linear into uptake")
+BRANCH_LAB <- c(uniform_all = "Uniform,\nwhole stem", uniform_top50 = "Uniform,\nupper half",
+                gaussian_50 = "Gaussian,\n50% height", gaussian_75 = "Gaussian,\n75% height")
 bandrect <- annotate("rect", xmin = -Inf, xmax = Inf, ymin = 0, ymax = BAND,
                      fill = "grey85", alpha = 0.6)
 
@@ -113,26 +116,21 @@ mk <- function(kind) {
 # adding information, and compresses the extrapolations. Relative to 2 m is how the
 # forms are anchored; absolute is the only view showing these are fluxes of order
 # 0.05-0.14 nmol m-2 s-1, which every ratio view hides.
-KINDS <- c("relative to 2 m", "absolute (nmol m-2 s-1)")
+KINDS <- c("absolute (nmol m-2 s-1)")   # 2026-10-02: one panel, absolute (the relative view is in the code history)
 L  <- setNames(lapply(KINDS, mk), KINDS)
 gr <- function(w) bind_rows(lapply(KINDS, function(k) L[[k]][[w]] %>% mutate(kind = k))) %>%
         mutate(kind = factor(kind, levels = KINDS))
 Bb <- gr("b"); Ff <- gr("f"); Ss <- gr("sp")
 
 pa <- ggplot() + bandrect +
-  # zero matters here: linear_bounded_median crosses it, so the sign of the tree
-  # term is a visible property of the panel rather than something to infer
   geom_vline(xintercept = 0, colour = "grey45", linewidth = 0.35, linetype = "dashed") +
   geom_path(data = Ss, aes(v, z, group = series), colour = "grey72", linewidth = 0.35) +
-  geom_path(data = Ff, aes(v, z, colour = flux), linewidth = 0.8) +
-  geom_path(data = Bb, aes(v, z), colour = "grey10", linewidth = 1.25) +
-  scale_colour_manual(values = COLF, breaks = FO) +
+  geom_path(data = Ff, aes(v, z, colour = flux), linewidth = 0.9) +
+  geom_path(data = Bb, aes(v, z), colour = "grey10", linewidth = 1.3) +
+  scale_colour_manual(values = COLF, breaks = FO, labels = FLUX_LAB) +
   scale_y_continuous(limits = c(0, 26), expand = c(0, 0)) +
-  facet_wrap(~kind, nrow = 1, scales = "free_x") +
-  labs(title = "a   flux with height: the measured band and the six extrapolations",
-       y = "height (m)", x = "flux",
-       subtitle = "black = all stems, area-weighted; grey = the six commonest species; shaded = the measured band") +
-  th + theme(legend.position = "right", strip.text = element_text(size = 7.4))
+  labs(y = "Height (m)", x = expression(CH[4]~"flux (nmol m"^-2*" s"^-1*")")) +
+  th + theme(legend.position = "right")
 
 # ---- one canopy-height tree, built from the raw kernels ----------------------
 NU <- length(unique(KN$u)); dz <- H_TREE/NU
@@ -146,18 +144,16 @@ TREE <- tb %>% inner_join(tr, by = "u", relationship = "many-to-many") %>%
   pivot_longer(c(a_bole, a_branch), names_to = "part", values_to = "area_per_m") %>%
   mutate(part = factor(sub("^a_", "", part), levels = c("branch","bole")))
 
-pb <- ggplot(TREE, aes(area_per_m, z, fill = part)) +
+pb <- ggplot(TREE %>% filter(bole == REP_BOLE), aes(area_per_m, z, fill = part)) +
   bandrect +
   geom_area(orientation = "y", position = "stack", colour = NA) +
   scale_fill_manual(values = c(bole = "#8c6d46", branch = "#4d9221")) +
-  facet_grid(bole ~ branch) +
+  facet_wrap(~branch, nrow = 1, labeller = as_labeller(BRANCH_LAB)) +
   scale_y_continuous(limits = c(0, 26), expand = c(0, 0)) +
   scale_x_continuous(expand = c(0, 0), breaks = c(0, 1, 2)) +
-  labs(title = sprintf("b   one %g m canopy tree: bole and branch area, stacked", H_TREE),
-       subtitle = "rows = bole shape, columns = branch placement; the two rows are near-identical",
-       x = expression("woody area (m"^2*" per m of height)"), y = "height (m)") +
-  th + theme(legend.position = "bottom", strip.text = element_text(size = 6.4),
-             axis.text = element_text(size = 5.8))
+  labs(x = expression("Woody area (m"^2*" per m of height)"), y = "Height (m)") +
+  th + theme(legend.position = "bottom", strip.text = element_text(size = 9.5),
+             axis.text = element_text(size = 9))
 
 # ---- c: one tree, area filled by flux AND the resulting integral ------------
 # Two views per flux form. The filled ribbon shows WHERE the surface area is and
@@ -254,28 +250,33 @@ pd <- ggplot(PD, aes(y = z)) +
   scale_fill_manual(values = c(`TRUE` = FLUX_PURPLE, `FALSE` = "grey72"),
                     labels = c(`TRUE` = "measured (0-2 m)", `FALSE` = "extrapolated (>2 m)")) +
   geom_hline(yintercept = BAND, colour = "grey25", linewidth = 0.3, linetype = "dashed") +
-  geom_text(data = LAB, aes(x = Inf, y = 24, label = sprintf("%.0f mg m-2 yr-1\n%.0f%% above 2 m", tot, above)),
-            hjust = 1.05, size = 2.7, colour = "grey20", inherit.aes = FALSE) +
-  facet_wrap(~form, nrow = 1) +
+  geom_text(data = LAB, aes(x = Inf, y = 24, label = sprintf("%.1f mg in total\n%.0f%% above 2 m", tot, above)),
+            hjust = 1.05, size = 3.4, colour = "grey20", inherit.aes = FALSE) +
+  facet_wrap(~form, nrow = 1, labeller = as_labeller(FLUX_LAB)) +
   scale_y_continuous(limits = c(0, 26), expand = c(0, 0)) +
   scale_x_continuous(expand = c(0, 0)) +
-  labs(title = "d   summed over the whole inventory",
-       subtitle = sprintf("WAI %s, %s branch, %s bole; steps are trees dropping out above their own height",
-                          sub(" .*", "", REP_WAI), REP_BRANCH, REP_BOLE),
-       x = expression("mg CH"[4]*" m"^-2*" yr"^-1*" per m of height"), y = NULL) +
-  th + theme(legend.position = "bottom", strip.text = element_text(size = 7))
+  labs(x = expression("mg CH"[4]*" m"^-2*" yr"^-1*" per m of height"), y = "Height (m)") +
+  th + theme(legend.position = "bottom", strip.text = element_text(size = 9.5))
 
-# TALL PANELS. Every panel spans 0-26 m and is drawn narrow, so each reads as a
-# tree rather than as a chart that happens to have height on the y axis.
-fig <- (pa | pc1 | pc2) / (pb | pd) + plot_layout(widths = c(1.45, 1, 1)) +
-  plot_annotation(
-    title = "What the upscaling assumptions look like",
-    subtitle = sprintf("(a)-(c) one canopy-height tree, so the shapes are legible; (d) the inventory sum from the %d-combination grid",
-                       nrow(GR)),
-    theme = theme(plot.title = element_text(face = "bold", size = 12),
-                  plot.subtitle = element_text(size = 8.2, colour = "grey25")))
-ggsave(out_path("fig_scaling_profiles.png"), fig,
-       width = 16.5, height = 15, dpi = 200, bg = "white")
+# ---- d: why a constant above 2 m: leave-one-height-out cross-validation ---------
+CV <- read.csv(out_path("height_form_crossvalidation.csv"), stringsAsFactors = FALSE) %>%
+  mutate(test = factor(test, levels = c("A_up", "C_int", "B_down"),
+                       labels = c("Upward\n(0.5, 1.25 m predict 2 m)", "Interpolation\n(0.5, 2 m predict 1.25 m)",
+                                  "Downward\n(1.25, 2 m predict 0.5 m)")),
+         form = recode(form, constant = "Constant", linear = "Linear", power = "Power", exp_zero = "Exponential"))
+CV$form <- factor(CV$form, levels = rev(c("Constant", "Linear", "Power", "Exponential")))
+pdcv <- ggplot(CV, aes(rmse, form)) +
+  geom_segment(aes(x = min(CV$rmse) * 0.7, xend = rmse, yend = form), colour = "grey75") +
+  geom_point(size = 2.6, colour = FLUX_PURPLE) +
+  scale_x_log10() + facet_wrap(~test, ncol = 1) +
+  labs(x = expression("RMSE (nmol m"^-2*" s"^-1*", log scale)"), y = NULL) +
+  th + theme(strip.text = element_text(size = 9.5))
+
+# panels: (a) flux forms, (b) woody area for one canopy tree, (c) inventory sum, (d) cross-validation
+fig <- (pa | pb) / (pd | pdcv) + plot_layout(widths = c(1, 1.3)) +
+  plot_annotation(tag_levels = "a", tag_prefix = "(", tag_suffix = ")") &
+  theme(plot.tag = element_text(size = 14, face = "bold"))
+ggsave(out_path("fig_scaling_profiles.png"), fig, width = 15, height = 14, dpi = 300, bg = "white")
 
 cat(sprintf("one tree: H %g m, DBH %.3f m, conic stem surface %.1f m2\n", H_TREE, D_TREE, CONIC))
 cat(sprintf("  area split bole %.2f : branch %.2f (W&W branch:stem 3.35)\n", 1/4.35, 3.35/4.35))
