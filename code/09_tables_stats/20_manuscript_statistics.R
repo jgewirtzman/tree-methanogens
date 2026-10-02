@@ -726,25 +726,20 @@ if (nrow(hw_with_mcra) > 5) {
 
 # Methanotroph composition (VERIFY taxonomy)
 sub_header("Methanotroph families detected (known/putative)")
-mt_defs <- read.csv("code/lib/methanotroph_definitions.csv")  # revision R2 #2: Methylacidiphilaceae Known->Putative
-known_families <- mt_defs %>% filter(Taxon_rank == "Family", Include_known == "YES") %>% pull(Taxon)
-known_genera <- mt_defs %>% filter(Taxon_rank == "Genus", Include_known == "YES") %>% pull(Taxon)
-putative_families <- mt_defs %>% filter(Taxon_rank == "Family", Include_putative == "YES") %>% pull(Taxon)
-
-# Known methanotrophs
-known_asvs <- c(
-  rownames(tax_df)[tax_df$Family %in% known_families],
-  rownames(tax_df)[tax_df$Genus %in% known_genera]
-)
-known_asvs <- unique(intersect(known_asvs, rownames(otu_df)))
-
-# Putative (family-level only for unresolved genera)
-putative_only <- rownames(tax_df)[
-  tax_df$Family %in% putative_families &
-  !(tax_df$Genus %in% known_genera) &
-  (is.na(tax_df$Genus) | tax_df$Genus == "")
-]
-putative_only <- intersect(putative_only, rownames(otu_df))
+# One rule for every count: the shared classifier (genus-aware; a mixed-family ASV is
+# Putative only when its genus is unresolved). This section previously classified inline
+# and disagreed with Figure 5 and the clade census (2026-10-02).
+source("code/lib/load_methanotroph_definitions.R")
+mt_defs <- load_methanotroph_defs()
+mt_status <- classify_methanotrophs(tax_df, mt_defs)
+known_asvs   <- intersect(rownames(tax_df)[mt_status %in% "Known"], rownames(otu_df))
+putative_only <- intersect(rownames(tax_df)[mt_status %in% "Putative"], rownames(otu_df))
+if (file.exists("outputs/data/methanotroph_tier_totals.csv")) {
+  tt <- read.csv("outputs/data/methanotroph_tier_totals.csv")
+  cat("  Tier totals over the analysed samples (03_clade-census.R):\n")
+  for (r in seq_len(nrow(tt))) cat(sprintf("    %-17s %4d ASVs; heartwood %.3f%%, sapwood %.3f%%, mineral %.3f%%, organic %.3f%%\n",
+      tt$tier[r], tt$ASVs_analysed[r], tt$Heartwood_pct[r], tt$Sapwood_pct[r], tt$Mineral_pct[r], tt$Organic_pct[r]))
+}
 
 cat(sprintf("  Known methanotroph ASVs: %d\n", length(known_asvs)))
 cat(sprintf("  Putative methanotroph ASVs: %d\n", length(putative_only)))

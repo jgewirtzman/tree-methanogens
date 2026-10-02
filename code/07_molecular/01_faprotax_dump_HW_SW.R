@@ -24,7 +24,25 @@ t<-trans_func$new(meco_core); t$cal_spe_func(prok_database="FAPROTAX"); t$cal_sp
 pc<-t$res_spe_func_perc
 df<-data.frame(func=colnames(pc), HW=as.numeric(pc["Inner",]), SW=as.numeric(pc["Outer",]))
 df$lr<-ifelse(df$SW>0,log2(df$HW/df$SW),NA)
+
+# The same shares with methanogen ASVs removed. FAPROTAX assigns functions by genus
+# name, and several categories recount the methanogens: "dark_hydrogen_oxidation"
+# includes Methanobacteriaceae and Methanosarcinaceae, and "methylotrophy" includes
+# the methyl-reducing Methanomassiliicoccaceae. Without them neither is enriched in
+# heartwood (2026-10-02). Figure 6b uses these columns, as panel (c) removes methanogen
+# contributions from the PICRUSt2 pathways.
+source("code/lib/methanogen_families.R")
+fm <- as.matrix(t$res_spe_func); ab <- as.matrix(t$otu_table)[rownames(fm), c("Inner", "Outer")]
+fam <- sub("^f__", "", as.data.frame(t$tax_table)[rownames(fm), "Family"])
+is_mg <- fam %in% METHANOGEN_FAMILIES
+share <- function(keep) 100 * colSums(ab[keep, , drop = FALSE]) / colSums(as.matrix(t$otu_table)[, c("Inner", "Outer")])
+chk <- t(sapply(df$func, function(f) share(fm[, f] == 1)))
+stopifnot(max(abs(chk[, "Inner"] - df$HW), abs(chk[, "Outer"] - df$SW)) < 0.01)   # reproduces microeco's shares
+nm <- t(sapply(df$func, function(f) share(fm[, f] == 1 & !is_mg)))
+df$HW_nonmethanogen <- round(nm[, "Inner"], 2); df$SW_nonmethanogen <- round(nm[, "Outer"], 2)
+df$lr_nonmethanogen <- ifelse(df$SW_nonmethanogen > 0, log2(df$HW_nonmethanogen / df$SW_nonmethanogen), NA)
+df$methanogen_asvs <- sapply(df$func, function(f) sum(fm[, f] == 1 & is_mg))
 df<-df[order(-df$HW),]
 write.csv(df,"outputs/data/FAPROTAX_all_functions_HW_SW.csv",row.names=FALSE)
 cat("=== ALL FAPROTAX functions (HW=Inner, SW=Outer, % relative abundance) ===\n")
-for(i in seq_len(nrow(df))) cat(sprintf("%-52s HW=%6.2f SW=%6.2f lr=%s\n",df$func[i],df$HW[i],df$SW[i],ifelse(is.na(df$lr[i]),"  Inf",sprintf("%+.2f",df$lr[i]))))
+for(i in seq_len(nrow(df))) cat(sprintf("%-52s HW=%6.2f SW=%6.2f lr=%s | without methanogens HW=%6.2f SW=%6.2f (%d methanogen ASVs)\n",df$func[i],df$HW[i],df$SW[i],ifelse(is.na(df$lr[i]),"  Inf",sprintf("%+.2f",df$lr[i])),df$HW_nonmethanogen[i],df$SW_nonmethanogen[i],df$methanogen_asvs[i]))
