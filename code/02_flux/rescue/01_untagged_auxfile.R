@@ -69,6 +69,7 @@ m$UniqueID<-ave(m$UniqueID,m$UniqueID,FUN=function(x) if(length(x)==1) x else pa
 aux<-m %>% filter(!is.na(start.time),!is.na(Area),!is.na(Vtot)) %>%
   transmute(UniqueID, start.time, start.time_formatted=format(start.time,"%Y-%m-%d %H:%M:%S"),
             Area, Vtot, Tcham, Pcham, site, species=sp, dead, Sample, Dstem, obs.length=600)
+dir.create("data/processed/flux/untagged_rescue", showWarnings = FALSE, recursive = TRUE)
 write.csv(aux,"data/processed/flux/untagged_rescue/untagged_auxfile.csv",row.names=FALSE)
 cat("untagged measurements:",nrow(u)," -> auxfile rows (with geometry+time):",nrow(aux),"\n")
 cat("trees covered:\n"); print(as.data.frame(aux %>% count(site,species,name="n_meas")))
