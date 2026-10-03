@@ -24,7 +24,9 @@ ch4<-goFlux(manID,"CH4dry_ppb"); ch4b<-best.flux(ch4); co2b<-best.flux(goFlux(ma
 meta<-manID %>% distinct(UniqueID,key,site,species,dead,Sample,Dstem,Area,Vtot)
 f<-meta %>%
   left_join(ch4 %>% transmute(UniqueID,CH4_LM.r2=LM.r2,CH4_HM.r2=HM.r2),by="UniqueID") %>%
-  left_join(ch4b %>% transmute(UniqueID,CH4_best.flux=best.flux,CH4_model=model,CH4_quality=quality.check),by="UniqueID") %>%
+  left_join(ch4b %>% transmute(UniqueID,CH4_best.flux=best.flux,CH4_model=model,CH4_quality=quality.check,
+                                 CH4_LM.p.val=LM.p.val,CH4_flux.term=flux.term,CH4_nb.obs=nb.obs,
+                                 CH4_MDF=MDF,CH4_prec=prec),by="UniqueID") %>%   # precision terms for detection
   left_join(co2b %>% transmute(UniqueID,CO2_best.flux=best.flux),by="UniqueID") %>%
   mutate(Plot_Type=case_when(site=="Upland"~"U",site=="Intermediate"~"I",site=="Wetland"~"W"),
          tree_id=paste0("UNTAG_",substr(site,1,3),"_",species,ifelse(dead,"_dead","")),

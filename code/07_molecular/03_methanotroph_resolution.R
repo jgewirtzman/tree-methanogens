@@ -44,6 +44,9 @@ otu <- read.delim("data/raw/16s/OTU_table.txt", header = TRUE, row.names = 1, ch
 taxc <- intersect(c("Kingdom","Phylum","Class","Order","Family","Genus","Species"), names(otu))
 tax <- otu[, taxc]; for (k in taxc) tax[[k]] <- trimws(tax[[k]])
 cnt <- as.matrix(sapply(otu[, setdiff(names(otu), taxc), drop = FALSE], num)); rownames(cnt) <- rownames(otu)
+# organelle reads out of the denominator, as in the main analysis (build_16s_phyloseq)
+org <- tax$Family %in% "Mitochondria" | tax$Order %in% "Chloroplast"
+cnt <- cnt[!org, , drop = FALSE]; tax <- tax[!org, , drop = FALSE]
 tot <- colSums(cnt, na.rm = TRUE)
 keep_s <- tot >= 1000; cnt <- cnt[, keep_s]; tot <- tot[keep_s]
 rel <- sweep(cnt, 2, tot, "/") * 100
@@ -125,6 +128,7 @@ write.csv(SENS, out_path("methanotroph_placement_sensitivity.csv"), row.names = 
 
 # ---- black oak, by tissue -------------------------------------------------------
 bo <- read.table("data/raw/16s/black_oak/OTU_table.txt", header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+bo <- bo[!(trimws(bo$Family) %in% "Mitochondria" | trimws(bo$Order) %in% "Chloroplast"), ]   # organelles out, as above
 bnum <- names(bo)[sapply(bo, is.numeric)]; btot <- colSums(bo[bnum], na.rm = TRUE); bnum <- bnum[btot >= 1000]
 brel <- sweep(as.matrix(bo[bnum]), 2, btot[bnum], "/") * 100
 for (k in c("Order", "Family", "Genus")) bo[[k]] <- trimws(bo[[k]])

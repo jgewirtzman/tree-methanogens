@@ -2,15 +2,15 @@
 # ==============================================================================
 # 23_si-table-workbook.R -- the data-heavy SI tables as one Excel workbook
 # ------------------------------------------------------------------------------
-# Tables S2 (methane-cycling taxa and their classification) and S4 (diameter of
+# Tables S2 (methane-cycling taxa and their classification) and S6 (diameter of
 # measured trees by campaign, location, species and status) are long reference
 # tables, so they are supplied as a workbook a reader can sort and filter rather
 # than as pages of print. Each sheet carries its own legend above the table. The
-# short tables (S1, S3, S5) are formatted in the SI tables document.
+# short tables (S1, S3–S5, S7) are formatted in the SI tables document.
 #
 # Reads:  outputs/data/known_putative_taxa_table.csv (04_known-putative-table.R)
 #         outputs/data/dbh_by_species_campaign.csv   (08_dbh_by_species_campaign.R)
-# Writes: outputs/tables/SI_Tables_S2_S4.xlsx
+# Writes: outputs/tables/SI_Tables_S2_S6.xlsx
 # ==============================================================================
 suppressPackageStartupMessages({ library(openxlsx) })
 source("code/lib/outputs.R")
@@ -29,9 +29,9 @@ LEG <- list(
     paste("Methanotrophs are classified by methane monooxygenase capacity. Known: genera that carry particulate or soluble",
           "methane monooxygenase, including the NC10 genus Candidatus Methylomirabilis. Putative: members of methanotroph-",
           "containing families unresolved at genus level; an upper bound only. Genera inside those families with genome",
-          "evidence of no methane monooxygenase (Table S5) are listed in Table S5 and not counted.",
+          "evidence of no methane monooxygenase (Table S3) are listed in Table S3 and not counted.",
           "ASVs: number of amplicon sequence variants; mean relative abundance across all samples.")),
-  `Table S4` = c("Table S4. Diameter at breast height of measured trees by campaign, location, species and status.",
+  `Table S6` = c("Table S6. Diameter at breast height of measured trees by campaign, location, species and status.",
     "Trees: number of individual trees; DBH: mean ± standard deviation across those trees (a single value where n = 1)."))
 
 wb <- createWorkbook()
@@ -49,5 +49,5 @@ for (nm in names(LEG)) {
   freezePane(wb, nm, firstActiveRow = 5)
 }
 dir.create("outputs/tables", showWarnings = FALSE, recursive = TRUE)
-saveWorkbook(wb, "outputs/tables/SI_Tables_S2_S4.xlsx", overwrite = TRUE)
-cat(sprintf("Wrote outputs/tables/SI_Tables_S2_S4.xlsx (Table S2: %d rows; Table S4: %d rows)\n", nrow(S2), nrow(S4)))
+saveWorkbook(wb, "outputs/tables/SI_Tables_S2_S6.xlsx", overwrite = TRUE)
+cat(sprintf("Wrote outputs/tables/SI_Tables_S2_S6.xlsx (Table S2: %d rows; Table S6: %d rows)\n", nrow(S2), nrow(S4)))

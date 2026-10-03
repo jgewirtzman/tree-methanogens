@@ -24,11 +24,13 @@ srt$Plot.Tag <- as.character(srt$Plot.Tag)                       # allow string 
 u<-read.csv("data/processed/flux/untagged_rescue/untagged_monthly_fluxes.csv",check.names=FALSE)
 u$Date<-as.Date(sub(".*_(\\d{8})(_.*)?$","\\1",u$UniqueID),format="%Y%m%d")
 n<-nrow(u); untag<-srt[rep(NA_integer_,n),,drop=FALSE]; rownames(untag)<-NULL   # typed NA clone
+untag$UniqueID        <- u$UniqueID                             # per-measurement id (detection status)
 untag$Plot.Tag        <- u$tree_id                              # per-TREE id (measurements share it)
 untag$Plot.Letter     <- dplyr::recode(u$Plot_Type, U="U", I="I", W="WS")
 untag$Date            <- as.character(u$Date)
 untag$CH4_best.flux   <- u$CH4_best.flux
 untag$CH4_LM.r2       <- num(u$CH4_LM.r2); untag$CH4_HM.r2       <- num(u$CH4_HM.r2)
+for (v in c("CH4_LM.p.val","CH4_flux.term","CH4_nb.obs","CH4_MDF","CH4_prec")) untag[[v]] <- num(u[[v]])
 untag$dead            <- u$dead
 
 merged<-bind_rows(srt, untag)

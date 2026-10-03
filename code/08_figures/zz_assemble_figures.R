@@ -27,7 +27,7 @@ MAIN <- c(
   "Figure_8_radial-species"              = "outputs/figures/original/main/fig8_radial_species_comparison.png",  # unchanged (orig pipeline); central takeaway
   "Figure_9_ch4-budget"                  = "outputs/figures/generated/fig_budget_maps.png")
 
-# SI — numbered in order of first citation in the restructured text (2026-10-01).
+# SI — numbered in order of first citation in the main text (renumbered 2026-10-03).
 # Merged: old S06+S07 (pmoA/mmoX) -> S08, built in figS08_pmoa-mmox.R; the two
 # chamber photos -> one figure, S02a/S02b. New: S03 detection, S05 16S-ddPCR association.
 SI <- c(
@@ -37,35 +37,35 @@ SI <- c(
   "Figure_S04_ddpcr-mcra-probe-validation" = "outputs/figures/generated/figS19_mcra_probe_validation.png",
   "Figure_S05_16s-ddpcr-association"     = "outputs/figures/generated/figSI_16s_ddpcr_association.png",
   # Results 2-3: height, species
-  "Figure_S06_height-slope-moisture"     = "outputs/figures/generated/height_slope_vs_moisture.png",
-  "Figure_S07_species-moisture-niche"    = "outputs/figures/generated/tree_species_moisture_niche.png",
+  "Figure_S07_height-slope-moisture"     = "outputs/figures/generated/height_slope_vs_moisture.png",
+  "Figure_S08_species-moisture-niche"    = "outputs/figures/generated/tree_species_moisture_niche.png",
   # Results 4-5: genes, composition
-  "Figure_S08_pmoa-mmox"                 = "outputs/figures/generated/figS10_final.png",
-  "Figure_S09_taxonomy-pmoa"             = "outputs/figures/original/supplementary/figS2_taxonomy_pmoa_heatmap.png",
+  "Figure_S09_pmoa-mmox"                 = "outputs/figures/generated/figS10_final.png",
+  "Figure_S11_taxonomy-pmoa"             = "outputs/figures/original/supplementary/figS2_taxonomy_pmoa_heatmap.png",
   # Results 6: inferred function
-  "Figure_S10_faprotax"                  = "outputs/figures/original/supplementary/figS3_faprotax_heatmaps.png",
-  "Figure_S11_picrust-mcra-no-methanogen" = "outputs/figures/original/main/fig6_picrust_mcra_no_mcra_heatmap.png",  # the submitted main Fig 6
-  "Figure_S12_picrust-mcra-all"          = "outputs/figures/original/supplementary/figS4_picrust_mcra_all_heatmap.png",
-  "Figure_S13_picrust-pmoa"              = "outputs/figures/original/supplementary/figS5_picrust_pmoa_heatmap.png",
-  "Figure_S14_taxonomy-mcra"             = "outputs/figures/original/supplementary/figS6_taxonomy_mcra_heatmap.png",
+  "Figure_S12_faprotax"                  = "outputs/figures/original/supplementary/figS3_faprotax_heatmaps.png",
+  "Figure_S13_picrust-mcra-no-methanogen" = "outputs/figures/original/main/fig6_picrust_mcra_no_mcra_heatmap.png",  # the submitted main Fig 6
+  "Figure_S14_picrust-mcra-all"          = "outputs/figures/original/supplementary/figS4_picrust_mcra_all_heatmap.png",
+  "Figure_S15_picrust-pmoa"              = "outputs/figures/original/supplementary/figS5_picrust_pmoa_heatmap.png",
+  "Figure_S10_taxonomy-mcra"             = "outputs/figures/original/supplementary/figS6_taxonomy_mcra_heatmap.png",
   # Results 7: internal gas, isotopes
-  "Figure_S15_internal-gas-beeswarm"     = "outputs/figures/original/supplementary/figS7_internal_gas_beeswarm.png",
-  "Figure_S16_internal-gas-profiles"     = "outputs/figures/original/supplementary/figS8_internal_gas_profiles.png",
-  "Figure_S17_isotope-sources"           = "outputs/figures/generated/SI_isotopes_source_composite.png",
+  "Figure_S16_internal-gas-beeswarm"     = "outputs/figures/original/supplementary/figS7_internal_gas_beeswarm.png",
+  "Figure_S17_internal-gas-profiles"     = "outputs/figures/original/supplementary/figS8_internal_gas_profiles.png",
+  "Figure_S18_isotope-sources"           = "outputs/figures/generated/SI_isotopes_source_composite.png",
   # Results 8: decay and the felled oak
-  "Figure_S18_stem-deterioration"        = "outputs/figures/generated/figS20_stem_deterioration.png",
+  "Figure_S06_stem-deterioration"        = "outputs/figures/generated/figS20_stem_deterioration.png",
   "Figure_S20_black-oak-methanome"       = "outputs/figures/generated/black_oak_methanome_revised.png",
   # Results 9: gene-flux across scales
   "Figure_S21_scale-dependent-genes"     = "outputs/figures/generated/figS11_final.png",
   "Figure_S22_radial-sections"           = "outputs/figures/original/supplementary/figS13_tree_radial_sections.png",
   "Figure_S23_mcra-vs-methanotroph"      = "outputs/figures/original/supplementary/figS14_mcra_vs_methanotroph.png",
   # Results 10: stand-scale bounds
-  "Figure_S24_rf-model-summary"          = "outputs/figures/generated/figS21_rf_model_summary.png",
-  "Figure_S25_rf-calibration"            = "outputs/figures/generated/figS_rf_calibration.png",
-  "Figure_S26_scaling-heatmap"           = "outputs/figures/generated/fig_scaling_heatmap.png",
-  "Figure_S27_scaling-profiles"          = "outputs/figures/generated/fig_scaling_profiles.png",
+  "Figure_S25_rf-model-summary"          = "outputs/figures/generated/figS21_rf_model_summary.png",
+  "Figure_S26_rf-calibration"            = "outputs/figures/generated/figS_rf_calibration.png",
+  "Figure_S27_scaling-heatmap"           = "outputs/figures/generated/fig_scaling_heatmap.png",
+  "Figure_S28_scaling-profiles"          = "outputs/figures/generated/fig_scaling_profiles.png",
   # Discussion
-  "Figure_S28_plant-traits"              = "outputs/figures/generated/traits_heatmap_robust.png")
+  "Figure_S24_plant-traits"              = "outputs/figures/generated/traits_heatmap_robust.png")
 
 # Photographs that are numbered SI figures (static: exempt from the staleness check)
 SI_PHOTOS <- c(
@@ -79,16 +79,16 @@ SI_PHOTOS <- c(
 TABLES <- c(
   "Table_1_campaign-summary"             = "outputs/data/campaign_counts.csv",
   "Table_S2_known-putative-taxa"         = "outputs/data/known_putative_taxa_table.csv",
-  "Table_S3_ddpcr-16s-concordance"       = "outputs/data/tbl_ddpcr_16s_concordance.csv",
-  "Table_S3_ddpcr-16s-concordance-view"  = "outputs/figures/generated/tbl_ddpcr_16s_concordance.png",
-  "Table_S4_dbh-by-species-campaign"     = "outputs/data/dbh_by_species_campaign.csv")
+  "Table_S5_ddpcr-16s-concordance"       = "outputs/data/tbl_ddpcr_16s_concordance.csv",
+  "Table_S5_ddpcr-16s-concordance-view"  = "outputs/figures/generated/tbl_ddpcr_16s_concordance.png",
+  "Table_S6_dbh-by-species-campaign"     = "outputs/data/dbh_by_species_campaign.csv")
 # Not rebuilt by run_all: mmo_capacity_screen.R queries NCBI, so the run shown in the
 # SI is committed (code/lib/mmo_capacity_screen_README.md) and exempt from the staleness check.
 TABLES_STATIC <- c(
-  "Table_S5_mmo-capacity-screen"         = "code/lib/mmo_capacity_screen_table_S5_2026-09-30.csv")
+  "Table_S3_mmo-capacity-screen"         = "code/lib/mmo_capacity_screen_table_S5_2026-09-30.csv")
 
 # Photo plates — separate section (NOT SI data figures); chamber photos to be added
-PHOTOS <- c()   # the black-oak plate is now numbered SI Figure S20 (SI_PHOTOS)
+PHOTOS <- c()   # the black-oak plate is SI Figure S19 (SI_PHOTOS)
 
 # STALENESS REFERENCE. copy_set used to test only file.exists(), so a generator that
 # failed left its previous output in place and the assembler shipped it while reporting
