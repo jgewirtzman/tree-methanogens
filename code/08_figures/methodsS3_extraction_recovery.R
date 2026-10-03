@@ -13,7 +13,7 @@
 # Derived: cleanup keeps 30.4 / 31.25 = 97%. Of 100 copies in the ground powder,
 # 81.7 are released, 25.5 processed and 24.8 reach the eluate.
 # Freeze-drying and grinding lose copies before this (about half in spiked dowels),
-# but the dowels ground less finely than cores, so that step is drawn as an unfilled
+# but dowels are a different medium from cores, so that step is drawn as an unfilled
 # dashed outline without a number.
 # Writes outputs/figures/generated/methodsS3_extraction_recovery.png
 # ==============================================================================
