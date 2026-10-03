@@ -11,9 +11,9 @@
 #   sMMO); see manuscript OPEN_DECISIONS, 'capacity rule set'.
 #   Curated from Knief (2015) with SILVA 138 taxonomy mapping.
 #   Includes Known/Putative/Conditional flags per taxon.
-#   REVISED (2026 revision, R2 #2): Methylacidiphilaceae reclassified at family
-#   level from Known -> Putative (mesophilic genomes lack methanotrophy genes);
-#   genus Methylacidiphilum remains Known.
+#   Methylacidiphilaceae (genus unresolved) are Putative; genus Methylacidiphilum is Known.
+#   Tiers: Known / Putative. The optional `placed` argument (load_placed_asvs) labels the
+#   tree-placed subset of Putative for the resolution analysis (Table S6) only.
 #
 # Usage:
 #   source("code/lib/load_methanotroph_definitions.R")
@@ -64,7 +64,7 @@ load_methanotroph_defs <- function(
 #'        as "Putative" (e.g., Methylomirabilaceae, Methylomirabilota).
 #' @return Character vector: "Known", "Putative", or NA.
 classify_methanotrophs <- function(tax_df, mt_defs,
-                                   include_conditional = FALSE) {
+                                   include_conditional = FALSE, placed = NULL) {
   n <- nrow(tax_df)
   status <- rep(NA_character_, n)
 
@@ -142,7 +142,28 @@ classify_methanotrophs <- function(tax_df, mt_defs,
     }
   }
 
+  # --- optional: label the tree-placed subset of Putative (genus-unresolved ASVs the
+  #     ASV tree places within ~97% of a methanotroph genus), by ASV id. Used only by the
+  #     resolution analysis; the reported tiers remain Known / Putative. ---
+  if (!is.null(placed) && length(placed) && !is.null(rownames(tax_df))) {
+    idx <- rownames(tax_df) %in% placed & status %in% "Putative"
+    status[idx] <- "Placed"
+  }
+
   return(status)
+}
+
+# ------------------------------------------------------------------------------
+# load_placed_asvs: ASV ids placed with methanotroph genera on the ASV tree
+# ------------------------------------------------------------------------------
+# Written by code/07_molecular/03_methanotroph_resolution.R (placement within
+# PLACE_MAX_DIST = 0.03 substitutions per site of Methylocapsa, Methylocella or
+# Methyloferula). ASV ids are the survey's seq ids (seq1, seq2, ...); the black oak
+# data are not on the tree and have no Placed tier.
+load_placed_asvs <- function(path = "outputs/data/methanotroph_placed_asvs.csv") {
+  if (!file.exists(path))
+    stop("missing ", path, " -- run code/07_molecular/03_methanotroph_resolution.R first", call. = FALSE)
+  utils::read.csv(path, stringsAsFactors = FALSE)$asv
 }
 
 # ------------------------------------------------------------------------------

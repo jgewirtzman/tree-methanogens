@@ -16,6 +16,7 @@
 #   Rscript code/check_consistency.R
 # ==============================================================================
 source("code/lib/geometry.R")
+source("code/lib/monthly_cols.R")
 
 FAILS <- 0L
 chk <- function(label, ok, detail = "") {
@@ -157,6 +158,24 @@ if (!is.null(GCV)) {
 #     the model's training rows as if they were every deployment, and lost 17 ash trees)
 #   - a derived copy left behind when its source changed
 # ------------------------------------------------------------------------------
+cat("\n== pipeline manifest ==\n")
+# code/pipeline.csv is the single list of what runs. Every live script must be in
+# it, or be a helper/library file sourced by one, or a hand-run tool.
+PM <- read.csv("code/pipeline.csv", stringsAsFactors = FALSE)
+chk("every manifest script exists", all(file.exists(PM$script)),
+    paste(PM$script[!file.exists(PM$script)], collapse = "; "))
+liveR <- setdiff(list.files("code", "\\.R$", recursive = TRUE, full.names = TRUE),
+                 list.files("code/archive", "\\.R$", recursive = TRUE, full.names = TRUE))
+exempt <- grepl("^code/(lib|tools)/", liveR) | grepl("/helper_", liveR) |
+          liveR %in% c("code/run_all.R", "code/make_figures.R", "code/02_flux/assemble_campaign_flux.R")
+orphans <- setdiff(liveR[!exempt], PM$script)
+chk("every live script is run by the manifest (or is a helper, library file or tool)",
+    !length(orphans), paste(orphans, collapse = "; "))
+chk("manifest order follows each folder's numbering",
+    all(vapply(split(PM$script, dirname(PM$script)), function(v) {
+      n <- suppressWarnings(as.numeric(sub("^(\\d+)_.*", "\\1", basename(v))))
+      n <- n[!is.na(n)]; !is.unsorted(n) }, TRUE)), "")
+
 cat("\n== data plumbing ==\n")
 
 # 1. one writer per file. Static scan of live code (archive excluded). A file may
@@ -166,13 +185,13 @@ SEQUENTIAL_STAGES <- c(   # interactive 2020-21 soil processing: goFlux, then th
   # order, by hand; not part of run_all.R. The model reads the end state.
   "CH4_best_flux_lgr_results_soil.csv", "CH4_flux_lgr_results_soil.csv",
   "CO2_best_flux_lgr_results_soil.csv", "CO2_flux_lgr_results_soil.csv",
-  "lgr_manual_identification_results_soil.csv", "semirigid_tree_final_complete_dataset_soil.csv")
+  "semirigid_tree_final_complete_dataset_soil.csv")
 live <- setdiff(list.files("code", "\\.R$", recursive = TRUE, full.names = TRUE),
                 list.files("code/archive", "\\.R$", recursive = TRUE, full.names = TRUE))
 wpat <- "(write\\.csv|write_csv|write\\.table|saveRDS|save|ggsave|fwrite|write_tsv)\\s*\\("
 # Scripts that write model files only into a temporary SANDBOX directory (never
 # outputs/models): they reuse the canonical file names by design.
-SANDBOX_WRITERS <- c("code/05_model/audit_training_population.R")
+SANDBOX_WRITERS <- c("code/05_model/05_audit_training_population.R")
 pathre <- "[\"'][^\"']+\\.(csv|rds|RData|rda|tsv|png|pdf|txt)[\"']"
 writers <- list()
 for (f in setdiff(live, SANDBOX_WRITERS)) {
@@ -195,10 +214,10 @@ chk("every output file has exactly one writing script", !length(multi),
     sprintf("%d files scanned", length(writers)))
 
 # 1b. only the data stages write into data/. Analysis, model, upscaling, figure and
-#     stats scripts write outputs/. qc_c0_screen.R rewrote data/compiled/ in place
+#     stats scripts write outputs/. 02_qc_c0_screen.R rewrote data/compiled/ in place
 #     through a variable (f <- "data/compiled/..."), which the literal-path scan above
 #     cannot see, so paths held in variables are followed here.
-DATA_STAGES <- c("code/01_import", "code/02_flux", "code/03_merge", "code/zenodo", "code/05_model/01_load_and_prep_data.R")
+DATA_STAGES <- c("code/01_import", "code/02_flux", "code/03_merge", "code/zenodo", "code/tools", "code/05_model/01_load_and_prep_data.R")  # stages that build data/; tools/ holds the hand-run window picker
 analysis <- live[!vapply(live, function(f) any(startsWith(f, DATA_STAGES)), TRUE) & !grepl("check_consistency", live)]
 writes_data <- character(0)
 for (f in analysis) {
@@ -209,14 +228,41 @@ for (f in analysis) {
   hit <- grepl("[\"'](\\.\\./)*data/", w) | (length(vars) > 0 & grepl(paste0("\\b(", paste(vars, collapse = "|"), ")\\b"), w))
   if (any(hit)) writes_data <- c(writes_data, f)
 }
+# 1a. nothing writes into data/raw/ -- raw data are inputs only. Follows paths held in
+#     variables (output_dir <- "../data/raw/...") as well as literals.
+raw_writers <- character(0)
+for (f in live) {
+  L <- readLines(f, warn = FALSE); L <- L[!grepl("^\\s*#", L)]
+  vars <- sub("^\\s*([A-Za-z_.][A-Za-z0-9_.]*)\\s*<-.*$", "\\1",
+              grep("^\\s*[A-Za-z_.][A-Za-z0-9_.]*\\s*<-\\s*[\"'](\\.\\./)*data/raw/", L, value = TRUE))
+  for (k in 1:2) {                       # follow derived paths: out <- file.path(output_dir, ...)
+    if (!length(vars)) break
+    d <- grep(paste0("^\\s*[A-Za-z_.][A-Za-z0-9_.]*\\s*<-.*\\b(", paste(vars, collapse = "|"), ")\\b"), L, value = TRUE)
+    vars <- unique(c(vars, sub("^\\s*([A-Za-z_.][A-Za-z0-9_.]*)\\s*<-.*$", "\\1", d)))
+  }
+  W <- L[grepl(paste0(wpat, "|write_xlsx|write\\.xlsx|saveWorkbook|file\\.copy|writeLines"), L)]
+  W <- sub("^[^(]*\\([^,]*,", "", W)    # destination only: drop the first argument (the data, or file.copy's source)
+  hit <- any(grepl("[\"'](\\.\\./)*data/raw/", W)) ||
+         (length(vars) && any(grepl(paste0("\\b(", paste(vars, collapse = "|"), ")\\b"), W)))
+  if (hit) raw_writers <- c(raw_writers, f)
+}
+raw_writers <- setdiff(raw_writers, grep("^code/tools/", raw_writers, value = TRUE))
+chk("no pipeline script writes into data/raw/", !length(raw_writers), paste(raw_writers, collapse = "; "))
+
 chk("analysis scripts never write into data/", !length(writes_data), paste(writes_data, collapse = ", "))
 
 # 1c. no write to a bare filename. Such a file lands in whatever directory the script
 #     runs from -- 03_prep_soil_auxfile.R wrote its auxfiles into code/02_flux/semirigid/,
-#     leaving the copies in data/processed/flux/ stale. out_path("x.csv") is fine.
+#     leaving the copies in data/processed/flux/ stale. out_path("x.csv") is fine, as are
+#     repick_path()/window_path()/repo_path() (lib/flux_windows.R), which resolve from the root.
 bare <- character(0)
 for (f in live) {
-  L <- readLines(f, warn = FALSE); L <- L[!grepl("^\\s*#", L) & grepl(wpat, L) & !grepl("out_path\\(|file\\.path\\(", L)]
+  L0 <- readLines(f, warn = FALSE); L0[grepl("^\\s*#", L0)] <- ""
+  # a write call often puts its filename on a continuation line (04_goflux_soils.R did),
+  # so look at each write line together with the two after it
+  i <- which(grepl(wpat, L0))
+  L <- vapply(i, function(k) paste(L0[k:min(k + 2, length(L0))], collapse = " "), "")
+  L <- L[!grepl("out_path\\(|file\\.path\\(|repick_path\\(|window_path\\(|repo_path\\(", L)]
   p <- unlist(regmatches(L, gregexpr("[\"'][^\"'/]+\\.(csv|txt|rds|RData|tsv)[\"']", L)))
   if (length(p)) bare <- c(bare, sprintf("%s (%s)", f, paste(unique(p), collapse = " ")))
 }
@@ -240,7 +286,7 @@ chk("retired shared flux filenames absent from data/processed/flux",
 MT <- rd("outputs/data/flux_measurements_tree.csv")
 if (!is.null(MT)) {
   fd <- "data/processed/flux"; nn <- function(x) sum(!is.na(x))
-  src <- c(monthly_2020_2021 = nn(rd(file.path(fd, "semirigid_tree_final_complete_dataset_with_untagged.csv"))$CH4_best.flux.x),
+  src <- c(monthly_2020_2021 = nn(monthly_plain(rd(file.path(fd, "semirigid_tree_final_complete_dataset_with_untagged.csv")))$CH4_best.flux),
            `2021_multiheight` = nn(rd(file.path(fd, "tree_flux_2021_multiheight.csv"))$CH4_best.flux),
            `2023_cross_species` = nn(rd(file.path(fd, "tree_flux_2023_cross_species.csv"))$CH4_best.flux))
   got <- table(factor(MT$campaign, levels = names(src)))
@@ -254,11 +300,31 @@ if (!is.null(MT)) {
   }
   chk("every excluded deployment states its reason",
       all(!is.na(MT$exclusion_reason[!MT$in_rf_training %in% c(TRUE, "TRUE")])))
-  if (file.exists("data/compiled/flux_measurements_tree.csv"))
-    chk("data/compiled copy matches outputs/data", identical(unname(tools::md5sum("data/compiled/flux_measurements_tree.csv")),
-                                                           unname(tools::md5sum("outputs/data/flux_measurements_tree.csv"))),
-        "copy outputs/data/flux_measurements_tree.csv after rerunning the export")
 }
+
+# 3b. the archive (data/compiled/) agrees with the pipeline it was built from
+cat("\n== archive ==\n")
+FS <- rd("data/compiled/flux_stem.csv"); FL <- rd("data/compiled/flux_soil.csv")
+chk("flux_stem.csv: every measurement-table deployment plus the felled oak, once each",
+    nrow(FS) == nrow(MT) + sum(FS$campaign == "2022_felled_oak") && !anyDuplicated(FS$unique_id),
+    sprintf("%d rows, %d in the measurement table", nrow(FS), nrow(MT)))
+chk("flux_stem.csv training flags = the measurement table's",
+    sum(FS$in_rf_training %in% c(TRUE, "TRUE")) == sum(MT$in_rf_training %in% c(TRUE, "TRUE")), "")
+chk("flux_soil.csv training rows = the soil model's training table",
+    sum(FL$in_rf_training %in% c(TRUE, "TRUE")) == nrow(rd("outputs/data/flux_measurements_soil.csv")), "")
+chk("every archived deployment outside training states why",
+    all(!is.na(FS$exclusion_reason[!FS$in_rf_training %in% c(TRUE, "TRUE")])) &&
+    all(!is.na(FL$exclusion_reason[!FL$in_rf_training %in% c(TRUE, "TRUE")])), "")
+IS <- rd("data/compiled/isotopes.csv")
+chk("isotopes.csv whole-tree set = the isotope summary's n",
+    sum(IS$in_whole_tree_set %in% c(TRUE, "TRUE")) == with(rd("outputs/data/ISOTOPES_summary.csv"), value[quantity == "n_trees"]), "")
+RS <- list.files("data/compiled/results", "\\.csv$")
+chk("results/ copies are byte-identical to their sources", local({
+  src <- c(canonical_budget.csv = "outputs/data/canonical_budget.csv", scaling_full_grid.csv = "outputs/data/scaling_full_grid.csv",
+           isotopes_summary.csv = "outputs/data/ISOTOPES_summary.csv", rf_grouped_cv.csv = "outputs/data/rf_grouped_cv.csv")
+  src <- src[names(src) %in% RS]
+  length(src) == 4 && all(unname(tools::md5sum(file.path("data/compiled/results", names(src)))) == unname(tools::md5sum(src))) }),
+  "rerun code/zenodo/02_compile_results.R")
 
 # 4. internal gas: recalibrated (no zero clamp) and carried through to the merged table
 GS <- rd("data/processed/internal_gas/sample_data_only.csv")
@@ -268,7 +334,7 @@ if (!is.null(GS)) chk("no internal-gas CH4 is exactly 0 (the old clamp)", !any(G
 if (!is.null(GS) && !is.null(MG))
   chk("merged table carries the current gas calibration",
       isTRUE(all.equal(sort(GS$CH4_concentration), sort(MG$CH4_concentration[!is.na(MG$CH4_concentration)]))),
-      "rerun code/03_merge/02_harmonize_all_data.R after 03_process_internal_gas.R")
+      "rerun code/03_merge/04_harmonize_all_data.R after 03_process_internal_gas.R")
 
 cat(sprintf("\n%s  %d check(s) failed\n\n", if (FAILS == 0L) "ALL CONSISTENT." else "INCONSISTENT.", FAILS))
 if (FAILS > 0L) quit(status = 1L)

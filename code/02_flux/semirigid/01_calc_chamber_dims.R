@@ -22,8 +22,12 @@ library(readr)
 library(purrr)
 
 # Configuration
-input_dir  <- "../../../data/raw/lgr/semirigid_2020-2021/Flux data/Chamber vol corr"
-output_dir <- "../../../data/raw/lgr/semirigid_2020-2021/Flux data/Chamber vol corr/corrected"
+# Raw chamber sheets are read from data/raw and never written there (2026-10-01: the
+# output used to go to a corrected/ folder inside the raw directory, at a path that no
+# longer existed).
+input_dir  <- "../../../data/raw/flux_chamber_corrections/Chamber vol corr"
+output_dir <- "../../../data/processed/flux/chamber_geometry"
+dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
 dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
 
 files <- c(

@@ -12,7 +12,7 @@ black_oak_experiment.csv,chamber,character,NA,Chamber identifier
 black_oak_experiment.csv,height_m,numeric,m,Measurement height on stem
 black_oak_experiment.csv,notes,character,NA,Field notes
 black_oak_experiment.csv,obs_length_s,numeric,s,Observation length
-black_oak_experiment.csv,stem_diam_mm,numeric,mm,Stem diameter at measurement point
+black_oak_experiment.csv,stem_diam_cm,numeric,cm,Stem diameter at measurement point
 black_oak_experiment.csv,stem_temp_C,numeric,C,Stem temperature
 black_oak_experiment.csv,unique_id,character,NA,Measurement identifier
 black_oak_its_load.csv,ITS_copies_uL,numeric,copies uL-1,ITS copy concentration in the extract
@@ -20,11 +20,11 @@ black_oak_its_load.csv,material,character,NA,Tissue type (heartwood / sapwood)
 black_oak_its_load.csv,sample_id,character,NA,Sample identifier
 ddpcr_gene_abundances.csv,accepted_droplets,integer,NA,Number of accepted droplets in partition
 ddpcr_gene_abundances.csv,analysis_type,character,NA,Analysis classification (loose/strict threshold)
-ddpcr_gene_abundances.csv,concentration_copies_per_uL,numeric,copies/uL,Gene concentration
-ddpcr_gene_abundances.csv,copies_per_20uL_well,numeric,copies/well,Copies per 20 uL reaction well
+ddpcr_gene_abundances.csv,concentration_copies_per_uL,numeric,copies/uL,"Gene concentration per uL of the 1x ddPCR reaction (QX200 output). Copies per g = value x (25/2.5) x 75 / sample mass (g): 2.5 uL of extract in a 25 uL reaction, 75 uL elution; not corrected for extraction recovery"
+ddpcr_gene_abundances.csv,copies_per_20uL_well,numeric,copies/well,"QX200 bookkeeping value: concentration x 20 (the reaction volume was 25 uL)"
 ddpcr_gene_abundances.csv,core_type,character,NA,Core type
 ddpcr_gene_abundances.csv,extraction_plate,character,NA,DNA extraction plate identifier
-ddpcr_gene_abundances.csv,material,character,NA,"Sample material (inner bark, outer bark, mineral soil, organic soil)"
+ddpcr_gene_abundances.csv,material,character,NA,"Sample material (Wood or Soil); with core_type: Inner = heartwood, Outer = sapwood, Mineral and Organic soil horizons"
 ddpcr_gene_abundances.csv,negatives,integer,NA,Number of negative droplets
 ddpcr_gene_abundances.csv,plate_id,character,NA,ddPCR plate identifier
 ddpcr_gene_abundances.csv,positives,integer,NA,Number of positive droplets
@@ -54,60 +54,6 @@ environmental_timeseries.csv,wind_dir_deg,numeric,degrees,Wind direction
 environmental_timeseries.csv,wind_speed_avg_ms,numeric,m/s,Average wind speed
 environmental_timeseries.csv,wind_speed_max_ms,numeric,m/s,Maximum wind speed
 environmental_timeseries.csv,year,integer,NA,Date/time components
-flux_measurements_soil.csv,Date,date,YYYY-MM-DD,Measurement date
-flux_measurements_soil.csv,SI,numeric,NA,Engineered seasonality index (model feature)
-flux_measurements_soil.csv,air_temp_C,numeric,C,Air temperature at the time of measurement
-flux_measurements_soil.csv,air_temp_C_mean,numeric,C,Monthly mean air temperature (model driver)
-flux_measurements_soil.csv,moisture_x_airT,numeric,NA,Moisture x air-temperature interaction (model feature)
-flux_measurements_soil.csv,moisture_x_soilT,numeric,NA,Moisture x soil-temperature interaction (model feature)
-flux_measurements_soil.csv,month,integer,NA,Calendar month
-flux_measurements_soil.csv,month_cos,numeric,NA,Cosine of month angle (model feature)
-flux_measurements_soil.csv,month_sin,numeric,NA,Sine of month angle (model feature)
-flux_measurements_soil.csv,site_id,character,NA,Soil collar identifier
-flux_measurements_soil.csv,soil_flux_nmol_m2_s,numeric,nmol m-2 s-1,Soil CH4 flux per m2 of ground; negative values are uptake
-flux_measurements_soil.csv,soil_moisture_abs,numeric,m3 m-3,Volumetric soil moisture at the measurement location
-flux_measurements_soil.csv,soil_moisture_at_site,numeric,m3 m-3,Interpolated soil moisture at the collar (model predictor)
-flux_measurements_soil.csv,soil_temp_C,numeric,C,Soil temperature at the time of measurement
-flux_measurements_soil.csv,soil_temp_C_mean,numeric,C,Monthly mean soil temperature (model driver)
-flux_measurements_soil.csv,x,numeric,m,Plot-local easting
-flux_measurements_soil.csv,y,numeric,m,Plot-local northing
-flux_measurements_soil.csv,year,integer,NA,Calendar year
-flux_measurements_tree.csv,campaign,character,NA,"monthly_2020_2021, 2021_multiheight or 2023_cross_species"
-flux_measurements_tree.csv,in_rf_training,logical,NA,TRUE if the row is in the random-forest training set
-flux_measurements_tree.csv,exclusion_reason,character,NA,Why a deployment is not in the training set (NA if it is)
-flux_measurements_tree.csv,Date,date,YYYY-MM-DD,Measurement date
-flux_measurements_tree.csv,SI,numeric,NA,Engineered seasonality index (model feature)
-flux_measurements_tree.csv,air_temp_C,numeric,C,Air temperature at the time of measurement
-flux_measurements_tree.csv,air_temp_C_mean,numeric,C,Monthly mean air temperature (model driver)
-flux_measurements_tree.csv,chamber_rigid,integer,NA,Indicator for rigid chamber (model feature)
-flux_measurements_tree.csv,chamber_semirigid,integer,NA,Indicator for semi-rigid chamber (model feature)
-flux_measurements_tree.csv,chamber_type,character,NA,rigid or semirigid
-flux_measurements_tree.csv,dbh_m,numeric,m,Diameter at breast height
-flux_measurements_tree.csv,dbh_within_z,numeric,NA,Within-species DBH z-score (engineered feature; not a predictor of the fitted model)
-flux_measurements_tree.csv,family,character,NA,Family
-flux_measurements_tree.csv,genus,character,NA,Genus
-flux_measurements_tree.csv,measurement_height_cm,numeric,cm,Height on the stem of the chamber
-flux_measurements_tree.csv,month,integer,NA,Calendar month
-flux_measurements_tree.csv,month_cos,numeric,NA,Cosine of month angle (model feature)
-flux_measurements_tree.csv,month_sin,numeric,NA,Sine of month angle (model feature)
-flux_measurements_tree.csv,soil_moisture_abs,numeric,m3 m-3,Volumetric soil moisture at the measurement location
-flux_measurements_tree.csv,soil_moisture_at_tree,numeric,m3 m-3,Interpolated soil moisture at the tree (model predictor)
-flux_measurements_tree.csv,soil_temp_C,numeric,C,Soil temperature at the time of measurement
-flux_measurements_tree.csv,soil_temp_C_mean,numeric,C,Monthly mean soil temperature (model driver)
-flux_measurements_tree.csv,species,character,NA,Species name
-flux_measurements_tree.csv,species_clean,character,NA,Species name harmonised to the model levels
-flux_measurements_tree.csv,species_code,character,NA,Four-letter species code
-flux_measurements_tree.csv,species_factor,factor,NA,Species as a model factor
-flux_measurements_tree.csv,stem_flux_corrected,numeric,nmol m-2 s-1,Chamber-corrected stem flux; the response the model is fitted on
-flux_measurements_tree.csv,stem_flux_nmol_m2_s,numeric,nmol m-2 s-1,Stem CH4 flux per m2 of bark; the model response before calibration
-flux_measurements_tree.csv,taxon_prior_asinh,numeric,NA,arcsinh taxon prior (engineered feature; not a predictor of the fitted model)
-flux_measurements_tree.csv,tree_id,character,NA,Tree identifier
-flux_measurements_tree.csv,x,numeric,m,Plot-local easting
-flux_measurements_tree.csv,y,numeric,m,Plot-local northing
-flux_measurements_tree.csv,year,integer,NA,Calendar year
-flux_measurements_tree.csv,z,numeric,nmol m-2 s-1,Working response column used during model assembly
-flux_measurements_tree.csv,z_corr,numeric,nmol m-2 s-1,Response after chamber correction
-flux_measurements_tree.csv,z_raw,numeric,nmol m-2 s-1,Response before chamber correction
 forest_inventory_stems.csv,PX,numeric,m,Plot-local easting
 forest_inventory_stems.csv,PY,numeric,m,Plot-local northing
 forest_inventory_stems.csv,basal_area_m2,numeric,m2,Stem basal area
@@ -133,36 +79,6 @@ forest_inventory_stems.csv,species,character,NA,Species name
 forest_inventory_stems.csv,species_code,character,NA,Four-letter species code
 forest_inventory_stems.csv,stem,character,NA,Stem identifier within the tree
 forest_inventory_stems.csv,tag,character,NA,ForestGEO tree tag
-height_chamber_flux.csv,CH4_C0_ppm,numeric,ppm,Initial chamber CH4 concentration
-height_chamber_flux.csv,CH4_Ct_ppm,numeric,ppm,Final chamber CH4 concentration
-height_chamber_flux.csv,CH4_HM_RMSE_ppm,numeric,ppm,Hutchinson-Mosier residual RMSE
-height_chamber_flux.csv,CH4_HM_flux_nmol_m2_s,numeric,nmol m-2 s-1,Hutchinson-Mosier flux
-height_chamber_flux.csv,CH4_HM_r2,numeric,NA,Hutchinson-Mosier R-squared
-height_chamber_flux.csv,CH4_LM_RMSE_ppm,numeric,ppm,Linear-model residual RMSE
-height_chamber_flux.csv,CH4_LM_SE_nmol_m2_s,numeric,nmol m-2 s-1,Linear-model flux standard error
-height_chamber_flux.csv,CH4_LM_flux_nmol_m2_s,numeric,nmol m-2 s-1,Linear-model flux
-height_chamber_flux.csv,CH4_LM_pval,numeric,NA,Linear-model p-value
-height_chamber_flux.csv,CH4_LM_r2,numeric,NA,Linear-model R-squared
-height_chamber_flux.csv,CH4_MDF_nmol_m2_s,numeric,nmol m-2 s-1,Minimum detectable flux
-height_chamber_flux.csv,CH4_best_flux_nmol_m2_s,numeric,nmol m-2 s-1,Best-fit CH4 flux (goFlux model selection)
-height_chamber_flux.csv,CH4_flux_term_nmol_m2_s,numeric,nmol m-2 s-1,Flux conversion term
-height_chamber_flux.csv,CH4_model,character,NA,Selected model: LM or HM
-height_chamber_flux.csv,CH4_precision_ppm,numeric,ppm,Analyzer precision
-height_chamber_flux.csv,CH4_quality,character,NA,goFlux quality flag
-height_chamber_flux.csv,chamber_area_m2,numeric,m2,Chamber surface area
-height_chamber_flux.csv,chamber_id,character,NA,Chamber identifier
-height_chamber_flux.csv,chamber_press_kPa,numeric,kPa,Chamber pressure
-height_chamber_flux.csv,chamber_temp_C,numeric,C,Chamber air temperature
-height_chamber_flux.csv,chamber_vol_L,numeric,L,Total system volume
-height_chamber_flux.csv,measurement_height_raw,character,NA,Field height label; mixes numeric heights in cm with categories such as Root Crown
-height_chamber_flux.csv,nb_obs,integer,count,Number of analyzer observations in the fit
-height_chamber_flux.csv,obs_length_s,numeric,s,Observation length
-height_chamber_flux.csv,plot,character,NA,Plot identifier
-height_chamber_flux.csv,species,character,NA,Species name
-height_chamber_flux.csv,start_time,datetime,NA,Measurement start time
-height_chamber_flux.csv,temp_source,character,NA,Origin of the temperature value
-height_chamber_flux.csv,tree_id,character,NA,Tree identifier
-height_chamber_flux.csv,unique_id,character,NA,Unique measurement identifier
 methanotroph_definitions.csv,Category,character,NA,Evidence for methane monooxygenase capacity (free text)
 methanotroph_definitions.csv,Include_known,logical,NA,Counts toward Known methanotrophs
 methanotroph_definitions.csv,Include_putative,logical,NA,Counts toward Putative methanotrophs
@@ -170,16 +86,6 @@ methanotroph_definitions.csv,Notes,character,NA,Rationale
 methanotroph_definitions.csv,Primary_source,character,NA,Literature source (Knief 2015 and references therein)
 methanotroph_definitions.csv,Taxon,character,NA,Family or genus name
 methanotroph_definitions.csv,Taxon_rank,character,NA,Taxonomic rank the rule applies to
-picrust_pathway_associations.csv,FDR_all,numeric,NA,"Benjamini-Hochberg adjusted p-value, all ASVs"
-picrust_pathway_associations.csv,FDR_no_mcra,numeric,NA,"Adjusted p-value, mcrA-carrying ASVs removed"
-picrust_pathway_associations.csv,description,character,NA,MetaCyc pathway description
-picrust_pathway_associations.csv,mean_counts_per_million,numeric,CPM,Mean predicted pathway abundance
-picrust_pathway_associations.csv,mean_percent_from_mcra,numeric,fraction,Share of pathway abundance contributed by mcrA-carrying ASVs
-picrust_pathway_associations.csv,p_value_all,numeric,NA,"p-value, association with mcrA across all ASVs"
-picrust_pathway_associations.csv,p_value_no_mcra,numeric,NA,p-value with mcrA-carrying ASVs removed
-picrust_pathway_associations.csv,pathway,character,NA,MetaCyc pathway identifier
-picrust_pathway_associations.csv,t_stat_all,numeric,NA,"t statistic, all ASVs"
-picrust_pathway_associations.csv,t_stat_no_mcra,numeric,NA,"t statistic, mcrA-carrying ASVs removed"
 sample_metadata_16S.csv,16S_per_ul,numeric,copies uL-1,qPCR 16S copy concentration in the extract
 sample_metadata_16S.csv,Material,character,NA,Wood or Soil
 sample_metadata_16S.csv,Sample ID,character,NA,Sample identifier
@@ -187,51 +93,6 @@ sample_metadata_16S.csv,Well,character,NA,Plate well
 sample_metadata_16S.csv,core_type,character,NA,"Wood core position (Inner, Outer) or soil horizon"
 sample_metadata_16S.csv,seq_id,character,NA,Cleaned sequencing identifier
 sample_metadata_16S.csv,seq_id_raw,character,NA,Sequencing identifier as submitted
-semirigid_chamber_flux.csv,CH4_LM_pval,numeric,NA,Linear model p-value
-semirigid_chamber_flux.csv,CH4_LM_r2,numeric,NA,Linear model R-squared
-semirigid_chamber_flux.csv,CH4_best_flux_nmol_m2_s,numeric,nmol m-2 s-1,Best-fit CH4 flux (goFlux model selection)
-semirigid_chamber_flux.csv,CH4_model,character,NA,Selected model: LM (linear) or HM (Hutchinson-Mosier)
-semirigid_chamber_flux.csv,CH4_quality,character,NA,Quality flag from goFlux
-semirigid_chamber_flux.csv,CO2_best_flux_umol_m2_s,numeric,umol m-2 s-1,Best-fit CO2 flux
-semirigid_chamber_flux.csv,CO2_model,character,NA,Selected CO2 model
-semirigid_chamber_flux.csv,CO2_quality,character,NA,CO2 quality flag
-semirigid_chamber_flux.csv,chamber_area_m2,numeric,m2,Chamber surface area
-semirigid_chamber_flux.csv,chamber_id,character,NA,Chamber identifier
-semirigid_chamber_flux.csv,chamber_temp_C,numeric,C,Chamber air temperature
-semirigid_chamber_flux.csv,chamber_vol_L,numeric,L,Total system volume (chamber + tubing + analyzer)
-semirigid_chamber_flux.csv,date,date,YYYY-MM-DD,Measurement date
-semirigid_chamber_flux.csv,landscape_position,character,NA,"Landscape position: U (upland), I (intermediate), W (wetland)"
-semirigid_chamber_flux.csv,measurement_type,character,NA,"""tree_stem"" or ""soil"""
-semirigid_chamber_flux.csv,notes,character,NA,Field notes
-semirigid_chamber_flux.csv,tree_tag,character,NA,ForestGEO tree tag number
-semirigid_chamber_flux.csv,unique_id,character,NA,Unique measurement identifier (date_tag_position_chamber)
-static_chamber_flux.csv,CH4_LM_pval,numeric,NA,Linear model p-value
-static_chamber_flux.csv,CH4_LM_r2,numeric,NA,Linear model R-squared
-static_chamber_flux.csv,CH4_best_flux_nmol_m2_s,numeric,nmol m-2 s-1,Best-fit CH4 flux
-static_chamber_flux.csv,CH4_model,character,NA,Selected model
-static_chamber_flux.csv,CH4_quality,character,NA,Quality flag
-static_chamber_flux.csv,CO2_best_flux_umol_m2_s,numeric,umol m-2 s-1,Best-fit CO2 flux
-static_chamber_flux.csv,CO2_model,character,NA,Selected CO2 model
-static_chamber_flux.csv,CO2_quality,character,NA,CO2 quality flag
-static_chamber_flux.csv,air_temp_C,numeric,C,Air temperature
-static_chamber_flux.csv,bark_missing,character,NA,Bark condition notes
-static_chamber_flux.csv,bole_damage,character,NA,Bole damage severity (1-3 scale)
-static_chamber_flux.csv,chamber_area_m2,numeric,m2,Chamber surface area
-static_chamber_flux.csv,chamber_id,character,NA,Chamber identifier
-static_chamber_flux.csv,chamber_temp_C,numeric,C,Chamber temperature
-static_chamber_flux.csv,chamber_vol_L,numeric,L,Total system volume
-static_chamber_flux.csv,date,date,YYYY-MM-DD,Measurement date
-static_chamber_flux.csv,dbh_cm,numeric,cm,Diameter at breast height
-static_chamber_flux.csv,notes,character,NA,Field notes
-static_chamber_flux.csv,obs_length_s,numeric,s,Observation length
-static_chamber_flux.csv,soil_temp_C,numeric,C,Soil temperature
-static_chamber_flux.csv,species,character,NA,Full species name
-static_chamber_flux.csv,species_code,character,NA,"USDA species code (e.g., ACRU, QURU)"
-static_chamber_flux.csv,stem_temp_C,numeric,C,Stem surface temperature
-static_chamber_flux.csv,tree_tag,character,NA,ForestGEO tree tag number
-static_chamber_flux.csv,unique_id,character,NA,Unique measurement identifier
-static_chamber_flux.csv,visible_fungus,character,NA,Fungal presence observed
-static_chamber_flux.csv,vwc_mean_pct,numeric,%,Mean volumetric water content (3 probes)
 taxonomy_key_16S.csv,class,character,NA,Class
 taxonomy_key_16S.csv,family,character,NA,Family
 taxonomy_key_16S.csv,feature_id,character,NA,"ASV identifier, matches the first column of otu_table_16S.csv"
@@ -314,3 +175,93 @@ tree_properties.csv,outer_moisture_dry_percent,character,NA,Tree-level attribute
 tree_properties.csv,outer_moisture_fresh_percent,character,NA,Tree-level attribute carried through from the merged tree dataset
 tree_properties.csv,species_id,character,NA,Four-letter species code
 tree_properties.csv,tree_id,character,NA,Tree identifier
+flux_stem.csv,unique_id,character,,"Deployment identifier, shared with the goFlux results files; the 45 hand-rescued untagged deployments, which have none, are named untagged_<stem label>_<date>"
+flux_stem.csv,campaign,character,,"monthly_2020_2021, 2021_multiheight, 2023_cross_species or 2022_felled_oak (Table 1)"
+flux_stem.csv,date,date,,Measurement date (felled oak: felling date; the standing-tree fluxes were measured before it)
+flux_stem.csv,landscape_position,character,,"Monthly survey: U upland, I intermediate, WD/WS wetland margin (dry/saturated); 2021: plot label"
+flux_stem.csv,tree_tag,character,,Tree tag as recorded in the field (campaign-specific)
+flux_stem.csv,chamber_type,character,,semirigid (monthly survey) or rigid
+flux_stem.csv,height_label,character,,Measurement height as recorded (cm; felled oak in m; includes 'Root Crown' and 'Seam')
+flux_stem.csv,chamber_id,character,,Chamber identifier
+flux_stem.csv,chamber_area_cm2,numeric,cm2,Enclosed surface area
+flux_stem.csv,chamber_vol_L,numeric,L,"Total system volume: chamber, 18.6 cm3 tubing and the 28 cm3 analyzer cell"
+flux_stem.csv,chamber_temp_C,numeric,degC,Chamber (or stem) temperature during the deployment
+flux_stem.csv,CH4_flux_nmol_m2_s,numeric,nmol m-2 s-1,CH4 flux from the selected goFlux fit (positive = emission)
+flux_stem.csv,CH4_model,character,,Selected fit: LM (linear) or HM (Hutchinson-Mosier)
+flux_stem.csv,CH4_quality,character,,goFlux diagnostic flags for the CH4 fit (informational; no row is excluded on them)
+flux_stem.csv,CH4_LM_r2,numeric,,R-squared of the linear CH4 fit
+flux_stem.csv,CH4_LM_pval,numeric,,p-value of the linear CH4 slope
+flux_stem.csv,CO2_flux_umol_m2_s,numeric,umol m-2 s-1,CO2 flux from the selected goFlux fit
+flux_stem.csv,notes,character,,Field notes
+flux_stem.csv,untagged_rescue,logical,,TRUE for monthly-survey stems whose closure windows were chosen by hand (DATA_HYGIENE F4)
+flux_stem.csv,bark_missing,character,,"2023: visible bark loss class (1-3, or dead)"
+flux_stem.csv,wounding,character,,"2023: visible wounding class (1-4, or dead)"
+flux_stem.csv,CH4_MDF_nmol_m2_s,numeric,nmol m-2 s-1,Minimum detectable flux at 90% confidence (Methods S2)
+flux_stem.csv,analyzer_sigma_ppb,numeric,ppb,"Analyzer precision for the deployment's field period, from the instrument record"
+flux_stem.csv,closure_s,numeric,s,Closure duration used for the MDF
+flux_stem.csv,detected,logical,,"TRUE if |flux| exceeds the MDF; NA where no MDF was computed (rescued untagged stems, felled oak)"
+flux_stem.csv,detection_class,character,,"emission, uptake or below detection"
+flux_stem.csv,tree_id,character,,Canonical tree identifier used by the model
+flux_stem.csv,species,character,,Species (Latin binomial)
+flux_stem.csv,species_code,character,,Four-letter species code
+flux_stem.csv,dbh_m,numeric,m,Diameter at breast height
+flux_stem.csv,measurement_height_cm,numeric,cm,Measurement height used by the model (breast-height campaigns: 125)
+flux_stem.csv,air_temp_C,numeric,degC,Air temperature at the measurement
+flux_stem.csv,soil_temp_C,numeric,degC,Soil temperature at the measurement
+flux_stem.csv,soil_moisture_vwc,numeric,m3 m-3,Soil volumetric water content at the tree
+flux_stem.csv,dead_stem,logical,,TRUE for the ten standing dead stems (DATA_HYGIENE T1)
+flux_stem.csv,qc_pass,logical,,FALSE only for procedural failure (chamber not at ambient at closure); such rows are kept and flagged
+flux_stem.csv,qc_reason,character,,Why qc_pass is FALSE
+flux_stem.csv,in_rf_training,logical,,TRUE if the deployment is in the random-forest training set
+flux_stem.csv,exclusion_reason,character,,Why a deployment is not in training
+flux_soil.csv,unique_id,character,,Deployment identifier; unique across the archive and shared with the goFlux results files
+flux_soil.csv,campaign,character,,"monthly_2020_2021, 2021_multiheight, 2023_cross_species or 2022_felled_oak (Table 1)"
+flux_soil.csv,date,date,,Measurement date (felled oak: felling date; the standing-tree fluxes were measured before it)
+flux_soil.csv,site_id,character,,Soil collar: landscape position and collar number
+flux_soil.csv,landscape_position,character,,"Monthly survey: U upland, I intermediate, WD/WS wetland margin (dry/saturated); 2021: plot label"
+flux_soil.csv,chamber_area_cm2,numeric,cm2,Enclosed surface area
+flux_soil.csv,chamber_vol_L,numeric,L,"Total system volume: chamber, 18.6 cm3 tubing and the 28 cm3 analyzer cell"
+flux_soil.csv,chamber_temp_C,numeric,degC,Chamber (or stem) temperature during the deployment
+flux_soil.csv,CH4_flux_nmol_m2_s,numeric,nmol m-2 s-1,CH4 flux from the selected goFlux fit (positive = emission)
+flux_soil.csv,CH4_model,character,,Selected fit: LM (linear) or HM (Hutchinson-Mosier)
+flux_soil.csv,CH4_quality,character,,goFlux diagnostic flags for the CH4 fit (informational; no row is excluded on them)
+flux_soil.csv,CH4_LM_r2,numeric,,R-squared of the linear CH4 fit
+flux_soil.csv,CH4_LM_pval,numeric,,p-value of the linear CH4 slope
+flux_soil.csv,CO2_flux_umol_m2_s,numeric,umol m-2 s-1,CO2 flux from the selected goFlux fit
+flux_soil.csv,notes,character,,Field notes
+flux_soil.csv,CH4_MDF_nmol_m2_s,numeric,nmol m-2 s-1,Minimum detectable flux at 90% confidence (Methods S2)
+flux_soil.csv,analyzer_sigma_ppb,numeric,ppb,"Analyzer precision for the deployment's field period, from the instrument record"
+flux_soil.csv,closure_s,numeric,s,Closure duration used for the MDF
+flux_soil.csv,detected,logical,,"TRUE if |flux| exceeds the MDF; NA where no MDF was computed (rescued untagged stems, felled oak)"
+flux_soil.csv,detection_class,character,,"emission, uptake or below detection"
+flux_soil.csv,qc_pass,logical,,FALSE only for procedural failure (chamber not at ambient at closure); such rows are kept and flagged
+flux_soil.csv,qc_reason,character,,Why qc_pass is FALSE
+flux_soil.csv,in_rf_training,logical,,TRUE if the deployment is in the random-forest training set
+flux_soil.csv,exclusion_reason,character,,Why a deployment is not in training
+internal_gas.csv,campaign,character,,2021_survey (whole stem) or 2024_heartwood_sapwood
+internal_gas.csv,sample_id,character,,Laboratory sample identifier
+internal_gas.csv,tree_id,character,,Tree identifier
+internal_gas.csv,species_code,character,,Four-letter species code
+internal_gas.csv,tissue,character,,"whole stem (bark to pith), heartwood or sapwood"
+internal_gas.csv,analysis_date,character,,Gas chromatograph run date
+internal_gas.csv,CH4_ppm,numeric,ppm,Calibrated CH4 mixing ratio (not truncated at zero; DATA_HYGIENE G1)
+internal_gas.csv,CO2_ppm,numeric,ppm,Calibrated CO2 mixing ratio
+internal_gas.csv,N2O_ppm,numeric,ppm,Calibrated N2O mixing ratio (2021 only)
+internal_gas.csv,O2_ppm,numeric,ppm,Calibrated O2 mixing ratio (2021 only)
+internal_gas.csv,CH4_below_lod,logical,,CH4 below the detection limit
+internal_gas.csv,CO2_below_lod,logical,,CO2 below the detection limit
+internal_gas.csv,N2O_below_lod,logical,,N2O below the detection limit
+internal_gas.csv,CH4_above_top_standard,logical,,CH4 above the highest calibration standard (reported at that standard)
+isotopes.csv,sample_name,character,,"Picarro run label (all runs, including standards and atmosphere)"
+isotopes.csv,d13CH4_permil,numeric,permil VPDB,delta13C of CH4
+isotopes.csv,CH4_ppm,numeric,ppm,CH4 mixing ratio from the same run
+isotopes.csv,d13CO2_permil,numeric,permil VPDB,delta13C of CO2
+isotopes.csv,CO2_ppm,numeric,ppm,CO2 mixing ratio
+isotopes.csv,sample_type,character,,"whole tree, heartwood/sapwood pair, incubation, standard, or atmosphere/room air"
+isotopes.csv,redone,logical,,TRUE if this run was repeated; the re-run replaces it
+isotopes.csv,in_whole_tree_set,logical,,TRUE for the 115 samples analysed in the paper (DATA_HYGIENE I1-I4)
+isotopes.csv,exclusion_reason,character,,Why a run is not in the whole-tree set
+isotopes.csv,tree_id,character,,Tree identifier (whole-tree set only)
+isotopes.csv,species,character,,Species code (whole-tree set only)
+forest_inventory_stems.csv,quadrat,character,,20 m quadrat of the stem in the stand grid
+forest_inventory_stems.csv,position,character,,"How the stem's position was obtained (census coordinates, subquadrat centre, multi-stem, contradicts quadrat label)"

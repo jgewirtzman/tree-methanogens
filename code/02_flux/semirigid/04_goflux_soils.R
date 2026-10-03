@@ -155,9 +155,18 @@ cat("Good windows (>=30 obs):", length(good_windows), "\n")
 # =============================================================================
 
 cat("\n=== STEP 3: MANUAL IDENTIFICATION ===\n")
+source("../../lib/flux_windows.R")
+MC_PATH <- window_path("flux_model_choices.csv")
+WIN <- window_path("lgr_manual_identification_results_soil.csv")
+# Saved hand-picked windows are the record; the picker below runs only without them
+# (or with FLUX_REPICK=1, interactively). See code/lib/flux_windows.R.
+if (use_saved_windows(WIN)) {
+  manID.lgr3 <- load_windows(WIN) %>% mutate(Vtot = CORRECT_VTOT_L, Area = CORRECT_CHAMBER_SURFACE_AREA_CM2)
+  stopifnot(isTRUE(all.equal(CORRECT_VTOT_L, SOIL_VTOT_L)), CORRECT_CHAMBER_SURFACE_AREA_CM2 == SOIL_COLLAR_AREA_CM2)
+} else {
 
 # Check if manual ID already exists
-if(file.exists("../../../data/processed/flux/lgr_manual_identification_results_soil.csv")) {
+if(file.exists(WIN)) {
   cat("Found existing manual identification file!\n")
   cat("Do you want to:\n")
   cat("1. Use existing manual identification (skip click.peak2)\n")
@@ -168,7 +177,7 @@ if(file.exists("../../../data/processed/flux/lgr_manual_identification_results_s
   
   if(choice == "1") {
     cat("Loading existing manual identification...\n")
-    manID.lgr3 <- read_csv("../../../data/processed/flux/lgr_manual_identification_results_soil.csv", 
+    manID.lgr3 <- read_csv(WIN, 
                            show_col_types = FALSE)
     
     # Update volume in loaded data
@@ -280,7 +289,8 @@ if(file.exists("../../../data/processed/flux/lgr_manual_identification_results_s
 }
 
 # Save manual identification results (with correct volume)
-write_csv(manID.lgr3, "../../../data/processed/flux/lgr_manual_identification_results_soil.csv")
+write_csv(manID.lgr3, repick_path(basename(WIN)))
+}
 
 # =============================================================================
 # STEP 4: FLUX CALCULATIONS
@@ -336,6 +346,7 @@ CO2_best_lgr3 <- best.flux(
   k.ratio = 1,
   warn.length = 60
 )
+CO2_best_lgr3 <- apply_model_choices(CO2_best_lgr3, "CO2", MC_PATH)
 
 # Run best.flux on CH4 results if available
 if(exists("CH4_flux_lgr3")) {
@@ -349,6 +360,7 @@ if(exists("CH4_flux_lgr3")) {
     k.ratio = 1,
     warn.length = 60
   )
+  CH4_best_lgr3 <- apply_model_choices(CH4_best_lgr3, "CH4", MC_PATH)
 }
 
 # Quality summary
@@ -390,7 +402,7 @@ CO2_best_lgr3 <- CO2_best_lgr3 %>%
   )
 
 # Create CO2 flux plots
-CO2_plots_lgr3 <- flux.plot(
+CO2_plots_lgr3 <- maybe_flux_plot(
   flux.results = CO2_best_lgr3,
   dataframe = manID.lgr3,
   gastype = "CO2dry_ppm",
@@ -412,7 +424,7 @@ if(exists("CH4_best_lgr3")) {
       )
     )
   
-  CH4_plots_lgr3 <- flux.plot(
+  CH4_plots_lgr3 <- maybe_flux_plot(
     flux.results = CH4_best_lgr3,
     dataframe = manID.lgr3,
     gastype = "CH4dry_ppb",
@@ -430,7 +442,7 @@ if(exists("CH4_best_lgr3")) {
 }
 
 # Save plots to PDF
-flux2pdf(
+maybe_flux2pdf(
   plot.list = all_plots_lgr3,
   outfile = "../../../data/processed/flux/LGR3_flux_plots_complete_soil.pdf",
   width = 11.6,
@@ -445,6 +457,7 @@ library(grid)
 
 # Custom function to replace flux2pdf
 save_flux_plots <- function(plot_list, outfile, width = 11.6, height = 8.2) {
+  if (!length(plot_list)) return(invisible())   # plots skipped (FLUX_PLOTS unset)
   
   pdf(outfile, width = width, height = height)
   
@@ -518,12 +531,9 @@ if(exists("ch4_results")) {
 # Save the final dataset
 write_csv(final_dataset, "../../../data/processed/flux/semirigid_tree_final_complete_dataset_soil.csv")
 
-# Also update the auxfiles with correct volume
-write_csv(original_data %>% select(-contains("CO2_"), -contains("CH4_")), 
-          "auxfile_goFlux_soilflux_with_weather_formatted.csv")
-write.table(original_data %>% select(-contains("CO2_"), -contains("CH4_"), -start.time_formatted), 
-            "auxfile_goFlux_soilflux_with_weather.txt", 
-            sep = "\t", row.names = FALSE, quote = FALSE)
+# (Removed 2026-10-01: two copies of the auxfile were written here to bare filenames,
+# i.e. into this code folder, and nothing read them. The auxfile itself is written by
+# 03_prep_soil_auxfile.R.)
 
 # =============================================================================
 # STEP 8: FLUX SUMMARY STATISTICS
@@ -593,7 +603,7 @@ if(exists("CH4_best_lgr3")) {
 cat("- data/processed/flux/LGR3_flux_plots_complete_soil.pdf\n")
 cat("- auxfile_goFlux_soilflux_with_weather.txt\n")
 cat("- auxfile_goFlux_soilflux_with_weather_formatted.csv\n")
-cat("- data/processed/flux/lgr_manual_identification_results_soil.csv\n")
+cat("- closure windows: data/raw/flux_windows/ (saved) or data/processed/flux/repicked/ (re-pick)\n")
 
 cat("\nSummary:\n")
 cat("- Total measurements processed:", nrow(final_dataset), "\n")

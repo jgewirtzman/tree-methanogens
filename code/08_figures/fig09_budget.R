@@ -38,7 +38,7 @@ tree_pts <- tree_pts[tree_pts$in_stand & tree_pts$located, ]       # mappable su
 soil_map$mean_flux_nmol <- soil_map$flux_nmol_m2_s
 
 # ---- budget numbers: READ, never hardcoded ----------------------------------
-# All values come from budget_canonical.R, which computes them from the locked
+# All values come from 03_budget_canonical.R, which computes them from the locked
 # models and the inventory. Run that script first if any input has changed.
 B <- read.csv("outputs/data/canonical_budget.csv", stringsAsFactors = FALSE)
 val <- function(q) { v <- B$value[B$quantity == q]
@@ -84,16 +84,16 @@ map_scales <- list(
   scale_x_continuous(breaks = seq(0, 200, 50), expand = c(0, 0)),
   scale_y_continuous(breaks = seq(0, 200, 50), expand = c(0, 0)))
 STAND <- stand_ring_local()
-th_map <- theme_bw(base_size = 9) +
-  theme(plot.title = element_text(size = 9, face = "bold"),
-        axis.text = element_text(size = 6, color = "grey45"),
-        axis.title = element_text(size = 6.5, color = "grey35"),
+th_map <- theme_bw(base_size = 11) +
+  theme(plot.title = element_text(size = 11, face = "bold"),
+        axis.text = element_text(size = 9, color = "grey30"),
+        axis.title = element_text(size = 10, color = "grey20"),
         panel.grid.major = element_line(color = "grey88", linewidth = 0.25),
         panel.grid.minor = element_blank(),
         panel.border = element_rect(color = "grey40", fill = NA, linewidth = 0.4),
         legend.position = "bottom", legend.key.height = unit(0.3, "cm"),
-        legend.key.width = unit(0.9, "cm"), legend.title = element_text(size = 7),
-        legend.text = element_text(size = 6))
+        legend.key.width = unit(1.1, "cm"), legend.title = element_text(size = 10),
+        legend.text = element_text(size = 9))
 
 # ---- (a) soil map (sink = blue; per m2 GROUND) -------------------------------
 # geom_TILE, not geom_raster: the grid is regular in plot-local metres but the
@@ -215,17 +215,17 @@ pc <- ggplot(mon, aes(month, nmol, colour = src)) +
   scale_colour_manual(values = setNames(c(SINK, SRC), levels(mon$src)), guide = "none") +
   scale_x_continuous(breaks = 1:12, labels = month.abb) +
   labs(x = NULL, y = expression("CH"[4]*" flux (nmol m"^-2*" s"^-1*")")) +
-  theme_bw(base_size = 9) +
-  theme(axis.text.x = element_text(size = 6.5),
+  theme_bw(base_size = 11) +
+  theme(axis.text.x = element_text(size = 9),
         strip.background = element_rect(fill = "white", color = NA),
-        strip.text = element_text(size = 7, color = "black"),
+        strip.text = element_text(size = 9, color = "black"),
         panel.grid.minor = element_blank())
 
 # ---- (d) net budget waterfall (mg m-2 yr-1) ----------------------------------
 # steps: baseline 0 -> soil -> tree(measured) -> tree(scenario) -> NET(total)
 wf <- tibble(
-  step  = factor(c("Soil\nuptake","Tree to 2 m\n(measured)","Tree full woody\nsurface (scenario)","Net\nbudget"),
-                 levels = c("Soil\nuptake","Tree to 2 m\n(measured)","Tree full woody\nsurface (scenario)","Net\nbudget")),
+  step  = factor(c("Soil\nuptake","Stems,\n0-2 m","Stems, whole\nsurface","Net\nbudget"),
+                 levels = c("Soil\nuptake","Stems,\n0-2 m","Stems, whole\nsurface","Net\nbudget")),
   ymin  = c(soil_ann, soil_ann, soil_ann + tree_meas, 0),
   ymax  = c(0, soil_ann + tree_meas, soil_ann + tree_meas + (tree_scen - tree_meas),
             soil_ann + tree_scen),
@@ -265,24 +265,21 @@ pd <- ggplot(wf) +
   scale_x_continuous(breaks = 1:5, labels = c(levels(wf$step), "Foliage\n(unknown)"), limits = c(0.4, 5.6)) +
   # labels computed from the variables above -- never hardcode, they drift
   annotate("text", x = 1, y = soil_ann,             label = sprintf("%.0f", soil_ann),
-           vjust = 1.5, size = 2.9) +
+           vjust = 1.5, size = 3.6) +
   annotate("text", x = 2, y = soil_ann + tree_meas, label = sprintf("+%.1f", tree_meas),
-           vjust = -0.8, size = 2.9) +
+           vjust = -0.8, size = 3.6) +
   # total, not an increment: this bar INCLUDES the measured band drawn at x = 2
-  annotate("text", x = 3, y = soil_ann + tree_scen, label = sprintf("%.0f total", tree_scen),
-           vjust = -0.8, size = 2.9) +
+  annotate("text", x = 3, y = soil_ann + tree_scen, label = sprintf("+%.0f", tree_scen),
+           vjust = -0.8, size = 3.6) +
   annotate("text", x = 4, y = soil_ann + tree_scen, label = sprintf("%.0f", soil_ann + tree_scen),
-           vjust = 1.5, size = 2.9) +
+           vjust = 1.5, size = 3.6) +
   # bounding range on the scenario bar (WAI 1.50 - 3.07, constant flux)
   annotate("linerange", x = 3, ymin = soil_ann + tree_lo, ymax = soil_ann + tree_hi,
            colour = "grey25", linewidth = 0.5) +
   # range sits BELOW the scenario bar: at x = 3.46 it overprinted the net-budget bar
-  annotate("text", x = 3, y = soil_ann + tree_lo,
-           label = sprintf("grid %.0f-%.0f", tree_lo, tree_hi),
-           size = 2.2, colour = "grey25", vjust = 1.9) +
   labs(x = NULL, y = expression("CH"[4]*" (mg m"^-2*" yr"^-1*", per m"^2*" ground)")) +
-  theme_bw(base_size = 9) +
-  theme(axis.text.x = element_text(size = 7.5), panel.grid.minor = element_blank())
+  theme_bw(base_size = 11) +
+  theme(axis.text.x = element_text(size = 9.5), panel.grid.minor = element_blank())
 
 # ---- assemble (net-sink / RF-R2 / basis notes go in the figure CAPTION) -------
 fig <- (pa | pb) / (pc | pd) + plot_layout(heights = c(1.05, 1)) +

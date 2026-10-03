@@ -6,7 +6,7 @@
 # 2021 multi-height, 2023 cross-species) wrote their intermediates AND their final
 # table to shared filenames. Whichever ran last won:
 #   - methanogen_tree_flux_complete_dataset.csv held 2021 data until the 2023 run
-#     overwrote it (Sep 2025). 02_harmonize_all_data.R expected 2021 and broke;
+#     overwrote it (Sep 2025). 04_harmonize_all_data.R expected 2021 and broke;
 #     fourteen other readers expected 2023 and happened to be right.
 #   - CO2_flux_lgr_results.csv held 2023 while its CH4/best siblings held 2021.
 # Every per-campaign file now carries the campaign in its name, and the final

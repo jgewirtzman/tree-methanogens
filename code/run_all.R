@@ -1,234 +1,87 @@
-#!/usr/bin/env Rscript
 # ==============================================================================
-# Revision pipeline. Run from the repo root:  Rscript code/run_all.R
-# Reads data/ (the Zenodo drop-in) + code/ (git); writes outputs/ and
-# outputs/figures/{main,SI}/.
+# run_all.R -- the whole pipeline, in order, from code/pipeline.csv
+# ------------------------------------------------------------------------------
+# The manifest is the single list of what runs and in what order. Each row is one
+# script with its stage, working directory, whether a failure stops the run, and
+# what it is for. This file only reads the manifest and runs it; to add, remove or
+# reorder a step, edit code/pipeline.csv.
 #
-# ORDER IS EXPLICIT, NOT A GLOB. This script used to collect work by filename
-# pattern -- ^rev_stat_, ^rev_tbl_, ^rev_fig -- which silently skipped 44 of the
-# ~90 scripts here, including all three that produce Figure 9's inputs. On a
-# clean checkout it reached fig09_budget.R with no canonical_budget.csv, no
-# scaling_full_grid.csv and no tree_flux_predictions.csv, and only appeared to
-# work because those files were sitting in an untracked directory from earlier
-# manual runs. The core chain below is ordered by dependency and runs first;
-# anything matching the old patterns and not already named runs afterwards, and
-# whatever is still never reached is reported at the end.
-# Exploratory scripts (code/revision/exploratory/) are NOT run.
+# Stages
+#   A  raw -> processed      import, flux fitting (goFlux), cleaning, harmonisation
+#   B  model                 random-forest training tables, fit, export, held-out skill
+#   C  drivers and scaling   climatologies, moisture surface, predictions, budget, grid
+#   D  analyses              model audits, molecular summaries, statistics and tables
+#   E  figures               one generator per paper figure, then the assembler
+#   F  archive               data/compiled/ datasets and their README
+#   G  gate                  check_consistency.R
+#
+# Usage (from the repository root)
+#   Rscript code/run_all.R                    # stages B-G: everything from data/processed/
+#   Rscript code/run_all.R --from raw         # stages A-G: everything from data/raw/
+#   Rscript code/run_all.R --from C           # skip the model fit (uses outputs/models/)
+#   Rscript code/run_all.R --only E           # one stage (make_figures.R does this)
+#
+# Each script's console output goes to outputs/logs/<script>.txt; a summary of the
+# run is written to outputs/logs/pipeline_run.csv. Scripts whose manifest row says
+# workdir = script are run from their own folder (the older processing scripts use
+# relative paths); all others run from the repository root.
 # ==============================================================================
-LOGDIR <- "outputs/logs"
-dir.create(LOGDIR, showWarnings = FALSE, recursive = TRUE)
 
-# Every script's console output is captured to outputs/logs/<name>.txt.
-# Nine scripts used to DECLARE a .txt output in their headers that nothing ever wrote:
-# they only cat() to the console, and system2(stdout = "") let it fall through to the
-# terminal. The .txt files on disk had been produced by hand-redirection on one day in
-# July and could never be refreshed, so four referee-facing audits were frozen against
-# a superseded model while appearing to be pipeline products. Capturing centrally fixes
-# the whole class at once and gives every step a transcript.
-run <- function(f, fatal = FALSE) {
-  cat("\n>>>", basename(f), "\n")
-  logf <- file.path(LOGDIR, sub("\\.R$", ".txt", basename(f)))
-  st <- tryCatch(system2("Rscript", f, stdout = logf, stderr = logf),
-                 warning = function(w) 1L, error = function(e) 1L)
-  if (file.exists(logf)) cat(readLines(logf, warn = FALSE), sep = "\n")
-  if (!identical(st, 0L)) {
-    cat("   [non-zero exit]\n")
-    if (fatal) stop("required step failed: ", basename(f), call. = FALSE)
-  }
-  invisible(st)
-}
+args <- commandArgs(trailingOnly = TRUE)
+opt  <- function(flag, default) { i <- match(flag, args); if (is.na(i)) default else args[i + 1] }
+STAGES <- c("A", "B", "C", "D", "E", "F", "G")
+from <- toupper(opt("--from", "B")); if (from == "RAW") from <- "A"; if (from == "PROCESSED") from <- "B"
+to   <- toupper(opt("--to", "G"))
+only <- opt("--only", NA)
+run_stages <- if (!is.na(only)) toupper(only) else STAGES[match(from, STAGES):match(to, STAGES)]
+stopifnot(all(run_stages %in% STAGES))
 
-# --- run marker ---------------------------------------------------------------
-# 00_assemble_figures.R compares every file it assembles against this marker's
-# timestamp, so a generator that failed cannot slip its previous output into the
-# manuscript set unnoticed. Written before anything else runs.
-dir.create("outputs", showWarnings = FALSE, recursive = TRUE)
-writeLines(format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
-           "outputs/.pipeline_run_started")
+if (!file.exists("code/pipeline.csv"))
+  stop("Run from the repository root:  Rscript code/run_all.R", call. = FALSE)
+P <- read.csv("code/pipeline.csv", stringsAsFactors = FALSE)
+stopifnot(all(P$stage %in% STAGES), all(file.exists(P$script)))
+P <- P[P$stage %in% run_stages, ]
 
-# --- model prerequisite -------------------------------------------------------
-# This pipeline SCORES and CONSUMES the locked forests; it does not fit them. The only
-# producer of RF_MODELS.RData / TRAINING_DATA.RData is code/05_model/02_rf_models.R,
-# which is deliberately not run here because it retrains (~10 min) and the model is
-# frozen. Five fatal CORE steps load those files, so on a clean checkout the run would
-# otherwise die deep in the chain with an opaque error. Fail early and say why.
-local({
+# Starting after stage B needs a fitted model on disk.
+if (!"B" %in% run_stages && any(c("C", "D", "E") %in% run_stages)) {
   need <- c("outputs/models/RF_MODELS.RData", "outputs/models/TRAINING_DATA.RData")
-  miss <- need[!file.exists(need)]
-  if (length(miss))
-    stop("missing locked model file(s):\n  ", paste(miss, collapse = "\n  "),
-         "\n\nBuild them first (from code/05_model/):\n",
-         "  Rscript 01_load_and_prep_data.R && Rscript 02_rf_models.R\n",
+  if (!all(file.exists(need)))
+    stop("no fitted model in outputs/models/; run stage B first (Rscript code/run_all.R --from B)",
          call. = FALSE)
-  src <- "code/05_model/02_rf_models.R"
-  if (file.exists(src) && file.mtime(src) > min(file.mtime(need)))
-    cat("[note] 02_rf_models.R is NEWER than the locked model files;",
-        "the model may need rebuilding.\n")
-})
-
-# --- 1) CORE CHAIN: each step consumes the previous one's output -------------
-# inventory -> per-stem tree flux -> soil surface -> budget -> scaling grid.
-# Fatal, because everything downstream reads what these write.
-# The DRIVER builders come first. They used to sit in SUPPORT, which runs AFTER
-# this block, so the chain only worked because their outputs were already on disk
-# from a previous run -- a clean checkout would have stopped at the first
-# prediction script. Both prediction scripts now read the same two climatologies
-# and the same moisture surface, so those have to be built before either runs.
-CORE <- c(
-  # Every stem deployment, flagged in_rf_training; reads the model files. Cheap, and
-  # until 2026-09-30 it ran only by hand, so its table could go stale against the model.
-  "code/05_model/03_export_canonical_tables.R",
-  "code/05_model/rf_grouped_cv.R",             # -> rf_grouped_cv.csv (budget reads it)
-  "code/01_import/inventory_build.R",           # raw -> inventory_stems.csv
-  "code/04_drivers/wb_reference_et.R",           # -> water balance (climatology input)
-  "code/04_drivers/moisture_climatology.R",      # -> moisture_climatology_monthly.csv
-  "code/04_drivers/soil_temp_climatology.R",     # -> soil_temp_climatology_monthly.csv
-  "code/04_drivers/moisture_surface.R",          # -> moisture_surface_grid.csv
-  "code/06_upscale/predict_tree_flux_current.R", # -> tree_flux_predictions.csv, tree_monthly_stand.csv
-  "code/06_upscale/predict_soil_surface.R",      # -> soil_surface_{monthly,annual}.csv
-  "code/06_upscale/budget_canonical.R",          # -> canonical_{budget,monthly}.csv
-  # MUST precede the grid: scaling_full_grid.R now stop()s if wai_bottomup.csv is
-  # absent, and outputs/ is gitignored, so with this in SUPPORT (which runs AFTER the
-  # fatal CORE block) a clean checkout aborted at the last CORE step. That is the exact
-  # failure this file's header describes for the driver builders.
-  "code/06_upscale/wai_bottomup_and_rf_interactions.R",  # -> wai_bottomup.csv
-  "code/06_upscale/scaling_full_grid.R")
-# fig_scaling_profiles / heatmap read the grid exports and run in the figure block         # -> scaling_full_grid.csv
-cat(sprintf("\n== CORE CHAIN (%d steps, dependency-ordered) ==\n", length(CORE)))
-for (f in CORE) run(f, fatal = TRUE)
-
-# --- 2) supporting analyses (produce CSV/TXT that figures and prose cite) ----
-SUPPORT <- c(
-  # Produces data/processed/environmental/soil_env_by_collar.csv, which
-  # code/05_model/01_load_and_prep_data.R reads to give each soil collar and each
-  # monthly tree its OWN measured temperature and moisture rather than a plot-level
-  # constant. It was never in this pipeline, so that dependency was real but unwired
-  # and the CSV survived only from a manual run on 2026-07-25.
-  "code/03_merge/compile_soil_env.R",
-  "code/04_drivers/moisture_elevation_check.R",
-  "code/04_drivers/moisture_interpolation.R",
-  "code/02_flux/qc_c0_screen.R",
-  "code/02_flux/mdf_FINAL_precision_and_detection.R",
-  "code/06_upscale/surface_area_model.R",
-  # Promoted out of exploratory/ 2026-07-29. Figure 6 panel (b) reads
-  # outputs/data/FAPROTAX_all_functions_HW_SW.csv, and this is its ONLY
-  # producer -- but it lived in exploratory/, which the glob below never reaches
-  # (non-recursive, by design). So fig06_hydrogenotrophy.R aborted on every
-  # run since 2026-07-23, and because 00_assemble_figures.R tests only
-  # file.exists() and never mtime, the assembler copied a stale PNG and reported
-  # success. A load-bearing producer must not sit in a directory documented as
-  # not-run. It reads raw data only, so it has no ordering constraint beyond
-  # preceding the figure block.
-  "code/07_molecular/faprotax_dump_HW_SW.R",
-  "code/06_upscale/area_distribution_scenarios.R",
-  "code/05_model/height_form_crossvalidation.R",
-  "code/05_model/rf_model_diagnostics.R",
-  "code/05_model/rf_species_fallback_loso.R",
-  "code/05_model/rf_species_pooling.R",
-  "code/05_model/rf_species_bias_audit.R",
-  # figS21_rf-model-summary.R runs once, with the figures (make_figures.R); it was
-  # listed here too and ran twice (~10 min of permutation importance each time).
-  "code/05_model/model_family_comparison.R",
-  "code/05_model/rf_height_extrapolation.R",
-  "code/06_upscale/scaling_assumptions_audit.R",
-  # Referee-facing evidence produced in the 2026-07-30 pass. Both were written but
-  # never wired in, which is the same defect this file exists to prevent.
-  "code/05_model/rf_predictor_selection_current.R",  # -> rf_predictor_selection_current.csv
-  "code/05_model/rf_calibration_sensitivity.R")      # -> rf_calibration_sensitivity.csv
-SUPPORT <- SUPPORT[file.exists(SUPPORT)]
-cat(sprintf("\n== SUPPORTING ANALYSES (%d) ==\n", length(SUPPORT)))
-for (f in SUPPORT) run(f)
-
-# --- 3) stats, tables and figures --------------------------------------------
-# NAMED, NOT GLOBBED. This was list.files("code/revision", "^rev_(stat|tbl|fig)")
-# until the reorg. A glob that selects on a filename prefix silently empties when
-# the prefix changes: retiring "rev_" -- an explicit goal of the reorg -- would
-# have dropped all 41 scripts below while this file still exited 0. The gate would
-# not have caught it either, because check_consistency.R asserts agreement
-# BETWEEN outputs, not that they were regenerated, so the stale CSVs already on
-# disk keep all 28 invariants passing. Select on meaning, never on spelling.
-# This list was generated from the glob it replaces and verified set-identical.
-rest <- c(
-  "code/09_tables_stats/stat_campaign_counts.R",
-  "code/09_tables_stats/stat_clade-census.R",
-  "code/09_tables_stats/stat_mass-basis-sensitivity.R",
-  "code/09_tables_stats/stat_copies-per-gram.R",
-  "code/09_tables_stats/stat_dbh_by_species_campaign.R",
-  "code/09_tables_stats/stat_faprotax-caveats.R",
-  "code/09_tables_stats/stat_isotopes-canonical.R",
-  "code/09_tables_stats/stat_known-putative-table.R",
-  "code/09_tables_stats/stat_multigene-models.R",
-  "code/09_tables_stats/stat_pmoa-mmox-robustness.R",
-  "code/09_tables_stats/stat_s1-rf-soil-arcsinh.R",
-  "code/09_tables_stats/stat_s1s2-arcsinh.R",
-  "code/09_tables_stats/stat_species-aggregation-rma.R",
-  "code/09_tables_stats/stat_tree-distribution.R",
-  "code/09_tables_stats/stat_tree_flux_merged.R",
-  "code/09_tables_stats/stat_variance-partition.R",
-  "code/09_tables_stats/tbl_ddpcr-16s-concordance.R"
-)
-rest <- setdiff(rest, c(CORE, SUPPORT))
-local({
-  missing <- rest[!file.exists(rest)]
-  if (length(missing))
-    stop("named script(s) not found -- did a move miss this list?\n  ",
-         paste(missing, collapse = "\n  "), call. = FALSE)
-})
-cat(sprintf("\n== STATS, TABLES AND FIGURES (%d) ==\n", length(rest)))
-for (f in rest) run(f)
-
-# --- 3b) regenerate the parameter record from the canonical outputs ----------
-# scaling_parameters.md section 0 claims "nothing here is typed by hand". This is what
-# makes that true; without it the claim drifted through four rounds of changes.
-run("code/09_tables_stats/write_parameter_record.R")
-
-# --- 4) figures and assembly -------------------------------------------------
-# One runner for every figure: make_figures.R runs each generator in its own
-# process (a leaked graphics device once drew the moisture map into Figure S12),
-# then the assembler, which refuses figures older than this run. Until 2026-09-30
-# this file instead called generate_all_figures.R -- the leaky runner that
-# make_figures.R was written to replace -- and kept its own copy of the figure list.
-run("code/make_figures.R")
-
-# --- 4b) archive tables -------------------------------------------------------
-# data/compiled/ is the Zenodo copy of the canonical tables. It was never rebuilt by
-# this script, so it went stale after every run (check_consistency.R compares it).
-run("code/zenodo/compile_zenodo_datasets.R")
-
-# --- 5) report anything never reached ----------------------------------------
-source("code/lib/figure_scripts.R")         # run by make_figures.R (step 4)
-SOURCED <- c("code/lib/geometry.R",        # sourced by others, not run alone
-             "code/lib/figure_scripts.R",
-             names(FIGURE_SCRIPTS_ORIGINAL), FIGURE_SCRIPTS_REVISION,
-             "code/make_figures.R",
-             "code/lib/species_levels.R",  # ditto -- the species->level mapping
-             "code/lib/prep_species_data.R")
-# Scans the whole live tree, not one directory. This used to read
-# list.files("code/revision", ...); the 2026-08 reorg emptied that directory of
-# scripts, so the reachability check silently matched nothing and reported a
-# clean bill on every run -- the exact failure it exists to catch, applied to
-# itself. archive/ is excluded by design; lib/ is covered by SOURCED below.
-allR <- setdiff(
-  list.files("code", "\\.R$", recursive = TRUE, full.names = TRUE),
-  list.files("code/archive", "\\.R$", recursive = TRUE, full.names = TRUE))
-never <- setdiff(allR, c(CORE, SUPPORT, rest, SOURCED,
-                         "code/run_all.R",
-                         "code/zenodo/compile_zenodo_datasets.R",
-                         "code/08_figures/00_assemble_figures.R",
-                         # Run standalone at step 3b, not via CORE/SUPPORT/rest, so it
-                         # was absent here and got reported as "never run" on every
-                         # pass -- immediately after this script had just run it. The
-                         # 2026-07-31 reorg audit nearly archived it on that evidence;
-                         # it is the only producer of scaling_parameters.md section 0.
-                         "code/09_tables_stats/write_parameter_record.R",
-                         # The gate. Deliberately not part of the pipeline (it checks
-                         # agreement BETWEEN outputs, so it runs after, by hand), but
-                         # it is not dead either.
-                         "code/check_consistency.R"))
-if (length(never)) {
-  cat(sprintf("\n[note] %d script(s) in code/revision/ were not run by this pipeline:\n",
-              length(never)))
-  cat(paste("   -", basename(never), collapse = "\n"), "\n")
-  cat("   (these are superseded or one-off; add to SUPPORT above if they should run)\n")
 }
-cat("\nDone. Numbered figures in outputs/figures/{main,SI}/ (see MANIFEST.md).\n")
+
+ROOT <- normalizePath(".")
+LOGDIR <- file.path(ROOT, "outputs/logs")
+dir.create(LOGDIR, showWarnings = FALSE, recursive = TRUE)
+# Marker for the figure assembler's staleness check: a figure older than this was
+# not produced by this run.
+writeLines(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), file.path(ROOT, "outputs/.pipeline_run_started"))
+
+run_one <- function(script, workdir) {
+  logf <- file.path(LOGDIR, sub("\\.R$", ".txt", basename(script)))
+  dir  <- if (workdir == "script") file.path(ROOT, dirname(script)) else ROOT
+  file <- if (workdir == "script") basename(script) else script
+  t0 <- Sys.time(); owd <- setwd(dir); on.exit(setwd(owd))
+  st <- tryCatch(system2("Rscript", file, stdout = logf, stderr = logf),
+                 warning = function(w) 1L, error = function(e) 1L)
+  list(status = if (identical(st, 0L)) "ok" else "FAIL",
+       secs = round(as.numeric(difftime(Sys.time(), t0, units = "secs"))))
+}
+
+cat(sprintf("Pipeline: stages %s, %d scripts\n", paste(run_stages, collapse = ""), nrow(P)))
+res <- data.frame(stage = P$stage, script = P$script, status = NA_character_, secs = NA_real_)
+for (i in seq_len(nrow(P))) {
+  if (i == 1 || P$stage[i] != P$stage[i - 1]) cat(sprintf("\n== stage %s ==\n", P$stage[i]))
+  r <- run_one(P$script[i], P$workdir[i])
+  res$status[i] <- r$status; res$secs[i] <- r$secs
+  cat(sprintf("  %-55s %s (%ss)\n", basename(P$script[i]), r$status, r$secs))
+  if (r$status == "FAIL" && isTRUE(as.logical(P$fatal[i]))) {
+    write.csv(res, file.path(LOGDIR, "pipeline_run.csv"), row.names = FALSE)
+    stop(sprintf("required step failed: %s -- see outputs/logs/%s", P$script[i],
+                 sub("\\.R$", ".txt", basename(P$script[i]))), call. = FALSE)
+  }
+}
+write.csv(res, file.path(LOGDIR, "pipeline_run.csv"), row.names = FALSE)
+fails <- res$script[res$status == "FAIL"]
+cat(sprintf("\n%d scripts, %d failed, %.0f min\n", nrow(res), length(fails), sum(res$secs) / 60))
+if (length(fails)) cat("failed (non-fatal):\n", paste("  ", fails, collapse = "\n"), "\n")

@@ -11,7 +11,7 @@
 #
 # That merged table existed only inside outputs/models/TRAINING_DATA.RData, so
 # every other consumer rebuilt its own version from the component files:
-# stat_campaign_counts.R reads five, 04_variance_partition.R reads two and
+# 02_campaign_counts.R reads five, 04_variance_partition.R reads two and
 # covers 2023 only, and the Zenodo archive was compiled from a different subset
 # again -- it carried the 2020-2021 semi-rigid and 2023 campaigns but not the
 # 2021 rigid one, so 328 of the 1,130 measurements the model uses had no
@@ -30,6 +30,7 @@
 #   outputs/data/flux_measurements_soil.csv     266 soil measurements
 # ==============================================================================
 source("code/lib/outputs.R")
+source("code/lib/monthly_cols.R")
 
 NEED <- "outputs/models/TRAINING_DATA.RData"
 if (!file.exists(NEED))
@@ -49,7 +50,7 @@ tree_out <- drop_pred(tree)
 soil_out <- drop_pred(soil)
 
 # UNIT MISNOMER, corrected at the archive boundary. stem_flux_umol_m2_s and
-# soil_flux_umol_m2_s hold nmol m-2 s-1, not umol; manuscript_statistics.R:1447
+# soil_flux_umol_m2_s hold nmol m-2 s-1, not umol; 20_manuscript_statistics.R:1447
 # records this for the equivalent Phi_* columns. Verified against the budget:
 # the mean stem flux read as nmol gives 6.0 mg CH4 m-2 ground yr-1 against the
 # canonical 4.912, while reading it as umol gives 6,005 -- three orders out.
@@ -86,10 +87,10 @@ tree_out$in_rf_training   <- TRUE
 tree_out$exclusion_reason <- NA_character_
 
 src <- list(
-  monthly_2020_2021 = read.csv(file.path(fd, "semirigid_tree_final_complete_dataset_with_untagged.csv"),
-                               check.names = FALSE) %>%
-    filter(!is.na(CH4_best.flux.x)) %>%
-    transmute(tree_id = Plot.Tag, flux = CH4_best.flux.x, Date = as.character(Date), height = NA_real_,
+  monthly_2020_2021 = monthly_plain(read.csv(file.path(fd, "semirigid_tree_final_complete_dataset_with_untagged.csv"),
+                               check.names = FALSE)) %>%
+    filter(!is.na(CH4_best.flux)) %>%
+    transmute(tree_id = Plot.Tag, flux = CH4_best.flux, Date = as.character(Date), height = NA_real_,
               species_code = sub("^UNTAG_[A-Za-z]+_([A-Z]{4}).*$", "\\1", Plot.Tag),
               dbh_m = NA_real_, air_temp_C = suppressWarnings(as.numeric(Tcham)),
               soil_temp_C = NA_real_, soil_moisture_abs = NA_real_, chamber_type = "semirigid"),
@@ -135,6 +136,7 @@ extra <- bind_rows(lapply(names(src), function(cmp) {
              stem_flux_nmol_m2_s = miss$flux, air_temp_C = miss$air_temp_C, soil_temp_C = miss$soil_temp_C,
              soil_moisture_abs = miss$soil_moisture_abs, dbh_m = miss$dbh_m, chamber_type = miss$chamber_type,
              measurement_height_cm = miss$height, campaign = cmp, in_rf_training = FALSE,
+             dead_stem = is_dead_stem_flux(miss$flux, DEAD),   # was left NA for excluded rows
              exclusion_reason = why, stringsAsFactors = FALSE)
 }))
 # Untagged stems share labels ("untagged" x5 in 2023); number them so each deployment

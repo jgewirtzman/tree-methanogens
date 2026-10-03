@@ -19,16 +19,17 @@
 # a campaign (03_export_canonical_tables.R asserts this).
 # ==============================================================================
 dead_stem_flux <- function(dir = NULL) {
+  source(Filter(file.exists, c("code/lib/monthly_cols.R", "../lib/monthly_cols.R", "../../lib/monthly_cols.R"))[1])
   if (is.null(dir)) for (d in c("data/processed/flux", "../../data/processed/flux"))
     if (dir.exists(d)) { dir <- d; break }
   rd <- function(f) read.csv(file.path(dir, f), check.names = FALSE, stringsAsFactors = FALSE)
-  m <- rd("semirigid_tree_final_complete_dataset_with_untagged.csv")
+  m <- monthly_plain(rd("semirigid_tree_final_complete_dataset_with_untagged.csv"))
   h <- rd("tree_flux_2021_multiheight.csv")
   y <- rd("tree_flux_2023_cross_species.csv")
   y_dead <- grepl("^dead$", trimws(y[["Bark Missing (1-3)"]] %||% y[[grep("^Bark", names(y))[1]]]), ignore.case = TRUE) |
             grepl("^dead$", trimws(y[[grep("^Wounding", names(y))[1]]]), ignore.case = TRUE)
   out <- rbind(
-    data.frame(campaign = "monthly_2020_2021",  flux = m$CH4_best.flux.x[grepl("_dead$", m$`Plot Tag` %||% m$Plot.Tag)]),
+    data.frame(campaign = "monthly_2020_2021",  flux = m$CH4_best.flux[grepl("_dead$", m$`Plot Tag` %||% m$Plot.Tag)]),
     data.frame(campaign = "2021_multiheight",   flux = h$CH4_best.flux[grepl("dead", h$tree_id, ignore.case = TRUE)]),
     data.frame(campaign = "2023_cross_species", flux = y$CH4_best.flux[y_dead]))
   out[is.finite(out$flux), ]

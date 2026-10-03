@@ -178,7 +178,7 @@ p_mg_a <- ggplot(summary_mg_a, aes(x = species_label, y = mean_pct)) +
   geom_errorbar(aes(ymin = pmax(mean_pct - se_pct, 0), ymax = mean_pct + se_pct),
                 width = 0.2, linewidth = 0.3) +
   facet_wrap(~ compartment, nrow = 1) +
-  labs(x = NULL, y = "Methanogen rel.\nabundance (%)") +
+  labs(x = NULL, y = "Methanogen relative\nabundance (%)") +
   theme_classic(base_size = 15) +
   theme(axis.text.x = element_blank(),
         axis.ticks.x = element_blank(),
@@ -274,7 +274,7 @@ p_mt_a <- ggplot(summary_mt_a, aes(x = species_label, y = mean_pct, fill = fill_
                 inherit.aes = FALSE, width = 0.2, linewidth = 0.3) +
   facet_wrap(~ compartment, nrow = 1) +
   scale_fill_manual(values = panel_c_fills, name = "Classification") +
-  labs(x = NULL, y = "Methanotroph rel.\nabundance (%)") +
+  labs(x = NULL, y = "Methanotroph relative\nabundance (%)") +
   theme_classic(base_size = 15) +
   theme(axis.text.x = element_blank(),
         axis.ticks.x = element_blank(),
@@ -366,7 +366,7 @@ p_mt_b <- ggplot(summary_mt_b, aes(x = species_label, y = proportion, fill = Fam
   scale_fill_manual(values = mt_colors, name = "Methanotroph\nFamily") +
   labs(x = NULL, y = "Proportion of\nmethanotrophs (%)") +
   theme_classic(base_size = 15) +
-  theme(axis.text.x = element_text(angle = 55, hjust = 1, size = 9),
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 11, face = "italic"),
         axis.text.y = element_text(size = 15),
         axis.title.y = element_text(size = 16),
         legend.position = "right",
@@ -398,6 +398,6 @@ fig_combined <- p_mg_a / p_mg_b / p_mt_a / p_mt_b +
 print(fig_combined)
 
 ggsave("outputs/figures/generated/fig5_final.png",
-       fig_combined, width = 14, height = 12, dpi = 300)
+       fig_combined, width = 15, height = 13, dpi = 300)
 
 cat("Wrote outputs/figures/generated/fig5_final.png (revised methanotroph defs: Methylacidiphilaceae family -> Putative)\n")
