@@ -315,7 +315,7 @@ pa <- ggplot() + terrain_layers +
   geom_path(data = CH, aes(X, Y), colour = "#2166ac", linewidth = 1.1, lineend = "round") +
   geom_point(data = TR, aes(X, Y, size = BA), colour = "grey15", alpha = 0.55, stroke = 0) +
   scale_size_area(max_size = 3, name = "Basal area (m²)", breaks = c(0.01, 0.05, 0.1, 0.2)) +
-  geom_path(data = EL, aes(X, Y, group = g), colour = "black", linewidth = 0.6) +
+  geom_path(data = EL, aes(X, Y, group = g), colour = "#d95f02", linewidth = 0.7) +
   geom_point(data = MT, aes(X, Y), shape = 8, colour = "black", size = 2, stroke = 0.6) +
   geom_point(data = PL, aes(X, Y), shape = 21, fill = "white", colour = "black", size = 2.2, stroke = 0.7) +
   geom_point(data = RV, aes(X, Y), shape = 21, fill = "#6baed6", colour = "#08519c", size = 1.4, stroke = 0.4) +
@@ -323,11 +323,11 @@ pa <- ggplot() + terrain_layers +
   geom_point(data = data.frame(X = E[1] - 1e4, Y = E[3] - 1e4, k = factor(PT_BREAKS, PT_BREAKS)), aes(X, Y, shape = k)) +
   geom_path(data = data.frame(X = E[1] - 1e4 + rep(0:1, 4), Y = E[3] - 1e4, k = factor(rep(LN_BREAKS, each = 2), LN_BREAKS)),
             aes(X, Y, group = k, linetype = k)) +
-  scale_shape_manual(name = "Points", breaks = PT_BREAKS, values = c(16, 8, 21, 21),
+  scale_shape_manual(name = NULL, breaks = PT_BREAKS, values = c(16, 8, 21, 21),
     guide = guide_legend(order = 3, override.aes = list(shape = c(16, 8, 21, 21), colour = c("grey15", "black", "black", "#08519c"),
                                                         fill = c(NA, NA, "white", "#6baed6"), size = c(2, 2, 2.2, 1.8), alpha = 1, stroke = c(0, 0.6, 0.7, 0.4)))) +
-  scale_linetype_manual(name = "Lines", breaks = LN_BREAKS, values = c("solid", "22", "solid", "solid"),
-    guide = guide_legend(order = 4, override.aes = list(colour = c("black", "grey10", "black", "#2166ac"), linewidth = c(0.5, 0.5, 0.6, 1.1)))) +
+  scale_linetype_manual(name = NULL, breaks = LN_BREAKS, values = c("solid", "22", "solid", "solid"),
+    guide = guide_legend(order = 4, override.aes = list(colour = c("black", "grey10", "#d95f02", "#2166ac"), linewidth = c(0.5, 0.5, 0.7, 1.1)))) +
   guides(fill = guide_colourbar(order = 1), size = guide_legend(order = 2)) +
   annotation_scale(location = "bl", width_hint = 0.2, style = "ticks", line_col = "black", text_col = "black") +
   annotation_north_arrow(location = "tr", height = unit(0.8, "cm"), width = unit(0.6, "cm"), style = north_arrow_minimal()) +
