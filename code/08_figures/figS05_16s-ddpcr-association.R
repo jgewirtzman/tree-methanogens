@@ -37,7 +37,7 @@ cnt  <- as.matrix(sapply(otu[, setdiff(names(otu), taxc), drop = FALSE], num))
 rownames(cnt) <- rownames(otu); tot <- colSums(cnt, na.rm = TRUE)
 
 source("code/lib/load_methanotroph_definitions.R")
-st  <- classify_methanotrophs(tax, load_methanotroph_defs())
+st  <- classify_methanotrophs(tax, load_methanotroph_defs(), placed = load_placed_asvs())
 unr <- function(g) is.na(g) | g == "" | tolower(g) %in% c("none", "unclassified")
 fam <- function(f) !is.na(tax$Family) & tax$Family == f
 gen <- function(g) !is.na(tax$Genus)  & tax$Genus  == g
@@ -49,8 +49,9 @@ MG  <- c("Methanobacteriaceae","Methanomassiliicoccaceae","Methanoregulaceae","M
 G <- list(
   list("Known, aerobic (pMMO / sMMO)",          "Known",                     st %in% "Known" & !fam("Methylomirabilaceae"), c("pmoA","mmoX")),
   list("NC10 (Methylomirabilaceae; anaerobic)", "Known",                     st %in% "Known" & fam("Methylomirabilaceae"),  c("pmoA","mmoX")),
+  list("Beijerinckiaceae, placed with methanotroph genera", "Placed",        st %in% "Placed",                            c("pmoA","mmoX")),
   list("Beijerinckiaceae, putative",           "Putative",                  st %in% "Putative" & fam("Beijerinckiaceae"), c("pmoA","mmoX")),
-  list("Methylacidiphilaceae, genus unresolved","Putative",                 fam("Methylacidiphilaceae") & unr(tax$Genus), c("pmoA","mmoX")),
+  list("Methylacidiphilaceae, genus unresolved","Listed, not counted",      fam("Methylacidiphilaceae") & unr(tax$Genus), c("pmoA","mmoX")),
   list("Lichenibacterium (1174-901-12)",       "Listed, not counted",       gen("1174-901-12"),                         c("pmoA","mmoX")),
   list("Roseiarcus",                           "Listed, not counted",       gen("Roseiarcus"),                          c("pmoA","mmoX")),
   list("Methylobacterium",                     "Listed, not counted",       gen("Methylobacterium-Methylorubrum"),      c("pmoA","mmoX")),
@@ -87,7 +88,7 @@ R$sig <- with(R, ifelse(is.na(q), "", ifelse(q < .001, "***", ifelse(q < .01, "*
 write.csv(R, out_path("16s_ddpcr_association.csv"), row.names = FALSE)
 
 # ---- figure -------------------------------------------------------------------
-TIERS <- c("Known","Putative","Listed, not counted","Methanogen","Control")
+TIERS <- c("Known","Placed","Putative","Listed, not counted","Methanogen","Control")
 R$tier  <- factor(R$tier, levels = TIERS)
 R$group <- factor(R$group, levels = rev(unique(sapply(G, `[[`, 1))))
 R$gene  <- factor(R$gene, levels = c("pmoA","mmoX","mcrA"),

@@ -55,17 +55,20 @@ methanogen_families <- c("Methanobacteriaceae","Methanomassiliicoccaceae","Metha
 
 # shared classifier expects Family / Genus / Phylum
 tdf <- data.frame(Family = tax$family, Genus = tax$genus, Phylum = tax$phylum, stringsAsFactors = FALSE)
+rownames(tdf) <- tax$feature_id
+PLACED <- load_placed_asvs()
 label <- function(mt_status) {
   out <- ifelse(is.na(mt_status), NA_character_, paste0("Methanotroph_", mt_status))
   ifelse(is.na(out) & tax$family %in% methanogen_families, "Methanogen", out)
 }
-tax$class_orig <- label(classify_methanotrophs(tdf, defs_orig))
-tax$class_rev  <- label(classify_methanotrophs(tdf, defs_rev))
+tax$class_orig <- label(classify_methanotrophs(tdf, defs_orig, placed = PLACED))
+tax$class_rev  <- label(classify_methanotrophs(tdf, defs_rev, placed = PLACED))
 
 # ---- per-taxon supplementary table (detected taxa) ---------------------------
 tab <- tax %>% filter(!is.na(class_rev)) %>%
   mutate(genus_res = na_if(na_if(genus, ""), "none"),          # "none" = unresolved
-         display_taxon = coalesce(genus_res, family),
+         display_taxon = if_else(class_rev == "Methanotroph_Placed", paste0(family, " (placed with methanotroph genera)"),
+                                 coalesce(genus_res, family)),
          level = if_else(!is.na(genus_res), "Genus", "Family")) %>%
   group_by(classification = class_rev, family, display_taxon, level) %>%
   summarise(n_ASVs = n(), mean_relabund_pct = round(sum(relabund), 4), .groups = "drop") %>%
@@ -86,9 +89,9 @@ cat("Methanotroph ASV counts (n ASVs):\n")
 cat(sprintf("  Original scheme : Known = %d, Putative = %d  (total %d)\n",
             c0["Methanotroph_Known"], c0["Methanotroph_Putative"],
             c0["Methanotroph_Known"]+c0["Methanotroph_Putative"]))
-cat(sprintf("  Methylacidi-REVISED: Known = %d, Putative = %d  (total %d)\n",
-            c1["Methanotroph_Known"], c1["Methanotroph_Putative"],
-            c1["Methanotroph_Known"]+c1["Methanotroph_Putative"]))
+cat(sprintf("  Current rule: Known = %d, Placed = %d, Putative = %d  (total %d)\n",
+            c1["Methanotroph_Known"], c1["Methanotroph_Placed"], c1["Methanotroph_Putative"],
+            sum(c1[c("Methanotroph_Known","Methanotroph_Placed","Methanotroph_Putative")], na.rm = TRUE)))
 cat(sprintf("  -> reclassifying Methylacidiphilaceae Known->Putative moves %d ASVs.\n\n",
             c0["Methanotroph_Known"]-c1["Methanotroph_Known"]))
 cat(sprintf("Methanogen ASVs (n): %d\n\n", c1["Methanogen"]))
@@ -99,8 +102,8 @@ print(as.data.frame(tab %>% filter(grepl("Methanotroph", classification)) %>%
 cat("\nMethanogen taxa:\n")
 print(as.data.frame(tab %>% filter(classification=="Methanogen") %>%
   transmute(display_taxon, level, n_ASVs, mean_relabund_pct)), row.names = FALSE)
-cat("\nNOTE: Methylacidiphilaceae now PUTATIVE (was Known) per R2 -- verified methanotrophy\n")
-cat("is restricted to thermoacidophilic geothermal members; mesophilic forest members are not\n")
-cat("known to oxidize CH4 (peatland & tree-stem genomes lack methanotrophy genes).\n")
+cat("\nNOTE: genus-unresolved Methylacidiphilaceae are listed, not counted (amended 2026-10-02):\n")
+cat("verified methanotrophy is restricted to thermoacidophilic geothermal members; mesophilic\n")
+cat("members from peat and tree bark lack methanotrophy genes.\n")
 sink()
 cat(readLines(out_path("kp_counts.txt")), sep="\n")
