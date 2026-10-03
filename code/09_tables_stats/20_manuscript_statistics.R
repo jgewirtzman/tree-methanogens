@@ -581,6 +581,7 @@ source("code/lib/build_phyloseq.R")
 no_mito <- .ps16$ps
 phylo_tree <- .ps16$tree
 ddpcr      <- .ps16$ddpcr
+SEQID <- taxa_names(no_mito)
 taxa_names(no_mito) <- paste0("ASV", seq(ntaxa(no_mito)))
 
 set.seed(46814)
@@ -731,8 +732,9 @@ sub_header("Methanotroph families detected (known/putative)")
 # and disagreed with Figure 5 and the clade census (2026-10-02).
 source("code/lib/load_methanotroph_definitions.R")
 mt_defs <- load_methanotroph_defs()
-mt_status <- classify_methanotrophs(tax_df, mt_defs)
+mt_status <- classify_methanotrophs(tax_df, mt_defs, placed = paste0("ASV", which(SEQID %in% load_placed_asvs())))
 known_asvs   <- intersect(rownames(tax_df)[mt_status %in% "Known"], rownames(otu_df))
+placed_only   <- intersect(rownames(tax_df)[mt_status %in% "Placed"], rownames(otu_df))
 putative_only <- intersect(rownames(tax_df)[mt_status %in% "Putative"], rownames(otu_df))
 if (file.exists("outputs/data/methanotroph_tier_totals.csv")) {
   tt <- read.csv("outputs/data/methanotroph_tier_totals.csv")
@@ -742,10 +744,11 @@ if (file.exists("outputs/data/methanotroph_tier_totals.csv")) {
 }
 
 cat(sprintf("  Known methanotroph ASVs: %d\n", length(known_asvs)))
+cat(sprintf("  Placed methanotroph ASVs: %d\n", length(placed_only)))
 cat(sprintf("  Putative methanotroph ASVs: %d\n", length(putative_only)))
 
 # List families detected
-all_mt_asvs <- unique(c(known_asvs, putative_only))
+all_mt_asvs <- unique(c(known_asvs, placed_only, putative_only))
 mt_families_detected <- sort(unique(tax_df[all_mt_asvs, "Family"]))
 mt_families_detected <- mt_families_detected[!is.na(mt_families_detected)]
 cat("  Detected methanotroph families:\n")
@@ -1605,8 +1608,8 @@ sub_header("Methanotroph relative abundances by compartment (Figure 5 support)")
 # Already have ps.filt, otu_df, tax_df, samp_meta from Section 5
 if (exists("ps.filt") && exists("mt_defs")) {
 
-  # Known + putative methanotroph ASVs (reuse from Section 5)
-  all_mt_asvs <- unique(c(known_asvs, putative_only))
+  # Known + Placed + Putative methanotroph ASVs (reuse from Section 5)
+  all_mt_asvs <- unique(c(known_asvs, placed_only, putative_only))
 
   for (comp in c("Heartwood", "Sapwood", "Mineral Soil", "Organic Soil")) {
     samps <- samp_meta %>% filter(compartment == comp) %>% rownames()

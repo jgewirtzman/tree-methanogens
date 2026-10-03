@@ -56,6 +56,7 @@ D,code/05_model/13_height_form_crossvalidation.R,root,FALSE,leave-one-height-out
 D,code/05_model/14_rf_height_extrapolation.R,root,FALSE,model behaviour above its training heights
 D,code/07_molecular/01_faprotax_dump_HW_SW.R,root,FALSE,FAPROTAX functions by compartment (Fig 6b)
 D,code/07_molecular/02_picrust_pathway_associations.R,root,FALSE,PICRUSt2 pathway associations with mcrA and pmoA (Fig 6c; S11-S13)
+D,code/07_molecular/03_methanotroph_resolution.R,root,FALSE,methanotrophs at several taxonomic resolutions; tree placement (Placed tier); sensitivity
 D,code/09_tables_stats/01_height_effects.R,root,FALSE,height effects by species (Results 2)
 D,code/09_tables_stats/02_campaign_counts.R,root,FALSE,Table 1 and campaign sample sizes
 D,code/09_tables_stats/03_clade-census.R,root,FALSE,census of methane-cycling clades in the 16S data
