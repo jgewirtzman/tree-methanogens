@@ -20,11 +20,11 @@ black_oak_its_load.csv,material,character,NA,Tissue type (heartwood / sapwood)
 black_oak_its_load.csv,sample_id,character,NA,Sample identifier
 ddpcr_gene_abundances.csv,accepted_droplets,integer,NA,Number of accepted droplets in partition
 ddpcr_gene_abundances.csv,analysis_type,character,NA,Analysis classification (loose/strict threshold)
-ddpcr_gene_abundances.csv,concentration_copies_per_uL,numeric,copies/uL,Gene concentration
-ddpcr_gene_abundances.csv,copies_per_20uL_well,numeric,copies/well,Copies per 20 uL reaction well
+ddpcr_gene_abundances.csv,concentration_copies_per_uL,numeric,copies/uL,"Gene concentration per uL of the 1x ddPCR reaction (QX200 output). Copies per g = value x (25/2.5) x 75 / sample mass (g): 2.5 uL of extract in a 25 uL reaction, 75 uL elution; not corrected for extraction recovery"
+ddpcr_gene_abundances.csv,copies_per_20uL_well,numeric,copies/well,"QX200 bookkeeping value: concentration x 20 (the reaction volume was 25 uL)"
 ddpcr_gene_abundances.csv,core_type,character,NA,Core type
 ddpcr_gene_abundances.csv,extraction_plate,character,NA,DNA extraction plate identifier
-ddpcr_gene_abundances.csv,material,character,NA,"Sample material (inner bark, outer bark, mineral soil, organic soil)"
+ddpcr_gene_abundances.csv,material,character,NA,"Sample material (Wood or Soil); with core_type: Inner = heartwood, Outer = sapwood, Mineral and Organic soil horizons"
 ddpcr_gene_abundances.csv,negatives,integer,NA,Number of negative droplets
 ddpcr_gene_abundances.csv,plate_id,character,NA,ddPCR plate identifier
 ddpcr_gene_abundances.csv,positives,integer,NA,Number of positive droplets
