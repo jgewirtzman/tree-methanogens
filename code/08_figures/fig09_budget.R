@@ -264,15 +264,17 @@ pd <- ggplot(wf) +
   scale_fill_manual(values = c(sink = SINK, src = SRC, src_lt = SRC_LT, net = NETC), guide = "none") +
   scale_x_continuous(breaks = 1:5, labels = c(levels(wf$step), "Foliage\n(unknown)"), limits = c(0.4, 5.6)) +
   # labels computed from the variables above -- never hardcode, they drift
-  annotate("text", x = 1, y = soil_ann,             label = sprintf("%.0f", soil_ann),
-           vjust = 1.5, size = 3.6) +
+  # negative totals sit inside the bottom of their bars (white); the axis edge and bar end crowded them
+  annotate("text", x = 1, y = soil_ann,             label = sub("-", "\u2212", sprintf("%.0f", soil_ann)),
+           vjust = -0.7, size = 3.6, colour = "white", fontface = "bold") +
   annotate("text", x = 2, y = soil_ann + tree_meas, label = sprintf("+%.1f", tree_meas),
            vjust = -0.8, size = 3.6) +
   # total, not an increment: this bar INCLUDES the measured band drawn at x = 2
-  annotate("text", x = 3, y = soil_ann + tree_scen, label = sprintf("+%.0f", tree_scen),
-           vjust = -0.8, size = 3.6) +
-  annotate("text", x = 4, y = soil_ann + tree_scen, label = sprintf("%.0f", soil_ann + tree_scen),
-           vjust = 1.5, size = 3.6) +
+  # placed above the top of the range line so the line does not cross it
+  annotate("text", x = 3, y = soil_ann + tree_hi, label = sprintf("+%.0f", tree_scen),
+           vjust = -0.6, size = 3.6) +
+  annotate("text", x = 4, y = soil_ann + tree_scen, label = sub("-", "\u2212", sprintf("%.0f", soil_ann + tree_scen)),
+           vjust = -0.7, size = 3.6, colour = "white", fontface = "bold") +
   # bounding range on the scenario bar (WAI 1.50 - 3.07, constant flux)
   annotate("linerange", x = 3, ymin = soil_ann + tree_lo, ymax = soil_ann + tree_hi,
            colour = "grey25", linewidth = 0.5) +
