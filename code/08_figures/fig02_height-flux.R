@@ -17,7 +17,7 @@
 #   - outputs/figures/original/main/fig2_height_dependent_flux.png
 # ==============================================================================
 
-# REVISION — Fig 2 FINAL: copy of code/02_flux/static/04_height_effect_analysis.R
+# REVISION — Fig 2 FINAL: copy of code/09_tables_stats/01_height_effects.R
 # with ONE change — panel a uses a shared signed pseudo-log x-axis across all species
 # (R2 Fig 2a), preserving the original grid layout and 7x7.5 dimensions. NEW file;
 # edits nothing existing. Output: outputs/figures/generated/fig2_final.png
@@ -475,6 +475,10 @@ heatmap_data <- soil_mcra_data %>%
 
 p_bottom <- ggplot(heatmap_data, aes(x = species_label_no_n, y = variable, fill = z_score)) +
   geom_tile(color = "white", linewidth = 0.5) +
+  scale_y_discrete(labels = c("VWC" = "VWC",
+                              "log mcrA (Organic)"  = expression(log~italic(mcrA)~"(organic)"),
+                              "log mcrA (Mineral)"  = expression(log~italic(mcrA)~"(mineral)"),
+                              "log mcrA (Weighted)" = expression(log~italic(mcrA)~"(weighted)"))) +
   scale_fill_gradient2(low = "white", mid = "lightblue", high = "#4575B4",
                        midpoint = 0, na.value = "grey90",
                        name = "Z-score") +

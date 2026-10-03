@@ -16,6 +16,7 @@
 #   - diagnostic plots (to outputs/figures/)
 # ==============================================================================
 
+source("../lib/rf_spec.R")   # RF_NUM_TREES, RF_THREADS
 library(dplyr)
 library(tidyr)
 library(readr)
@@ -52,7 +53,7 @@ local({ g <- "code/lib/geometry.R"; if (!file.exists(g)) g <- "../../code/lib/ge
 INVENTORY <- canonical_inventory()
 # Column names the legacy block below expects. canonical_inventory() speaks the
 # inventory's own vocabulary (tag, PX, PY in plot-local metres); geo_transforms() is
-# the same lon/lat conversion predict_tree_flux_current.R uses, so the two agree.
+# the same lon/lat conversion 01_predict_tree_flux.R uses, so the two agree.
 INVENTORY$tree_id <- as.character(INVENTORY$tag)   # character, as everywhere else
 local({ ll <- geo_transforms()$fwd(INVENTORY$PX, INVENTORY$PY)
         INVENTORY$x <<- ll$lon; INVENTORY$y <<- ll$lat })
@@ -80,7 +81,7 @@ cat("Note: Using GPS coordinates throughout (x = longitude, y = latitude)\n")
 # =============================================================================
 
 # DBH repair removed. canonical_inventory() returns diameters already unit-checked and
-# typo-repaired by inventory_build.R under ONE documented rule (shift the decimal
+# typo-repaired by 08_inventory_build.R under ONE documented rule (shift the decimal
 # until the value is <= 100 cm), replacing this stack of species-specific thresholds
 # which over-corrected and used species == "..." rather than %in%, so the 41 stems with
 # species = NA fell through unpredictably. The n_dbh_corrected line that followed
@@ -452,10 +453,10 @@ compute_empirical_SI <- function(df, flux_col, group_name, use_soil_temp = FALSE
     rf0 <- ranger(
       x = X,
       y = df_clean$y_asinh,
-      num.trees = 200,
+      num.trees = RF_NUM_TREES,
       min.node.size = 5,
       mtry = max(1, floor(sqrt(ncol(X)))),
-      num.threads = 1,
+      num.threads = RF_THREADS,
       keep.inbag = TRUE,
       seed = 42                      # reproducibility: this RF's residuals define the seasonal index
     )
@@ -530,9 +531,9 @@ compute_taxon_prior <- function(tree_df, taxonomy_df) {
   rf_env <- ranger(
     x = X_env,
     y = df_clean$y_asinh,
-    num.trees = 200,
+    num.trees = RF_NUM_TREES,
     min.node.size = 5,
-    num.threads = 1,
+    num.threads = RF_THREADS,
     seed = 42                        # reproducibility: residuals here define the taxonomy prior (a TreeRF feature)
   )
   
@@ -742,7 +743,7 @@ build_features_tree <- function(df, drivers, Mhat_fn, SI_table, taxonomy, taxon_
   # This is a bias-variance choice and it was settled by repeated 5-fold CV over
   # observations, with the rare-species rows scored separately because an overall
   # RMSE is dominated by the abundant species and will always favour pooling
-  # (rf_species_pooling.R):
+  # (10_rf_species_pooling.R):
   #
   #   scheme               RMSE all   RMSE rare   bias rare   ratio rare
   #   genus_then_pool       0.3110      0.1218      0.0245       1.23
@@ -757,7 +758,7 @@ build_features_tree <- function(df, drivers, Mhat_fn, SI_table, taxonomy, taxon_
   # over-predicts least, which is also the conservative direction here.
   #
   # Giving every measured species its own level was tried and is NOT better: three
-  # records cannot reshape an 800-tree forest, and shrinking min.node.size to 2 to
+  # records cannot reshape the forest, and shrinking min.node.size to 2 to
   # let them try made it worse. Empirical-Bayes shrinkage of a species offset
   # toward genus toward the grand mean -- effectively the old taxon prior -- was
   # the worst of the five.
@@ -770,7 +771,7 @@ build_features_tree <- function(df, drivers, Mhat_fn, SI_table, taxonomy, taxon_
   # heights -- now joins Quercus rather than being treated as unmeasured.
   #
   # For a species with NO records nothing works: leave-one-species-out gives
-  # negative R2 for every scheme (rf_species_fallback_loso.R). That is a
+  # negative R2 for every scheme (09_rf_species_fallback_loso.R). That is a
   # stated limitation, not something to engineer around.
   # ---------------------------------------------------------------------------
   sp_raw <- as.character(df$species)
@@ -874,6 +875,17 @@ tree_train <- build_features_tree(tree_combined, DRIVERS, Mhat, SI_TABLES,
                                   TAXONOMY, TAXONOMY_PRIORS)
 soil_train <- build_features_soil(SOIL_YEAR, DRIVERS, Mhat, SI_TABLES)
 
+# One fixed row order. A seeded random forest still depends on the order of its rows,
+# and the order here followed how upstream files happened to be appended (a run from
+# raw data put the December 2020 soil collars elsewhere and moved soil OOB R2 by 0.001).
+# radix sorts text in C-locale order, so the order does not depend on the machine's locale.
+tree_train <- tree_train[order(as.character(tree_train$tree_id), tree_train$Date,
+                               tree_train$measurement_height_cm, tree_train$chamber_type,
+                               tree_train$stem_flux_umol_m2_s, method = "radix"), ]
+soil_train <- soil_train[order(as.character(soil_train$site_id), soil_train$Date,
+                               soil_train$soil_flux_umol_m2_s, method = "radix"), ]
+rownames(tree_train) <- NULL; rownames(soil_train) <- NULL
+
 cat("✓ Features built for training\n\n")
 
 # =============================================================================
@@ -898,7 +910,7 @@ tree_train$dead_stem <- is_dead_stem_flux(tree_train$stem_flux_umol_m2_s)
 cat("  Dead-stem deployments excluded from training:", sum(tree_train$dead_stem), "\n")
 complete_rows <- complete_rows & !tree_train$dead_stem
 # Every trainable row, dead stems included and flagged, for
-# code/05_model/audit_training_population.R (live vs all vs a live/dead predictor).
+# code/05_model/05_audit_training_population.R (live vs all vs a live/dead predictor).
 tree_train_candidates <- tree_train[!is.na(tree_train$y_asinh) & !is.na(tree_train$species_factor), ]
 save(tree_train_candidates, file = "../../outputs/models/TRAINING_CANDIDATES.RData")
 
@@ -1029,11 +1041,11 @@ cat("  Species×moisture interactions for ALL species including OTHER\n")
 TreeRF <- ranger(
   x = as.data.frame(X_tree),
   y = y_tree,
-  num.trees = 800,
+  num.trees = RF_NUM_TREES,
   min.node.size = 5,
   mtry = floor(sqrt(ncol(X_tree))),
   importance = "impurity",
-  num.threads = 1,
+  num.threads = RF_THREADS,
   oob.error = TRUE,
   seed = 42
 )
@@ -1092,11 +1104,11 @@ X_soil_template <- X_soil
 SoilRF <- ranger(
   x = as.data.frame(X_soil),
   y = y_soil,
-  num.trees = 800,
+  num.trees = RF_NUM_TREES,
   min.node.size = 5,
   mtry = floor(sqrt(ncol(X_soil))),
   importance = "impurity",
-  num.threads = 1,
+  num.threads = RF_THREADS,
   oob.error = TRUE,
   seed = 42
 )
@@ -1717,7 +1729,7 @@ diagnostics <- list(
     soil = sort(unique(soil_train_complete$month))
   ),
   training_chambers = as.list(table(tree_train_complete$chamber_type)),
-  dbh_corrections_applied = NA_integer_,  # repairs now happen in inventory_build.R
+  dbh_corrections_applied = NA_integer_,  # repairs now happen in 08_inventory_build.R
   coordinate_system = "GPS (x = longitude, y = latitude)"  # ADDED
 )
 

@@ -46,7 +46,7 @@ paths <- list(
   # Master per-collar soil temperature + VWC campaign (Date, Site, Plot, Subplot).
   # Resolves to the individual collar, unlike soilmoisture_total.csv which only
   # resolves to the plot, and covers 197 of 288 soil flux records vs 104.
-  # Compiled by code/03_merge/compile_soil_env.R from every per-date iPad sheet
+  # Compiled by code/03_merge/02_compile_soil_env.R from every per-date iPad sheet
   # PLUS the master workbook: 97% coverage of soil flux records (279/288) with
   # genuinely measured per-collar temperature and VWC, vs 39% before.
   soil_env_collar_csv = "../../data/processed/environmental/soil_env_by_collar.csv",
@@ -186,6 +186,8 @@ screen_chamber_integrity <- function(df, c0_col, flux_col, label) {
 # The revision dataset was written with syntactic column names (Plot.Tag); the older
 # file used literal spaces (`Plot Tag`). Normalise so downstream code is agnostic.
 if (!is.null(semirigid_data)) {
+  source(Filter(file.exists, c("code/lib/monthly_cols.R", "../lib/monthly_cols.R", "../../lib/monthly_cols.R"))[1])
+  semirigid_data <- monthly_plain(semirigid_data)   # .x/.y duplicates -> plain names
   nm <- names(semirigid_data)
   ren <- c("Plot.Tag" = "Plot Tag", "Plot.Letter" = "Plot Letter")
   for (from in names(ren)) if (from %in% nm && !(ren[[from]] %in% nm)) {
@@ -196,7 +198,7 @@ if (!is.null(semirigid_data)) {
 
 cat("\nChamber integrity screen:\n")
 soil_data      <- screen_chamber_integrity(soil_data,      "CH4_C0",   "CH4_best.flux",   "soil monthly")
-semirigid_data <- screen_chamber_integrity(semirigid_data, "CH4_C0.x", "CH4_best.flux.x", "tree monthly")
+semirigid_data <- screen_chamber_integrity(semirigid_data, "CH4_C0",   "CH4_best.flux",   "tree monthly")
 tree_2023_data <- screen_chamber_integrity(tree_2023_data, "CH4_C0",   "CH4_best.flux",   "tree 2023")
 
 # Check critical data loaded
@@ -413,7 +415,7 @@ cat("  Sample inventory tree IDs (first 10):", paste(head(unique(INVENTORY$tree_
 #
 # a single hardcoded date stamped onto every row of the 2021 campaign. The
 # campaign did not happen in a day: goflux_auxfile.csv -- this pipeline's OWN
-# product, written by code/02_flux/static/01_prep_auxfile.R -- records
+# product, written by code/02_flux/static/01_prep_auxfile_2021.R -- records
 # 461 measurements from 2021-07-19 13:45 to 2021-08-12 14:09 across 19 field days,
 # a median of 8 and at most 15 trees a day.
 #
@@ -825,7 +827,7 @@ if (!is.null(semirigid_data)) {
                              as.POSIXct(paste(as.Date(Date), "12:00:00"), tz = "UTC")),
       tree_id_raw = as.character(`Plot Tag`),
       plot_letter = toupper(trimws(`Plot Letter`)),
-      stem_flux_umol_m2_s = CH4_best.flux.x,
+      stem_flux_umol_m2_s = CH4_best.flux,
       chamber_type = "semirigid",
       month = month(Date),
       year = year(Date)
@@ -858,6 +860,22 @@ if (!is.null(semirigid_data)) {
            species_code = dplyr::coalesce(species_code, .sp_tag),
            species = dplyr::coalesce(species, unname(species_mapping[.sp_tag]))) %>%
     select(-.sp_tag)
+
+  # NOTE (2026-10-02): census tags are not unique (853 and 970 also belong to small pines
+  # in the 2018 by-tag survey), so a tag match can attach another stem's species and
+  # diameter. The monthly survey's own tree list is the field record for these stems:
+  # where its species disagrees with the census match, or the census has no diameter,
+  # take species and diameter from it.
+  ym <- read.csv("../../data/raw/inventory/spatial_data/YM_trees_measured.csv.csv",
+                 fileEncoding = "UTF-8-BOM", stringsAsFactors = FALSE) %>%
+    distinct(Label, .keep_all = TRUE) %>%
+    transmute(tree_id_raw = as.character(Label), ym_code = Species, ym_dbh_m = as.numeric(D_stem) / 100)
+  TREE_YEAR <- TREE_YEAR %>% left_join(ym, by = "tree_id_raw") %>%
+    mutate(.fix = !is.na(ym_code) & (is.na(species_code) | species_code != ym_code),
+           species_code = ifelse(.fix, ym_code, species_code),
+           species = ifelse(.fix, unname(species_mapping[ym_code]), species),
+           dbh_m = ifelse(.fix | is.na(dbh_m), dplyr::coalesce(ym_dbh_m, dbh_m), dbh_m)) %>%
+    select(-ym_code, -ym_dbh_m, -.fix)
   
   # Add met tower temperature
   TREE_YEAR <- add_met_tower_temp(TREE_YEAR, weather_clean, "Date")
@@ -1002,7 +1020,7 @@ if (!is.null(soil_data) && !is.null(plot_locations)) {
   # This replaces the old MAD k=8 filter, which deleted four genuine wetland-margin
   # emissions while retaining the one real artifact, making the sink ~2.7x too strong.
   # =========================================================================
-  OUT_OF_STAND_COLLARS <- c("WS_1-1", "WS_1-2")
+  source(if (file.exists("../lib/soil_collars.R")) "../lib/soil_collars.R" else "code/lib/soil_collars.R")  # OUT_OF_STAND_COLLARS
   n_before_stand <- nrow(SOIL_YEAR)
   SOIL_YEAR <- SOIL_YEAR %>% filter(!(site_id %in% OUT_OF_STAND_COLLARS))
   cat(sprintf("  Out-of-stand collars removed: %s (%d of %d measurements)\n",

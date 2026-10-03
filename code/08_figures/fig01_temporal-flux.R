@@ -22,7 +22,14 @@ library(scales)
 
 # Read the datasets
 soil_dataset <- read.csv('data/processed/flux/semirigid_tree_final_complete_dataset_soil.csv')
-tree_dataset <- read.csv('data/processed/flux/semirigid_tree_final_complete_dataset_with_untagged.csv')  # includes recovered untagged/dead-snag monthly trees
+source('code/lib/monthly_cols.R')
+tree_dataset <- monthly_plain(read.csv('data/processed/flux/semirigid_tree_final_complete_dataset_with_untagged.csv'))  # includes recovered untagged/dead-snag monthly trees
+
+# Measurements are excluded only for procedural failure: the chamber screen in
+# 02_qc_c0_screen.R (two soil chambers not at ambient at closure). The r2 >= 0.7 and
+# -100..200 filters that stood here were removed 2026-10-01: an r2 screen is not a
+# detection criterion and inflated the mean stem flux 144% (Methods S4).
+QC_EXCLUDED <- read.csv("outputs/data/qc_excluded_measurements.csv")$UniqueID
 moisture_data <- read.csv('data/raw/field_data/ipad_data/Cleaned data/soilmoisture_total.csv')
 names(moisture_data)[grep("Date", names(moisture_data))[1]] <- "Date"  # fix BOM-mangled column name
 
@@ -34,8 +41,7 @@ tree_dataset$Date <- as.Date(tree_dataset$Date)
 
 # Prepare soil data
 soil_plot_data <- soil_dataset %>%
-  filter((CO2_LM.r2 >= 0.7 | CO2_HM.r2 >= 0.7 | CH4_LM.r2 >= 0.7 | CH4_HM.r2 >= 0.7),
-         CH4_best.flux >= -100 & CH4_best.flux <= 200) %>%
+  filter(!is.na(CH4_best.flux), !UniqueID %in% QC_EXCLUDED) %>%
   mutate(
     Plot_Type = case_when(
       Plot.letter %in% c("WD", "WS") ~ "W",
@@ -64,8 +70,7 @@ soil_plot_data <- soil_dataset %>%
 
 # Prepare tree data
 tree_plot_data <- tree_dataset %>%
-  filter((CO2_LM.r2 >= 0.7 | CO2_HM.r2 >= 0.7 | CH4_LM.r2.x >= 0.7 | CH4_HM.r2.x >= 0.7),
-         CH4_best.flux.x >= -100 & CH4_best.flux.x <= 200) %>%
+  filter(!is.na(CH4_best.flux)) %>%
   mutate(
     Plot_Type = case_when(
       Plot.Letter %in% c("WD", "WS") ~ "W",
@@ -84,8 +89,8 @@ tree_plot_data <- tree_dataset %>%
   ungroup() %>%
   group_by(Plot_Type, Date_interval) %>%
   summarise(
-    mean_flux = mean(CH4_best.flux.x, na.rm = TRUE),
-    se_flux = sd(CH4_best.flux.x, na.rm = TRUE) / sqrt(n()),
+    mean_flux = mean(CH4_best.flux, na.rm = TRUE),
+    se_flux = sd(CH4_best.flux, na.rm = TRUE) / sqrt(n()),
     n_measurements = n(),
     .groups = 'drop'
   ) %>%
@@ -99,8 +104,7 @@ combined_facet_data <- bind_rows(soil_plot_data, tree_plot_data) %>%
 
 # Prepare raw data for jittering
 soil_raw_data <- soil_dataset %>%
-  filter((CO2_LM.r2 >= 0.7 | CO2_HM.r2 >= 0.7 | CH4_LM.r2 >= 0.7 | CH4_HM.r2 >= 0.7),
-         CH4_best.flux >= -100 & CH4_best.flux <= 200) %>%
+  filter(!is.na(CH4_best.flux), !UniqueID %in% QC_EXCLUDED) %>%
   mutate(
     Plot_Type = case_when(
       Plot.letter %in% c("WD", "WS") ~ "W",
@@ -123,8 +127,7 @@ soil_raw_data <- soil_dataset %>%
   rename(CH4_flux = CH4_best.flux)
 
 tree_raw_data <- tree_dataset %>%
-  filter((CO2_LM.r2 >= 0.7 | CO2_HM.r2 >= 0.7 | CH4_LM.r2.x >= 0.7 | CH4_HM.r2.x >= 0.7),
-         CH4_best.flux.x >= -100 & CH4_best.flux.x <= 200) %>%
+  filter(!is.na(CH4_best.flux)) %>%
   mutate(
     Plot_Type = case_when(
       Plot.Letter %in% c("WD", "WS") ~ "W",
@@ -143,8 +146,8 @@ tree_raw_data <- tree_dataset %>%
   group_by(Date_group) %>%
   mutate(Date_interval = min(Date)) %>%
   ungroup() %>%
-  filter(!is.na(CH4_best.flux.x), !is.na(Date_interval)) %>%
-  rename(CH4_flux = CH4_best.flux.x)
+  filter(!is.na(CH4_best.flux), !is.na(Date_interval)) %>%
+  rename(CH4_flux = CH4_best.flux)
 
 combined_facet_raw <- bind_rows(soil_raw_data, tree_raw_data) %>%
   mutate(Plot_Type = factor(Plot_Type, levels = c("U", "I", "W"),
@@ -316,11 +319,9 @@ ggsave("outputs/figures/generated/fig1_final.png",
 # Overall statistics
 cat("\n===== OVERALL STATISTICS =====\n")
 cat("Total tree flux measurements:", nrow(tree_dataset %>%
-                                            filter((CO2_LM.r2 >= 0.7 | CO2_HM.r2 >= 0.7 | CH4_LM.r2.x >= 0.7 | CH4_HM.r2.x >= 0.7),
-                                                   CH4_best.flux.x >= -100 & CH4_best.flux.x <= 200)), "\n")
+                                            filter(!is.na(CH4_best.flux))), "\n")
 cat("Total soil flux measurements:", nrow(soil_dataset %>%
-                                            filter((CO2_LM.r2 >= 0.7 | CO2_HM.r2 >= 0.7 | CH4_LM.r2 >= 0.7 | CH4_HM.r2 >= 0.7),
-                                                   CH4_best.flux >= -100 & CH4_best.flux <= 200)), "\n")
+                                            filter(!is.na(CH4_best.flux), !UniqueID %in% QC_EXCLUDED)), "\n")
 cat("Date range:", format(min(combined_facet_data$Date_interval, na.rm = TRUE), "%B %Y"),
     "to", format(max(combined_facet_data$Date_interval, na.rm = TRUE), "%B %Y"), "\n")
 

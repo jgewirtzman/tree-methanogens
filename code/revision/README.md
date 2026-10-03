@@ -22,14 +22,14 @@ to `outputs/figures/` (originals) and `outputs/revision/`.
 ```
 code/revision/
 ├── run_all.R                  # one-command reproduce (globs rev_stat_*/rev_fig*)
-├── 00_assemble_figures.R  # copies finals -> outputs/figures/{main,SI,photos}/ (numbered)
+├── zz_assemble_figures.R  # copies finals -> outputs/figures/{main,SI,photos}/ (numbered)
 ├── prep_species_data.R    # shared, side-effect-free species-level data prep (sourced)
 ├── rev_fig01_*.R … rev_fig09_*.R    # main-figure generators (by manuscript number)
 │     rev_fig06_hydrogenotrophy      #   NEW synthesis main fig
 │     rev_fig07_decay-methanogenesis #   NEW expanded Fig 7 (decay + fungi + felled-oak; replaces felled-oak-only)
 ├── rev_figS02/04/11/12/15/17/19/20/21_*.R   # SI-figure generators
 │     rev_figS19 probe validation · rev_figS20 stem deterioration · rev_figS21 ddPCR-16S concordance  # NEW
-├── figS_black-oak-cross-sections.R      # NEW felled-oak cross-section photo plate (-> photos/)
+├── figS19_black-oak-cross-sections.R      # NEW felled-oak cross-section photo plate (-> photos/)
 ├── rev_fig02a/07b/07c_*.R     # supporting panel scripts
 ├── rev_stat_*.R               # final analyses / tables (campaign counts, RMA, multigene, isotopes, …)
 ├── bo-funguild-saprotroph.R  # exploratory FUNGuild on felled-oak ITS (not wired into a figure)
@@ -40,9 +40,9 @@ code/revision/
 ## Data
 All inputs come from the consolidated `data/` archive (drop-in from Zenodo). Revision-
 specific curated inputs were added there, alongside the existing files:
-- `data/processed/molecular/methanotroph_definitions_revised.csv` (Known→Putative reclass)
-- `data/processed/molecular/black_oak/` — extraction/core/soil masses (felled-oak copies/g) and
-  `bo_its_load.csv` (felled-oak QUVE ITS load for Fig 7 panel f; makes Fig 7 standalone)
+- `code/lib/methanotroph_definitions.csv` (methanotroph classification; tracked)
+- `data/raw/field_data/black_oak/bo_*.csv` — extraction/core/soil masses (felled-oak copies/g)
+- `data/raw/external/tree-microbiome/bo_its_load.csv` (felled-oak QUVE ITS load for Fig 7 panel f)
 
 ## Outputs
 - `outputs/revision/` — all generated figures, reports, tables (CSV/TXT/PNG).

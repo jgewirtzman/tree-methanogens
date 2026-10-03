@@ -125,6 +125,14 @@ cat("Good windows (>=60 obs):", length(good_windows), "\n")
 # =============================================================================
 
 cat("\n=== STEP 3: MANUAL IDENTIFICATION ===\n")
+source("../../lib/flux_windows.R")
+MC_PATH <- window_path("flux_model_choices.csv")
+WIN <- window_path("lgr_manual_identification_semirigid_tree.csv")
+# Saved hand-picked windows are the record; the picker below runs only without them
+# (or with FLUX_REPICK=1, interactively). See code/lib/flux_windows.R.
+if (use_saved_windows(WIN)) {
+  manID.lgr3 <- load_windows(WIN)
+} else {
 
 # Process in batches of 20
 batch_size <- 20
@@ -242,7 +250,8 @@ manID.lgr3 <- do.call(rbind, manID_batches)
 cat("\nManual identification complete! Total:", nrow(manID.lgr3), "measurements\n")
 
 # Save manual identification results
-write_csv(manID.lgr3, "../../../data/processed/flux/lgr_manual_identification_semirigid_tree.csv")
+write_csv(manID.lgr3, repick_path(basename(WIN)))
+}
 
 # =============================================================================
 # STEP 4: FLUX CALCULATIONS
@@ -296,6 +305,7 @@ CO2_best_lgr3 <- best.flux(
   k.ratio = 1,
   warn.length = 60
 )
+CO2_best_lgr3 <- apply_model_choices(CO2_best_lgr3, "CO2", MC_PATH)
 
 # Run best.flux on CH4 results if available
 if(exists("CH4_flux_lgr3")) {
@@ -308,6 +318,7 @@ if(exists("CH4_flux_lgr3")) {
     k.ratio = 1,
     warn.length = 60
   )
+  CH4_best_lgr3 <- apply_model_choices(CH4_best_lgr3, "CH4", MC_PATH)
 }
 
 # Quality summary
@@ -337,7 +348,7 @@ if(exists("CH4_best_lgr3")) {
 cat("\n=== STEP 6: CREATING PLOTS ===\n")
 
 # Create CO2 flux plots
-CO2_plots_lgr3 <- flux.plot(
+CO2_plots_lgr3 <- maybe_flux_plot(
   flux.results = CO2_best_lgr3,
   dataframe = manID.lgr3,
   gastype = "CO2dry_ppm",
@@ -351,7 +362,7 @@ CO2_plots_lgr3 <- flux.plot(
 
 # Create CH4 plots if available
 if(exists("CH4_best_lgr3")) {
-  CH4_plots_lgr3 <- flux.plot(
+  CH4_plots_lgr3 <- maybe_flux_plot(
     flux.results = CH4_best_lgr3,
     dataframe = manID.lgr3,
     gastype = "CH4dry_ppb",
@@ -370,7 +381,7 @@ if(exists("CH4_best_lgr3")) {
 }
 
 # Save plots to PDF
-flux2pdf(
+maybe_flux2pdf(
   plot.list = all_plots_lgr3,
   outfile = "../../../data/processed/flux/LGR3_flux_plots_complete.pdf",
   width = 11.6,

@@ -16,6 +16,7 @@
 # ==============================================================================
 
 library(goFlux)
+source("../lib/flux_windows.R")   # maybe_flux_plot(), maybe_flux2pdf()
 library(dplyr)
 library(readr)
 
@@ -36,7 +37,7 @@ cat("Using chamber volume:", CORRECT_CHAMBER_VOLUME_L, "L\n")
 cat("Using total system volume:", round(CORRECT_VTOT_L, 3), "L\n\n")
 
 # Load the manual identification data with correct volume
-manID.lgr3 <- read_csv("../../data/processed/flux/lgr_manual_identification_results_soil.csv", 
+manID.lgr3 <- read_csv(window_path("lgr_manual_identification_results_soil.csv"), 
                        show_col_types = FALSE)
 
 # Ensure correct volume is set
@@ -248,7 +249,7 @@ CH4_best_lgr3 <- CH4_best_lgr3 %>%
   )
 
 # Create CH4 plots with corrected data
-CH4_plots_lgr3 <- flux.plot(
+CH4_plots_lgr3 <- maybe_flux_plot(
   flux.results = CH4_best_lgr3,
   dataframe = manID.lgr3,
   gastype = "CH4dry_ppb",  # Correct gastype for plots
@@ -261,7 +262,7 @@ CH4_plots_lgr3 <- flux.plot(
 )
 
 # Save corrected CH4 plots
-flux2pdf(
+maybe_flux2pdf(
   plot.list = CH4_plots_lgr3,
   outfile = "../../outputs/figures/CH4_flux_plots_soil_CORRECTED.pdf",
   width = 11.6,
@@ -937,28 +938,34 @@ cat("Saved complete dataset to: data/processed/flux/FINAL_soil_flux_dataset_comp
 
 # Also save a simplified version with just the key results
 simplified_dataset <- final_dataset %>%
-  select(UniqueID, start.time, Plot, trt, soilT.C, moistV, 
-         CO2_flux.term, CO2_model, CO2_quality.check,
-         CH4_flux.term, CH4_model, CH4_quality.check,
-         CO2_CH4_ratio, CH4_uptake, CH4_emission)
+  # any_of(): the aux file carries no `Plot` column, so a plain select() stopped the
+  # script here on a fresh run. This summary is not read by any other script.
+  select(any_of(c("UniqueID", "start.time", "Plot", "trt", "soilT.C", "moistV",
+         "CO2_flux.term", "CO2_model", "CO2_quality.check",
+         "CH4_flux.term", "CH4_model", "CH4_quality.check",
+         "CO2_CH4_ratio", "CH4_uptake", "CH4_emission")))
 
 write_csv(simplified_dataset, "../../data/processed/flux/FINAL_soil_flux_dataset_simplified.csv")
 cat("Saved simplified dataset to: data/processed/flux/FINAL_soil_flux_dataset_simplified.csv\n")
 
 # Save a summary table
-summary_by_treatment <- final_dataset %>%
-  group_by(trt) %>%
-  summarise(
-    n = n(),
-    CO2_mean = round(mean(CO2_flux.term, na.rm = TRUE), 2),
-    CO2_se = round(sd(CO2_flux.term, na.rm = TRUE) / sqrt(sum(!is.na(CO2_flux.term))), 3),
-    CH4_mean = round(mean(CH4_flux.term, na.rm = TRUE), 4),
-    CH4_se = round(sd(CH4_flux.term, na.rm = TRUE) / sqrt(sum(!is.na(CH4_flux.term))), 4),
-    CH4_uptake_pct = round(100 * sum(CH4_uptake, na.rm = TRUE) / sum(!is.na(CH4_flux.term)), 1)
-  )
-
-write_csv(summary_by_treatment, "../../data/processed/flux/FINAL_soil_flux_summary_by_treatment.csv")
-cat("Saved summary by treatment to: data/processed/flux/FINAL_soil_flux_summary_by_treatment.csv\n")
+# Summary by treatment: only if the aux file carries `trt` (it does not on a fresh run);
+# this summary is not read by any other script.
+if ("trt" %in% names(final_dataset)) {
+  summary_by_treatment <- final_dataset %>%
+    group_by(trt) %>%
+    summarise(
+      n = n(),
+      CO2_mean = round(mean(CO2_flux.term, na.rm = TRUE), 2),
+      CO2_se = round(sd(CO2_flux.term, na.rm = TRUE) / sqrt(sum(!is.na(CO2_flux.term))), 3),
+      CH4_mean = round(mean(CH4_flux.term, na.rm = TRUE), 4),
+      CH4_se = round(sd(CH4_flux.term, na.rm = TRUE) / sqrt(sum(!is.na(CH4_flux.term))), 4),
+      CH4_uptake_pct = round(100 * sum(CH4_uptake, na.rm = TRUE) / sum(!is.na(CH4_flux.term)), 1)
+    )
+  
+  write_csv(summary_by_treatment, "../../data/processed/flux/FINAL_soil_flux_summary_by_treatment.csv")
+  cat("Saved summary by treatment to: data/processed/flux/FINAL_soil_flux_summary_by_treatment.csv\n")
+}
 
 cat("\n✅ COMPLETE! Final dataset created with correct CH4 and CO2 fluxes.\n")
 cat("\nKey findings:\n")

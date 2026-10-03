@@ -202,7 +202,7 @@ labels_excel <- read.xlsx("../../data/raw/dbh/labels.xlsx", sheet = "Sheet1")
 soil_data <- read_csv("../../data/raw/field_data/static_chamber_field/soil_tree_level_means.csv")
 
 # 5. Read flux data TEMP (has DBH data)
-flux_temp <- read_csv("../../data/processed/flux/flux_data_TEMP.csv")
+flux_temp <- read_csv("../../data/raw/field_data/legacy/flux_data_TEMP.csv")
 
 # 6. Read ddPCR data (no DBH, just for Tree IDs) - with encoding fix
 cat("Reading ddPCR data with encoding handling...\n")

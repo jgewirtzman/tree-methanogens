@@ -43,7 +43,7 @@ pa <- ggplot(fa, aes(t, family, color = group)) +
   geom_segment(aes(x = 0, xend = t, yend = family), color = "grey78", linewidth = 0.6) +
   geom_point(size = 3.6) +
   scale_color_manual(values = c(Methanogen = RED, `Associate / syntroph` = SYN, `Other fermenter` = OTH), name = NULL) +
-  labs(x = "Co-occurrence with mcrA (t-statistic; FDR < 0.05)", y = NULL) +
+  labs(x = expression("Co-occurrence with "*italic(mcrA)*" (t-statistic; FDR < 0.05)"), y = NULL) +
   ggtitle(expression(bold("a  Taxa: methanogens + fermentative associates"))) + th +
   theme(legend.position = c(0.98, 0.04), legend.justification = c(1, 0),
         legend.background = element_rect(fill="white", color="grey80"),
@@ -56,8 +56,11 @@ pa <- ggplot(fa, aes(t, family, color = group)) +
 # generic/CO2/methyl methanogenesis) excluded; hydrogenotrophic_methanogenesis shown as the
 # representative methanogenesis route. See panel_b_faprotax_selection.md.
 fap_all <- read.csv("outputs/data/FAPROTAX_all_functions_HW_SW.csv")
+# Methanogen ASVs are removed from every function except the methanogenesis reference row:
+# FAPROTAX files Methanobacteriaceae under dark H2 oxidation and Methanomassiliicoccaceae
+# under methylotrophy, which recounted the methanogens as independent functions (2026-10-02).
 fap_sel <- tribble(~func, ~disp,
-  "hydrogenotrophic_methanogenesis", "Hydrogenotrophic methanogenesis",
+  "hydrogenotrophic_methanogenesis", "Hydrogenotrophic methanogenesis (methanogens)",
   "dark_hydrogen_oxidation",         "Dark hydrogen oxidation",
   "fermentation",                    "Fermentation",
   "anaerobic_chemoheterotrophy",     "Anaerobic chemoheterotrophy",
@@ -68,7 +71,10 @@ fap_sel <- tribble(~func, ~disp,
   "methanotrophy",                   "Methanotrophy",
   "cellulolysis",                    "Cellulolysis")
 fap <- fap_sel %>% left_join(fap_all, by = "func") %>%
-  mutate(lr = log2(HW/SW), fn = fct_reorder(disp, lr))
+  mutate(nonmg = func != "hydrogenotrophic_methanogenesis",
+         HWp = ifelse(nonmg, HW_nonmethanogen, HW), SWp = ifelse(nonmg, SW_nonmethanogen, SW),
+         lr = log2(HWp/SWp), fn = fct_reorder(disp, lr))
+stopifnot(all(is.finite(fap$lr)))
 pb <- ggplot(fap, aes(lr, fn, fill = lr)) +
   geom_col() + geom_vline(xintercept = 0, color = "grey50") +
   scale_fill_gradient2(low = BLU, mid = "grey93", high = RED, midpoint = 0, guide = "none") +
@@ -86,12 +92,17 @@ contrib <- setNames(cb$mean_percent_from_mcra, cb$pathway)
 sig <- p6 %>% filter(!is.na(FDR), FDR < 0.05) %>%
   mutate(gc = ifelse(is.na(contrib[pathway]), 0, contrib[pathway])) %>% filter(gc < 0.10)
 classify_pw <- function(id, desc) { x <- tolower(paste(id, desc))
+  # A pathway goes in a category only when its MetaCyc function places it there unambiguously
+  # (2026-10-02): TCA variants of anaerobes and autotrophs (Fd-dependent, reductive, acetate-
+  # producer, Helicobacter) and menaquinone (an anaerobic-respiration quinone) are not counted
+  # as aerobic respiration; carbohydrate breakdown is labelled as such, not as fermentation.
+  if (grepl("tca cycle (v|vi|vii|viii) |reductive tca|menaquin", x)) return("other")
   if (grepl("acetyl coenzyme a|calvin|rump|formaldehyde|carbon fix", x)) return("C1 / carbon fixation")
-  if (grepl("ferment|glycolysis|glycogen|mannan|starch|xylan|cellulose|propanoate|butanoate|glutamate degrad|lactate|pyruvate", x)) return("Fermentation / carbohydrate")
-  if (grepl("aerobic respiration|tca cycle|glyoxylate|ubiquin|cytochrome|menaquin", x)) return("Aerobic respiration")
+  if (grepl("ferment|glycolysis|glycogen|mannan|starch|xylan|cellulose|propanoate|butanoate|glutamate degrad|lactate|pyruvate", x)) return("Fermentation and carbohydrate breakdown")
+  if (grepl("aerobic respiration|tca cycle|glyoxylate cycle|glyoxylate bypass|ubiquin|cytochrome", x)) return("TCA cycle and aerobic respiration")
   if (grepl("sulfate|sulfur|thiosulf|sulfhydr|cysteine|nitrate|nitrite|denitrif|nitrogen", x)) return("Sulfur / nitrogen metabolism")
   return("other") }  # lipid/fatty-acid biosynthesis -> 'other' (in SI table, not displayed)
-DISP <- c("C1 / carbon fixation","Fermentation / carbohydrate","Aerobic respiration","Sulfur / nitrogen metabolism")
+DISP <- c("C1 / carbon fixation","Fermentation and carbohydrate breakdown","TCA cycle and aerobic respiration","Sulfur / nitrogen metabolism")
 pwc <- sig %>% rowwise() %>% mutate(cat = classify_pw(pathway, description)) %>% ungroup() %>%
   filter(cat %in% DISP, !grepl("anaerobic", tolower(description))) %>%
   group_by(cat) %>% arrange(desc(abs(t))) %>% slice(1:4) %>% ungroup() %>%
@@ -108,9 +119,9 @@ pwc <- sig %>% rowwise() %>% mutate(cat = classify_pw(pathway, description)) %>%
 pc <- ggplot(pwc, aes(t, lab, color = cat)) +
   geom_segment(aes(x = 0, xend = t, yend = lab), color = "grey78", linewidth = 0.6) +
   geom_point(size = 3.2) + geom_vline(xintercept = 0, color = "grey50") +
-  scale_color_manual(values = c(`C1 / carbon fixation`=RED, `Fermentation / carbohydrate`=SYN,
-                                `Aerobic respiration`=BLU, `Sulfur / nitrogen metabolism`=ABLU), name = NULL) +
-  labs(x = "Association with mcrA (t-statistic)", y = NULL,
+  scale_color_manual(values = c(`C1 / carbon fixation`=RED, `Fermentation and carbohydrate breakdown`=SYN,
+                                `TCA cycle and aerobic respiration`=BLU, `Sulfur / nitrogen metabolism`=ABLU), name = NULL) +
+  labs(x = expression("Association with "*italic(mcrA)*" (t-statistic)"), y = NULL,
        title = "c  Pathway (PICRUSt2): anaerobic C-metabolism tracks mcrA") + th +
   theme(legend.position = c(0.98, 0.04), legend.justification = c(1, 0),
         legend.background = element_rect(fill="white", color="grey80"),
@@ -118,11 +129,11 @@ pc <- ggplot(pwc, aes(t, lab, color = cat)) +
 
 # ---- (d) ISOTOPES (Fig-S9 raincloud) + Keeling source; points sized by CH4 ----
 XLO <- -118; XHI <- 28
-iso <- read.csv("outputs/data/ISOTOPES_sample_table.csv") %>%
-  filter(is.finite(d13CH4), d13CH4 > -115, d13CH4 < 25, ch4_ppm >= 1.5)
+iso <- read.csv("outputs/data/ISOTOPES_sample_table.csv")   # already screened (code/lib/isotope_samples.R)
 dens <- density(iso$d13CH4); dd <- data.frame(x = dens$x, y = dens$y/max(dens$y)*0.55) %>% filter(x >= XLO, x <= XHI)
 set.seed(42); iso$jy <- runif(nrow(iso), -0.30, -0.06); iso$lc <- log10(iso$ch4_ppm)
-keel <- -79; keel_lo <- -92; keel_hi <- -66; by <- -0.52; bs <- 0.15; bc <- 0.035
+.iso_sum <- with(read.csv("outputs/data/ISOTOPES_summary.csv"), setNames(value, quantity))   # 12_isotopes-canonical.R
+keel <- .iso_sum[["keeling_source"]]; keel_lo <- .iso_sum[["keeling_ci_lo"]]; keel_hi <- .iso_sum[["keeling_ci_hi"]]; by <- -0.52; bs <- 0.15; bc <- 0.035
 brk <- function(x1,x2,y,lab) list(
   annotate("segment", x=x1, xend=x2, y=y, yend=y, color="gray30", linewidth=0.9),
   annotate("segment", x=x1, xend=x1, y=y, yend=y+bc, color="gray30", linewidth=0.5),
@@ -132,14 +143,15 @@ pd <- ggplot() +
   geom_vline(xintercept=-47, linetype="dashed", color="gray30", linewidth=0.5) +
   annotate("text", x=-47, y=0.55, label="Atmosphere", color="gray30", size=3, fontface="italic", hjust=-0.08) +
   geom_ribbon(data=dd, aes(x=x, ymin=0, ymax=y), fill=DENS_F, color=METH, alpha=0.7, linewidth=0.7) +
-  geom_point(data=iso, aes(x=d13CH4, y=jy, size=lc), color=METH, fill=DENS_F, shape=21, alpha=0.6, stroke=0.3) +
+  # extremes beyond the axis are drawn off-panel otherwise; they are in all statistics (legend)
+  geom_point(data=subset(iso, d13CH4 >= XLO & d13CH4 <= XHI), aes(x=d13CH4, y=jy, size=lc), color=METH, fill=DENS_F, shape=21, alpha=0.6, stroke=0.3) +
   scale_size_continuous(range=c(0.6, 3.4), name=expression("CH"[4]*" conc. (ppm)"),
                         breaks=c(1,2,3,4), labels=c("10","100","1000","10k"),
                         guide=guide_legend(override.aes=list(alpha=0.85))) +
   annotate("segment", x=keel_lo, xend=keel_hi, y=0.72, yend=0.72, color=METH, linewidth=0.9) +
   annotate("segment", x=c(keel_lo,keel_hi), xend=c(keel_lo,keel_hi), y=0.69, yend=0.75, color=METH, linewidth=0.6) +
   annotate("point", x=keel, y=0.72, color=METH, size=3) +
-  annotate("text", x=keel, y=0.84, label="Keeling source (95% CI)", color=METH, size=3.2, fontface="bold", hjust=0.5) +
+  annotate("text", x=keel, y=0.84, label="Robust Keeling source (95% CI)", color=METH, size=3.2, fontface="bold", hjust=0.5) +
   brk(-110,-60, by, "Hydrogenotrophic") + brk(-65,-50, by-bs, "Acetoclastic") + brk(-70,-50, by-2*bs, "Methylotrophic") +
   scale_x_continuous(breaks=seq(-120,20,20)) + coord_cartesian(xlim=c(XLO,XHI), ylim=c(-0.92, 0.92), clip="off") +
   labs(x=expression(delta^13*"C-CH"[4]*" (per mil VPDB)"), y=NULL,

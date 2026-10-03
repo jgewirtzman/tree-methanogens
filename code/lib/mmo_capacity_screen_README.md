@@ -4,7 +4,7 @@
 `methanotroph_definitions.csv` marked "Capacity rule 2026-09-30". NCBI changes over time,
 so the snapshot is committed rather than regenerated.
 
-Reproduce with `code/09_tables_stats/stat_mmo-capacity-screen.R` (live NCBI E-utilities;
+Reproduce with `code/tools/mmo_capacity_screen.R` (live NCBI E-utilities;
 needs network and the Bioconductor package `pwalign`).
 
 - `assemblies` — NCBI Assembly records for the genus.
@@ -16,3 +16,11 @@ needs network and the Bioconductor package `pwalign`).
   PmoA (Q607G3) and M. trichosporium MmoX (P27353). True subunit: >=40% id over >=150 aa to
   PmoA, or >=55% id over >=300 aa to MmoX.
 - Positive controls: Methylocapsa (pMMO), Methylocella (sMMO).
+
+## Table S5 snapshot
+
+`mmo_capacity_screen_table_S5_2026-09-30.csv` is the output of the same tool, run
+2026-09-30 with pwalign 1.2.0 (identities are pwalign PID1, so they read lower than the
+Biopython figures above; every verdict is the same). It is Table S5 of the SI, so the
+figure assembler and `zenodo/02_compile_results.R` read it from here; `run_all.R` does
+not query NCBI.
