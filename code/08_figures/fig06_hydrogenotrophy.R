@@ -143,14 +143,15 @@ pd <- ggplot() +
   geom_vline(xintercept=-47, linetype="dashed", color="gray30", linewidth=0.5) +
   annotate("text", x=-47, y=0.55, label="Atmosphere", color="gray30", size=3, fontface="italic", hjust=-0.08) +
   geom_ribbon(data=dd, aes(x=x, ymin=0, ymax=y), fill=DENS_F, color=METH, alpha=0.7, linewidth=0.7) +
-  geom_point(data=iso, aes(x=d13CH4, y=jy, size=lc), color=METH, fill=DENS_F, shape=21, alpha=0.6, stroke=0.3) +
+  # extremes beyond the axis are drawn off-panel otherwise; they are in all statistics (legend)
+  geom_point(data=subset(iso, d13CH4 >= XLO & d13CH4 <= XHI), aes(x=d13CH4, y=jy, size=lc), color=METH, fill=DENS_F, shape=21, alpha=0.6, stroke=0.3) +
   scale_size_continuous(range=c(0.6, 3.4), name=expression("CH"[4]*" conc. (ppm)"),
                         breaks=c(1,2,3,4), labels=c("10","100","1000","10k"),
                         guide=guide_legend(override.aes=list(alpha=0.85))) +
   annotate("segment", x=keel_lo, xend=keel_hi, y=0.72, yend=0.72, color=METH, linewidth=0.9) +
   annotate("segment", x=c(keel_lo,keel_hi), xend=c(keel_lo,keel_hi), y=0.69, yend=0.75, color=METH, linewidth=0.6) +
   annotate("point", x=keel, y=0.72, color=METH, size=3) +
-  annotate("text", x=keel, y=0.84, label="Keeling source (95% CI)", color=METH, size=3.2, fontface="bold", hjust=0.5) +
+  annotate("text", x=keel, y=0.84, label="Robust Keeling source (95% CI)", color=METH, size=3.2, fontface="bold", hjust=0.5) +
   brk(-110,-60, by, "Hydrogenotrophic") + brk(-65,-50, by-bs, "Acetoclastic") + brk(-70,-50, by-2*bs, "Methylotrophic") +
   scale_x_continuous(breaks=seq(-120,20,20)) + coord_cartesian(xlim=c(XLO,XHI), ylim=c(-0.92, 0.92), clip="off") +
   labs(x=expression(delta^13*"C-CH"[4]*" (per mil VPDB)"), y=NULL,
