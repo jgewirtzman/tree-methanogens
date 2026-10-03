@@ -31,3 +31,10 @@ extract_copies_per_g <- function(conc_per_ul_extract, mass_mg, material)
   conc_per_ul_extract * ddpcr_elution_ul(material) / (mass_mg / 1000)
 ddpcr_copies_per_g <- function(conc_per_ul_reaction, mass_mg, material)
   extract_copies_per_g(conc_per_ul_reaction * (DDPCR_REACTION_UL / DDPCR_TEMPLATE_UL), mass_mg, material)
+# The per-sample tables (ddPCR_meta_all_data.csv; tree_data_methanogen_group.csv, the
+# *_loose / *_strict gene columns) hold "Copies/20µLWell" = Conc x 20, NOT Conc. A 20 µL
+# well holds 20 x 2.5/25 = 2 µL of extract, so copies per µL of extract = well / 2.
+# The tree-microbiome (Nature 2025) code used exactly this: well x (75/2) / mass.
+DDPCR_WELL_UL <- 20
+ddpcr_copies_per_g_from_well <- function(copies_per_well, mass_mg, material)
+  ddpcr_copies_per_g(copies_per_well / DDPCR_WELL_UL, mass_mg, material)

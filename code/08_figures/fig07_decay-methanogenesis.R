@@ -109,10 +109,10 @@ pa<-ggplot(y,aes(x,fx))+geom_hline(yintercept=0,linetype=3,colour="grey70")+
 
 o<-read.csv("data/raw/external/tree-microbiome/tree_data_methanogen_group.csv",check.names=FALSE);o<-o[,names(o)!=""]
 o$mass<-suppressWarnings(as.numeric(o$`Sample.Mass.Added.to.Tube..mg..x`))
-# mcrA: ddPCR copies per uL of reaction -> copies/g (lib/ddpcr_constants.R, as panel d);
+# mcrA: this table holds ddPCR copies per 20 uL well -> copies/g (lib/ddpcr_constants.R);
 # ITS: facility qPCR copies per uL of extract x elution / mass. Wood and soil rows only.
 ws<-o$material%in%c("Wood","Soil");o$mcra_g<-o$ITS_g<-NA_real_
-o$mcra_g[ws]<-ddpcr_copies_per_g(suppressWarnings(as.numeric(o$mcra_probe_loose[ws])),o$mass[ws],o$material[ws])
+o$mcra_g[ws]<-ddpcr_copies_per_g_from_well(suppressWarnings(as.numeric(o$mcra_probe_loose[ws])),o$mass[ws],o$material[ws])
 o$ITS_g[ws]<-extract_copies_per_g(suppressWarnings(as.numeric(o$ITS_per_ul[ws])),o$mass[ws],o$material[ws])
 d<-o[is.finite(o$mcra_g)&is.finite(o$ITS_g)&o$mcra_g>0&o$ITS_g>0&o$material%in%c("Wood","Soil"),];d$sp<-as.factor(o$species.x[as.integer(rownames(d))])
 d$X<-log10(d$ITS_g);d$Y<-log10(d$mcra_g)
