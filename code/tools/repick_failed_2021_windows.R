@@ -22,7 +22,7 @@ failed_measurements <- c(
   "20210803_Lowland_YB11_200_3_172500", 
   "20210803_Lowland_YB11_125_3_171900",
   "20210803_Lowland_YB12_50_3_181900",
-  "20210806_Lowland_AB 6prime_125_6_102700"
+  "20210806_Lowland_AB6prime_125_6_102700"
 )
 
 cat("Failed measurements to reprocess:\n")
