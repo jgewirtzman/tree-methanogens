@@ -860,6 +860,22 @@ if (!is.null(semirigid_data)) {
            species_code = dplyr::coalesce(species_code, .sp_tag),
            species = dplyr::coalesce(species, unname(species_mapping[.sp_tag]))) %>%
     select(-.sp_tag)
+
+  # NOTE (2026-10-02): census tags are not unique (853 and 970 also belong to small pines
+  # in the 2018 by-tag survey), so a tag match can attach another stem's species and
+  # diameter. The monthly survey's own tree list is the field record for these stems:
+  # where its species disagrees with the census match, or the census has no diameter,
+  # take species and diameter from it.
+  ym <- read.csv("../../data/raw/inventory/spatial_data/YM_trees_measured.csv.csv",
+                 fileEncoding = "UTF-8-BOM", stringsAsFactors = FALSE) %>%
+    distinct(Label, .keep_all = TRUE) %>%
+    transmute(tree_id_raw = as.character(Label), ym_code = Species, ym_dbh_m = as.numeric(D_stem) / 100)
+  TREE_YEAR <- TREE_YEAR %>% left_join(ym, by = "tree_id_raw") %>%
+    mutate(.fix = !is.na(ym_code) & (is.na(species_code) | species_code != ym_code),
+           species_code = ifelse(.fix, ym_code, species_code),
+           species = ifelse(.fix, unname(species_mapping[ym_code]), species),
+           dbh_m = ifelse(.fix | is.na(dbh_m), dplyr::coalesce(ym_dbh_m, dbh_m), dbh_m)) %>%
+    select(-ym_code, -ym_dbh_m, -.fix)
   
   # Add met tower temperature
   TREE_YEAR <- add_met_tower_temp(TREE_YEAR, weather_clean, "Date")

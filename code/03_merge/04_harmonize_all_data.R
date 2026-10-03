@@ -55,10 +55,15 @@ create_comprehensive_lookup <- function(mapping) {
 
 tree_lookup <- create_comprehensive_lookup(mapping)
 
+# Same tree recorded under two IDs across data sheets (cores vs flux); see the file
+tree_aliases <- read.csv("../lib/tree_id_aliases.csv", stringsAsFactors = FALSE)
+
 standardize_tree_id <- function(tree_ids) {
   clean_ids <- tolower(trimws(as.character(tree_ids)))
   standardized <- tree_lookup$Tree_ID_normalized[match(clean_ids, tree_lookup$original_name_lower)]
   result <- ifelse(is.na(standardized), clean_ids, standardized)
+  aliased <- tree_aliases$to[match(result, tree_aliases$from)]
+  result <- ifelse(is.na(aliased), result, aliased)
   return(result)
 }
 
