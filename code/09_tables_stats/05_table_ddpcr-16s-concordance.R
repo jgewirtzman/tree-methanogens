@@ -16,8 +16,8 @@ mgfam<-c("Methanobacteriaceae","Methanomassiliicoccaceae","Methanoregulaceae","M
 mg_asv<-rownames(otu)[tax$Family %in% mgfam]
 source("code/lib/load_methanotroph_definitions.R")
 dp<-"code/lib/methanotroph_definitions.csv"
-tax$mt<-classify_methanotrophs(tax,load_methanotroph_defs(dp),include_conditional=TRUE,placed=load_placed_asvs())
-mt_asv<-rownames(otu)[tax$mt %in% c("Known","Placed","Putative")]
+tax$mt<-classify_methanotrophs(tax,load_methanotroph_defs(dp),include_conditional=TRUE)
+mt_asv<-rownames(otu)[tax$mt %in% c("Known","Putative")]
 s16<-data.frame(key=sub("[.]16S[.]S[0-9]*$","",colnames(cnt)),
                 mg16=100*colSums(cnt[mg_asv,,drop=FALSE],na.rm=TRUE)/tot,
                 mt16=100*colSums(cnt[mt_asv,,drop=FALSE],na.rm=TRUE)/tot)

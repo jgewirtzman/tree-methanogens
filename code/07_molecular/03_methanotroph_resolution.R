@@ -11,7 +11,7 @@
 #   Family  Methylomonadaceae + Methylococcaceae; Beijerinckiaceae (all);
 #           Methylacidiphilaceae; Methylomirabilaceae
 #   Genus   Known (the capacity rule); Known + Putative
-#   Placed  Known, plus genus-unresolved Beijerinckiaceae ASVs whose nearest
+#   Placed  Known, plus the genus-unresolved Beijerinckiaceae ASVs (all Putative) whose nearest
 #           genus-resolved Beijerinckiaceae neighbour on the ASV tree is a
 #           methanotroph genus (Methylocapsa, Methylocella, Methyloferula), within
 #           PLACE_MAX_DIST substitutions per site
@@ -26,8 +26,8 @@
 #         data/raw/16s/black_oak/OTU_table.txt, code/lib/methanotroph_definitions.csv
 # Writes: outputs/data/methanotroph_resolution.csv (survey, by compartment)
 #         outputs/data/methanotroph_resolution_placement.csv (unresolved ASVs)
-#         outputs/data/methanotroph_placed_asvs.csv (ASV ids for the Placed tier, read by
-#           load_placed_asvs() in every downstream classifier call)
+#         outputs/data/methanotroph_placed_asvs.csv (tree-placed ASV ids, read by
+#           load_placed_asvs(); reported as a subset of the Putative tier)
 #         outputs/data/methanotroph_placement_sensitivity.csv (thresholds 0.02-0.04)
 #         outputs/data/methanotroph_resolution_black_oak.csv (oak, by tissue)
 # ==============================================================================
@@ -78,8 +78,8 @@ GROUPS <- list(
   "Family: Methylacidiphilaceae"               = fam("Methylacidiphilaceae"),
   "Family: Methylomirabilaceae"                = fam("Methylomirabilaceae"),
   "Genus: Known"                               = rownames(tax)[tax$mt == "Known"],
-  "Genus: Known + Putative (all tiers)"        = rownames(tax)[tax$mt %in% c("Known", "Putative")],
-  "Placed: Known + Placed"                     = union(rownames(tax)[tax$mt == "Known"], placed_mt))
+  "Genus: Known + Putative"        = rownames(tax)[tax$mt %in% c("Known", "Putative")],
+  "Placed: Known + tree-placed Putative"                     = union(rownames(tax)[tax$mt == "Known"], placed_mt))
 
 # ---- pair with ddPCR ----------------------------------------------------------
 key <- sub("[.]16S[.]S[0-9]*$", "", colnames(rel))

@@ -11,15 +11,14 @@
 #   sMMO); see manuscript OPEN_DECISIONS, 'capacity rule set'.
 #   Curated from Knief (2015) with SILVA 138 taxonomy mapping.
 #   Includes Known/Putative/Conditional flags per taxon.
-#   REVISED (2026 revision, R2 #2): Methylacidiphilaceae reclassified at family
-#   level from Known -> Putative; AMENDED 2026-10-02 to listed, not counted (mesophilic
-#   genomes from peat and tree bark lack MMO); genus Methylacidiphilum remains Known.
-#   Tiers: Known / Placed (tree placement; see load_placed_asvs) / Putative.
+#   Methylacidiphilaceae (genus unresolved) are Putative; genus Methylacidiphilum is Known.
+#   Tiers: Known / Putative. The optional `placed` argument (load_placed_asvs) labels the
+#   tree-placed subset of Putative for the resolution analysis (Table S6) only.
 #
 # Usage:
 #   source("code/lib/load_methanotroph_definitions.R")
 #   mt_defs <- load_methanotroph_defs()
-#   tax_df$mt_status <- classify_methanotrophs(tax_df, mt_defs, placed = load_placed_asvs())
+#   tax_df$mt_status <- classify_methanotrophs(tax_df, mt_defs)
 #   tax_df$mt_family <- assign_display_family(tax_df, mt_defs)
 # ==============================================================================
 
@@ -143,9 +142,9 @@ classify_methanotrophs <- function(tax_df, mt_defs,
     }
   }
 
-  # --- Placed (2026-10-02): a genus-unresolved ASV that the ASV tree places within
-  #     ~97% of a methanotroph genus. Only Putative rows can be promoted, and only by
-  #     ASV id (rownames(tax_df)), from load_placed_asvs(). ---
+  # --- optional: label the tree-placed subset of Putative (genus-unresolved ASVs the
+  #     ASV tree places within ~97% of a methanotroph genus), by ASV id. Used only by the
+  #     resolution analysis; the reported tiers remain Known / Putative. ---
   if (!is.null(placed) && length(placed) && !is.null(rownames(tax_df))) {
     idx <- rownames(tax_df) %in% placed & status %in% "Putative"
     status[idx] <- "Placed"
