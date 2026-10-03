@@ -151,7 +151,7 @@ pd <- ggplot() +
   annotate("segment", x=keel_lo, xend=keel_hi, y=0.72, yend=0.72, color=METH, linewidth=0.9) +
   annotate("segment", x=c(keel_lo,keel_hi), xend=c(keel_lo,keel_hi), y=0.69, yend=0.75, color=METH, linewidth=0.6) +
   annotate("point", x=keel, y=0.72, color=METH, size=3) +
-  annotate("text", x=keel, y=0.84, label="Robust Keeling source (95% CI)", color=METH, size=3.2, fontface="bold", hjust=0.5) +
+  annotate("text", x=keel, y=0.84, label="Keeling source (95% CI)", color=METH, size=3.2, fontface="bold", hjust=0.5) +
   brk(-110,-60, by, "Hydrogenotrophic") + brk(-65,-50, by-bs, "Acetoclastic") + brk(-70,-50, by-2*bs, "Methylotrophic") +
   scale_x_continuous(breaks=seq(-120,20,20)) + coord_cartesian(xlim=c(XLO,XHI), ylim=c(-0.92, 0.92), clip="off") +
   labs(x=expression(delta^13*"C-CH"[4]*" (per mil VPDB)"), y=NULL,
