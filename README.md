@@ -189,7 +189,7 @@ Classification hierarchy (first match wins):
 ## Notes
 
 - Run scripts from the repository root, or open `tree-methanogens.Rproj` in RStudio. Two stages are run from their own directory: `code/05_model/`, and the nested subdirectories under `code/02_flux/` and `code/07_molecular/`.
-- Figure S17 additionally requires a plant traits table from the companion `tree-gas-traits` repository.
+- Figure S24 (plant traits) additionally requires a plant traits table from the companion `tree-gas-traits` repository.
 - `code/archive/` contains superseded scripts kept for reference; they are not part of the pipeline.
 
 ## Citation

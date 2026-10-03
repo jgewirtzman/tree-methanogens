@@ -17,7 +17,7 @@ RESULTS <- c(
   "scaling_headline.csv"         = "outputs/data/scaling_headline.csv",
   "scaling_slope_diagnostics.csv"= "outputs/data/scaling_slope_diagnostics.csv",
   "wai_bottomup.csv"             = "outputs/data/wai_bottomup.csv",
-  # model skill (Results 10, Methods S4, S7)
+  # model skill (Results 10, Methods S6, S9)
   "rf_grouped_cv.csv"            = "outputs/data/rf_grouped_cv.csv",
   "gene_rf_cv.csv"               = "outputs/data/gene_rf_cv.csv",
   # isotopes (Results 7, Fig 6d)
