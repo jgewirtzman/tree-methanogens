@@ -42,7 +42,6 @@ source("code/lib/build_phyloseq.R")
 .ps16   <- build_16s_phyloseq()
 no_mito <- .ps16$ps
 
-SEQID <- taxa_names(no_mito)   # seq ids, for the Placed tier (load_placed_asvs)
 taxa_names(no_mito) <- paste0("ASV", seq(ntaxa(no_mito)))
 set.seed(46814)
 ps.rare <- rarefy_even_depth(no_mito, sample.size = 3500)
@@ -113,22 +112,18 @@ source("code/lib/load_methanotroph_definitions.R")
 mt_defs <- load_methanotroph_defs()  # R2 #2: Methylacidiphilaceae family Known->Putative
 
 # Classify each ASV as Known, Putative, or NA
-PLACED <- paste0("ASV", which(SEQID %in% load_placed_asvs()))
-tax_df$mt_status <- classify_methanotrophs(tax_df, mt_defs, include_conditional = TRUE, placed = PLACED)
+tax_df$mt_status <- classify_methanotrophs(tax_df, mt_defs, include_conditional = TRUE)
 
 known_asvs   <- rownames(tax_df)[tax_df$mt_status == "Known" & !is.na(tax_df$mt_status)]
-placed_asvs  <- rownames(tax_df)[tax_df$mt_status == "Placed" & !is.na(tax_df$mt_status)]
 putative_asvs <- rownames(tax_df)[tax_df$mt_status == "Putative" & !is.na(tax_df$mt_status)]
-all_mt_asvs  <- c(known_asvs, placed_asvs, putative_asvs)
+all_mt_asvs  <- c(known_asvs, putative_asvs)
 
 cat("Known methanotroph ASVs:", length(known_asvs), "\n")
-cat("Placed methanotroph ASVs:", length(placed_asvs), "\n")
 cat("Putative methanotroph ASVs:", length(putative_asvs), "\n")
 
 # Per-sample abundance: total, known, putative
 samp_meta$methanotroph_pct <- colSums(otu_df[all_mt_asvs, , drop = FALSE], na.rm = TRUE)[rownames(samp_meta)]
 samp_meta$mt_known_pct     <- colSums(otu_df[known_asvs, , drop = FALSE], na.rm = TRUE)[rownames(samp_meta)]
-samp_meta$mt_placed_pct    <- colSums(otu_df[placed_asvs, , drop = FALSE], na.rm = TRUE)[rownames(samp_meta)]
 samp_meta$mt_putative_pct  <- colSums(otu_df[putative_asvs, , drop = FALSE], na.rm = TRUE)[rownames(samp_meta)]
 
 # Assign display family (using the ASV's Family) + status for grouping
@@ -249,13 +244,6 @@ summary_mt_known <- plot_data %>%
             .groups = "drop") %>%
   mutate(Status = "Known")
 
-summary_mt_placed <- plot_data %>%
-  group_by(species_label, compartment) %>%
-  summarize(mean_pct = mean(mt_placed_pct, na.rm = TRUE),
-            se_pct = sd(mt_placed_pct, na.rm = TRUE) / sqrt(n()),
-            .groups = "drop") %>%
-  mutate(Status = "Placed")
-
 summary_mt_putative <- plot_data %>%
   group_by(species_label, compartment) %>%
   summarize(mean_pct = mean(mt_putative_pct, na.rm = TRUE),
@@ -263,8 +251,8 @@ summary_mt_putative <- plot_data %>%
             .groups = "drop") %>%
   mutate(Status = "Putative")
 
-summary_mt_a <- bind_rows(summary_mt_known, summary_mt_placed, summary_mt_putative) %>%
-  mutate(Status = factor(Status, levels = c("Known", "Placed", "Putative")))
+summary_mt_a <- bind_rows(summary_mt_known, summary_mt_putative) %>%
+  mutate(Status = factor(Status, levels = c("Known", "Putative")))
 
 # Error bars on total (Known + Putative combined)
 summary_mt_total <- plot_data %>%
@@ -274,8 +262,8 @@ summary_mt_total <- plot_data %>%
             .groups = "drop")
 
 # colour encodes CLASSIFICATION only (Known vs Putative); compartment is given by the facet strip
-panel_c_fills <- c("Known" = "#2166AC", "Placed" = "#92C5DE", "Putative" = "grey70")
-summary_mt_a$fill_group <- factor(summary_mt_a$Status, levels = c("Known", "Placed", "Putative"))
+panel_c_fills <- c("Known" = "#2166AC", "Putative" = "grey70")
+summary_mt_a$fill_group <- factor(summary_mt_a$Status, levels = c("Known", "Putative"))
 
 p_mt_a <- ggplot(summary_mt_a, aes(x = species_label, y = mean_pct, fill = fill_group)) +
   geom_col(width = 0.7, color = "black", linewidth = 0.2) +
@@ -330,15 +318,15 @@ plot_data$compartment <- factor(plot_data$compartment,
                                  levels = c("Heartwood", "Sapwood", "Mineral Soil", "Organic Soil"))
 plot_data$species_label <- factor(plot_data$species_label, levels = sp_order)
 
-mt_fam_stat_cols <- grep("^mt_(Known|Placed|Putative)_", colnames(plot_data), value = TRUE)
+mt_fam_stat_cols <- grep("^mt_(Known|Putative)_", colnames(plot_data), value = TRUE)
 
 mt_comp <- plot_data %>%
   select(species_label, compartment, all_of(mt_fam_stat_cols)) %>%
   pivot_longer(cols = all_of(mt_fam_stat_cols),
                names_to = "Family_Status", values_to = "Abundance") %>%
   mutate(
-    Status = sub("^mt_(Known|Placed|Putative)_.*", "\\1", Family_Status),
-    Family = sub("^mt_(Known|Placed|Putative)_", "", Family_Status)
+    Status = sub("^mt_(Known|Putative)_.*", "\\1", Family_Status),
+    Family = sub("^mt_(Known|Putative)_", "", Family_Status)
   )
 
 summary_mt_b <- mt_comp %>%
@@ -365,8 +353,6 @@ status_levels <- c()
 for (fam in all_mt_fams) {
   if (any(summary_mt_b$Family_status == paste0(fam, " (Known)")))
     status_levels <- c(status_levels, paste0(fam, " (Known)"))
-  if (any(summary_mt_b$Family_status == paste0(fam, " (Placed)")))
-    status_levels <- c(status_levels, paste0(fam, " (Placed)"))
   if (any(summary_mt_b$Family_status == paste0(fam, " (Putative)")))
     status_levels <- c(status_levels, paste0(fam, " (Putative)"))
 }

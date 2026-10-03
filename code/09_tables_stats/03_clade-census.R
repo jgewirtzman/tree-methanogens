@@ -19,7 +19,8 @@ source("code/lib/build_phyloseq.R"); source("code/lib/load_methanotroph_definiti
 defs <- load_methanotroph_defs()
 
 ps <- suppressWarnings(build_16s_phyloseq()$ps); SEQID <- taxa_names(ps); taxa_names(ps) <- paste0("ASV", seq(ntaxa(ps)))
-# Placed tier: tree-placed ASVs (seq ids, 03_methanotroph_resolution.R) mapped to the ASV names used here
+# Tree-placed ASVs (seq ids, from 03_methanotroph_resolution.R) mapped to the ASV names used here:
+# the part of the Putative tier that the ASV tree places with methanotroph genera
 PLACED <- paste0("ASV", which(SEQID %in% load_placed_asvs()))
 TX_ALL <- data.frame(tax_table(ps), stringsAsFactors = FALSE)
 names(TX_ALL)[1:7] <- c("Kingdom","Phylum","Class","Order","Family","Genus","Species")
@@ -52,7 +53,7 @@ census <- function(label, idx_all, tier) {
 }
 G <- function(x) TX_ALL$Genus == x & !is.na(TX_ALL$Genus)
 F <- function(x) TX_ALL$Family == x & !is.na(TX_ALL$Family)
-st <- classify_methanotrophs(TX_ALL, defs, include_conditional = FALSE, placed = PLACED)
+st <- classify_methanotrophs(TX_ALL, defs, include_conditional = FALSE)
 
 rows <- list()
 # ---- every rule in the definitions file ----
@@ -88,8 +89,8 @@ arch <- TX_ALL$Kingdom == "Archaea" & !is.na(TX_ALL$Kingdom) & !(TX_ALL$Family %
 for (f in names(sort(tapply(reads_all[arch], TX_ALL$Family[arch], sum), decreasing = TRUE)))
   rows[[length(rows) + 1]] <- census(paste0("Family: ", f, "  [", TX_ALL$Class[arch & TX_ALL$Family == f][1], "]"),
                                      arch & TX_ALL$Family == f & !is.na(TX_ALL$Family), "Other archaea (not defined)")
-rows[[length(rows) + 1]] <- census("Placed: genus-unresolved Beijerinckiaceae within ~97% of a methanotroph genus on the ASV tree",
-                                   rownames(TX_ALL) %in% PLACED, "Placed (tree placement)")
+rows[[length(rows) + 1]] <- census("Putative Beijerinckiaceae placed within ~97% of a methanotroph genus on the ASV tree",
+                                   rownames(TX_ALL) %in% PLACED, "Putative, tree-placed (subset)")
 C <- bind_rows(rows)
 
 sink(out_path("clade_census.txt"))
@@ -100,14 +101,15 @@ for (t in unique(C$tier)) { cat("====", t, "====\n"); x <- C[C$tier == t, -1]
 # Tier totals with the shared classifier (lib/load_methanotroph_definitions.R): the one
 # source for the methanotroph ASV counts and compartment means quoted in Results §5.
 names(st) <- rownames(TX_ALL)
-tier_tot <- do.call(rbind, lapply(c("Known", "Placed", "Putative"), function(tr) {
-  idx <- (st == tr & !is.na(st))[rownames(otu)]
+TIERS <- list(Known = st %in% "Known", Putative = st %in% "Putative",
+              `Putative, tree-placed with methanotroph genera` = st %in% "Putative" & rownames(TX_ALL) %in% PLACED)
+tier_tot <- do.call(rbind, lapply(names(TIERS), function(tr) {
+  idx <- setNames(TIERS[[tr]], rownames(TX_ALL))[rownames(otu)]
   row <- data.frame(tier = tr, ASVs_analysed = sum(idx & rowSums(otu) > 0))
   for (k in COMPS) row[[paste0(k, "_pct")]] <- round(mean(colSums(otu[idx, sd$comp == k, drop = FALSE])), 3)
   row }))
-kp <- tier_tot[1, ]; kp$tier <- "Known + Placed"; kp[, -1] <- colSums(tier_tot[1:2, -1])
-tot <- tier_tot[1, ]; tot$tier <- "Known + Placed + Putative"; tot[, -1] <- colSums(tier_tot[1:3, -1])
-tier_tot <- rbind(tier_tot, kp, tot)
+tot <- tier_tot[1, ]; tot$tier <- "Known + Putative"; tot[, -1] <- colSums(tier_tot[1:2, -1])
+tier_tot <- rbind(tier_tot, tot)
 cat("==== Tier totals (shared classifier, analysed samples; mean % of community) ====\n")
 print(tier_tot, row.names = FALSE)
 write.csv(tier_tot, out_path("methanotroph_tier_totals.csv"), row.names = FALSE)
