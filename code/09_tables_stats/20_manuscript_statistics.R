@@ -1838,8 +1838,9 @@ if (TRUE) {
   keeling <- internal_iso %>% filter(ch4_ppm > 5) %>% mutate(inv_ch4 = 1 / ch4_ppm)
   if (nrow(keeling) > 3) {
     keeling_lm <- lm(d13CH4 ~ inv_ch4, data = keeling)
-    stat("Keeling intercept", round(coef(keeling_lm)[1], 1), "permil")
+    stat("Keeling intercept (OLS, CH4 > 5 ppm; legacy check)", round(coef(keeling_lm)[1], 1), "permil")
     stat("Keeling R2", round(summary(keeling_lm)$r.squared, 3))
+    stat("Canonical source estimates", "see outputs/data/ISOTOPES_summary.csv (MM robust Keeling)")
   }
 } else {
   cat("  [SKIPPED] Picarro isotope files not found.\n")

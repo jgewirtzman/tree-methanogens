@@ -13,8 +13,11 @@ source("code/lib/outputs.R")
 #  * Use WHOLE-TREE single-borehole samples (manuscript basis). Exclude
 #    calibration standards, atmosphere (Amb), incubations (V*), and the paired
 #    heartwood/sapwood tissue set (dropped: no significant HW->SW enrichment).
-#  * CH4 source: Keeling intercept (robust here) + two-endmember atmosphere
-#    mixing correction. Report Miller-Tans too but flag it is leverage-sensitive.
+#  * CH4 source: Keeling intercept fitted by MM robust regression (Yohai 1987;
+#    MASS::rlm), so extreme values are downweighted by the model rather than by a
+#    chosen cutoff; OLS and a Tukey 3 x IQR exclusion are reported as sensitivity
+#    checks. Plus a two-endmember atmosphere mixing correction (per-sample median).
+#    Miller-Tans reported but flagged as leverage-sensitive.
 #  * eps_C computed WITHIN-tree (each sample's own CH4+CO2); report bulk and
 #    source-corrected. Report the CO2-CH4 coupling check (bulk CO2 is respiration-
 #    dominated -> eps_C is an APPARENT, corroborating fractionation).
@@ -40,9 +43,17 @@ iqr <- function(x) paste(round(quantile(x, c(.25,.75), na.rm = TRUE),1), collaps
 bulk_ch4 <- med(d$d13CH4); bulk_co2 <- med(wt$d13CO2); bulk_eps <- med(wt$eps_C)
 
 # ---- 3. CH4 SOURCE -----------------------------------------------------------
-# (a) Keeling: d13CH4 ~ 1/CH4, intercept = source (robust here)
-mk <- lm(d13CH4 ~ invCH4, data = d %>% mutate(invCH4 = 1/ch4_ppm))
-keel_src <- unname(coef(mk)[1]); keel_ci <- confint(mk)[1,]
+# (a) Keeling: d13CH4 ~ 1/CH4, intercept = source, by MM robust regression
+dk <- d %>% mutate(invCH4 = 1/ch4_ppm)
+mm <- MASS::rlm(d13CH4 ~ invCH4, data = dk, method = "MM", maxit = 100)
+keel_src <- unname(coef(mm)[1]); keel_se <- summary(mm)$coefficients[1, 2]
+keel_ci <- keel_src + c(-1, 1) * qnorm(0.975) * keel_se
+mm_w <- mm$w; n_w0 <- sum(mm_w < 0.01); n_wlow <- sum(mm_w < 0.5)
+# sensitivity: ordinary least squares on all samples, and OLS/MM after Tukey 3 x IQR
+mk <- lm(d13CH4 ~ invCH4, data = dk); keel_ols <- unname(coef(mk)[1]); keel_ols_ci <- confint(mk)[1,]
+qq <- quantile(dk$d13CH4, c(.25, .75)); fence <- qq + c(-3, 3) * diff(qq)
+dk3 <- dk %>% filter(d13CH4 >= fence[1], d13CH4 <= fence[2])
+mk3 <- lm(d13CH4 ~ invCH4, data = dk3); keel_iqr <- unname(coef(mk3)[1]); keel_iqr_ci <- confint(mk3)[1,]
 # leverage check: drop the k highest-CH4 points
 kdrop <- d %>% arrange(desc(ch4_ppm)) %>% { sapply(c(0,3,5), function(k)
   unname(coef(lm(d13CH4 ~ I(1/ch4_ppm), data = slice(., (k+1):n())))[1])) }
@@ -62,8 +73,8 @@ eps_from <- function(dch4, dco2) ((dco2 + 1000)/(dch4 + 1000) - 1)*1000
 eps_src_keel <- eps_from(keel_src, bulk_co2)          # source d13CH4 + median CO2
 eps_src_atm  <- eps_from(atm_src,  bulk_co2)
 # coupling: is bulk CO2 tied to CH4 (substrate-product) or decoupled?
-cpl_all <- cor.test(wt$d13CH4, wt$d13CO2)
-hi <- wt %>% filter(ch4_ppm >= 10); cpl_hi <- cor.test(hi$d13CH4, hi$d13CO2)
+cpl_all <- cor.test(wt$d13CH4, wt$d13CO2, method = "spearman", exact = FALSE)
+hi <- wt %>% filter(ch4_ppm >= 10); cpl_hi <- cor.test(hi$d13CH4, hi$d13CO2, method = "spearman", exact = FALSE)
 # among-species homogeneity (is one pooled estimate ok?) at reliable conc
 hi_join <- hi   # species already attached by isotope_whole_tree_samples()
 kw_matched <- sum(!is.na(hi_join$species)); kw_total <- nrow(hi)   # join-count check (reviewer #4)
@@ -104,7 +115,7 @@ p_cross <- ggplot(wt, aes(d13CO2, d13CH4)) +
   scale_color_manual(values=c(`FALSE`="grey70",`TRUE`="black"), labels=c("<10 ppm (atmos/oxid-biased)",">=10 ppm (reliable)"), name=NULL) +
   coord_cartesian(clip="off") + theme_bw(base_size=10) + theme(plot.margin=margin(5,45,5,5), legend.position="bottom") +
   labs(title="d13C-CH4 vs d13C-CO2 with apparent-fractionation (eps_C) isolines",
-       subtitle=sprintf("CO2-CH4 coupling r=%.2f (>=10 ppm), p=%.3f -> weak: bulk CO2 mostly respiration", cpl_hi$estimate, cpl_hi$p.value),
+       subtitle=sprintf("CO2-CH4 coupling rho=%.2f (>=10 ppm), p=%.3f -> weak: bulk CO2 mostly respiration", cpl_hi$estimate, cpl_hi$p.value),
        x=expression(delta^13*C-CO[2]~"(permil)"), y=expression(delta^13*C-CH[4]~"(permil)"))
 ggsave(out_path("ISOTOPES_fig2_crossplot.png"), p_cross, width=8, height=6, dpi=150)
 
@@ -118,9 +129,9 @@ methods <- c(
 "were excluded, and samples with CH4 < 1.5 ppm were removed (unreliable d13C).",
 "",
 "The CH4 source signature was estimated two ways: (i) a Keeling model",
-"(d13C-CH4 vs 1/[CH4]; intercept = source; 95% CI parametric, so it assumes",
-"error-free 1/[CH4] -- the classic Keeling caveat -- but the intercept is stable",
-"to dropping the highest-concentration points), and (ii) a two-endmember mixing",
+"(d13C-CH4 vs 1/[CH4]; intercept = source) fitted by MM robust regression, which",
+"downweights samples far from the mixing line without a chosen cutoff (OLS and a",
+"Tukey 3 x IQR exclusion as sensitivity checks), and (ii) a two-endmember mixing",
 "correction removing an atmospheric background (1.9 ppm, -47 permil) from each",
 "sample in isotope-ratio space, applied only where CH4 exceeds background by a",
 "margin (operative enrichment floor ~2.4 ppm). A Miller-Tans regression was also",
@@ -152,13 +163,16 @@ sprintf("- Miller-Tans = %.0f permil; its slope is carried by the few highest-CH
 sprintf("  (drop top 0/3/5 -> %s), so it is determined by, not robust to, those points.", paste(round(mt_drop), collapse="/")),
 "  Keeling and Miller-Tans weight opposite ends of the concentration range; we take",
 "  the atmosphere correction (-70) as the independent tie-breaker between them.",
+sprintf("- Keeling fit by MM robust regression; %d of %d samples received zero weight and %d weight < 0.5.", n_w0, nrow(dk), n_wlow),
+sprintf("- Sensitivity: OLS Keeling on all samples %.0f permil [%.0f, %.0f]; after Tukey 3 x IQR exclusion (%.0f to %.0f permil; n = %d) %.0f [%.0f, %.0f].",
+        keel_ols, keel_ols_ci[1], keel_ols_ci[2], fence[1], fence[2], nrow(dk3), keel_iqr, keel_iqr_ci[1], keel_iqr_ci[2]),
 sprintf("- Interpretation: tree-produced source (~%.0f to %.0f permil) is more depleted than the", atm_src, keel_src),
 "  bulk measured value because measured gas is diluted with atmospheric CH4.","",
 "### Apparent CO2-CH4 fractionation (eps_C)",
 sprintf("- bulk within-tree median eps_C = %.0f permil", eps_bulk),
 sprintf("- from source-corrected CH4: eps_C = %.0f (atmosphere-corrected) to %.0f (Keeling) permil", eps_src_atm, eps_src_keel),
 sprintf("  [= f(source d13CH4, median d13CO2 %.0f); this ASSUMES methanogenic CO2 ~ bulk CO2]", bulk_co2),
-sprintf("- CO2-CH4 coupling: r=%.2f overall (p=%.2f); r=%.2f at >=10 ppm (p=%.3f) -> WEAK.",
+sprintf("- CO2-CH4 coupling (Spearman): rho=%.2f overall (p=%.2f); rho=%.2f at >=10 ppm (p=%.3f) -> WEAK.",
         cpl_all$estimate, cpl_all$p.value, cpl_hi$estimate, cpl_hi$p.value),
 "  Bulk CO2 is largely respiration-dominated, so the methanogenic-CO2 ~ bulk-CO2 assumption",
 "  is questionable and eps_C is an apparent (corroborating) indicator with unknown-direction",
@@ -180,10 +194,16 @@ write.csv(data.frame(
   quantity = c("n_trees", "n_species", "d13CH4_median", "d13CH4_q25", "d13CH4_q75", "d13CO2_median",
                "keeling_source", "keeling_ci_lo", "keeling_ci_hi", "atm_corrected_source",
                "eps_C_within_tree", "eps_C_source_atm", "eps_C_source_keeling",
-               "coupling_r_ge10ppm", "coupling_p_ge10ppm", "n_ge10ppm"),
+               "coupling_r_ge10ppm", "coupling_p_ge10ppm", "n_ge10ppm",
+               "keeling_mm_n_weight0", "keeling_mm_n_weight_lt05",
+               "keeling_ols_source", "keeling_ols_ci_lo", "keeling_ols_ci_hi",
+               "iqr3_fence_lo", "iqr3_fence_hi", "iqr3_n", "keeling_iqr3_source", "keeling_iqr3_ci_lo", "keeling_iqr3_ci_hi",
+               "n_trees_ge10ppm_coupling"),
   value = c(nrow(d), dplyr::n_distinct(d$species), bulk_ch4, quantile(d$d13CH4, .25), quantile(d$d13CH4, .75),
             bulk_co2, keel_src, keel_ci[1], keel_ci[2], atm_src, bulk_eps, eps_src_atm, eps_src_keel,
-            unname(cpl_hi$estimate), cpl_hi$p.value, nrow(hi))),
+            unname(cpl_hi$estimate), cpl_hi$p.value, nrow(hi),
+            n_w0, n_wlow, keel_ols, keel_ols_ci[1], keel_ols_ci[2],
+            fence[1], fence[2], nrow(dk3), keel_iqr, keel_iqr_ci[1], keel_iqr_ci[2], nrow(hi))),
   out_path("ISOTOPES_summary.csv"), row.names = FALSE)
 writeLines(methods, out_path("ISOTOPES_methods.md"))
 writeLines(res,     out_path("ISOTOPES_results.md"))

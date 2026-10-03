@@ -32,12 +32,16 @@ pt <- function(dat, x, y) ggplot(dat, aes({{x}}, {{y}})) +
   geom_point(alpha = 0.45, size = 1.2, color = "grey30")
 
 # ---- source estimates --------------------------------------------------------
-kc <- lm(d13CH4 ~ I(1/ch4_ppm), data = d);  s_kc <- coef(kc)[1];  ci_kc <- confint(kc)[1,]
+kc <- MASS::rlm(d13CH4 ~ I(1/ch4_ppm), data = d, method = "MM", maxit = 100)   # as 12_isotopes-canonical.R
+s_kc <- coef(kc)[1]; ci_kc <- s_kc + c(-1, 1) * qnorm(0.975) * summary(kc)$coefficients[1, 2]
+d$mm_w <- kc$w
 ko <- lm(d13CO2 ~ I(1/co2_ppm), data = wt); s_ko <- coef(ko)[1];  ci_ko <- confint(ko)[1,]
 
 # ---- (a) CH4 Keeling ---------------------------------------------------------
-pa <- pt(d, 1/ch4_ppm, d13CH4) +
-  geom_smooth(method = "lm", formula = y~x, color = "black", fill = "grey80", linewidth = 0.7) +
+pa <- ggplot(d, aes(1/ch4_ppm, d13CH4)) +
+  geom_point(aes(shape = mm_w < 0.5), alpha = 0.55, size = 1.3, color = "grey30") +
+  scale_shape_manual(values = c(`FALSE` = 16, `TRUE` = 1), guide = "none") +
+  geom_abline(intercept = coef(kc)[1], slope = coef(kc)[2], color = "black", linewidth = 0.7) +
   annotate("point", x = 0, y = s_kc, color = RED, size = 2.8) +
   res_lab(sprintf("Intercept %.0f\u2030 (95%% CI %.0f to %.0f)", s_kc, ci_kc[1], ci_kc[2]), right = TRUE) +
   labs(x = expression(1/CH[4]~"(ppm"^-1*")"), y = expression(delta^13*"C-CH"[4]~"(\u2030)")) + th
@@ -59,7 +63,7 @@ pf <- pt(wt, ch4_ppm, eps_C) +
   annotate("rect", xmin = 1, xmax = Inf, ymin = EPS_LO, ymax = EPS_HI, fill = RED, alpha = 0.10) +
   geom_smooth(method = "loess", se = TRUE, color = "black", fill = "grey80", linewidth = 0.7) +
   scale_x_log10() +
-  res_lab(sprintf("Source-based \u03b5C %.0f\u2013%.0f\u2030", EPS_LO, EPS_HI), right = TRUE) +
+  res_lab(if (round(EPS_LO) == round(EPS_HI)) sprintf("Source-based \u03b5C %.0f\u2030", EPS_LO) else sprintf("Source-based \u03b5C %.0f\u2013%.0f\u2030", EPS_LO, EPS_HI), right = TRUE) +
   labs(x = expression(CH[4]~"(ppm)"), y = expression(epsilon[C]~"(\u2030)")) + th
 
 fig <- (pa | pd) / (pc | pf) +          # top row = Keeling source plots; bottom = convergence
