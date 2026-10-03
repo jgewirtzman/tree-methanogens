@@ -2,26 +2,18 @@ source("code/lib/outputs.R")
 # ==============================================================================
 # REVISION — Fig 4 final: methanogen (mcrA) / methanotroph (pmoA,mmoX) gene
 # abundance by compartment (heartwood/sapwood/soil), (a) species barplot + (b) scatter.
-# Copy of the original generator (code/archive/superseded_2026-10-01/08_figures/util_combined_plot.R) with a
-# DILUTION_10X toggle (default 1) on the absolute ddPCR copies — flip to 10 if Wyatt
-# confirms the dropped template->reaction dilution (A1). Original scripts untouched.
+# Copy of the original generator (code/archive/superseded_2026-10-01/08_figures/util_combined_plot.R).
 #
-# UNITS: the ddpcr_*_loose columns are ALREADY copies g^-1 — the harmonization step
-# (code/03_merge/04_harmonize_all_data.R:317) applies concentration_per_g =
-# copies/uL * 75 / sample_mass * 1000 (elution / sample mass). Basis: DRY for wood
-# (freeze-dried cores); soil uses fresh sample mass (the pending A2 dry-basis
-# harmonization would move soil to a dry basis and needs soil moisture we don't have).
-# The DILUTION_10X toggle multiplies these copies/g values, i.e. the A1 x10 correction
-# (uniform log10 shift; relative/among-compartment comparisons unchanged).
+# UNITS: the ddpcr_*_loose columns are ALREADY copies g^-1, converted once in
+# code/03_merge/04_harmonize_all_data.R with code/lib/ddpcr_constants.R
+# (Conc x (25/2.5) x 75 uL / mass). Basis: DRY for wood (freeze-dried cores); soil
+# uses fresh sample mass.
 # Output: outputs/figures/generated/fig4_final.png
 # ==============================================================================
 suppressPackageStartupMessages({ library(tidyverse); library(cowplot); library(patchwork) })
 out <- "outputs"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
-DILUTION_10X <- 1   # set to 10 when Wyatt confirms the dropped dilution
 
 merged_final <- read_csv("data/processed/integrated/merged_tree_dataset_final.csv", show_col_types = FALSE)
-ddpcr_cols <- grep("^ddpcr_.*_loose$", names(merged_final), value = TRUE)
-merged_final[ddpcr_cols] <- merged_final[ddpcr_cols] * DILUTION_10X   # x10 toggle (absolute copies only)
 
 source("code/08_figures/helper_species_barplots.R")   # defines create_mcra_barplot_by_species + species_mapping
 source("code/07_molecular/helper_ridge_plots.R")       # defines create_gene_scatter_ggside_transformed_probe_mcra
@@ -35,4 +27,4 @@ combined_plot <- plot_grid(barplot_improved, scatterplot, ncol = 2,
                            rel_widths = c(1.3, 1)) +
   theme(plot.background = element_rect(fill = "white", color = NA))
 ggsave(out_path("fig4_final.png"), combined_plot, width = 12, height = 7, dpi = 300, bg = "white")
-cat("Wrote fig4_final.png (DILUTION_10X =", DILUTION_10X, ")\n")
+cat("Wrote fig4_final.png\n")

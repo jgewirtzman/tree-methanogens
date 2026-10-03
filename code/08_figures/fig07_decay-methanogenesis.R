@@ -15,6 +15,7 @@
 # Writes outputs/figures/generated/fig7_decay_methanogenesis.png
 # ==============================================================================
 suppressMessages({library(tidyverse);library(patchwork);library(lme4);library(lmerTest)})
+source("code/lib/ddpcr_constants.R")
 options(warn=-1)
 asinh10<-function(x) asinh(x/0.1)/log(10)
 # marginal R2 for a mixed model (fixed-effects variance / total)
@@ -52,7 +53,7 @@ cc<-grep("Conc",colnames(mcra),value=TRUE)[1];hc<-grep("Height",colnames(mcra),v
 mcra<-mcra%>%rename(Height_cm=!!hc,Conc=!!cc)
 bm<-readr::read_csv("data/raw/field_data/black_oak/bo_extraction_mass.csv",show_col_types=FALSE)
 mcra<-mcra%>%left_join(bm%>%transmute(`Sample ID`,mass_mg=`Sample Mass Added to Tube (mg)`),by="Sample ID")%>%
-  mutate(mcrA_g=Conc*75/(mass_mg/1000))%>%filter(Component%in%c("Heartwood","Sapwood"))
+  mutate(mcrA_g=ddpcr_copies_per_g(Conc,mass_mg,"Wood"))%>%filter(Component%in%c("Heartwood","Sapwood"))
 flux<-read.csv("data/raw/field_data/black_oak/ymf_black_oak_flux_compiled.csv")
 flux$Height_m<-suppressWarnings(as.numeric(flux$Height_m))
 fdf<-flux%>%filter(!is.na(Height_m))%>%select(height=Height_m,flux=CH4_best.flux)%>%
@@ -65,7 +66,7 @@ itw$height<-as.numeric(sub("^QUVE([0-9]+).*","\\1",toupper(itw[[1]])))/100;itw$t
 bm2<-bm%>%filter(Component=="Heartwood",!is.na(`Sample Mass Added to Tube (mg)`))%>%
   group_by(h_cm=`Height (cm)`)%>%summarize(mass_mg=mean(`Sample Mass Added to Tube (mg)`),.groups="drop")
 itw$h_cm<-round(itw$height*100);itw<-itw%>%left_join(bm2,by="h_cm")
-itw$ITS_g<-itw$ITS*75000/itw$mass_mg
+itw$ITS_g<-extract_copies_per_g(itw$ITS,itw$mass_mg,"Wood")
 
 col_ht<-c(Heartwood="#a6611a",Sapwood="#1f78b4")
 pc<-ggplot(int_gas,aes(Tree.Height,CH4_concentration))+geom_smooth(se=FALSE,color="black")+
@@ -108,9 +109,11 @@ pa<-ggplot(y,aes(x,fx))+geom_hline(yintercept=0,linetype=3,colour="grey70")+
 
 o<-read.csv("data/raw/external/tree-microbiome/tree_data_methanogen_group.csv",check.names=FALSE);o<-o[,names(o)!=""]
 o$mass<-suppressWarnings(as.numeric(o$`Sample.Mass.Added.to.Tube..mg..x`))
-# copies/g dry = copies/uL * 75 uL elution / mass_mg * 1000  (same basis as mcrA panel d)
-o$mcra_g<-suppressWarnings(as.numeric(o$mcra_probe_loose))*75000/o$mass
-o$ITS_g<-suppressWarnings(as.numeric(o$ITS_per_ul))*75000/o$mass
+# mcrA: ddPCR copies per uL of reaction -> copies/g (lib/ddpcr_constants.R, as panel d);
+# ITS: facility qPCR copies per uL of extract x elution / mass. Wood and soil rows only.
+ws<-o$material%in%c("Wood","Soil");o$mcra_g<-o$ITS_g<-NA_real_
+o$mcra_g[ws]<-ddpcr_copies_per_g(suppressWarnings(as.numeric(o$mcra_probe_loose[ws])),o$mass[ws],o$material[ws])
+o$ITS_g[ws]<-extract_copies_per_g(suppressWarnings(as.numeric(o$ITS_per_ul[ws])),o$mass[ws],o$material[ws])
 d<-o[is.finite(o$mcra_g)&is.finite(o$ITS_g)&o$mcra_g>0&o$ITS_g>0&o$material%in%c("Wood","Soil"),];d$sp<-as.factor(o$species.x[as.integer(rownames(d))])
 d$X<-log10(d$ITS_g);d$Y<-log10(d$mcra_g)
 fm<-function(mat,q){s<-d[d$material==mat,];s$xc<-s$X-mean(s$X);mm<-if(q)lmer(Y~xc+I(xc^2)+(1|sp),s) else lmer(Y~X+(1|sp),s)

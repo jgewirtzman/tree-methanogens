@@ -30,11 +30,12 @@ tp <- read.csv("data/compiled/tree_properties.csv", check.names = FALSE) %>%
             mc_out = outer_moisture_fresh_percent / 100) %>%
   group_by(key) %>% summarise(mc_in = mean(mc_in, na.rm = TRUE), mc_out = mean(mc_out, na.rm = TRUE), .groups = "drop")
 
+source("code/lib/ddpcr_constants.R")
 d <- read.csv("data/compiled/ddpcr_gene_abundances.csv") %>%
   filter(analysis_type == "loose", sample_mass_mg > 0, target_gene %in% c("mcra_probe", "mcra")) %>%
   group_by(sample_id) %>% filter(if (any(target_gene == "mcra_probe")) target_gene == "mcra_probe" else TRUE) %>% ungroup() %>%
   mutate(id = trimws(sub("\n.*", "", sample_id)), key = norm(sub("^[A-Z]{4}_", "", id)), sp = substr(id, 1, 4),
-         cpg = concentration_copies_per_uL * 75 / sample_mass_mg * 1000,   # as 04_harmonize_all_data.R
+         cpg = ddpcr_copies_per_g(concentration_copies_per_uL, sample_mass_mg, material),   # as 04_harmonize_all_data.R
          comp = case_when(material == "Wood" & core_type == "Inner" ~ "Heartwood",
                           material == "Wood" & core_type == "Outer" ~ "Sapwood",
                           material == "Soil" ~ paste0("Soil_", core_type)))

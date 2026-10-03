@@ -21,9 +21,7 @@ source("code/lib/outputs.R")
 
 suppressPackageStartupMessages({ library(tidyverse) })
 out_dir <- "outputs"; dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
-ELUTION_UL <- 75   # CANONICAL: 04_harmonize_all_data.R:317 uses Conc * 75 / mass_mg * 1000
-                   # (75 uL elution volume; treats ddPCR Conc as copies/uL of eluent).
-                   # Earlier draft used 37.5 (=75/2) -> was 2x low; corrected to match manuscript.
+source("code/lib/ddpcr_constants.R")   # copies g-1 = Conc x (25/2.5) x elution (75 wood, 100 soil) / mass (g), as 04_harmonize_all_data.R
 
 d <- read_csv("data/compiled/ddpcr_gene_abundances.csv", show_col_types = FALSE) %>%
   filter(analysis_type == "loose", !is.na(sample_mass_mg), sample_mass_mg > 0)
@@ -33,8 +31,8 @@ d <- d %>% mutate(tree_id = str_trim(str_split_fixed(sample_id, "\n", 2)[,1]))
 
 # copies per gram, fresh (as-extracted) mass basis, with REAL mass
 d <- d %>% mutate(
-  copies_per_g_proxy100 = concentration_copies_per_uL * ELUTION_UL / 100 * 1000,   # old pipeline proxy
-  copies_per_g_fresh    = concentration_copies_per_uL * ELUTION_UL / sample_mass_mg * 1000
+  copies_per_g_proxy100 = ddpcr_copies_per_g(concentration_copies_per_uL, 100, material),   # 100 mg proxy mass
+  copies_per_g_fresh    = ddpcr_copies_per_g(concentration_copies_per_uL, sample_mass_mg, material)
 )
 
 # ---- wood vs soil: effect of real mass on the 2-orders-of-magnitude claim -----
@@ -93,8 +91,8 @@ sink(out_path("copies_per_g_summary.txt"))
 cat("=================================================================\n")
 cat("GENE COPIES PER GRAM — real mass vs proxy, and dry/wet basis\n")
 cat("=================================================================\n\n")
-cat(sprintf("Elution volume used (pipeline): %.1f uL. Formula (matches 02_harmonize L317):\n", ELUTION_UL))
-cat("  copies/g = concentration_copies_per_uL * 75 / mass_mg * 1000\n\n")
+cat(sprintf("Elution %.0f uL (wood) / %.0f uL (soil); template %.1f uL in a %.0f uL reaction. Formula (as 04_harmonize_all_data.R):\n", DDPCR_ELUTION_UL[["Wood"]], DDPCR_ELUTION_UL[["Soil"]], DDPCR_TEMPLATE_UL, DDPCR_REACTION_UL))
+cat("  copies/g = concentration_copies_per_uL * (25/2.5) * elution / mass_mg * 1000\n\n")
 cat("Median wood mass ~", round(median(d$sample_mass_mg[d$material=='Wood'],na.rm=T)),
     "mg; median soil mass ~", round(median(d$sample_mass_mg[d$material=='Soil'],na.rm=T)), "mg.\n")
 cat("=> the fixed 100 mg proxy is ~right for wood but too low for soil, so it\n")

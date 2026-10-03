@@ -271,6 +271,7 @@ cat("Wood data: ", nrow(wood_processed), " records for ", length(unique(wood_pro
 
 cat("=== PROCESSING ddPCR DATA ===\n")
 
+source("../lib/ddpcr_constants.R")
 ddpcr <- read_csv("../../data/processed/molecular/processed_ddpcr_data.csv")
 
 # First, let's examine the data structure to verify sample mass correspondence
@@ -312,9 +313,9 @@ ddpcr_processed <- ddpcr %>%
   # Remove untagged trees and rows with missing data
   filter(!is.na(tree_id), !is.na(Target), !is.na(core_type), !is.na(analysis_type), 
          !is.na(concentration_original), !is.na(sample_mass), tree_id != "untagged") %>%
-  # Apply unit conversion: copies/µL to copies/g dry wood
+  # Apply unit conversion: QX200 copies per µL of reaction to copies per g (lib/ddpcr_constants.R)
   mutate(
-    concentration_per_g = concentration_original * 75 / sample_mass * 1000
+    concentration_per_g = ddpcr_copies_per_g(concentration_original, sample_mass, core_type)
   ) %>%
   dplyr::select(-tree_id_raw, -concentration_original, -sample_mass) %>%
   rename(concentration = concentration_per_g)

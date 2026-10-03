@@ -27,12 +27,12 @@ source("code/lib/outputs.R")
 #   Composition panels need both genes detected (ratio undefined at a zero) -> complete-case.
 # NOTE size axis = geometric-mean center (the 1/2 is the Bland-Altman mean); NOT the
 #   arithmetic-sum "total abundance" used elsewhere.
-# Absolute axes subject to pending x10 (DILUTION_10X); ratios/slopes are not.
+# Copies g-1 from code/lib/ddpcr_constants.R (as the harmonized data); ratios/slopes are unit-free.
 # NEW file; original S10 generator untouched. Output: outputs/figures/generated/figS10_final.png
 # ==============================================================================
 suppressPackageStartupMessages({ library(tidyverse); library(patchwork) })
 out <- "outputs"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
-E <- 75; DILUTION_10X <- 1
+source("code/lib/ddpcr_constants.R")
 COMP4 <- c(Heartwood = "#a6611a", Sapwood = "#dfc27d", Organic = "#018571", Mineral = "#80cdc1")
 WOODC <- c("Heartwood", "Sapwood"); SOILC <- c("Organic", "Mineral")
 
@@ -45,7 +45,7 @@ W <- d0 %>% select(sample_id, target_gene, conc = concentration_copies_per_uL, p
   left_join(meta, by = "sample_id") %>%
   filter(material %in% c("Wood", "Soil"), !is.na(mass), mass > 0) %>%
   mutate(comp = factor(recode(core_type, Inner = "Heartwood", Outer = "Sapwood"), levels = names(COMP4)),
-         cg = E / (mass/1000) * DILUTION_10X) %>%
+         cg = ddpcr_copies_per_g(1, mass, material)) %>%
   filter(!is.na(comp))
 
 # ---- decoupling data: keep nondetects, +1, copies/g --------------------------
