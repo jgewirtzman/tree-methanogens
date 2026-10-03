@@ -22,6 +22,7 @@ A,code/02_flux/rescue/03_merge_untagged_monthly.R,root,TRUE,monthly survey file 
 A,code/02_flux/01_apply_auxfile_vtot.R,root,TRUE,carry the 28 cm3 analyzer volume through every stored fit
 A,code/02_flux/02_qc_c0_screen.R,root,TRUE,procedural screen: chamber not at ambient at closure
 A,code/02_flux/03_precision_and_detection.R,root,TRUE,analyzer precision; minimum detectable flux; detection status
+A,code/02_flux/04_tag_corrections.R,root,TRUE,correct misread tree tags in the stored flux tables (code/lib/tag_corrections.csv)
 A,code/03_merge/02_compile_soil_env.R,root,TRUE,soil temperature and moisture per collar and date
 A,code/03_merge/04_harmonize_all_data.R,script,TRUE,master per-tree table (flux; genes; gas; wood; soil)
 B,code/05_model/01_load_and_prep_data.R,script,TRUE,random-forest training tables
