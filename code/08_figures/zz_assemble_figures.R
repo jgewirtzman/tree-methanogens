@@ -62,8 +62,8 @@ SI <- c(
   # Results 10: stand-scale bounds
   "Figure_S25_rf-model-summary"          = "outputs/figures/generated/figS21_rf_model_summary.png",
   "Figure_S26_rf-calibration"            = "outputs/figures/generated/figS_rf_calibration.png",
-  "Figure_S27_scaling-heatmap"           = "outputs/figures/generated/fig_scaling_heatmap.png",
-  "Figure_S28_scaling-profiles"          = "outputs/figures/generated/fig_scaling_profiles.png",
+  "Figure_S28_scaling-heatmap"           = "outputs/figures/generated/fig_scaling_heatmap.png",
+  "Figure_S27_scaling-profiles"          = "outputs/figures/generated/fig_scaling_profiles.png",
   # Discussion
   "Figure_S24_plant-traits"              = "outputs/figures/generated/traits_heatmap_robust.png")
 
