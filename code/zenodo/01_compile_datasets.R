@@ -71,10 +71,7 @@ oak <- read.csv("data/raw/field_data/black_oak/ymf_black_oak_flux_compiled.csv",
   oak_mdf = CH4_MDF)
 # NOTE: felled-oak date is the felling date; the standing-tree flux was measured before it.
 stem <- bind_rows(mon, h21, c23, oak)
-# The hand-rescued untagged deployments carry no goFlux UniqueID; name them by stem
-# label and date so every archived deployment has an identifier.
-stem$unique_id <- ifelse(is.na(stem$unique_id), paste0("untagged_", stem$tree_tag, "_", stem$date), stem$unique_id)
-stopifnot(!anyDuplicated(stem$unique_id))
+stopifnot(!anyNA(stem$unique_id), !anyDuplicated(stem$unique_id))
 
 # detection (MDF, analyzer precision) by deployment ID
 DET <- read.csv("outputs/data/flux_FINAL.csv") %>% filter(type == "stem") %>%
@@ -82,8 +79,7 @@ DET <- read.csv("outputs/data/flux_FINAL.csv") %>% filter(type == "stem") %>%
             closure_s = t_sec, detected = detected, detection_class = class)
 stem <- stem %>% left_join(DET, by = "unique_id") %>%
   mutate(CH4_MDF_nmol_m2_s = coalesce(CH4_MDF_nmol_m2_s, oak_mdf)) %>% select(-oak_mdf)
-# no detection class for the 45 rescued untagged stems (hand-picked windows have no
-# per-record precision estimate) or the felled oak (MDF from its own goFlux run only)
+# no detection class for the felled oak (MDF from its own goFlux run only)
 
 # the modelled measurement table: canonical tree, species, drivers, training flag
 M <- read.csv("outputs/data/flux_measurements_tree.csv") %>% transmute(
