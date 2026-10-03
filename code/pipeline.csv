@@ -91,6 +91,7 @@ E,code/08_figures/fig07_decay-methanogenesis.R,root,FALSE,Figure 7
 E,code/08_figures/fig08_radial-species.R,root,FALSE,Figure 8 (also writes Fig S23)
 E,code/08_figures/fig09_budget.R,root,FALSE,Figure 9
 E,code/08_figures/figS01_moisture-overlay.R,root,FALSE,Figure S1
+E,code/08_figures/methodsS3_extraction_recovery.R,root,FALSE,SI Methods S3 schematic: target copies through DNA extraction (method-study recoveries)
 E,code/04_drivers/06_moisture_elevation_check.R,root,FALSE,check: moisture against elevation (reads the elevation table figS01 builds)
 E,code/08_figures/figS03_detection-limits.R,root,FALSE,Figure S3
 E,code/08_figures/figS04_mcra-probe-validation.R,root,FALSE,Figure S4
