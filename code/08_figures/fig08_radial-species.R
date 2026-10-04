@@ -27,6 +27,10 @@ library(patchwork)
 # Source upstream dependencies (must run from project root)
 source("code/07_molecular/helper_scale_dependent_gene_patterns.R")
 source("code/07_molecular/helper_radial_gene_plots.R")
+FIG8_LAYOUT <- Sys.getenv("FIG8_LAYOUT", "band")   # "side": radial | scatters; "band": radial band on top, scatters in a row below
+RADIAL_NCOL <- if (FIG8_LAYOUT == "band") 10 else 5
+FIG8_EQUAL <- Sys.getenv("FIG8_EQUAL", "yes") == "yes"   # yes: every cross-section drawn at the same size (not scaled to DBH)
+unit_circle <- function(d) if (FIG8_EQUAL) dplyr::mutate(d, x = x / R, y = y / R, R = 1) else d
 
 # ============================================================
 # FUNCTION TO SPLIT SPECIES NAMES INTO TWO LINES
@@ -55,11 +59,12 @@ if (!exists("p_mcra_result") || !exists("p_sum_result") || !exists("p_overlay"))
 # mcrA plot with two-line species names
 p_mcra_data <- p_mcra_result$plot$data
 p_mcra_data$species_label <- sapply(as.character(p_mcra_data$species_label), break_species_name)
+p_mcra_data <- unit_circle(p_mcra_data)
 
 p_mcra <- ggplot(p_mcra_data, aes(x = x, y = y, fill = Clog)) +
   geom_raster(interpolate = TRUE) +
   scale_fill_viridis_c(
-    name = bquote("log"[10] ~ "(" * italic(mcrA) * ")"),
+    name = bquote(atop("log"[10], "(" * italic(mcrA) * ")")),
     option = "inferno",
     direction = 1,
     breaks = function(x) c(min(x), mean(c(min(x), max(x))), max(x)),
@@ -70,7 +75,7 @@ p_mcra <- ggplot(p_mcra_data, aes(x = x, y = y, fill = Clog)) +
     aes(x0 = 0, y0 = 0, r = R),
     inherit.aes = FALSE, color = "black", linewidth = 0.3
   ) +
-  facet_wrap(~ species_label, ncol = 5) +
+  facet_wrap(~ species_label, ncol = RADIAL_NCOL) +
   coord_equal() +
   theme_minimal(base_size = 10) +
   theme(
@@ -95,11 +100,12 @@ p_mcra <- ggplot(p_mcra_data, aes(x = x, y = y, fill = Clog)) +
 # Sum plot (pmoA+mmoX) with two-line species names
 p_sum_data <- p_sum_result$plot$data
 p_sum_data$species_label <- sapply(as.character(p_sum_data$species_label), break_species_name)
+p_sum_data <- unit_circle(p_sum_data)
 
 p_sum <- ggplot(p_sum_data, aes(x = x, y = y, fill = Clog)) +
   geom_raster(interpolate = TRUE) +
   scale_fill_viridis_c(
-    name = bquote("log"[10] ~ "(" * italic(pmoA) * " + " * italic(mmoX) * ")"),
+    name = bquote(atop("log"[10], "(" * italic(pmoA) * " + " * italic(mmoX) * ")")),
     option = "mako",
     direction = 1,
     breaks = function(x) c(min(x), mean(c(min(x), max(x))), max(x)),
@@ -110,7 +116,7 @@ p_sum <- ggplot(p_sum_data, aes(x = x, y = y, fill = Clog)) +
     aes(x0 = 0, y0 = 0, r = R),
     inherit.aes = FALSE, color = "black", linewidth = 0.3
   ) +
-  facet_wrap(~ species_label, ncol = 5) +
+  facet_wrap(~ species_label, ncol = RADIAL_NCOL) +
   coord_equal() +
   theme_minimal(base_size = 10) +
   theme(
@@ -135,13 +141,14 @@ p_sum <- ggplot(p_sum_data, aes(x = x, y = y, fill = Clog)) +
 # Overlay plot with two-line species names
 overlay_data_modified <- p_overlay$data
 overlay_data_modified$species_label <- sapply(as.character(overlay_data_modified$species_label), break_species_name)
+overlay_data_modified <- unit_circle(overlay_data_modified)
 
 p_overlay <- ggplot(overlay_data_modified, aes(x = x, y = y)) +
   geom_raster(aes(fill = Clog_methan), alpha = 0.6, interpolate = TRUE) +
   scale_fill_gradient(
     low = "white", 
     high = "#1E88E5",
-    name = bquote("log"[10] ~ "(" * italic(pmoA) * " + " * italic(mmoX) * ")"),
+    name = bquote(atop("log"[10], "(" * italic(pmoA) * " + " * italic(mmoX) * ")")),
     breaks = function(x) {
       min_val <- min(overlay_data_modified$Clog_methan)
       max_val <- max(overlay_data_modified$Clog_methan)
@@ -154,7 +161,7 @@ p_overlay <- ggplot(overlay_data_modified, aes(x = x, y = y)) +
   scale_fill_gradient(
     low = "white", 
     high = "#E53935",
-    name = bquote("log"[10] ~ "(" * italic(mcrA) * ")"),
+    name = bquote(atop("log"[10], "(" * italic(mcrA) * ")")),
     breaks = function(x) {
       min_val <- min(overlay_data_modified$Clog_mcra)
       max_val <- max(overlay_data_modified$Clog_mcra)
@@ -167,7 +174,7 @@ p_overlay <- ggplot(overlay_data_modified, aes(x = x, y = y)) +
     aes(x0 = 0, y0 = 0, r = R),
     inherit.aes = FALSE, color = "black", linewidth = 0.5
   ) +
-  facet_wrap(~ species_label, ncol = 5) +
+  facet_wrap(~ species_label, ncol = RADIAL_NCOL) +
   coord_equal() +
   theme_minimal(base_size = 10) +
   theme(
@@ -199,11 +206,11 @@ if (Sys.getenv("FIG8_C", "ratio") == "ratio") {
   p_overlay <- ggplot(rat, aes(x = x, y = y, fill = ratio)) +
     geom_raster(interpolate = TRUE) +
     scale_fill_gradient2(low = "#2166ac", mid = "white", high = "#b2182b", midpoint = 0, limits = c(-lim, lim),
-                         name = bquote("log"[10] ~ "(" * italic(mcrA) * " : methanotroph)"),
+                         name = bquote(atop("log"[10] ~ "(" * italic(mcrA) * " :", "methanotroph)")),
                          labels = function(x) sub("-", "\u2212", sprintf("%.1f", x))) +
     geom_circle(data = rat %>% dplyr::distinct(species_label, R), aes(x0 = 0, y0 = 0, r = R),
                 inherit.aes = FALSE, color = "black", linewidth = 0.3) +
-    facet_wrap(~ species_label, ncol = 5) + coord_equal() +
+    facet_wrap(~ species_label, ncol = RADIAL_NCOL) + coord_equal() +
     theme_minimal(base_size = 10) +
     theme(axis.text = element_blank(), axis.title = element_blank(), axis.ticks = element_blank(),
           panel.grid = element_blank(), strip.text = element_text(face = "italic", size = 8.6), strip.clip = "off",
@@ -248,10 +255,9 @@ p_species_mcra_2x2 <- ggplot(analysis_mcra,
   geom_text_repel(aes(label = species), size = 3.5, fontface = "italic", seed = 42, min.segment.length = 0.1, force = 8, force_pull = 0.5,
                   max.time = 5, max.iter = 1e5, box.padding = 0.35, point.padding = 0.25, max.overlaps = Inf) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
-  labs(subtitle = sprintf("R\u00B2 = %.2f, p = %.3f", cor_area_mcra$estimate^2, cor_area_mcra$p.value)) +
   coord_cartesian(clip = "off") +
   scale_x_continuous(breaks = log10(c(10, 15, 20, 30, 50) * 1e3), labels = c("10", "15", "20", "30", "50")) +
-  labs(x = expression("Median "*italic(mcrA)*" ("*10^3*" copies g"^-1*")"),
+  labs(x = expression(atop("Median "*italic(mcrA), "("*10^3*" copies g"^-1*")")),
        y = expression("Median CH"[4]*" flux (nmol m"^-2*" s"^-1*")")) +
   theme_classic(base_size = 11.7) +
   theme(
@@ -271,10 +277,9 @@ p_species_methanotroph_2x2 <- ggplot(analysis_methanotroph,
   geom_text_repel(aes(label = species), size = 3.5, fontface = "italic", seed = 42, min.segment.length = 0.1, force = 8, force_pull = 0.5,
                   max.time = 5, max.iter = 1e5, box.padding = 0.35, point.padding = 0.25, max.overlaps = Inf) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
-  labs(subtitle = sprintf("R\u00B2 = %.2f, p = %.3f", cor_area_methanotroph$estimate^2, cor_area_methanotroph$p.value)) +
   coord_cartesian(clip = "off") +
   scale_x_continuous(breaks = log10(c(30, 50, 100, 200, 400) * 1e3), labels = c("30", "50", "100", "200", "400")) +
-  labs(x = expression("Median "*italic(pmoA)*" + "*italic(mmoX)*" ("*10^3*" copies g"^-1*")"),
+  labs(x = expression(atop("Median "*italic(pmoA)*" + "*italic(mmoX), "("*10^3*" copies g"^-1*")")),
        y = NULL) +
   theme_classic(base_size = 11.7) +
   theme(
@@ -295,10 +300,9 @@ p_species_ratio_2x2 <- ggplot(analysis_ratio,
                   max.time = 5, max.iter = 1e5, box.padding = 0.35, point.padding = 0.25, max.overlaps = Inf) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
   geom_vline(xintercept = 0, linetype = "dotted", color = "gray50", alpha = 0.5) +
-  labs(subtitle = sprintf("R\u00B2 = %.2f, p = %.3f", pearson_ratio$estimate^2, pearson_ratio$p.value)) +
   coord_cartesian(clip = "off") +
   scale_x_continuous(breaks = log10(c(0.05, 0.1, 0.2, 0.5, 1)), labels = c("0.05", "0.1", "0.2", "0.5", "1")) +
-  labs(x = expression(italic(mcrA)*" : methanotroph ratio"),
+  labs(x = expression(atop(italic(mcrA)*" : methanotroph", "ratio")),
        y = expression("Median CH"[4]*" flux (nmol m"^-2*" s"^-1*")")) +
   theme_classic(base_size = 11.7) +
   theme(
@@ -331,7 +335,7 @@ p_species_comparison_2x2 <- ggplot(species_comparison_data,
     axis.text.x = element_text(size = 11, angle = 30, hjust = 1),
     legend.text = element_text(size = 14),
     legend.title = element_text(size = 14),
-    legend.position = "top",
+    legend.position = "bottom",
     legend.box.margin = ggplot2::margin(t = 0, r = 0, b = 0, l = 0),
     legend.margin = ggplot2::margin(t = 2, r = 0, b = 0, l = 0),
     plot.margin = ggplot2::margin(t = 5, r = 5, b = 2, l = 5)
@@ -350,8 +354,40 @@ species_2x2_layout <- (p_species_mcra_2x2 | p_species_methanotroph_2x2) /
 
 if (exists("combined_plot") && exists("species_2x2_layout")) {
 
-side_by_side <- (combined_plot | species_2x2_layout) +
-  plot_layout(widths = c(0.64, 1)) +
+own <- function(p, l = 5) wrap_elements(full = p + theme(plot.margin = margin(16, 8, 5, l), axis.title = element_text(size = 11.5)))   # axis labels and titles stay with their own plot; top margin keeps the panel tag clear
+if (FIG8_LAYOUT == "band") {
+  # aligned (not wrapped) so the four plotting panels get equal widths; (g) labels horizontal so its
+  # axis-label row is no taller than the scatters' and does not push their titles down
+  bm <- theme(plot.margin = margin(16, 8, 5, 5), axis.title = element_text(size = 11.5))
+  # (g) as horizontal bars: model names read horizontally without adding height under the panel
+  g_h <- ggplot(species_comparison_data, aes(x = R2, y = Model, fill = Significant)) +
+    geom_col(alpha = 0.8, width = 0.7) +
+    geom_text(aes(label = sprintf("%.2f", R2)), hjust = -0.15, size = 4) +
+    scale_fill_manual(values = c("FALSE" = "gray70", "TRUE" = "#285238"), labels = c("NS", "p < 0.05"), name = "") +
+    scale_y_discrete(labels = c("mcrA" = expression(italic(mcrA)), "pmoA" = expression(italic(pmoA)),
+                                "mmoX" = expression(italic(mmoX)),
+                                "pmoA+mmoX" = expression(italic(pmoA)*"+"*italic(mmoX)), "Ratio" = "Ratio")) +
+    scale_x_continuous(limits = c(0, y_limit), expand = expansion(mult = c(0, 0.02))) +
+    labs(x = expression("Model R"^2), y = NULL) +
+    theme_classic(base_size = 11.7) +
+    theme(axis.text = element_text(size = 12), legend.position = "bottom", legend.text = element_text(size = 12),
+          legend.margin = margin(0, 0, 0, 0))
+  bottom_row <- wrap_plots(p_species_mcra_2x2 + bm, p_species_methanotroph_2x2 + bm,
+                          p_species_ratio_2x2 + labs(y = NULL) + bm, g_h + bm,
+                          nrow = 1, widths = c(1, 1, 1, 1))
+  combined_plot <- combined_plot & theme(legend.key.height = unit(0.26, "cm"), legend.title = element_text(size = 10.5),
+                                         legend.text = element_text(size = 9.5))   # shorter rows: compact colour bars
+  no_strip <- theme(strip.text = element_blank())
+  combined_plot <- p_mcra / (p_sum + no_strip) / (p_overlay + no_strip)   # species named once, above row (a)
+  combined_plot <- combined_plot & theme(legend.key.height = unit(0.26, "cm"), legend.title = element_text(size = 10.5),
+                                         legend.text = element_text(size = 9.5))
+  side_by_side <- wrap_plots(combined_plot, bottom_row, ncol = 1, heights = c(2.6, 2.2))
+} else {
+  species_2x2_layout <- (own(p_species_mcra_2x2) | own(p_species_methanotroph_2x2)) /
+    (own(p_species_ratio_2x2) | own(p_species_comparison_2x2))
+  side_by_side <- (combined_plot | species_2x2_layout) + plot_layout(widths = c(0.64, 1))
+}
+side_by_side <- side_by_side +
   plot_annotation(tag_levels = "a",
                   tag_prefix = "(",
                   tag_suffix = ")",
@@ -369,8 +405,8 @@ side_by_side
 
 ggsave(Sys.getenv("FIG8_OUT", "outputs/figures/original/main/fig8_radial_species_comparison.png"),
        side_by_side,
-       width = 14,
-       height = 8,
+       width = if (FIG8_LAYOUT == "band") 14 else 14,
+       height = if (FIG8_LAYOUT == "band") 9.5 else 8,
        dpi = 300,
        limitsize = FALSE)
 
