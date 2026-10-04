@@ -314,7 +314,7 @@ p_ridgeline <- ggplot(combined_data, aes(x = CH4_flux, y = Species_Latin)) +
     inherit.aes = FALSE
   ) +
   scale_color_viridis(
-    name = "VWC (%)",
+    name = "Soil VWC (%)",
     limits = c(0, max(combined_data$VWC, na.rm = TRUE)),
     breaks = c(0, 25, 50),
     guide = guide_colorbar(
@@ -329,10 +329,10 @@ p_ridgeline <- ggplot(combined_data, aes(x = CH4_flux, y = Species_Latin)) +
   scale_x_continuous(
     trans = scales::trans_new("arcsinh", function(x) asinh(x/0.1), function(x) 0.1*sinh(x)),
     breaks = c(-0.1, 0, 0.1, 1),
-    labels = c("-0.1", "0", "0.1", "1")
+    labels = c("\u22120.1", "0", "0.1", "1")
   ) +
   labs(
-    x = expression(CH[4]~Flux~(nmol~m^{-2}~s^{-1})),
+    x = expression(CH[4]~flux~(nmol~m^{-2}~s^{-1})),
     y = ""
   ) +
   theme_ridges(grid = TRUE) +
@@ -342,6 +342,7 @@ p_ridgeline <- ggplot(combined_data, aes(x = CH4_flux, y = Species_Latin)) +
     axis.text.y = element_text(face = "italic", size = 9),
     legend.position = "bottom",
     legend.direction = "horizontal",
+    legend.title = element_text(size = 9), legend.text = element_text(size = 8),
     panel.grid.major.x = element_line(color = "gray90", linewidth = 0.3),
     panel.grid.minor.x = element_line(color = "gray95", linewidth = 0.2),
     plot.margin = margin(5, 2, 5, 5, "pt")
@@ -378,13 +379,16 @@ p_effects <- ggplot(all_effects, aes(x = estimate, y = reorder(term_clean, estim
   geom_errorbarh(aes(xmin = conf.low, xmax = conf.high, color = category),
                  height = 0, linewidth = 0.6, alpha = 0.8) +
   geom_point(aes(color = category, shape = significant), size = 2.5) +
-  scale_color_manual(values = c("Environment" = "#2E7D32", 
+  scale_color_manual(values = c("Environment" = "#2E7D32",
                                 "Species" = "#1976D2"),
                      name = "Effect type") +
   scale_shape_manual(values = c("TRUE" = 16, "FALSE" = 1),
                      labels = c(expression(p >= 0.05), expression(p < 0.05)),
                      name = "Significance") +
   facet_grid(category ~ ., scales = "free_y", space = "free_y") +
+  scale_y_discrete(labels = function(x) parse(text = ifelse(x %in% all_effects$term_clean[all_effects$category == "Species"],
+                                                            paste0("italic('", x, "')"), paste0("'", x, "'")))) +
+  scale_x_continuous(labels = function(b) sub("-", "\u2212", format(b, drop0trailing = TRUE, trim = TRUE))) +
   # Effects are on the arcsinh scale the models are fitted on, NOT nmol m-2 s-1.
   # Labelling them in flux units would misstate them by the transform.
   labs(x = expression("Standardized effect size (arcsinh CH"[4]*" flux)"),
@@ -411,7 +415,8 @@ combined_plot <- (p_ridgeline | (p_var_method2 / p_effects + plot_layout(heights
   plot_annotation(tag_levels = "a",
                   tag_prefix = "(",
                   tag_suffix = ")",
-                  theme = theme(plot.tag = element_text(size = 11, face = "bold")))
+                  theme = theme(plot.tag = element_text(size = 11, face = "bold"))) &
+  theme(plot.tag = element_text(size = 11, face = "bold"))
 
 print(combined_plot)
 
@@ -436,7 +441,7 @@ cat(sprintf("Full additive model: %.1f%%\n", r2_full * 100))
 cat(sprintf("With interactions: %.1f%%\n", r2_interaction * 100))
 
 # Save plot
-ggsave("outputs/figures/generated/fig3_final.png", plot = combined_plot, width = 10, height = 7, dpi = 300)
+ggsave("outputs/figures/generated/fig3_final.png", plot = combined_plot, width = 8.2, height = 6.2, dpi = 300, bg = "white")   # near print size
 
 
 

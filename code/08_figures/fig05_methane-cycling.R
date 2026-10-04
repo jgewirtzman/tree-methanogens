@@ -179,13 +179,13 @@ p_mg_a <- ggplot(summary_mg_a, aes(x = species_label, y = mean_pct)) +
                 width = 0.2, linewidth = 0.3) +
   facet_wrap(~ compartment, nrow = 1) +
   labs(x = NULL, y = "Methanogen relative\nabundance (%)") +
-  theme_classic(base_size = 15) +
+  theme_classic(base_size = 12) +
   theme(axis.text.x = element_blank(),
         axis.ticks.x = element_blank(),
-        axis.text.y = element_text(size = 15),
-        axis.title.y = element_text(size = 16),
+        axis.text.y = element_text(size = 12),
+        axis.title.y = element_text(size = 12.8),
         legend.position = "none",
-        strip.text = element_text(size = 14, face = "bold"),
+        strip.text = element_text(size = 11.2, face = "bold"),
         strip.background = element_rect(fill = NA, color = "black", linewidth = 0.5),
         panel.border = element_rect(fill = NA, color = "black", linewidth = 0.5),
         plot.margin = margin(5, 10, 0, 10))
@@ -210,25 +210,55 @@ summary_mg_b <- mg_comp %>%
          proportion = if_else(total > 0, mean_abund / total * 100, 0)) %>%
   ungroup()
 
-# Sort families alphabetically so color ramp matches legend order
-mg_families_sorted <- sort(methanogen_families)
-mg_colors <- setNames(viridis(length(mg_families_sorted), option = "D", direction = -1, alpha = 0.7), mg_families_sorted)
+# Methanogen family colours. MG_STYLE: "pathway" (families shaded by methanogenic pathway),
+# "other" (the two wood families kept, the rest pooled), "alphabetical" (one viridis ramp)
+MG_STYLE <- Sys.getenv("MG_STYLE", "alphabetical")
+mg_pathway <- c(Methanobacteriaceae = "H", Methanocellaceae = "H", Methanocorpusculaceae = "H",
+                Methanomicrobiaceae = "H", Methanoregulaceae = "H",
+                Methanomassiliicoccaceae = "M", Methanomethyliaceae = "M",
+                Methanosaetaceae = "A", Methanosarcinaceae = "A")
+if (MG_STYLE == "pathway") {
+  fams <- intersect(names(mg_pathway), methanogen_families)
+  mg_families_sorted <- c(fams, setdiff(sort(methanogen_families), fams))
+  pal <- c(Methanobacteriaceae = "#F4C430", Methanocellaceae = "#E8973A", Methanocorpusculaceae = "#D4733A",
+           Methanomicrobiaceae = "#B5562C", Methanoregulaceae = "#8C3B1E",
+           Methanomassiliicoccaceae = "#3FA796", Methanomethyliaceae = "#1F6E63",
+           Methanosaetaceae = "#8E6BBF", Methanosarcinaceae = "#5B3F8C")
+  mg_colors <- pal[mg_families_sorted]
+  mg_colors[is.na(mg_colors)] <- "grey70"; names(mg_colors) <- mg_families_sorted
+  mg_labels <- setNames(paste0(mg_families_sorted, c(H = " (H\u2082)", M = " (methyl)", A = " (acetate)")[mg_pathway[mg_families_sorted]]),
+                        mg_families_sorted)
+} else if (MG_STYLE == "other") {
+  keep <- c("Methanobacteriaceae", "Methanomassiliicoccaceae")
+  others <- setdiff(sort(methanogen_families), keep)
+  summary_mg_b <- summary_mg_b %>% mutate(Family = if_else(Family %in% keep, Family, "Other")) %>%
+    group_by(species_label, compartment, Family) %>% summarise(proportion = sum(proportion), .groups = "drop")
+  mg_families_sorted <- c(keep, "Other")
+  mg_colors <- c(Methanobacteriaceae = "#FDE725B3", Methanomassiliicoccaceae = "#35B779B3", Other = "grey65")
+  mg_labels <- c(Methanobacteriaceae = "Methanobacteriaceae", Methanomassiliicoccaceae = "Methanomassiliicoccaceae",
+                 Other = paste0("Other (", length(others), " families)"))
+} else {
+  mg_families_sorted <- sort(methanogen_families)
+  mg_colors <- setNames(viridis(length(mg_families_sorted), option = "D", direction = -1, alpha = 0.7), mg_families_sorted)
+  mg_labels <- setNames(mg_families_sorted, mg_families_sorted)
+}
 summary_mg_b$Family <- factor(summary_mg_b$Family, levels = mg_families_sorted)
 
 p_mg_b <- ggplot(summary_mg_b, aes(x = species_label, y = proportion, fill = Family)) +
   geom_col(position = "stack", width = 0.7, color = "black", linewidth = 0.1) +
   facet_wrap(~ compartment, nrow = 1) +
-  scale_fill_manual(values = mg_colors, name = "Methanogen\nFamily") +
+  scale_fill_manual(values = mg_colors, labels = mg_labels, name = "Methanogen\nfamily") +
   labs(x = NULL, y = "Proportion of\nmethanogens (%)") +
-  theme_classic(base_size = 15) +
+  theme_classic(base_size = 12) +
   theme(axis.text.x = element_blank(),
         axis.ticks.x = element_blank(),
-        axis.text.y = element_text(size = 15),
-        axis.title.y = element_text(size = 16),
+        axis.text.y = element_text(size = 12),
+        axis.title.y = element_text(size = 12.8),
         legend.position = "right",
         legend.justification = c(0, 1),
-        legend.text = element_text(size = 13),
-        legend.title = element_text(size = 14, face = "bold"),
+        legend.key.size = unit(0.38, "cm"),
+        legend.text = element_text(size = 10.4),
+        legend.title = element_text(size = 11.2, face = "bold"),
         strip.text = element_blank(), strip.background = element_blank(),
         panel.border = element_rect(fill = NA, color = "black", linewidth = 0.5),
         plot.margin = margin(0, 10, 0, 10))
@@ -275,15 +305,15 @@ p_mt_a <- ggplot(summary_mt_a, aes(x = species_label, y = mean_pct, fill = fill_
   facet_wrap(~ compartment, nrow = 1) +
   scale_fill_manual(values = panel_c_fills, name = "Classification") +
   labs(x = NULL, y = "Methanotroph relative\nabundance (%)") +
-  theme_classic(base_size = 15) +
+  theme_classic(base_size = 12) +
   theme(axis.text.x = element_blank(),
         axis.ticks.x = element_blank(),
-        axis.text.y = element_text(size = 15),
-        axis.title.y = element_text(size = 16),
+        axis.text.y = element_text(size = 12),
+        axis.title.y = element_text(size = 12.8),
         legend.position = "right",
         legend.justification = c(0, 0.5),
-        legend.text = element_text(size = 13),
-        legend.title = element_text(size = 14, face = "bold"),
+        legend.text = element_text(size = 10.4),
+        legend.title = element_text(size = 11.2, face = "bold"),
         strip.text = element_blank(), strip.background = element_blank(),
         panel.border = element_rect(fill = NA, color = "black", linewidth = 0.5),
         plot.margin = margin(0, 10, 0, 10))
@@ -363,16 +393,17 @@ mt_colors <- setNames(viridis(length(status_levels), option = "D", direction = -
 p_mt_b <- ggplot(summary_mt_b, aes(x = species_label, y = proportion, fill = Family_status)) +
   geom_col(position = "stack", width = 0.7, color = "black", linewidth = 0.1) +
   facet_wrap(~ compartment, nrow = 1) +
-  scale_fill_manual(values = mt_colors, name = "Methanotroph\nFamily") +
+  scale_fill_manual(values = mt_colors, name = "Methanotroph\nfamily") +
   labs(x = NULL, y = "Proportion of\nmethanotrophs (%)") +
-  theme_classic(base_size = 15) +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 11, face = "italic"),
-        axis.text.y = element_text(size = 15),
-        axis.title.y = element_text(size = 16),
+  theme_classic(base_size = 12) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 7.6, face = "italic"),
+        axis.text.y = element_text(size = 12),
+        axis.title.y = element_text(size = 12.8),
         legend.position = "right",
         legend.justification = c(0, 1),
-        legend.text = element_text(size = 13),
-        legend.title = element_text(size = 14, face = "bold"),
+        legend.key.size = unit(0.38, "cm"),
+        legend.text = element_text(size = 10.4),
+        legend.title = element_text(size = 11.2, face = "bold"),
         strip.text = element_blank(), strip.background = element_blank(),
         panel.border = element_rect(fill = NA, color = "black", linewidth = 0.5),
         plot.margin = margin(0, 10, 5, 10))
@@ -385,7 +416,7 @@ p_mt_b <- ggplot(summary_mt_b, aes(x = species_label, y = proportion, fill = Fam
 #                 c (methanotroph abundance) / d (methanotroph composition)
 # Compartment facet headers only on panel (a), species labels only on panel (d)
 # Add bold tags to each panel individually (ggplot2 4.x compatible)
-tag_theme <- theme(plot.tag = element_text(size = 16, face = "bold"))
+tag_theme <- theme(plot.tag = element_text(size = 12, face = "bold"))
 p_mg_a <- p_mg_a + tag_theme
 p_mg_b <- p_mg_b + tag_theme
 p_mt_a <- p_mt_a + tag_theme
@@ -397,7 +428,7 @@ fig_combined <- p_mg_a / p_mg_b / p_mt_a / p_mt_b +
 
 print(fig_combined)
 
-ggsave("outputs/figures/generated/fig5_final.png",
-       fig_combined, width = 15, height = 13, dpi = 300)
+OUT5 <- Sys.getenv("FIG5_OUT", "outputs/figures/generated/fig5_final.png")
+ggsave(OUT5, fig_combined, width = 10.5, height = 9.5, dpi = 300, bg = "white")   # near print size
 
 cat("Wrote outputs/figures/generated/fig5_final.png (revised methanotroph defs: Methylacidiphilaceae family -> Putative)\n")
