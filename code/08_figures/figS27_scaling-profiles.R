@@ -72,7 +72,7 @@ COLF <- setNames(c("#b2182b","#d6604d","#f4a582","#92c5de","#4393c3","#2166ac"),
 th <- theme_bw(base_size = 11) +
   theme(panel.grid.minor = element_blank(), legend.title = element_blank(),
         legend.key.size = unit(0.45, "cm"), legend.text = element_text(size = 9.5))
-FLUX_LAB <- c(constant = "Constant", exp_band_slope = "Per-stem exponential (named)", power = "Power",
+FLUX_LAB <- c(constant = "Constant", exp_band_slope = "Per-stem exponential (illustrative)", power = "Power",
               exponential = "Exponential", linear_floored = "Linear, floored at zero",
               linear_bounded_median = "Linear into uptake")
 BRANCH_LAB <- c(uniform_all = "Uniform,\nwhole stem", uniform_top50 = "Uniform,\nupper half",

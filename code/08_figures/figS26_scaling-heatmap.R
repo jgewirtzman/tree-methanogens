@@ -55,7 +55,7 @@ DIV <- scale_fill_gradient2(low = "#2166ac", mid = "white", high = "#b2182b",
                             midpoint = 0, limits = LIM,
                             name = expression("mg CH"[4]*" m"^-2*" yr"^-1))
 # readable names for the grid's codes (2026-10-02); * marks the form the climbed tree contradicts
-FLUX_LAB <- c(constant = "Constant", exp_band_slope = "Per-stem exponential (named)", power = "Power",
+FLUX_LAB <- c(constant = "Constant", exp_band_slope = "Per-stem exponential (illustrative)", power = "Power",
               exponential = "Exponential", linear_floored = "Linear, floored at zero",
               linear_bounded_median = "Linear into uptake *")
 BRANCH_LAB <- c(uniform_all = "Uniform, whole stem", uniform_top50 = "Uniform, upper half",
