@@ -33,7 +33,7 @@ CORRECT_CHAMBER_SURFACE_AREA_CM2 <- 507.7  # Based on 25.43 cm interior diameter
 CORRECT_CHAMBER_VOLUME_L <- 7.53  # UPDATE THIS TO YOUR CORRECT VALUE!
 
 # Calculate system volumes
-correct_tubing_volume_cm3 <- pi * (1/16)^2 * 12 * 12 * 16.387  # ≈ 18.6 cm³
+correct_tubing_volume_cm3 <- pi * (1/16)^2 * 12 * 12 * 16.387  # ≈ 29.0 cm³
 correct_system_volume_cm3 <- ANALYZER_VOLUME_CM3  # Analyzer volume (lab convention, see lib)
 correct_total_system_volume_cm3 <- CORRECT_CHAMBER_VOLUME_L * 1000 + 
   correct_tubing_volume_cm3 + 

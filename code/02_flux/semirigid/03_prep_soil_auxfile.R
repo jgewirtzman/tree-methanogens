@@ -64,7 +64,7 @@ CHAMBER_SURFACE_AREA_CM2 <- 507.7  # Based on 25.43 cm interior diameter
 CHAMBER_VOLUME_L <- 17.75  # Cap (14.42 L) + collar headspace (3.33 L)
 
 # Calculate system volumes
-tubing_volume_cm3 <- pi * (1/16)^2 * 12 * 12 * 16.387  # ≈ 18.6 cm³
+tubing_volume_cm3 <- pi * (1/16)^2 * 12 * 12 * 16.387  # ≈ 29.0 cm³
 system_volume_cm3 <- ANALYZER_VOLUME_CM3  # analyzer internal volume (lab convention, see lib)
 total_system_volume_cm3 <- CHAMBER_VOLUME_L * 1000 + tubing_volume_cm3 + system_volume_cm3
 
