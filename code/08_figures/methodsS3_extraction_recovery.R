@@ -11,7 +11,9 @@
 #   - lysate processed: 250 of the 800 µL lysate (method-study Dryad sheets:
 #     "Super Attempted" = 250 µL; 127-238 µL actually taken)
 # Derived: cleanup keeps 30.4 / 31.25 = 97%. Of 100 copies in the ground powder,
-# 81.7 are released, 25.5 processed and 24.8 reach the eluate.
+# 81.7 are released, 25.5 processed and 24.8 reach the eluate; the calculation scales
+# the eluate back to the whole lysate (x 800/250), so 79.4 are reported. The lysate
+# not processed is drawn as "scaled back", not as a loss.
 # Freeze-drying and grinding lose copies before this (about half in spiked dowels),
 # but dowels are a different medium from cores, so that step is drawn as an unfilled
 # dashed outline without a number.
@@ -24,6 +26,7 @@ CONTROL   <- 0.304          # lysis-buffer control recovery
 REL_WOOD  <- 0.817          # field wood relative to the control
 TRANSFER  <- 250 / 800      # fraction of lysate processed
 CLEANUP   <- CONTROL / TRANSFER
+DDPCR_SCALE <- 1 / TRANSFER   # eluate copies scaled to the whole lysate
 # Freeze-drying + cryo-grinding lose copies before extraction (spiked dowels: about
 # half), but how well that carries over to field cores is uncertain, so that step is
 # drawn as an unfilled dashed outline with no number. Quantities start at the powder.
@@ -47,9 +50,12 @@ flows <- do.call(rbind, lapply(1:3, function(i) {
   xa <- X[i + 1] + W; xb <- X[i + 2]
   keep <- cbind(band(xa, xb, 100, 100 - main[i + 1], 100, 100 - main[i + 1]), id = 2 * i - 1, kind = "kept")
   lo   <- cbind(band(xa, xb, 100 - main[i + 1], 100 - main[i], lossn$top[i], lossn$top[i] - lossn$h[i]),
-                id = 2 * i, kind = "lost")
+                id = 2 * i, kind = if (i == 2) "scaled" else "lost")
   rbind(keep, lo)
 }))
+scaled_flow <- flows[flows$kind == "scaled", ]; flows <- flows[flows$kind != "scaled", ]
+scaled_node <- lossn[2, ]; lossn_solid <- lossn[-2, ]
+nodes <- nodes[!(nodes$kind == "lost" & nodes$x == X[4]), ]
 # upstream, unquantified: core (dashed) -> powder (kept, outlined) and -> loss (outlined)
 core   <- data.frame(xmin = X[1], xmax = X[1] + W, ymin = 100 - 100 - UNK, ymax = 100)
 up_keep <- band(X[1] + W, X[2], 100, 0, 100, 0)
@@ -63,13 +69,13 @@ heads <- data.frame(x = X, y = 108,
           "Ground powder\n100 copies",
           sprintf("Lysate, 800 µL\n%s released", f1(released)),
           sprintf("250 µL to cleanup\n%s", f1(transferred)),
-          sprintf("Eluate, 75 µL\n%s measured", f1(eluate))))
+          sprintf("Eluate, 75 µL\n%s; reported %s", f1(eluate), f1(eluate * DDPCR_SCALE))))
 losses <- data.frame(
   x = c(X[2] + W + 0.04, X[3:5] + W + 0.04),
   y = c(-GAP - UNK / 2, lossn$top - pmax(lossn$h / 2, 3)),
   lab = c("Freeze-drying and grinding\nsize uncertain (about half\nin spiked dowels)",
           sprintf("Kept by the wood\n%s", f1(lost["wood"])),
-          sprintf("Lysate not processed\n%s (550 of 800 µL;\n127–238 µL taken in practice)", f1(lost["lysate"])),
+          sprintf("Lysate not processed: %s\n(550 of 800 µL; 127–238 µL\ntaken in practice). Scaled back\nin the calculation (× 800/250)", f1(lost["lysate"])),
           sprintf("Cleanup loss\n%s", f1(lost["cleanup"]))))
 
 p <- ggplot() +
@@ -78,6 +84,8 @@ p <- ggplot() +
   geom_rect(data = core, aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax), fill = NA, colour = KEPT, linetype = "dashed", linewidth = 0.35) +
   geom_rect(data = up_node, aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax), fill = NA, colour = "grey45", linetype = "dashed", linewidth = 0.35) +
   geom_polygon(data = flows, aes(x, y, group = id, fill = kind), alpha = 0.45, colour = NA) +
+  geom_polygon(data = scaled_flow, aes(x, y, group = id), fill = NA, colour = KEPT, linetype = "dashed", linewidth = 0.35) +
+  geom_rect(data = scaled_node, aes(xmin = x, xmax = x + W, ymin = top - h, ymax = top), fill = NA, colour = KEPT, linetype = "dashed", linewidth = 0.35) +
   geom_rect(data = nodes, aes(xmin = x, xmax = x + W, ymin = bot, ymax = top, fill = kind), colour = NA) +
   geom_text(data = heads, aes(x + W / 2, y, label = lab), size = 3.1, lineheight = 0.95, vjust = 0) +
   geom_text(data = losses, aes(x, y, label = lab), size = 2.8, hjust = 0, lineheight = 0.95, colour = "grey30") +
