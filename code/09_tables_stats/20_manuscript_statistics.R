@@ -1434,9 +1434,9 @@ cat(sprintf("  Tree-level: r = %.3f, p = %.4f (n=%d)\n",
 
 sp_mcra_mt <- inner_join(
   tree_level %>% group_by(species) %>%
-    summarise(med_mcra = median(mcrA), med_mt = median(methanotroph_total), .groups = "drop"),
+    summarise(n_trees = n(), med_mcra = median(mcrA), med_mt = median(methanotroph_total), .groups = "drop"),
   flux_by_sp %>% dplyr::select(species, n_flux), by = "species"
-) %>% filter(n_flux >= 5)
+) %>% filter(n_trees >= 5, n_flux >= 5)   # the ten gene-flux species (as Fig 8 and Fig S24b)
 
 if (nrow(sp_mcra_mt) >= 3) {
   sp_cor <- cor.test(log10(sp_mcra_mt$med_mcra + 1), log10(sp_mcra_mt$med_mt + 1))
