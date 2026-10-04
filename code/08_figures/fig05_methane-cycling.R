@@ -212,7 +212,7 @@ summary_mg_b <- mg_comp %>%
 
 # Methanogen family colours. MG_STYLE: "pathway" (families shaded by methanogenic pathway),
 # "other" (the two wood families kept, the rest pooled), "alphabetical" (one viridis ramp)
-MG_STYLE <- Sys.getenv("MG_STYLE", "alphabetical")
+MG_STYLE <- Sys.getenv("MG_STYLE", "pathway")
 mg_pathway <- c(Methanobacteriaceae = "H", Methanocellaceae = "H", Methanocorpusculaceae = "H",
                 Methanomicrobiaceae = "H", Methanoregulaceae = "H",
                 Methanomassiliicoccaceae = "M", Methanomethyliaceae = "M",
