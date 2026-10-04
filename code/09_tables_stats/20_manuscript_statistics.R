@@ -690,6 +690,35 @@ for (fam in c("Methanobacteriaceae", "Methanomassiliicoccaceae")) {
   }
 }
 
+# Tests behind Results §5 (heartwood vs sapwood families; A. saccharum against other species)
+sub_header("Methanogen families: heartwood vs sapwood (Wilcoxon) and soil means")
+fam_pct <- function(fam, ids) {
+  asvs <- intersect(rownames(tax_df)[tax_df$Family == fam], rownames(otu_df))
+  colSums(otu_df[asvs, ids, drop = FALSE])
+}
+for (fam in c("Methanobacteriaceae", "Methanomassiliicoccaceae")) {
+  w <- wilcox.test(fam_pct(fam, rownames(hw_samples)), fam_pct(fam, rownames(sw_samples)))
+  cat(sprintf("  %s heartwood vs sapwood: Wilcoxon p = %.2g\n", fam, w$p.value))
+  for (comp in c("Mineral Soil", "Organic Soil")) {
+    v <- fam_pct(fam, rownames(samp_meta)[samp_meta$compartment == comp])
+    cat(sprintf("  %s, %s: %.3f +/- %.2f%%\n", fam, comp, mean(v), sd(v)))
+  }
+}
+sub_header("A. saccharum heartwood against other species (Wilcoxon)")
+w16 <- wilcox.test(hw_samples$methanogen_pct[hw_samples$species.x == "ACSA"],
+                   hw_samples$methanogen_pct[hw_samples$species.x != "ACSA"])
+cat(sprintf("  16S methanogen share: p = %.2g\n", w16$p.value))
+hw_mcra_sp <- ymf2021 %>% filter(!is.na(ddpcr_mcra_probe_Inner_loose)) %>%
+  transmute(acsa = species_id == "ACSA", lg = log10(ddpcr_mcra_probe_Inner_loose + 1),
+            pos = ddpcr_mcra_probe_Inner_loose > 0)
+wm <- wilcox.test(lg ~ acsa, data = hw_mcra_sp)
+acsa_pos <- hw_mcra_sp %>% filter(acsa, pos)
+cat(sprintf("  heartwood mcrA, log10 among positive: %.1f +/- %.1f (SD, n = %d); vs other species (log10(x+1), all samples): p = %.2g\n",
+            mean(acsa_pos$lg), sd(acsa_pos$lg), nrow(acsa_pos), wm$p.value))
+pos_only <- hw_mcra_sp %>% filter(pos)
+cat(sprintf("  heartwood mcrA among positive, vs other species: Welch t p = %.2g; Wilcoxon p = %.2g\n",
+            t.test(lg ~ acsa, data = pos_only)$p.value, wilcox.test(lg ~ acsa, data = pos_only)$p.value))
+
 # Soil taxa (VERIFY Bathyarchaeia dominance)
 sub_header("Top soil archaeal taxa (Mineral + Organic)")
 soil_samples <- samp_meta %>% filter(compartment %in% c("Mineral Soil", "Organic Soil"))
