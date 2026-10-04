@@ -13,6 +13,7 @@ suppressPackageStartupMessages({ library(tidyverse); library(patchwork) })
 out <- "outputs"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
 
 # ---- palette: red/blue diverging (as in the map figure) + orange + grey ------
+mlab <- function(b) sub("^-", "\u2212", format(b, trim = TRUE, drop0trailing = TRUE))   # true minus on axes
 RED  <- "#b2182b"   # methanogen (a) / C1 (c) / mcrA-associated, positive (b)
 BLU  <- "#2166ac"   # aerobic (c) / anti-correlated, negative (b)
 SYN  <- "#d4a017"   # syntrophic fermenters (a) / fermentation (c)  (mustard/gold)
@@ -45,8 +46,8 @@ pa <- ggplot(fa, aes(t, family, color = group)) +
   scale_color_manual(values = c(Methanogen = RED, `Associate / syntroph` = SYN, `Other fermenter` = OTH), name = NULL) +
   labs(x = expression("Co-occurrence with "*italic(mcrA)*" (t-statistic; FDR < 0.05)"), y = NULL) +
   ggtitle(expression(bold("a  Taxa: methanogens + fermentative associates"))) + th +
-  theme(legend.position = c(0.98, 0.04), legend.justification = c(1, 0),
-        legend.background = element_rect(fill="white", color="grey80"),
+  theme(legend.position = "bottom", legend.margin = margin(0, 0, 0, 0), legend.text = element_text(size = 9.5), legend.key.size = unit(0.35, "cm"),
+        legend.background = element_blank(),
         axis.text.y = element_text(face = "italic", size = 10))
 
 # ---- (b) FUNCTION (FAPROTAX HW/SW) — documented energy/redox-metabolism set ----
@@ -60,7 +61,7 @@ fap_all <- read.csv("outputs/data/FAPROTAX_all_functions_HW_SW.csv")
 # FAPROTAX files Methanobacteriaceae under dark H2 oxidation and Methanomassiliicoccaceae
 # under methylotrophy, which recounted the methanogens as independent functions (2026-10-02).
 fap_sel <- tribble(~func, ~disp,
-  "hydrogenotrophic_methanogenesis", "Hydrogenotrophic methanogenesis (methanogens)",
+  "hydrogenotrophic_methanogenesis", "H\u2082-trophic methanogenesis",
   "dark_hydrogen_oxidation",         "Dark hydrogen oxidation",
   "fermentation",                    "Fermentation",
   "anaerobic_chemoheterotrophy",     "Anaerobic chemoheterotrophy",
@@ -78,7 +79,7 @@ stopifnot(all(is.finite(fap$lr)))
 pb <- ggplot(fap, aes(lr, fn, fill = lr)) +
   geom_col() + geom_vline(xintercept = 0, color = "grey50") +
   scale_fill_gradient2(low = BLU, mid = "grey93", high = RED, midpoint = 0, guide = "none") +
-  scale_x_continuous(expand = expansion(mult = c(0.08, 0.05))) +
+  scale_x_continuous(labels = mlab, expand = expansion(mult = c(0.08, 0.05))) +
   labs(x = expression(log[2]*"(heartwood / sapwood)"), y = NULL) + th
 
 # ---- (c) PATHWAY (Fig6 filter gc<0.10): a-priori FUNCTIONAL categories --------
@@ -117,14 +118,16 @@ pwc <- sig %>% rowwise() %>% mutate(cat = classify_pw(pathway, description)) %>%
            str_wrap(24),
          lab = fct_reorder(lab, t))
 pc <- ggplot(pwc, aes(t, lab, color = cat)) +
+  guides(color = guide_legend(ncol = 2)) +
+  scale_x_continuous(labels = mlab) +
   geom_segment(aes(x = 0, xend = t, yend = lab), color = "grey78", linewidth = 0.6) +
   geom_point(size = 3.2) + geom_vline(xintercept = 0, color = "grey50") +
   scale_color_manual(values = c(`C1 / carbon fixation`=RED, `Fermentation and carbohydrate breakdown`=SYN,
                                 `TCA cycle and aerobic respiration`=BLU, `Sulfur / nitrogen metabolism`=ABLU), name = NULL) +
   labs(x = expression("Association with "*italic(mcrA)*" (t-statistic)"), y = NULL,
        title = "c  Pathway (PICRUSt2): anaerobic C-metabolism tracks mcrA") + th +
-  theme(legend.position = c(0.98, 0.04), legend.justification = c(1, 0),
-        legend.background = element_rect(fill="white", color="grey80"),
+  theme(legend.position = "bottom", legend.margin = margin(0, 0, 0, 0),
+        legend.background = element_blank(),
         legend.text = element_text(size = 8), axis.text.y = element_text(size = 8.3, lineheight = 0.85))
 
 # ---- (d) ISOTOPES (Fig-S9 raincloud) + Keeling source; points sized by CH4 ----
@@ -153,17 +156,17 @@ pd <- ggplot() +
   annotate("point", x=keel, y=0.72, color=METH, size=3) +
   annotate("text", x=keel, y=0.84, label="Keeling source (95% CI)", color=METH, size=3.2, fontface="bold", hjust=0.5) +
   brk(-110,-60, by, "Hydrogenotrophic") + brk(-65,-50, by-bs, "Acetoclastic") + brk(-70,-50, by-2*bs, "Methylotrophic") +
-  scale_x_continuous(breaks=seq(-120,20,20)) + coord_cartesian(xlim=c(XLO,XHI), ylim=c(-0.92, 0.92), clip="off") +
-  labs(x=expression(delta^13*"C-CH"[4]*" (per mil VPDB)"), y=NULL,
+  scale_x_continuous(breaks=seq(-120,20,20), labels = mlab) + coord_cartesian(xlim=c(XLO,XHI), ylim=c(-0.92, 0.92), clip="off") +
+  labs(x=expression(delta^13*"C-CH"[4]*" (‰ VPDB)"), y=NULL,
        title=expression(bold("d  Isotopes: "*delta^13*"C-CH"[4]*" depleted; source hydrogenotrophic"))) +
   th + theme(axis.text.y=element_blank(), axis.ticks.y=element_blank(),
-             legend.position=c(0.99,0.05), legend.justification=c(1,0),
-             legend.background=element_rect(fill="white",color="grey80"),
+             legend.position="bottom", legend.margin=margin(0,0,0,0),
+             legend.background=element_blank(),
              plot.margin=margin(6,10,42,6), panel.grid=element_blank())
 
-fig <- (pa | pb) / (pc | pd) + plot_layout(heights = c(1, 1.25)) +
-  plot_annotation(tag_levels = 'a', tag_prefix = "(", tag_suffix = ")") & theme(plot.tag = element_text(face = "bold", size = 18))
-ggsave(out_path("fig_hydrogenotrophy.png"), fig, width = 13.5, height = 11, dpi = 300, bg = "white")
+fig <- wrap_plots(pa, pb, pc, free(pd), ncol = 2) + plot_layout(widths = c(1, 1), heights = c(0.8, 1.45)) +   # equal panel widths
+  plot_annotation(tag_levels = 'a', tag_prefix = "(", tag_suffix = ")") & theme(plot.tag = element_text(face = "bold", size = 14))
+ggsave(out_path("fig_hydrogenotrophy.png"), fig, width = 10.5, height = 9.4, dpi = 300, bg = "white")   # near print size
 cat("Wrote fig_hydrogenotrophy.png (semantic palette; base_size 11)\n")
 cat("(a) families:", paste(as.character(fa$family), collapse=", "), "\n")
 cat("(c) categories:", paste(levels(droplevels(pwc$cat)), collapse=" | "), "\n")

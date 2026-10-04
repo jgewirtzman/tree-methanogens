@@ -108,8 +108,9 @@ pa <- ggplot(soil_map, aes(PX, PY, fill = mean_flux_nmol)) +
   # wettest (mean VWC 45.9 against 14.1 in the sink cells). Showing them also makes
   # the panel consistent with this figure's own convention: sink cool, source warm.
   scale_fill_gradientn(colours = c(rev(BLUES), REDS[-1]),
-                      name = expression("Soil CH"[4]*"  (nmol m"^-2*" s"^-1*", per m"^2*" ground)"),
+                      name = expression("Soil CH"[4]*" flux (nmol m"^-2*" ground s"^-1*")"),
                       limits = max(abs(soil_map$mean_flux_nmol))*c(-1, 1),
+                      labels = function(b) sub("^-", "\u2212", format(b, trim = TRUE, drop0trailing = TRUE)),
                       guide = guide_colorbar(title.position = "top")) +
   map_scales + labs(x = "metres", y = "metres") +
   geom_path(data = STAND, aes(PX, PY), inherit.aes = FALSE,
@@ -145,7 +146,7 @@ col_brks <- col_brks[col_brks <= max(tv) * 1.02]
 
 pb <- ggplot(tree_pts %>% arrange(flux_nmol_m2_s), aes(PX, PY, color = flux_nmol_m2_s, size = dbh_m)) +
   geom_point(alpha = 0.9) +
-  scale_color_gradientn(colours = REDS, name = expression("Tree CH"[4]*"  (nmol m"^-2*" s"^-1*", per m"^2*" woody surface, 0-2 m band mean)"),
+  scale_color_gradientn(colours = REDS, name = expression("Tree CH"[4]*" flux, 0–2 m mean (nmol m"^-2*" bark s"^-1*")"),
                         limits = c(0, max(tv)), trans = asinh_col,
                         breaks = col_brks, labels = col_brks,
                         guide = guide_colorbar(title.position = "top")) +
@@ -202,18 +203,19 @@ CM <- read.csv("outputs/data/canonical_monthly.csv", stringsAsFactors = FALSE)
 # belongs in the budget panel, and that is where it now lives exclusively.
 mon <- CM %>%
   transmute(month,
-            `Soil\n(per sq.m ground)` = soil_nmol_m2_s,
-            `Tree at 1.3 m\n(per sq.m bark)` = tree_bh_nmol_m2_s) %>%
+            `Soil (per m² ground)` = soil_nmol_m2_s,
+            `Tree at 1.3 m (per m² bark)` = tree_bh_nmol_m2_s) %>%
   pivot_longer(-month, names_to = "src", values_to = "nmol") %>%
-  mutate(src = factor(src, levels = c("Soil\n(per sq.m ground)",
-                                      "Tree at 1.3 m\n(per sq.m bark)")))
+  mutate(src = factor(src, levels = c("Soil (per m² ground)",
+                                      "Tree at 1.3 m (per m² bark)")))
 pc <- ggplot(mon, aes(month, nmol, colour = src)) +
   geom_hline(yintercept = 0, color = "grey60", linewidth = 0.3) +
   geom_line(linewidth = 0.6) +
   geom_point(size = 1.8) +
-  facet_wrap(~src, ncol = 1, scales = "free_y", strip.position = "right") +
+  facet_wrap(~src, ncol = 1, scales = "free_y", strip.position = "top") +
   scale_colour_manual(values = setNames(c(SINK, SRC), levels(mon$src)), guide = "none") +
   scale_x_continuous(breaks = 1:12, labels = month.abb) +
+  scale_y_continuous(labels = function(b) sub("^-", "\u2212", format(b, trim = TRUE, drop0trailing = TRUE))) +
   labs(x = NULL, y = expression("CH"[4]*" flux (nmol m"^-2*" s"^-1*")")) +
   theme_bw(base_size = 11) +
   theme(axis.text.x = element_text(size = 9),
@@ -224,8 +226,8 @@ pc <- ggplot(mon, aes(month, nmol, colour = src)) +
 # ---- (d) net budget waterfall (mg m-2 yr-1) ----------------------------------
 # steps: baseline 0 -> soil -> tree(measured) -> tree(scenario) -> NET(total)
 wf <- tibble(
-  step  = factor(c("Soil\nuptake","Stems,\n0-2 m","Stems, whole\nsurface","Net\nbudget"),
-                 levels = c("Soil\nuptake","Stems,\n0-2 m","Stems, whole\nsurface","Net\nbudget")),
+  step  = factor(c("Soil\nuptake","Stems,\n0–2 m","Stems,\nwhole\nsurface","Net\nbudget"),
+                 levels = c("Soil\nuptake","Stems,\n0–2 m","Stems,\nwhole\nsurface","Net\nbudget")),
   ymin  = c(soil_ann, soil_ann, soil_ann + tree_meas, 0),
   ymax  = c(0, soil_ann + tree_meas, soil_ann + tree_meas + (tree_scen - tree_meas),
             soil_ann + tree_scen),
@@ -263,6 +265,7 @@ pd <- ggplot(wf) +
   geom_hline(yintercept = 0, color = "grey60") +
   scale_fill_manual(values = c(sink = SINK, src = SRC, src_lt = SRC_LT, net = NETC), guide = "none") +
   scale_x_continuous(breaks = 1:5, labels = c(levels(wf$step), "Foliage\n(unknown)"), limits = c(0.4, 5.6)) +
+  scale_y_continuous(labels = function(b) sub("^-", "\u2212", format(b, trim = TRUE, drop0trailing = TRUE))) +
   # labels computed from the variables above -- never hardcode, they drift
   # negative totals sit inside the bottom of their bars (white); the axis edge and bar end crowded them
   annotate("text", x = 1, y = soil_ann,             label = sub("-", "\u2212", sprintf("%.0f", soil_ann)),
@@ -286,7 +289,7 @@ pd <- ggplot(wf) +
 # ---- assemble (net-sink / RF-R2 / basis notes go in the figure CAPTION) -------
 fig <- (pa | pb) / (pc | pd) + plot_layout(heights = c(1.05, 1)) +
   plot_annotation(tag_levels = 'a', tag_prefix = "(", tag_suffix = ")") & theme(plot.tag = element_text(face = "bold", size = 13))
-ggsave(out_path("fig_budget_maps.png"), fig, width = 10.5, height = 9, dpi = 300, bg = "white")
+ggsave(out_path("fig_budget_maps.png"), fig, width = 9.2, height = 8, dpi = 300, bg = "white")   # near print size
 cat("Wrote fig_budget_maps.png\n")
 cat(sprintf("Soil %.1f | tree measured %.2f (%.2f%% of soil) | tree scenario %.1f (%.1f%%, %.0f%% extrapolated)\n",
             soil_ann, tree_meas, off(tree_meas), tree_scen, off(tree_scen), pct_extrapolated))

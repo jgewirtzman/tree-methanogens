@@ -78,11 +78,11 @@ p_mcra <- ggplot(p_mcra_data, aes(x = x, y = y, fill = Clog)) +
     axis.title = element_blank(),
     axis.ticks = element_blank(),
     panel.grid = element_blank(),
-    strip.text = element_text(face = "italic", size = 9),
+    strip.text = element_text(face = "italic", size = 9.5), strip.clip = "off",
     strip.background = element_blank(),
     legend.position = "right",
-    legend.title = element_text(size = 14),
-    legend.text = element_text(size = 12),
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 10),
     legend.key.height = unit(0.6, "cm"),  # Smaller legend
     legend.key.width = unit(0.4, "cm"),   # Smaller legend
     legend.title.align = 0,  # Left-align title
@@ -117,11 +117,11 @@ p_sum <- ggplot(p_sum_data, aes(x = x, y = y, fill = Clog)) +
     axis.title = element_blank(),
     axis.ticks = element_blank(),
     panel.grid = element_blank(),
-    strip.text = element_text(face = "italic", size = 9),
+    strip.text = element_text(face = "italic", size = 9.5), strip.clip = "off",
     strip.background = element_blank(),
     legend.position = "right",
-    legend.title = element_text(size = 14),
-    legend.text = element_text(size = 12),
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 10),
     legend.key.height = unit(0.6, "cm"),  # Smaller legend
     legend.key.width = unit(0.4, "cm"),   # Smaller legend
     legend.title.align = 0,  # Left-align title
@@ -173,11 +173,11 @@ p_overlay <- ggplot(overlay_data_modified, aes(x = x, y = y)) +
     axis.title = element_blank(),
     axis.ticks = element_blank(),
     panel.grid = element_blank(),
-    strip.text = element_text(face = "italic", size = 9),
+    strip.text = element_text(face = "italic", size = 9.5), strip.clip = "off",
     strip.background = element_blank(),
     legend.position = "right",
-    legend.title = element_text(size = 14),
-    legend.text = element_text(size = 12),
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 10),
     legend.key.height = unit(0.6, "cm"),  # Smaller legend
     legend.key.width = unit(0.4, "cm"),   # Smaller legend
     legend.title.align = 0,  # Left-align title
@@ -187,6 +187,29 @@ p_overlay <- ggplot(overlay_data_modified, aes(x = x, y = y)) +
     panel.spacing = unit(0.5, "lines"),
     panel.background = element_rect(fill = "white", color = NA)
   )
+
+# Panel (c) as one diverging scale: log10(mcrA / (pmoA + mmoX)), red = methanogen-dominated,
+# white = balanced, blue = methanotroph-dominated. FIG8_C = "overlay" keeps the two-scale overlay.
+if (Sys.getenv("FIG8_C", "overlay") == "ratio") {
+  rat <- overlay_data_modified %>% mutate(ratio = Clog_mcra - Clog_methan)
+  lim <- max(abs(range(rat$ratio, na.rm = TRUE)))
+  p_overlay <- ggplot(rat, aes(x = x, y = y, fill = ratio)) +
+    geom_raster(interpolate = TRUE) +
+    scale_fill_gradient2(low = "#2166ac", mid = "white", high = "#b2182b", midpoint = 0, limits = c(-lim, lim),
+                         name = bquote("log"[10] ~ "(" * italic(mcrA) * " : methanotroph)"),
+                         labels = function(x) sub("-", "\u2212", sprintf("%.1f", x))) +
+    geom_circle(data = rat %>% dplyr::distinct(species_label, R), aes(x0 = 0, y0 = 0, r = R),
+                inherit.aes = FALSE, color = "black", linewidth = 0.3) +
+    facet_wrap(~ species_label, ncol = 5) + coord_equal() +
+    theme_minimal(base_size = 10) +
+    theme(axis.text = element_blank(), axis.title = element_blank(), axis.ticks = element_blank(),
+          panel.grid = element_blank(), strip.text = element_text(face = "italic", size = 9.5), strip.clip = "off",
+          strip.background = element_blank(), legend.position = "right",
+          legend.title = element_text(size = 12), legend.text = element_text(size = 10),
+          legend.key.height = unit(0.6, "cm"), legend.key.width = unit(0.4, "cm"),
+          legend.justification = "left", panel.spacing = unit(0.5, "lines"),
+          panel.background = element_rect(fill = "white", color = NA))
+}
 
 # Combine radial plots vertically
 combined_plot <- p_mcra / p_sum / p_overlay
@@ -219,23 +242,19 @@ p_species_mcra_2x2 <- ggplot(analysis_mcra,
   geom_smooth(method = "lm", se = TRUE, color = "#C03221",
               fill = "#F5C9C3", alpha = 0.2, linewidth = 1) +
   geom_point(size = 3.25, alpha = 0.85, color = "#C03221") +
-  geom_text_repel(aes(label = species), size = 3.5, fontface = "italic", seed = 42, min.segment.length = 0, force = 3, max.time = 2,
-                  box.padding = 0.2, max.overlaps = 20) +
+  geom_text_repel(aes(label = species), size = 3.5, fontface = "italic", seed = 42, min.segment.length = 0.1, force = 8, force_pull = 0.5,
+                  max.time = 5, max.iter = 1e5, box.padding = 0.35, point.padding = 0.25, max.overlaps = Inf) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
-  annotate("label", x = -Inf, y = Inf,
-           label = sprintf("R\u00B2 = %.3f\np = %.3f",
-                           cor_area_mcra$estimate^2,
-                           cor_area_mcra$p.value),
-           hjust = -0.05, vjust = 1.2, size = 5,
-           fill = "white", alpha = 0.9) +
+  labs(subtitle = sprintf("R\u00B2 = %.2f, p = %.3f", cor_area_mcra$estimate^2, cor_area_mcra$p.value)) +
   coord_cartesian(clip = "off") +
-  labs(x = expression("log"[10]*" median "*italic(mcrA)),
+  scale_x_continuous(breaks = log10(c(10, 15, 20, 30, 50) * 1e3), labels = c("10", "15", "20", "30", "50")) +
+  labs(x = expression("Median "*italic(mcrA)*" ("*10^3*" copies g"^-1*")"),
        y = expression("Median CH"[4]*" flux (nmol m"^-2*" s"^-1*")")) +
   theme_classic(base_size = 11.7) +
   theme(
-    axis.title = element_text(size = 14),
-    axis.text = element_text(size = 13),
-    plot.margin = margin(5, 18, 5, 5),
+    axis.title = element_text(size = 12.5),
+    axis.text = element_text(size = 12), plot.subtitle = element_text(size = 12),
+    plot.margin = margin(5, 30, 5, 5),
     panel.grid.major = element_line(color = "gray95", linewidth = 0.3),
     panel.border = element_rect(color = "black", fill = NA, linewidth = 0.8)
   )
@@ -246,23 +265,19 @@ p_species_methanotroph_2x2 <- ggplot(analysis_methanotroph,
   geom_smooth(method = "lm", se = TRUE, color = "#4A6FA5",
               fill = "#C5D5E8", alpha = 0.2, linewidth = 1) +
   geom_point(size = 3.25, alpha = 0.85, color = "#4A6FA5") +
-  geom_text_repel(aes(label = species), size = 3.5, fontface = "italic", seed = 42, min.segment.length = 0, force = 3, max.time = 2,
-                  box.padding = 0.2, max.overlaps = 20) +
+  geom_text_repel(aes(label = species), size = 3.5, fontface = "italic", seed = 42, min.segment.length = 0.1, force = 8, force_pull = 0.5,
+                  max.time = 5, max.iter = 1e5, box.padding = 0.35, point.padding = 0.25, max.overlaps = Inf) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
-  annotate("label", x = Inf, y = Inf,
-           label = sprintf("R\u00B2 = %.3f\np = %.3f",
-                           cor_area_methanotroph$estimate^2,
-                           cor_area_methanotroph$p.value),
-           hjust = 1.05, vjust = 1.2, size = 5,
-           fill = "white", alpha = 0.9) +
+  labs(subtitle = sprintf("R\u00B2 = %.2f, p = %.3f", cor_area_methanotroph$estimate^2, cor_area_methanotroph$p.value)) +
   coord_cartesian(clip = "off") +
-  labs(x = expression("log"[10]*" median ("*italic(pmoA)*" + "*italic(mmoX)*")"),
+  scale_x_continuous(breaks = log10(c(30, 50, 100, 200, 400) * 1e3), labels = c("30", "50", "100", "200", "400")) +
+  labs(x = expression("Median "*italic(pmoA)*" + "*italic(mmoX)*" ("*10^3*" copies g"^-1*")"),
        y = expression("Median CH"[4]*" flux (nmol m"^-2*" s"^-1*")")) +
   theme_classic(base_size = 11.7) +
   theme(
-    axis.title = element_text(size = 14),
-    axis.text = element_text(size = 13),
-    plot.margin = margin(5, 18, 5, 5),
+    axis.title = element_text(size = 12.5),
+    axis.text = element_text(size = 12), plot.subtitle = element_text(size = 12),
+    plot.margin = margin(5, 30, 5, 5),
     panel.grid.major = element_line(color = "gray95", linewidth = 0.3),
     panel.border = element_rect(color = "black", fill = NA, linewidth = 0.8)
   )
@@ -273,24 +288,19 @@ p_species_ratio_2x2 <- ggplot(analysis_ratio,
   geom_smooth(method = "lm", se = TRUE, color = "#6B5B95",
               fill = "#D7D2E0", alpha = 0.2, linewidth = 1) +
   geom_point(size = 3.25, alpha = 0.85, color = "#6B5B95") +
-  geom_text_repel(aes(label = species), size = 3.5, fontface = "italic", seed = 42, min.segment.length = 0, force = 3, max.time = 2,
-                  box.padding = 0.2, max.overlaps = 20) +
+  geom_text_repel(aes(label = species), size = 3.5, fontface = "italic", seed = 42, min.segment.length = 0.1, force = 8, force_pull = 0.5,
+                  max.time = 5, max.iter = 1e5, box.padding = 0.35, point.padding = 0.25, max.overlaps = Inf) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
   geom_vline(xintercept = 0, linetype = "dotted", color = "gray50", alpha = 0.5) +
-  annotate("label", x = -Inf, y = Inf,
-           label = sprintf("R\u00B2 = %.3f\np = %.3f",
-                           pearson_ratio$estimate^2,
-                           pearson_ratio$p.value),
-           hjust = -0.05, vjust = 1.2, size = 5,
-           fill = "white", alpha = 0.9) +
+  labs(subtitle = sprintf("R\u00B2 = %.2f, p = %.3f", pearson_ratio$estimate^2, pearson_ratio$p.value)) +
   coord_cartesian(clip = "off") +
-  labs(x = expression("log"[10]*" ratio"),
+  scale_x_continuous(breaks = log10(c(0.05, 0.1, 0.2, 0.5, 1)), labels = c("0.05", "0.1", "0.2", "0.5", "1")) +
+  labs(x = expression(italic(mcrA)*" : methanotroph ratio"),
        y = expression("Median CH"[4]*" flux (nmol m"^-2*" s"^-1*")")) +
   theme_classic(base_size = 11.7) +
   theme(
-    axis.title = element_text(size = 16),
-    axis.title.x = element_text(vjust = 10),  # Move x-axis title up
-    axis.text = element_text(size = 14),
+    axis.title = element_text(size = 12.5),
+    axis.text = element_text(size = 12), plot.subtitle = element_text(size = 12),
     panel.grid.major = element_line(color = "gray95", linewidth = 0.3),
     panel.border = element_rect(color = "black", fill = NA, linewidth = 0.8)
   )
@@ -342,7 +352,8 @@ side_by_side <- (combined_plot | species_2x2_layout) +
   plot_annotation(tag_levels = "a",
                   tag_prefix = "(",
                   tag_suffix = ")",
-                  theme = theme(plot.tag = element_text(size = 11, face = "bold")))
+                  theme = theme(plot.tag = element_text(size = 11, face = "bold"))) &
+  theme(plot.tag = element_text(size = 14, face = "bold"))
 
 side_by_side
 
@@ -353,10 +364,10 @@ side_by_side
 #        height = 10,
 #        limitsize = FALSE)
 
-ggsave("outputs/figures/original/main/fig8_radial_species_comparison.png",
+ggsave(Sys.getenv("FIG8_OUT", "outputs/figures/original/main/fig8_radial_species_comparison.png"),
        side_by_side,
-       width = 17.5,
-       height = 10,
+       width = 15.5,
+       height = 9,
        dpi = 300,
        limitsize = FALSE)
 

@@ -103,7 +103,7 @@ tree_counts <- plot_data_top %>%
   group_by(species, species_latin) %>%
   summarise(n_trees = n_distinct(tree_unique), .groups = 'drop') %>%
   mutate(
-    species_label_with_n = paste0(species_latin, "\n(n=", n_trees, ")"),
+    species_label_with_n = paste0(species_latin, "\n(", n_trees, ")"),
     species_label_no_n = species_latin
   )
 
@@ -218,8 +218,7 @@ trans_symlog_fig2 <- scales::trans_new("arcsinh",
   inverse   = function(x) asinh_cofac * sinh(x))
 shared_brks_fig2  <- c(0, 0.1, 1)   # 3 well-separated ticks (fixes label crowding near zero)
 shared_lims_fig2  <- range(c(plot_data_top$CH4_best.flux, shared_brks_fig2), na.rm = TRUE)
-shared_lab_fig2   <- function(x) ifelse(x == 0, "0",
-                            ifelse(abs(x) < 0.1, sprintf("%.2f", x), sprintf("%.1f", x)))
+shared_lab_fig2   <- function(x) sub("-", "\u2212", format(x, drop0trailing = TRUE, trim = TRUE, scientific = FALSE))
 se <- function(z) sd(z) / sqrt(length(z))
 
 create_species_plot_half <- function(species_name, species_data, breaks_data, sig_lookup) {
@@ -248,7 +247,7 @@ create_species_plot_half <- function(species_name, species_data, breaks_data, si
   }
   g +
     coord_flip() +
-    scale_x_continuous(breaks = c(0.5, 1.25, 2), expand = expansion(mult = c(0.13, 0.13))) +
+    scale_x_continuous(breaks = c(0.5, 1.25, 2), labels = c("0.5", "1.25", "2"), expand = expansion(mult = c(0.13, 0.13))) +
     scale_y_continuous(
       trans = trans_symlog_fig2, breaks = shared_brks_fig2, limits = shared_lims_fig2,
       labels = shared_lab_fig2, expand = expansion(mult = c(0.05, 0.12))
@@ -302,7 +301,35 @@ p_top_final <- arrangeGrob(
   padding = unit(0.2, "lines")
 )
 
-p_top_gg <- wrap_elements(full = p_top_final)
+p_top_gg <- wrap_elements(full = p_top_final)   # previous layout: 15 separate panels, each with its own axes
+
+# Panel (a) as one faceted plot: same axes, breaks and labels as above, but axis text only on the
+# outer panels and species names as strips, which removes the repeated axes and most white space.
+if (PANEL_A_STYLE == "boxplot") {
+  lab_df <- species_breaks %>% dplyr::select(species, species_label)
+  top_df <- plot_data_top %>%
+    mutate(species_label = factor(species_label, levels = lab_df$species_label[match(species_list, lab_df$species)]))
+  p_top_gg <- ggplot(top_df, aes(x = height_m, y = CH4_best.flux)) +
+    geom_hline(yintercept = 0, linetype = "dashed", color = "gray40", linewidth = 0.5, alpha = 0.8) +
+    geom_half_boxplot(aes(group = height_m), alpha = 0.6, outlier.shape = NA,
+                      fill = boxplot_color, color = "gray30", side = "r", linewidth = 0.3) +
+    geom_jitter(alpha = 0.4, size = 0.9, color = "gray20", position = position_jitter(width = 0.1, height = 0)) +
+    facet_wrap(~ species_label, ncol = 5) +
+    coord_flip() +
+    scale_x_continuous(breaks = c(0.5, 1.25, 2), labels = c("0.5", "1.25", "2"), expand = expansion(mult = c(0.13, 0.13))) +
+    scale_y_continuous(trans = trans_symlog_fig2, breaks = shared_brks_fig2, limits = shared_lims_fig2,
+                       labels = shared_lab_fig2, expand = expansion(mult = c(0.05, 0.12))) +
+    labs(x = "Height (m)", y = expression("CH"[4]*" flux (nmol m"^-2*" s"^-1*"),  arcsinh scale")) +
+    theme_minimal(base_size = 9) +
+    theme(strip.text = element_text(size = 7, face = "italic", margin = margin(b = 1, t = 1), lineheight = 0.9),
+          axis.text = element_text(size = 7), axis.title = element_text(size = 9),
+          panel.grid.major = element_line(linewidth = 0.2, color = "gray90"),
+          panel.grid.minor = element_blank(),
+          panel.border = element_rect(color = "gray40", fill = NA, linewidth = 0.4),
+          panel.spacing.x = unit(0.25, "lines"), panel.spacing.y = unit(0.35, "lines"),
+          plot.margin = margin(t = 0, r = 2, b = 0, l = 2))
+  p_top_gg <- wrap_elements(full = p_top_gg)   # not aligned to (b)/(c), so it can use the full width
+}
 
 # ==============================================================================
 # 5. PANEL B — Height effect coefficients (middle)
@@ -335,6 +362,7 @@ p_middle <- ggplot(plot_data_middle,
                 width = 0.3, linewidth = 0.5, alpha = 0.8) +
   scale_color_manual(values = colors_pub, name = "") +
   scale_shape_manual(values = shapes_pub, name = "") +
+  scale_y_continuous(labels = function(b) sub("-", "\u2212", format(b, drop0trailing = TRUE, trim = TRUE))) +
   labs(
     x = "",
     y = expression(atop("Height effect",
@@ -444,9 +472,9 @@ heatmap_data <- soil_mcra_data %>%
     log_mcra_mineral = log10(mean_mcra_mineral + 1),
     log_mcra_weighted = log10(mean_mcra_weighted + 1)
   ) %>%
-  dplyr::select(species_label_no_n, mean_VWC, log_mcra_organic,
-                log_mcra_mineral, log_mcra_weighted) %>%
-  pivot_longer(cols = c(mean_VWC, log_mcra_organic, log_mcra_mineral, log_mcra_weighted),
+  dplyr::select(species_label_no_n, mean_VWC, log_mcra_organic, log_mcra_mineral) %>%
+  # the depth-weighted mean of the two soil layers was dropped: it adds nothing to them
+  pivot_longer(cols = c(mean_VWC, log_mcra_organic, log_mcra_mineral),
                names_to = "variable", values_to = "value") %>%
   group_by(variable) %>%
   mutate(z_score = (value - mean(value, na.rm = TRUE)) / sd(value, na.rm = TRUE)) %>%
@@ -459,8 +487,7 @@ heatmap_data <- soil_mcra_data %>%
       variable == "log_mcra_weighted" ~ "log mcrA (Weighted)",
       TRUE ~ variable
     ),
-    variable = factor(variable, levels = c("VWC", "log mcrA (Organic)",
-                                           "log mcrA (Mineral)", "log mcrA (Weighted)"))
+    variable = factor(variable, levels = c("VWC", "log mcrA (Organic)", "log mcrA (Mineral)"))
   ) %>%
   filter(species_label_no_n %in% species_order_no_n) %>%
   mutate(
@@ -475,10 +502,9 @@ heatmap_data <- soil_mcra_data %>%
 
 p_bottom <- ggplot(heatmap_data, aes(x = species_label_no_n, y = variable, fill = z_score)) +
   geom_tile(color = "white", linewidth = 0.5) +
-  scale_y_discrete(labels = c("VWC" = "VWC",
-                              "log mcrA (Organic)"  = expression(log~italic(mcrA)~"(organic)"),
-                              "log mcrA (Mineral)"  = expression(log~italic(mcrA)~"(mineral)"),
-                              "log mcrA (Weighted)" = expression(log~italic(mcrA)~"(weighted)"))) +
+  scale_y_discrete(labels = c("VWC" = "Soil VWC",
+                              "log mcrA (Organic)"  = expression("Soil"~italic(mcrA)*", organic"),
+                              "log mcrA (Mineral)"  = expression("Soil"~italic(mcrA)*", mineral"))) +
   scale_fill_gradient2(low = "white", mid = "lightblue", high = "#4575B4",
                        midpoint = 0, na.value = "grey90",
                        name = "Z-score") +
@@ -502,16 +528,17 @@ p_bottom <- ggplot(heatmap_data, aes(x = species_label_no_n, y = variable, fill 
 
 # Panel labels via patchwork annotation
 combined_plot <- (p_top_gg / p_middle / p_bottom) +
-  plot_layout(heights = c(5, 1.2, 1.2)) +
+  plot_layout(heights = c(4.2, 1.2, 1.2)) +
   plot_annotation(tag_levels = "a",
                   tag_prefix = "(",
                   tag_suffix = ")",
-                  theme = theme(plot.tag = element_text(size = 11, face = "bold")))
+                  theme = theme(plot.tag = element_text(size = 11, face = "bold"))) &
+  theme(plot.tag = element_text(size = 11, face = "bold"))
 
 print(combined_plot)
 
 out_fn <- if (PANEL_A_STYLE == "meanSE") "outputs/figures/generated/fig2_final_meanSE.png" else "outputs/figures/generated/fig2_final.png"
-ggsave(out_fn, plot = combined_plot, width = 7, height = 7.5, units = "in", dpi = 300)
+ggsave(out_fn, plot = combined_plot, width = 7, height = 7, units = "in", dpi = 300, bg = "white")
 cat("Wrote", out_fn, "(panel-a style:", PANEL_A_STYLE, ")\n")
 
 

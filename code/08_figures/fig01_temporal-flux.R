@@ -201,7 +201,7 @@ vwc_plot <- ggplot(vwc_data, aes(x = Soil_Moisture, fill = Plot_Type)) +
   theme(
     legend.position = "none",
     legend.title = element_blank(),
-    strip.text = element_text(size = 12, face = "bold"),
+    strip.text = element_text(size = 11, face = "bold"),
     panel.border = element_blank(),
     axis.line.x.bottom = element_line(color = "black", linewidth = 0.5),
     axis.ticks.x.bottom = element_line(color = "black", linewidth = 0.3),
@@ -209,7 +209,7 @@ vwc_plot <- ggplot(vwc_data, aes(x = Soil_Moisture, fill = Plot_Type)) +
     panel.grid.minor = element_blank(),
     axis.text.y = element_blank(),
     axis.ticks.y = element_blank(),
-    plot.margin = margin(t = 5, r = 5, b = 10, l = 5, unit = "pt"),
+    plot.margin = margin(t = 5, r = 5, b = 10, l = 16, unit = "pt"),
     strip.placement = "outside",
     panel.spacing = unit(0.1, "lines")
   ) +
@@ -231,10 +231,10 @@ ch4_flux_plot <- ggplot() +
             aes(x = Date_interval, y = mean_flux, color = Data_Type, group = Data_Type),
             linewidth = .8, alpha = 0.3) +
   facet_wrap(~ Plot_Type, nrow = 1) +
-  scale_color_manual(values = c("Soil" = "#8B4513", "Tree" = "#228B22")) +
-  scale_fill_manual(values = c("Soil" = "#8B4513", "Tree" = "#228B22")) +
+  scale_color_manual(values = c("Soil" = "#8B4513", "Tree" = "#228B22"), labels = c(Soil = "Soil", Tree = "Stem")) +
+  scale_fill_manual(values = c("Soil" = "#8B4513", "Tree" = "#228B22"), labels = c(Soil = "Soil", Tree = "Stem")) +
   labs(
-    y = bquote(bold("CH"[4] ~ "Flux (nmol m"^-2 ~ "s"^-1 ~ ")"))
+    y = bquote(bold("CH"[4] ~ "flux (nmol m"^-2 ~ "s"^-1 * ")"))
   ) +
   theme_minimal() +
   theme(
@@ -246,14 +246,15 @@ ch4_flux_plot <- ggplot() +
     panel.border = element_rect(color = "grey30", fill = NA, linewidth = 1),
     axis.text.x = element_blank(),
     panel.grid.minor = element_blank(),
-    plot.margin = margin(t = 0, r = 5, b = 5, l = 5, unit = "pt"),
+    plot.margin = margin(t = 0, r = 5, b = 5, l = 16, unit = "pt"),
     panel.spacing = unit(1, "lines")
   ) +
   guides(color = guide_legend(title = NULL), fill = guide_legend(title = NULL)) +
   scale_x_date(date_labels = "%b %Y", date_breaks = "3 months") +
   scale_y_continuous(
     trans = scales::trans_new("arcsinh", function(x) asinh(x/0.1), function(x) 0.1*sinh(x)),
-    breaks = c(-10, -1, -0.1, 0, 0.1, 1, 10, 100)) +
+    breaks = c(-10, -1, -0.1, 0, 0.1, 1, 10, 100),
+    labels = c("−10", "−1", "−0.1", "0", "0.1", "1", "10", "100")) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "grey20", alpha = 0.9)
 
 # ===== CREATE SOIL TEMP/MOISTURE PLOT (BOTTOM) =====
@@ -284,7 +285,7 @@ temp_moisture_plot <- ggplot(soil_temp_moisture_data, aes(x = Date)) +
     panel.grid.major.y = element_blank(),
     axis.text.x = element_text(angle = 45, hjust = 1),
     panel.grid.minor = element_blank(),
-    plot.margin = margin(t = 0, r = 5, b = 5, l = 5, unit = "pt"),
+    plot.margin = margin(t = 0, r = 5, b = 5, l = 16, unit = "pt"),
     panel.spacing = unit(1, "lines"),
     legend.margin = margin(t = 2, r = 0, b = 0, l = 0, unit = "pt"),
     legend.box.margin = margin(t = 2, r = 0, b = 0, l = 0, unit = "pt")
@@ -312,7 +313,7 @@ print(final_plot)
 
 # Save the plot
 ggsave("outputs/figures/generated/fig1_final.png",
-       final_plot, width = 10, height = 7, dpi = 300)
+       final_plot, width = 8, height = 6, dpi = 300, bg = "white")   # near print size (17 cm) so text prints at ~7-9 pt
 
 # ===== CALCULATE STATISTICS FOR FIGURE CAPTION =====
 

@@ -115,7 +115,7 @@ right <- plot_grid(pb, legend_of(pa), ncol = 1, rel_heights = c(1, 0.32), labels
 fig <- plot_grid(pa, right, ncol = 2, rel_widths = c(1.15, 1), labels = c("(a)", ""), label_size = 13, label_fontface = "bold") +
   theme(plot.background = element_rect(fill = "white", colour = NA))
 OUT_FIG4 <- if (exists("OUT_FIG4")) OUT_FIG4 else out_path("fig4_final.png")
-ggsave(OUT_FIG4, fig, width = 13, height = 5.6, dpi = 300, bg = "white")
+ggsave(OUT_FIG4, fig, width = 10.5, height = 5, dpi = 300, bg = "white")   # near print size
 
 # ---------- SI: all species, mcrA, pmoA and mmoX separately ----------
 ps <- dot_plot(species_dots(wide, c("mcrA", "pmoA", "mmoX")))

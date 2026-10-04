@@ -24,7 +24,7 @@ MAIN <- c(
   "Figure_5_methane-cycling-composition" = "outputs/figures/generated/fig5_final.png",
   "Figure_6_hydrogenotrophy"             = "outputs/figures/generated/fig_hydrogenotrophy.png",
   "Figure_7_decay-methanogenesis"        = "outputs/figures/generated/fig7_decay_methanogenesis.png",  # NEW expanded Fig 7 (folds old felled-oak)
-  "Figure_8_radial-species"              = "outputs/figures/original/main/fig8_radial_species_comparison.png",  # unchanged (orig pipeline); central takeaway
+  "Figure_8_radial-species"              = "outputs/figures/original/main/fig8_radial_species_comparison.png",  # written by fig08_radial-species.R (regenerated every run)
   "Figure_9_ch4-budget"                  = "outputs/figures/generated/fig_budget_maps.png")
 
 # SI — numbered in order of first citation in the main text (renumbered 2026-10-03).
