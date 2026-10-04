@@ -132,7 +132,7 @@ auxfile <- flux_data %>%
     # Chamber volume (from your data) + tubing volume + system volume
     # Tubing: 1/8" ID × 12 ft = π × (1/16)² × 12 × 12 = π × (0.0625)² × 144 in³
     # Convert to cm³: × 16.387 
-    tubing_volume_cm3 = pi * (1/16)^2 * 12 * 12 * 16.387, # ≈ 18.6 cm³
+    tubing_volume_cm3 = pi * (1/16)^2 * 12 * 12 * 16.387, # ≈ 29.0 cm³
     system_volume_cm3 = ANALYZER_VOLUME_CM3, # analyzer internal volume (lab convention, see lib)
     
     # Total volume = chamber + tubing + system, convert to L
