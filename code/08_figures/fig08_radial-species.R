@@ -78,7 +78,7 @@ p_mcra <- ggplot(p_mcra_data, aes(x = x, y = y, fill = Clog)) +
     axis.title = element_blank(),
     axis.ticks = element_blank(),
     panel.grid = element_blank(),
-    strip.text = element_text(face = "italic", size = 9.5), strip.clip = "off",
+    strip.text = element_text(face = "italic", size = 8.6), strip.clip = "off",
     strip.background = element_blank(),
     legend.position = "right",
     legend.title = element_text(size = 12),
@@ -87,6 +87,7 @@ p_mcra <- ggplot(p_mcra_data, aes(x = x, y = y, fill = Clog)) +
     legend.key.width = unit(0.4, "cm"),   # Smaller legend
     legend.title.align = 0,  # Left-align title
     legend.justification = "left",  # Left-align legend
+    legend.box.spacing = unit(2, "pt"),
     panel.spacing = unit(0.5, "lines"),
     panel.background = element_rect(fill = "white", color = NA)
   )
@@ -117,7 +118,7 @@ p_sum <- ggplot(p_sum_data, aes(x = x, y = y, fill = Clog)) +
     axis.title = element_blank(),
     axis.ticks = element_blank(),
     panel.grid = element_blank(),
-    strip.text = element_text(face = "italic", size = 9.5), strip.clip = "off",
+    strip.text = element_text(face = "italic", size = 8.6), strip.clip = "off",
     strip.background = element_blank(),
     legend.position = "right",
     legend.title = element_text(size = 12),
@@ -126,6 +127,7 @@ p_sum <- ggplot(p_sum_data, aes(x = x, y = y, fill = Clog)) +
     legend.key.width = unit(0.4, "cm"),   # Smaller legend
     legend.title.align = 0,  # Left-align title
     legend.justification = "left",  # Left-align legend
+    legend.box.spacing = unit(2, "pt"),
     panel.spacing = unit(0.5, "lines"),
     panel.background = element_rect(fill = "white", color = NA)
   )
@@ -173,7 +175,7 @@ p_overlay <- ggplot(overlay_data_modified, aes(x = x, y = y)) +
     axis.title = element_blank(),
     axis.ticks = element_blank(),
     panel.grid = element_blank(),
-    strip.text = element_text(face = "italic", size = 9.5), strip.clip = "off",
+    strip.text = element_text(face = "italic", size = 8.6), strip.clip = "off",
     strip.background = element_blank(),
     legend.position = "right",
     legend.title = element_text(size = 12),
@@ -182,6 +184,7 @@ p_overlay <- ggplot(overlay_data_modified, aes(x = x, y = y)) +
     legend.key.width = unit(0.4, "cm"),   # Smaller legend
     legend.title.align = 0,  # Left-align title
     legend.justification = "left",  # Left-align legend
+    legend.box.spacing = unit(2, "pt"),
     legend.box = "vertical",  # Stack legends vertically
     legend.box.just = "left",  # Left-align legend box
     panel.spacing = unit(0.5, "lines"),
@@ -190,7 +193,7 @@ p_overlay <- ggplot(overlay_data_modified, aes(x = x, y = y)) +
 
 # Panel (c) as one diverging scale: log10(mcrA / (pmoA + mmoX)), red = methanogen-dominated,
 # white = balanced, blue = methanotroph-dominated. FIG8_C = "overlay" keeps the two-scale overlay.
-if (Sys.getenv("FIG8_C", "overlay") == "ratio") {
+if (Sys.getenv("FIG8_C", "ratio") == "ratio") {
   rat <- overlay_data_modified %>% mutate(ratio = Clog_mcra - Clog_methan)
   lim <- max(abs(range(rat$ratio, na.rm = TRUE)))
   p_overlay <- ggplot(rat, aes(x = x, y = y, fill = ratio)) +
@@ -203,7 +206,7 @@ if (Sys.getenv("FIG8_C", "overlay") == "ratio") {
     facet_wrap(~ species_label, ncol = 5) + coord_equal() +
     theme_minimal(base_size = 10) +
     theme(axis.text = element_blank(), axis.title = element_blank(), axis.ticks = element_blank(),
-          panel.grid = element_blank(), strip.text = element_text(face = "italic", size = 9.5), strip.clip = "off",
+          panel.grid = element_blank(), strip.text = element_text(face = "italic", size = 8.6), strip.clip = "off",
           strip.background = element_blank(), legend.position = "right",
           legend.title = element_text(size = 12), legend.text = element_text(size = 10),
           legend.key.height = unit(0.6, "cm"), legend.key.width = unit(0.4, "cm"),
@@ -272,7 +275,7 @@ p_species_methanotroph_2x2 <- ggplot(analysis_methanotroph,
   coord_cartesian(clip = "off") +
   scale_x_continuous(breaks = log10(c(30, 50, 100, 200, 400) * 1e3), labels = c("30", "50", "100", "200", "400")) +
   labs(x = expression("Median "*italic(pmoA)*" + "*italic(mmoX)*" ("*10^3*" copies g"^-1*")"),
-       y = expression("Median CH"[4]*" flux (nmol m"^-2*" s"^-1*")")) +
+       y = NULL) +
   theme_classic(base_size = 11.7) +
   theme(
     axis.title = element_text(size = 12.5),
@@ -325,7 +328,7 @@ p_species_comparison_2x2 <- ggplot(species_comparison_data,
   theme(
     axis.title = element_text(size = 16),
     axis.text.y = element_text(size = 14),
-    axis.text.x = element_text(size = 14, angle = 45, hjust = 1),
+    axis.text.x = element_text(size = 11, angle = 30, hjust = 1),
     legend.text = element_text(size = 14),
     legend.title = element_text(size = 14),
     legend.position = "top",
@@ -348,7 +351,7 @@ species_2x2_layout <- (p_species_mcra_2x2 | p_species_methanotroph_2x2) /
 if (exists("combined_plot") && exists("species_2x2_layout")) {
 
 side_by_side <- (combined_plot | species_2x2_layout) +
-  plot_layout(widths = c(1, 1)) +
+  plot_layout(widths = c(0.64, 1)) +
   plot_annotation(tag_levels = "a",
                   tag_prefix = "(",
                   tag_suffix = ")",
@@ -366,8 +369,8 @@ side_by_side
 
 ggsave(Sys.getenv("FIG8_OUT", "outputs/figures/original/main/fig8_radial_species_comparison.png"),
        side_by_side,
-       width = 15.5,
-       height = 9,
+       width = 14,
+       height = 8,
        dpi = 300,
        limitsize = FALSE)
 
