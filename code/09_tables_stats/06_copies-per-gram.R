@@ -5,23 +5,22 @@ source("code/lib/outputs.R")
 # Addresses R2 #1 (unit basis: dry vs wet; "copies per gram") and R2 Fig 7b
 # (copies per uL depends on elution volume & extraction mass -> use copies/g).
 #
-# The pipeline (code/archive/superseded_2026-10-01/07_molecular/05_ddpcr_analysis.R, L287) converts with a FIXED
-# 100 mg proxy mass and 37.5 uL elution:  copies ~ concentration * 37.5 / 100.
-# We now have the ACTUAL per-sample mass (sample_mass_mg), so we compute the
-# true mass-normalized value:
-#     copies_per_g_fresh = concentration_copies_per_uL * 37.5 / (mass_mg/1000)
-# and convert to a DRY-weight basis for wood using per-tree tissue moisture.
+# The original pipeline (code/archive/superseded_2026-10-01/07_molecular/05_ddpcr_analysis.R, L287)
+# converted with a FIXED 100 mg proxy mass. This uses the ACTUAL per-sample mass
+# (sample_mass_mg) and the conversion in code/lib/ddpcr_constants.R:
+#     copies g-1 = Conc x (25/2.5) x elution (75 wood, 100 soil) x (800/250) / mass (g)
+# and converts to a DRY-weight basis for wood using per-tree tissue moisture.
 #
 # KEY consequence: wood mass ~100 mg (proxy was ~right) but soil ~250 mg, so the
 # fixed proxy OVERESTIMATED soil copies/g ~2.5x. The real correction LOWERS soil
 # and thus STRENGTHENS the "wood exceeds soil by ~2 orders of magnitude" result.
 #
-# NEW file; edits nothing. Run: Rscript code/revision/R_copies_per_gram.R
+# Run from the repository root: Rscript code/09_tables_stats/06_copies-per-gram.R
 # ==============================================================================
 
 suppressPackageStartupMessages({ library(tidyverse) })
 out_dir <- "outputs"; dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
-source("code/lib/ddpcr_constants.R")   # copies g-1 = Conc x (25/2.5) x elution (75 wood, 100 soil) / mass (g), as 04_harmonize_all_data.R
+source("code/lib/ddpcr_constants.R")   # copies g-1 = Conc x (25/2.5) x elution (75 wood, 100 soil) x (800/250) / mass (g), as 04_harmonize_all_data.R
 
 d <- read_csv("data/compiled/ddpcr_gene_abundances.csv", show_col_types = FALSE) %>%
   filter(analysis_type == "loose", !is.na(sample_mass_mg), sample_mass_mg > 0)
@@ -92,7 +91,7 @@ cat("=================================================================\n")
 cat("GENE COPIES PER GRAM — real mass vs proxy, and dry/wet basis\n")
 cat("=================================================================\n\n")
 cat(sprintf("Elution %.0f uL (wood) / %.0f uL (soil); template %.1f uL in a %.0f uL reaction. Formula (as 04_harmonize_all_data.R):\n", DDPCR_ELUTION_UL[["Wood"]], DDPCR_ELUTION_UL[["Soil"]], DDPCR_TEMPLATE_UL, DDPCR_REACTION_UL))
-cat("  copies/g = concentration_copies_per_uL * (25/2.5) * elution / mass_mg * 1000\n\n")
+cat("  copies/g = concentration_copies_per_uL * (25/2.5) * elution * (800/250) / mass_mg * 1000\n\n")
 cat("Median wood mass ~", round(median(d$sample_mass_mg[d$material=='Wood'],na.rm=T)),
     "mg; median soil mass ~", round(median(d$sample_mass_mg[d$material=='Soil'],na.rm=T)), "mg.\n")
 cat("=> the fixed 100 mg proxy is ~right for wood but too low for soil, so it\n")
