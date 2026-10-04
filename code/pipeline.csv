@@ -80,6 +80,7 @@ D,code/09_tables_stats/20_manuscript_statistics.R,root,FALSE,every quantitative 
 D,code/09_tables_stats/21_write_parameter_record.R,root,FALSE,generated scaling parameter record
 D,code/09_tables_stats/22_chamber-excess.R,root,FALSE,chamber excess over local ambient vs apparent uptake (SI Methods S2)
 D,code/09_tables_stats/23_si-table-workbook.R,root,FALSE,SI Tables S2 and S6 as an Excel workbook
+D,code/09_tables_stats/24_ddpcr-detection-precision.R,root,FALSE,SI Methods S3 table: mcrA detection and counting precision by threshold
 E,code/08_figures/fig01_temporal-flux.R,root,FALSE,Figure 1
 E,code/08_figures/fig02_height-flux.R,root,FALSE,Figure 2
 E,code/08_figures/fig03_variance-partition.R,root,FALSE,Figure 3
