@@ -28,7 +28,8 @@ MAIN <- c(
   "Figure_9_ch4-budget"                  = "outputs/figures/generated/fig_budget_maps.png")
 
 # SI — numbered in order of first citation in the main text (renumbered 2026-10-03).
-# Merged: old S06+S07 (pmoA/mmoX) -> S08, built in figS08_pmoa-mmox.R; the two
+# New S08: gene abundance by species, all species (fig04_gene-abundance.R); S08-S28 -> S09-S29.
+# Merged: old S06+S07 (pmoA/mmoX) -> S09, built in figS08_pmoa-mmox.R; the two
 # chamber photos -> one figure, S02a/S02b. New: S03 detection, S05 16S-ddPCR association.
 SI <- c(
   # Methods
@@ -40,38 +41,39 @@ SI <- c(
   "Figure_S06_height-slope-moisture"     = "outputs/figures/generated/height_slope_vs_moisture.png",
   "Figure_S07_species-moisture-niche"    = "outputs/figures/generated/tree_species_moisture_niche.png",
   # Results 4-5: genes, composition
-  "Figure_S08_pmoa-mmox"                 = "outputs/figures/generated/figS10_final.png",
-  "Figure_S10_taxonomy-pmoa"             = "outputs/figures/original/supplementary/figS2_taxonomy_pmoa_heatmap.png",
+  "Figure_S08_gene-abundance-species"   = "outputs/figures/generated/figS_gene-abundance-species.png",
+  "Figure_S09_pmoa-mmox"                 = "outputs/figures/generated/figS10_final.png",
+  "Figure_S11_taxonomy-pmoa"             = "outputs/figures/original/supplementary/figS2_taxonomy_pmoa_heatmap.png",
   # Results 6: inferred function
-  "Figure_S11_faprotax"                  = "outputs/figures/original/supplementary/figS3_faprotax_heatmaps.png",
-  "Figure_S12_picrust-mcra-no-methanogen" = "outputs/figures/original/main/fig6_picrust_mcra_no_mcra_heatmap.png",  # the submitted main Fig 6
-  "Figure_S13_picrust-mcra-all"          = "outputs/figures/original/supplementary/figS4_picrust_mcra_all_heatmap.png",
-  "Figure_S14_picrust-pmoa"              = "outputs/figures/original/supplementary/figS5_picrust_pmoa_heatmap.png",
-  "Figure_S09_taxonomy-mcra"             = "outputs/figures/original/supplementary/figS6_taxonomy_mcra_heatmap.png",
+  "Figure_S12_faprotax"                  = "outputs/figures/original/supplementary/figS3_faprotax_heatmaps.png",
+  "Figure_S13_picrust-mcra-no-methanogen" = "outputs/figures/original/main/fig6_picrust_mcra_no_mcra_heatmap.png",  # the submitted main Fig 6
+  "Figure_S14_picrust-mcra-all"          = "outputs/figures/original/supplementary/figS4_picrust_mcra_all_heatmap.png",
+  "Figure_S15_picrust-pmoa"              = "outputs/figures/original/supplementary/figS5_picrust_pmoa_heatmap.png",
+  "Figure_S10_taxonomy-mcra"             = "outputs/figures/original/supplementary/figS6_taxonomy_mcra_heatmap.png",
   # Results 7: internal gas, isotopes
-  "Figure_S15_internal-gas-beeswarm"     = "outputs/figures/original/supplementary/figS7_internal_gas_beeswarm.png",
-  "Figure_S16_internal-gas-profiles"     = "outputs/figures/original/supplementary/figS8_internal_gas_profiles.png",
-  "Figure_S17_isotope-sources"           = "outputs/figures/generated/SI_isotopes_source_composite.png",
+  "Figure_S16_internal-gas-beeswarm"     = "outputs/figures/original/supplementary/figS7_internal_gas_beeswarm.png",
+  "Figure_S17_internal-gas-profiles"     = "outputs/figures/original/supplementary/figS8_internal_gas_profiles.png",
+  "Figure_S18_isotope-sources"           = "outputs/figures/generated/SI_isotopes_source_composite.png",
   # Results 8: decay and the felled oak
-  "Figure_S18_stem-deterioration"        = "outputs/figures/generated/figS20_stem_deterioration.png",
-  "Figure_S20_black-oak-methanome"       = "outputs/figures/generated/black_oak_methanome_revised.png",
+  "Figure_S19_stem-deterioration"        = "outputs/figures/generated/figS20_stem_deterioration.png",
+  "Figure_S21_black-oak-methanome"       = "outputs/figures/generated/black_oak_methanome_revised.png",
   # Results 9: gene-flux across scales
-  "Figure_S21_scale-dependent-genes"     = "outputs/figures/generated/figS11_final.png",
-  "Figure_S22_radial-sections"           = "outputs/figures/original/supplementary/figS13_tree_radial_sections.png",
-  "Figure_S23_mcra-vs-methanotroph"      = "outputs/figures/original/supplementary/figS14_mcra_vs_methanotroph.png",
+  "Figure_S22_scale-dependent-genes"     = "outputs/figures/generated/figS11_final.png",
+  "Figure_S23_radial-sections"           = "outputs/figures/original/supplementary/figS13_tree_radial_sections.png",
+  "Figure_S24_mcra-vs-methanotroph"      = "outputs/figures/original/supplementary/figS14_mcra_vs_methanotroph.png",
   # Results 10: stand-scale bounds
-  "Figure_S25_rf-model-summary"          = "outputs/figures/generated/figS21_rf_model_summary.png",
-  "Figure_S26_rf-calibration"            = "outputs/figures/generated/figS_rf_calibration.png",
-  "Figure_S28_scaling-heatmap"           = "outputs/figures/generated/fig_scaling_heatmap.png",
-  "Figure_S27_scaling-profiles"          = "outputs/figures/generated/fig_scaling_profiles.png",
+  "Figure_S26_rf-model-summary"          = "outputs/figures/generated/figS21_rf_model_summary.png",
+  "Figure_S27_rf-calibration"            = "outputs/figures/generated/figS_rf_calibration.png",
+  "Figure_S29_scaling-heatmap"           = "outputs/figures/generated/fig_scaling_heatmap.png",
+  "Figure_S28_scaling-profiles"          = "outputs/figures/generated/fig_scaling_profiles.png",
   # Discussion
-  "Figure_S24_plant-traits"              = "outputs/figures/generated/traits_heatmap_robust.png")
+  "Figure_S25_plant-traits"              = "outputs/figures/generated/traits_heatmap_robust.png")
 
 # Photographs that are numbered SI figures (static: exempt from the staleness check)
 SI_PHOTOS <- c(
   "Figure_S02a_semirigid-chamber"        = "data/raw/photos/semirigid_chamber.jpg",
   "Figure_S02b_rigid-chamber"            = "data/raw/photos/rigid_chamber.jpg",
-  "Figure_S19_black-oak-cross-sections"  = "outputs/figures/generated/figS_black_oak_cross_sections.png")
+  "Figure_S20_black-oak-cross-sections"  = "outputs/figures/generated/figS_black_oak_cross_sections.png")
 
 # Manuscript tables (ratified w/ Jon). Table S1 = primer sequences (formatted markdown in
 # notes/primer_sequences.md), not assembled here. Dropped: pmoA/mmoX by compartment/species
