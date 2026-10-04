@@ -509,7 +509,7 @@ gene_stats(ymf2021$ddpcr_mcra_probe_Organic_loose, "Organic soil")
 # Share of samples at or above the assay's consistent-detection limit: 3 copies per reaction
 # (6/6 replicates; Arnold et al. 2024), i.e. 0.15 copies per uL of a 20 uL partitioned reaction.
 # Judged per sample on the reaction scale, so it does not depend on sample mass; in recovered
-# copies per gram it is ~1,100 for 100 mg of wood and ~600 for 250 mg of soil.
+# copies per gram (scaled to the whole lysate) it is ~3,600 for 100 mg of wood and ~1,900 for 250 mg of soil.
 source("code/lib/ddpcr_constants.R")
 LOD_CONC <- 3 / 20
 sub_header("mcrA (probe, loose): samples at or above the consistent-detection limit (3 copies per reaction)")
