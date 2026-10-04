@@ -6,7 +6,7 @@ source("code/lib/outputs.R")
 #
 # UNITS: the ddpcr_*_loose columns are ALREADY copies g^-1, converted once in
 # code/03_merge/04_harmonize_all_data.R with code/lib/ddpcr_constants.R
-# (Conc x (25/2.5) x 75 uL / mass). Basis: DRY for wood (freeze-dried cores); soil
+# (Conc x (25/2.5) x elution (75 wood, 100 soil) x (800/250) / mass). Basis: DRY for wood (freeze-dried cores); soil
 # uses fresh sample mass.
 # Output: outputs/figures/generated/fig4_final.png
 # ==============================================================================

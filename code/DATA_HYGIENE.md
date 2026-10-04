@@ -71,7 +71,7 @@ pipeline itself; those are being wired so the counts are produced, not typed.
 | # | rule | action | applied in | rows affected | why |
 |---|---|---|---|---|---|
 | M1 | 16S: chloroplast and mitochondrial reads removed, rarefied to 3,500 | removed | 16S processing (lib/build_phyloseq.R) | 35 wood samples fall below 3,500 after plastid removal | host DNA; dropout disclosed in Methods S3 |
-| M2 | ddPCR copies g⁻¹ = copies µL⁻¹ × 75 µL elution ÷ mass; dry mass for wood, fresh mass for soil | defined | 03_merge/04_harmonize_all_data.R | all ddPCR values | *Status: possible missing ×10 template dilution, pending confirmation* |
+| M2 | ddPCR copies g⁻¹ = copies µL⁻¹ of reaction × (25/2.5) template dilution × elution (75 µL wood, 100 µL soil) × (800/250) lysate scaling ÷ mass; dry mass for wood, fresh mass for soil | defined | lib/ddpcr_constants.R, used by 03_merge/04_harmonize_all_data.R | all ddPCR values | lysate volume (250 µL) a lower bound, pending confirmation |
 | M3 | ddPCR "loose" vs "strict" positive calls; analyses use loose | defined | harmonize_all_data.R | all ddPCR values | stated convention |
 | M4 | Methanotroph classification by methane-monooxygenase capacity (Known / Putative / listed, not counted) | defined | lib/load_methanotroph_definitions.R, methanotroph_definitions.csv | all 16S methanotroph ASVs | growth phenotype is not the criterion |
 | M5 | 16S and ITS copy numbers are the sequencing facility's qPCR values | defined | sample metadata | — | not ddPCR; the ddPCR conversion does not apply |
