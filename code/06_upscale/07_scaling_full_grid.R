@@ -330,7 +330,7 @@ for (bn in names(BOLE)) for (rn in names(BRANCH)) {
 R <- bind_rows(res)
 write.csv(R, out_path("scaling_full_grid.csv"), row.names=FALSE)
 
-# ---- THE HEADLINE SCENARIO, named once ---------------------------------------
+# ---- THE ILLUSTRATIVE SCENARIO, defined once ---------------------------------------
 # One combination is quoted in the text and drawn in the figures, so it is defined
 # here rather than chosen ad hoc in each script:
 #   flux    exp_band_slope  a decay rate taken from the model's own within-band

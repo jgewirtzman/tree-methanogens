@@ -1532,7 +1532,7 @@ local({
   stat("Net budget across the grid",
        sprintf("%.1f to %.1f", min(G$net_mg), max(G$net_mg)), "mg CH4 m-2 yr-1")
   stat("Sink in", sprintf("%d of %d combinations", sum(G$net_mg < 0), nrow(G)))
-  stat("Named scenario", sprintf("%.2f mg (%.1f%% of soil, %.0f%% extrapolated)",
+  stat("Illustrative scenario", sprintf("%.2f mg (%.1f%% of soil, %.0f%% extrapolated)",
        H$total_mg[1], H$pct_of_soil[1], H$pct_extrapolated[1]))
   record("whole_surface_lo_mg_m2_yr", min(G$total_mg))
   record("whole_surface_hi_mg_m2_yr", max(G$total_mg))

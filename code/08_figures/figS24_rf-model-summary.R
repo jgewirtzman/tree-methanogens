@@ -192,7 +192,7 @@ pd_grid <- function(m, X, vars, ttl, col) {
   # Rug of the OBSERVED values behind each curve. Partial dependence is drawn
   # across the 2nd-98th percentile, so the tails rest on very few measurements
   # and a bare curve gives no way to tell a supported region from a sparse one.
-  # This paper's central caveat is extrapolation -- 64.6% of the named scenario
+  # This paper's central caveat is extrapolation -- 64.6% of the illustrative scenario
   # sits above 2 m, where nothing was measured -- so showing where data actually
   # exist belongs on every one of these panels.
   RUG <- bind_rows(lapply(vars, function(v)
