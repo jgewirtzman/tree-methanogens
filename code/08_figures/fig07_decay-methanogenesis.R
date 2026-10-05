@@ -106,7 +106,7 @@ pa<-ggplot(y,aes(x,fx))+geom_hline(yintercept=0,linetype=3,colour="grey70")+
   geom_jitter(width=.12,alpha=.15,size=1.1,colour="#756BB1")+
   geom_ribbon(data=gA,aes(x,ymin=fit-1.96*se,ymax=fit+1.96*se),alpha=.2,fill="#756BB1",inherit.aes=FALSE)+
   geom_line(data=gA,aes(x,fit),linewidth=1,colour="#54278f",inherit.aes=FALSE)+
-  annotate("text",1,asinh10(0.9),hjust=0,vjust=1,size=3.2,lineheight=.9,label=stat_lab(R2a,pqa))+
+  annotate("text",Inf,asinh10(0.9),hjust=1.05,vjust=1,size=3.2,lineheight=.9,label=stat_lab(R2a,pqa))+
   scale_x_continuous(breaks=1:4,labels=c("healthy","moderate","severe","dead"))+scale_y_continuous(breaks=asinh10(obrk),labels=obrk)+
   coord_cartesian(ylim=asinh10(c(-0.3,1)))+shared_theme+labs(x="bark loss (decay)",y=expression(CH[4]~flux~(nmol~m^-2~s^-1)))
 
@@ -135,7 +135,7 @@ pb<-ggplot(d,aes(X,Y,colour=material))+geom_point(alpha=.4,size=1.2)+
   geom_line(data=gs,aes(X,fit),colour=col_ws["Soil"],linewidth=1,inherit.aes=FALSE)+
   scale_colour_manual(values=col_ws,name=NULL)+scale_fill_manual(values=col_ws,guide="none")+
   guides(colour=guide_legend(override.aes=list(size=3,alpha=1)))+
-  annotate("text",-Inf,Inf,hjust=-.05,vjust=1.2,size=3.2,lineheight=.9,label=paste0("wood:\n",stat_lab(R2b,pqb)))+
+  annotate("text",Inf,Inf,hjust=1.05,vjust=1.2,size=3.2,lineheight=.9,label=paste0("wood:\n",stat_lab(R2b,pqb)))+
   shared_theme+
   scale_x_continuous(labels=function(b) parse(text=paste0("10^",b)))+scale_y_continuous(labels=function(b) parse(text=paste0("10^",b)))+
   labs(x=expression(fungal~ITS~load~(copies~g^-1)),y=expression(italic(mcrA)~(copies~g^-1)))
