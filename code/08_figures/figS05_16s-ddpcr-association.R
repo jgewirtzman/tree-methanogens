@@ -57,7 +57,7 @@ G <- list(
   list("Methanobacteriaceae",                  "Methanogen",                fam("Methanobacteriaceae"),                 "mcrA"),
   list("Methanomassiliicoccaceae",             "Methanogen",                fam("Methanomassiliicoccaceae"),            "mcrA"),
   list("Other methanogen families",            "Methanogen",                tax$Family %in% setdiff(MG, c("Methanobacteriaceae","Methanomassiliicoccaceae")), "mcrA"),
-  list("Ammonia-oxidising archaea (Nitrososphaeraceae)", "Control",         fam("Nitrososphaeraceae"),                  c("pmoA","mmoX","mcrA")))
+  list("Ammonia-oxidizing archaea (Nitrososphaeraceae)", "Control",         fam("Nitrososphaeraceae"),                  c("pmoA","mmoX","mcrA")))
 ab <- sapply(G, function(g) 100 * colSums(cnt[g[[3]], , drop = FALSE], na.rm = TRUE) / tot)
 colnames(ab) <- sapply(G, `[[`, 1)
 s16 <- data.frame(key = sub("[.]16S[.]S[0-9]*$", "", colnames(cnt)), ab, check.names = FALSE)
