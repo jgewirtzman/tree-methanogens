@@ -82,6 +82,7 @@ D,code/09_tables_stats/22_chamber-excess.R,root,FALSE,chamber excess over local 
 D,code/09_tables_stats/23_si-table-workbook.R,root,FALSE,SI Tables S2 and S6 as an Excel workbook
 D,code/09_tables_stats/24_ddpcr-detection-precision.R,root,FALSE,SI Methods S3 table: mcrA detection and counting precision by threshold
 D,code/09_tables_stats/25_plant-traits.R,root,FALSE,Methods S5 and Fig S25: rule-based species trait correlations (all and broadleaf species) and multivariate check
+D,code/09_tables_stats/26_moss-lichen-cover.R,root,FALSE,Methods S2: moss/lichen cover score at the chamber vs stem flux (2023 survey)
 E,code/08_figures/fig01_temporal-flux.R,root,FALSE,Figure 1
 E,code/08_figures/fig02_height-flux.R,root,FALSE,Figure 2
 E,code/08_figures/fig03_variance-partition.R,root,FALSE,Figure 3

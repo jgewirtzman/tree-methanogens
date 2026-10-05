@@ -106,7 +106,7 @@ comp_panel <- function(comps) {
                       label = gsub("([=<])(?=[0-9])", "\\1 ", sprintf("%s: slope %.2f, R\u00b2 = %.2f, permutation p %s", r$comp, r$slope, r$r2, permlab(r$permp)), perl = TRUE))
   }
   p + labs(x = expression("Size, "*frac(1,2)*"(log"[10]*" "*italic(pmoA)*" + log"[10]*" "*italic(mmoX)*")"),
-           y = expression("Balance, log"[10]*"("*italic(pmoA)*" / "*italic(mmoX)*")")) + th + theme(legend.position = "none")
+           y = expression("log"[10]*"("*italic(pmoA)*" / "*italic(mmoX)*")")) + th + theme(legend.position = "none")
 }
 pc <- comp_panel(WOODC); pd <- comp_panel(SOILC)
 

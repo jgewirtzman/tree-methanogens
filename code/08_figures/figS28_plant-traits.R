@@ -27,7 +27,7 @@ niche <- read_csv("outputs/data/tree_species_moisture_niche.csv", show_col_types
 dat <- resp %>% left_join(tr, by = c("species_id" = "spcode")) %>% left_join(niche, by = c("species_id" = "spcode"))
 
 # ---- (a) twin heatmaps --------------------------------------------------------------
-rlab <- c(mcra = "mcrA", meth = "Methano-\ntrophs", balance = "Balance", flux = "Stem CH4\nflux")
+rlab <- c(mcra = "mcrA", meth = "Methano-\ntrophs", balance = "Ratio", flux = "Stem CH4\nflux")
 gord <- unique(inc$group)
 d <- S %>% mutate(group = factor(group, levels = gord), trait = factor(trait, levels = rev(inc$trait)),
                   response = factor(rlab[response], levels = rlab))
@@ -49,7 +49,7 @@ sel <- tribble(~trait, ~col, ~response, ~xlab,
   "Bark density",        "bark_density_gcm3",   "balance", "Bark density (g cm⁻³)",
   "Soil-moisture niche", "vwc_realized",        "mcra",    "Soil-moisture niche (% VWC)",
   "Longevity",           "try_plant_longevity", "meth",    "Longevity (years)")
-ylab <- c(balance = "Balance (log₁₀ mcrA:methanotroph)", mcra = "mcrA (log₁₀ copies g⁻¹)",
+ylab <- c(balance = "Methanogen:methanotroph ratio (log₁₀)", mcra = "mcrA (log₁₀ copies g⁻¹)",
           meth = "Methanotrophs (log₁₀ copies g⁻¹)")
 sp <- pmap(sel, function(trait, col, response, xlab) {
   s <- S %>% filter(trait == !!trait, response == !!response)
