@@ -29,20 +29,20 @@ panel<-function(metric,xlab,catlabs){
   ml<-lmer(fx~x+(1|sp),data=d); mq<-lmer(fx~x+I(x^2)+(1|sp),data=d)
   pq<-summary(mq)$coefficients["I(x^2)","Pr(>|t|)"]; pl<-summary(ml)$coefficients["x","Pr(>|t|)"]
   aic_l<-AIC(update(ml,REML=FALSE)); aic_q<-AIC(update(mq,REML=FALSE)); r2l<-R2m(ml); r2q<-R2m(mq)
-  best<-if(aic_q<aic_l-2) "quadratic (hump)" else if(aic_l<aic_q-2) "linear" else "linear ~ quad"
+  best<-if(aic_q<aic_l-2) "quadratic preferred" else if(aic_l<aic_q-2) "linear preferred" else "linear and quadratic similar"
   g<-data.frame(x=seq(min(d$x),max(d$x),.05))
   gl<-predci(ml,g,FALSE); gq<-predci(mq,g,TRUE)
   nl<-as.data.frame(table(d$x)); names(nl)<-c("x","n"); nl$x<-as.numeric(as.character(nl$x))
-  pf<-function(p) if(p<0.001) "p<0.001" else sprintf("p=%.3f",p)
-  txt<-sprintf("linear:    AIC %.1f  R2m %.3f  (slope %s)\nquadratic: AIC %.1f  R2m %.3f  (x\u00b2 %s)\ndAIC=%.1f  ->  %s",
+  pf<-function(p) if(p<0.001) "p < 0.001" else sprintf("p = %.3f",p)
+  txt<-sprintf("Linear: AIC %.1f, marginal R\u00b2 %.3f (slope %s)\nQuadratic: AIC %.1f, marginal R\u00b2 %.3f (squared term %s)\n\u0394AIC = %.1f, %s",
     aic_l,r2l,pf(pl), aic_q,r2q,pf(pq), aic_l-aic_q, best)
   ggplot(d,aes(x,fx))+geom_hline(yintercept=0,linetype=3,colour="grey60")+
     geom_jitter(width=.12,height=0,alpha=.16,size=1,colour="#b8732b")+
     geom_ribbon(data=gq,aes(x,ymin=lo,ymax=hi),alpha=.15,fill="#5e3a06",inherit.aes=FALSE)+
     geom_line(data=gl,aes(x,fit),linetype=2,linewidth=.8,colour="grey25",inherit.aes=FALSE)+
     geom_line(data=gq,aes(x,fit),linewidth=1,colour="#5e3a06",inherit.aes=FALSE)+
-    geom_text(data=nl,aes(x,asinh10(-0.28),label=paste0("n=",n)),inherit.aes=FALSE,size=2.8,colour="grey35")+
-    annotate("text",-Inf,asinh10(5.5),hjust=-.03,vjust=1,size=2.8,label=txt)+
+    geom_text(data=nl,aes(x,asinh10(-0.28),label=paste0("n = ",n)),inherit.aes=FALSE,size=2.8,colour="grey35")+
+    annotate("text",min(d$x)-0.3,asinh10(5.5),hjust=0,vjust=1,size=2.8,label=txt)+
     scale_x_continuous(breaks=1:4,labels=catlabs)+
     scale_y_continuous(breaks=asinh10(obrk),labels=obrk)+coord_cartesian(ylim=asinh10(c(-0.32,6)))+
     labs(x=xlab,y=expression(CH[4]~flux~(nmol~m^-2~s^-1)))+th

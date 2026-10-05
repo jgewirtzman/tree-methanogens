@@ -27,7 +27,7 @@ niche <- read_csv("outputs/data/tree_species_moisture_niche.csv", show_col_types
 dat <- resp %>% left_join(tr, by = c("species_id" = "spcode")) %>% left_join(niche, by = c("species_id" = "spcode"))
 
 # ---- (a) twin heatmaps --------------------------------------------------------------
-rlab <- c(mcra = "mcrA", meth = "Methano-\ntrophs", balance = "Ratio", flux = "Stem CH4\nflux")
+rlab <- c(mcra = "mcrA", meth = "Methano-\ntrophs", balance = "Ratio", flux = "Stem CH\u2084\nflux")
 gord <- unique(inc$group)
 d <- S %>% mutate(group = factor(group, levels = gord), trait = factor(trait, levels = rev(inc$trait)),
                   response = factor(rlab[response], levels = rlab))
@@ -38,7 +38,7 @@ hm <- function(est, p, title, strip = TRUE) {
     facet_grid(group ~ ., scales = "free_y", space = "free_y", switch = "y") + scale_x_discrete(position = "top") +
     labs(x = NULL, y = NULL, title = title) + theme_minimal(base_size = 9) +
     theme(strip.text.y.left = if (strip) element_text(angle = 0, hjust = 1, face = "bold") else element_blank(),
-          strip.placement = "outside", axis.text.x.top = element_text(size = 8.5, lineheight = 0.9), panel.grid = element_blank(),
+          strip.placement = "outside", axis.text.x.top = element_text(size = 8.5, lineheight = 0.9, face = c("italic", "plain", "plain", "plain")), panel.grid = element_blank(),
           plot.title = element_text(size = 10, face = "bold", hjust = 0.5, margin = margin(b = 4))) }
 h1 <- hm(rho, p, "All ten species") + theme(legend.position = "none")
 h2 <- hm(rho_bl, p_bl, "Eight broadleaf species", strip = FALSE) + theme(axis.text.y = element_blank())

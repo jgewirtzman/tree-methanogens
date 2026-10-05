@@ -385,7 +385,7 @@ pa0 <- pa + theme(legend.position = "none"); pb0 <- pb + theme(legend.position =
 colA <- cowplot::plot_grid(inset, legA, ncol = 1, rel_heights = c(0.42, 1))
 rowA <- cowplot::plot_grid(pa0, colA, nrow = 1, rel_widths = c(1, 0.28))
 rowB <- cowplot::plot_grid(pb0, legB, nrow = 1, rel_widths = c(1, 0.28))
-final_extended_plot <- cowplot::plot_grid(rowA, rowB, ncol = 1, labels = c("a", "b"), label_size = 14)
+final_extended_plot <- cowplot::plot_grid(rowA, rowB, ncol = 1, labels = c("(a)", "(b)"), label_size = 14)
 
 print(final_extended_plot)
 ggsave("outputs/figures/original/supplementary/figS1_moisture_overlay.png", final_extended_plot, width = 11, height = 15.5, dpi = 300, bg = "white")

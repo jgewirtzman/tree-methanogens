@@ -149,8 +149,10 @@ obs_panel <- function(D, o, p, ttl, col, r2g) {
   ggplot(D, aes(.data[[p]], .data[[o]])) +
     geom_hex(bins = 40) +
     geom_abline(slope = 1, intercept = 0, color = "red", linewidth = 0.8, alpha = 0.8) +
-    annotate("text", x = -Inf, y = Inf, hjust = -0.1, vjust = 1.2,
-             label = lab, size = 3.3, lineheight = 1.05) +
+    # boxed so the hexes do not overprint the statistics
+    annotate("label", x = rng[1] + 0.03 * diff(rng), y = rng[2] - 0.03 * diff(rng), hjust = 0, vjust = 1,
+             label = lab, size = 3.3, lineheight = 1.05,
+             fill = scales::alpha("white", 0.85), label.size = 0) +
     scale_fill_viridis_c(name = "Count", trans = "log10", option = "magma") +
     coord_equal(xlim = rng, ylim = rng) +
     labs(title = ttl,
