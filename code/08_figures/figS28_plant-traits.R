@@ -1,103 +1,74 @@
 source("code/lib/outputs.R")
 # ==============================================================================
-# REVISION — Trait x methane-cycling HEATMAP with TWO significance markers.
-# Supersedes traits_heatmap.png + the (misleading) traits_breakdown.png by folding
-# the clade-robustness INTO one heatmap:
-#   *  univariate Spearman p < 0.05 (all n<=10 species)
-#   †  survives control for the gymnosperm/angiosperm split
-#      (rank-partial: rank(response) ~ rank(trait) + gymnosperm, uses all n, 1 df)
-# The partial-clade test is the defensible small-n robustness check (keeps all
-# species, costs 1 df) for "does the trait predict BEYOND the deepest clade split".
-# Cells that are †-only from a near-zero univariate rho are suppression artifacts
-# (few df) and are NOT interpreted; the honest reading is: the density->methanotroph
-# suppression is largely the conifer contrast (loses significance under †), whereas
-# PLANT LONGEVITY -> balance/methanotroph is robust (univariate + angiosperm-only +
-# clade-controlled). n<=10, EXPLORATORY / hypothesis-generating.
-# NEW file; original traits_heatmap.R untouched.
-# Output: outputs/figures/generated/traits_heatmap_robust.png
+# Fig S25: plant traits and the stem methane-cycling community
+#   (a) Spearman correlations of the 16 rule-selected traits with mcrA, pmoA + mmoX,
+#       the methanogen:methanotroph balance and net flux, across all ten gene-flux
+#       species (left) and the eight broadleaf species alone (right); * p < 0.05.
+#   (b) the three associations named in Results §9, conifers as open symbols.
+# Correlations come from code/09_tables_stats/25_plant-traits.R (traits_correlations.csv),
+# which also documents the trait inclusion rules. Descriptive, n = 10 species.
+# (File name kept from the earlier numbering; it draws Figure S25.)
+# Output: outputs/figures/generated/plant_traits.png
 # ==============================================================================
-suppressPackageStartupMessages({ library(tidyverse) })
-out <- "outputs"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
-# Species-level trait table, one row per species. Vendored from the companion
-# tree-gas-traits repository so this figure builds from a clean checkout;
-# regenerate with code/03_merge/03_vendor_traits.R if the upstream table changes.
-TRAITS <- "data/raw/external/tree-gas-traits/ymf_species_traits.csv"
+suppressPackageStartupMessages({ library(tidyverse); library(patchwork); library(ggrepel) })
+
+S <- read_csv("outputs/data/traits_correlations.csv", show_col_types = FALSE)
+inc <- read_csv("outputs/data/traits_included.csv", show_col_types = FALSE)
 sp_map <- c(ACRU="Acer rubrum",ACSA="Acer saccharum",BEAL="Betula alleghaniensis",BELE="Betula lenta",
-  BEPA="Betula papyrifera",CAOV="Carya ovata",FAGR="Fagus grandifolia",FRAM="Fraxinus americana",
-  KALA="Kalmia latifolia",PIST="Pinus strobus",PRSE="Prunus serotina",QUAL="Quercus alba",
-  QURU="Quercus rubra",QUVE="Quercus velutina",SAAL="Sassafras albidum",TSCA="Tsuga canadensis")
+  BEPA="Betula papyrifera",FAGR="Fagus grandifolia",FRAM="Fraxinus americana",
+  PIST="Pinus strobus",QURU="Quercus rubra",TSCA="Tsuga canadensis")
+invisible(capture.output(suppressMessages(source("code/lib/prep_species_data.R"))))
+resp <- analysis_ratio %>% transmute(species_id, balance = median_log_ratio) %>%
+  left_join(analysis_mcra %>% transmute(species_id, mcra = log10(value + 1)), by = "species_id") %>%
+  left_join(analysis_meth %>% transmute(species_id, meth = log10(value + 1)), by = "species_id")
+tr <- read_csv("data/raw/external/tree-gas-traits/ymf_species_traits.csv", show_col_types = FALSE)
+niche <- read_csv("outputs/data/tree_species_moisture_niche.csv", show_col_types = FALSE) %>%
+  mutate(spcode = names(sp_map)[match(species, sp_map)]) %>% select(spcode, vwc_realized = vwc_mean)
+dat <- resp %>% left_join(tr, by = c("species_id" = "spcode")) %>% left_join(niche, by = c("species_id" = "spcode"))
 
-source("code/lib/prep_species_data.R")
-resp <- analysis_ratio %>% transmute(species_id, `Stem CH4 flux`=median_flux, `Balance (mcrA:MOB)`=median_log_ratio) %>%
-  left_join(analysis_mcra %>% transmute(species_id, `mcrA (methanogen)`=log10(value+1)), by="species_id") %>%
-  left_join(analysis_meth %>% transmute(species_id, `Methanotroph`=log10(value+1)), by="species_id")
-keep <- c("wood_density_gcm3","bark_density_gcm3","bark_wood_ratio","porosity_num","gymnosperm",
-          "wood_sapwood_pH","wood_heartwood_pH","try_wood_CN_ratio","try_stem_C","try_antifungal",
-          "try_CWD_stem_decomp_rate_k","try_rooting_depth","try_fine_root_diameter",
-          "try_fine_root_tissue_density","try_plant_height","try_plant_longevity")
-trait_lab <- c(wood_density_gcm3="Wood density", bark_density_gcm3="Bark density", bark_wood_ratio="Bark:wood ratio",
-  porosity_num="Wood porosity", gymnosperm="Gymnosperm", wood_sapwood_pH="Sapwood pH", wood_heartwood_pH="Heartwood pH",
-  try_wood_CN_ratio="Wood C:N", try_stem_C="Stem C", try_antifungal="Antifungal chem.", try_CWD_stem_decomp_rate_k="CWD decomp rate",
-  try_rooting_depth="Rooting depth", try_fine_root_diameter="Fine-root diameter", try_fine_root_tissue_density="Fine-root tissue density",
-  try_plant_height="Plant height", try_plant_longevity="Plant longevity", vwc_realized="Realized soil moisture (VWC)")
-cat_of <- c(`Wood density`="Structure",`Bark density`="Structure",`Bark:wood ratio`="Structure",`Wood porosity`="Structure",
-  `Gymnosperm`="Structure",`Sapwood pH`="Chemistry",`Heartwood pH`="Chemistry",`Wood C:N`="Chemistry",`Stem C`="Chemistry",
-  `Antifungal chem.`="Chemistry",`CWD decomp rate`="Chemistry",`Rooting depth`="Roots",`Fine-root diameter`="Roots",
-  `Fine-root tissue density`="Roots",`Plant height`="Whole-plant",`Plant longevity`="Whole-plant",`Realized soil moisture (VWC)`="Moisture")
+# ---- (a) twin heatmaps --------------------------------------------------------------
+rlab <- c(mcra = "mcrA", meth = "Methano-\ntrophs", balance = "Balance", flux = "Stem CH4\nflux")
+gord <- unique(inc$group)
+d <- S %>% mutate(group = factor(group, levels = gord), trait = factor(trait, levels = rev(inc$trait)),
+                  response = factor(rlab[response], levels = rlab))
+hm <- function(est, p, title, strip = TRUE) {
+  dd <- d %>% mutate(e = {{ est }}, lab = paste0(sprintf("%.2f", e), if_else({{ p }} < 0.05, "*", "")))
+  ggplot(dd, aes(response, trait, fill = e)) + geom_tile(colour = "white") + geom_text(aes(label = lab), size = 2.5) +
+    scale_fill_gradient2(low = "#2166ac", mid = "white", high = "#b2182b", limits = c(-1, 1), name = "Spearman ρ") +
+    facet_grid(group ~ ., scales = "free_y", space = "free_y", switch = "y") + scale_x_discrete(position = "top") +
+    labs(x = NULL, y = NULL, title = title) + theme_minimal(base_size = 9) +
+    theme(strip.text.y.left = if (strip) element_text(angle = 0, hjust = 1, face = "bold") else element_blank(),
+          strip.placement = "outside", axis.text.x.top = element_text(size = 8.5, lineheight = 0.9), panel.grid = element_blank(),
+          plot.title = element_text(size = 10, face = "bold", hjust = 0.5, margin = margin(b = 4))) }
+h1 <- hm(rho, p, "All ten species") + theme(legend.position = "none")
+h2 <- hm(rho_bl, p_bl, "Eight broadleaf species", strip = FALSE) + theme(axis.text.y = element_blank())
 
-traits <- read_csv(TRAITS, show_col_types=FALSE) %>% filter(spcode %in% resp$species_id) %>%
-  group_by(species_id=spcode) %>% slice(1) %>% ungroup() %>% select(species_id, any_of(keep))
-niche <- read_csv("outputs/data/tree_species_moisture_niche.csv", show_col_types=FALSE) %>%
-  mutate(species_id = names(sp_map)[match(species, sp_map)]) %>% transmute(species_id, vwc_realized=vwc_mean)
-dat <- resp %>% left_join(traits, by="species_id") %>% left_join(niche, by="species_id")
-pred_cols <- c(keep, "vwc_realized"); resp_cols <- c("mcrA (methanogen)","Methanotroph","Balance (mcrA:MOB)","Stem CH4 flux")
+# ---- (b) the associations named in the text ----------------------------------------------
+abbr <- function(id) vapply(strsplit(sp_map[id], " "), function(x) paste0(substr(x[1], 1, 1), ". ", x[2]), "")
+sel <- tribble(~trait, ~col, ~response, ~xlab,
+  "Bark density",        "bark_density_gcm3",   "balance", "Bark density (g cm⁻³)",
+  "Soil-moisture niche", "vwc_realized",        "mcra",    "Soil-moisture niche (% VWC)",
+  "Longevity",           "try_plant_longevity", "meth",    "Longevity (years)")
+ylab <- c(balance = "Balance (log₁₀ mcrA:methanotroph)", mcra = "mcrA (log₁₀ copies g⁻¹)",
+          meth = "Methanotrophs (log₁₀ copies g⁻¹)")
+sp <- pmap(sel, function(trait, col, response, xlab) {
+  s <- S %>% filter(trait == !!trait, response == !!response)
+  dd <- dat %>% transmute(x = .data[[col]], y = .data[[response]], grp = if_else(gymnosperm == 1, "Conifer", "Broadleaf"),
+                          lab = abbr(species_id)) %>% filter(is.finite(x))
+  ggplot(dd, aes(x, y)) +
+    geom_smooth(data = filter(dd, grp == "Broadleaf"), method = "lm", formula = y ~ x, se = FALSE,
+                colour = "grey60", linetype = "dashed", linewidth = 0.4) +
+    geom_point(aes(shape = grp), size = 2, fill = "white", stroke = 0.7) +
+    geom_text_repel(aes(label = lab), size = 2.1, fontface = "italic", seed = 1, box.padding = 0.25) +
+    scale_shape_manual(values = c(Broadleaf = 16, Conifer = 21), name = NULL) +
+    scale_y_continuous(expand = expansion(mult = c(0.08, 0.12))) +
+    labs(x = xlab, y = ylab[[response]], subtitle = sprintf("all: ρ = %.2f (p = %.3f)\nbroadleaf: ρ = %.2f (p = %.3f)",
+                                                           s$rho, s$p, s$rho_bl, s$p_bl)) +
+    theme_bw(base_size = 8.5) + theme(panel.grid.minor = element_blank(), plot.subtitle = element_text(size = 7.5)) })
 
-grid <- expand_grid(trait=pred_cols, response=resp_cols) %>% rowwise() %>% mutate(
-    x=list(dat[[trait]]), y=list(dat[[response]]), g=list(dat$gymnosperm)) %>%
-  mutate(ok=list(is.finite(unlist(x)) & is.finite(unlist(y)))) %>%
-  mutate(n=sum(unlist(ok)),
-    rho = if(n>=6) suppressWarnings(cor(unlist(x)[unlist(ok)], unlist(y)[unlist(ok)], method="spearman")) else NA_real_,
-    p_uni = if(n>=6) suppressWarnings(cor.test(unlist(x)[unlist(ok)], unlist(y)[unlist(ok)], method="spearman")$p.value) else NA_real_,
-    p_clade = if(n>=6 && trait!="gymnosperm") tryCatch({
-        xi<-unlist(x)[unlist(ok)]; yi<-unlist(y)[unlist(ok)]; gi<-unlist(g)[unlist(ok)]
-        summary(lm(rank(yi) ~ rank(xi) + gi))$coef["rank(xi)",4] }, error=function(e) NA_real_) else NA_real_) %>%
-  ungroup() %>% mutate(trait_label=trait_lab[trait], category=cat_of[trait_label])
-# BH-FDR across the whole displayed grid (all trait x response tests with data)
-grid$q_uni <- NA_real_
-grid$q_uni[!is.na(grid$p_uni)] <- p.adjust(grid$p_uni[!is.na(grid$p_uni)], "BH")
-grid <- grid %>% mutate(
-  # nested stringency ladder; each cell shows the HIGHEST level it reaches
-  stars = dplyr::case_when(
-    !is.na(q_uni) & q_uni < 0.05 ~ "****",   # FDR q<0.05
-    !is.na(q_uni) & q_uni < 0.10 ~ "***",    # FDR q<0.10
-    !is.na(p_uni) & p_uni < 0.05 ~ "**",     # raw p<0.05
-    !is.na(p_uni) & p_uni < 0.10 ~ "*",      # raw p<0.10
-    TRUE ~ ""),
-  # clade-robust = survives gymnosperm control AND |rho|>=0.3 (excludes near-zero suppression artifacts)
-  robust = !is.na(p_clade) & p_clade<0.05 & abs(rho)>=0.3,
-  label = ifelse(is.na(rho),"", sprintf("%.2f%s", rho, stars)))
-write.csv(grid %>% select(category,trait_label,response,n,rho,p_uni,q_uni,p_clade),
-          out_path("traits_heatmap_robust_matrix.csv"), row.names=FALSE)
-
-row_order <- grid %>% filter(response=="Stem CH4 flux") %>%
-  arrange(factor(category, levels=c("Structure","Chemistry","Roots","Moisture","Whole-plant")), rho) %>% pull(trait_label)
-grid <- grid %>% mutate(trait_label=factor(trait_label, levels=row_order),
-  response=factor(response, levels=resp_cols), category=factor(category, levels=c("Structure","Chemistry","Roots","Moisture","Whole-plant")))
-
-p <- ggplot(grid, aes(response, trait_label, fill=rho)) +
-  geom_tile(color="white", linewidth=0.5) +
-  geom_tile(data=grid %>% filter(robust), fill=NA, color="black", linewidth=1.1) +
-  geom_text(aes(label=label), size=2.6) +
-  scale_fill_gradient2(low="#2166ac", mid="white", high="#b2182b", midpoint=0, limits=c(-1,1), name="Spearman\nrho") +
-  facet_grid(category ~ ., scales="free_y", space="free_y", switch="y") +
-  scale_x_discrete(position="top") +
-  labs(x=NULL, y=NULL, title=NULL) +   # significance key and bold-outline meaning are in the SI caption
-  theme_minimal(base_size=9) +
-  theme(axis.text.x.top=element_text(angle=15, hjust=0, size=8.5), axis.text.y=element_text(size=8),
-        strip.text.y.left=element_text(angle=0, face="bold", size=8), strip.placement="outside",
-        panel.grid=element_blank(),
-        plot.caption=element_text(size=7.8, hjust=0, margin=margin(t=12)), plot.margin=margin(t=40,r=45,b=8,l=6))
-ggsave(out_path("traits_heatmap_robust.png"), p, width=9.2, height=7.6, dpi=300, bg="white")
-cat("clade-robust (dagger) cells:\n")
-print(grid %>% filter(!is.na(p_clade) & p_clade<0.05) %>% select(trait_label,response,rho,p_uni,p_clade), row.names=FALSE)
-cat("Wrote traits_heatmap_robust.png\n")
+top <- (h1 | h2) + plot_layout(guides = "collect") & theme(legend.position = "right")
+bot <- wrap_plots(sp, nrow = 1) + plot_layout(guides = "collect") & theme(legend.position = "bottom")
+fig <- wrap_elements(top) / wrap_elements(bot) + plot_layout(heights = c(1.55, 1)) +
+  plot_annotation(tag_levels = "a", tag_prefix = "(", tag_suffix = ")") & theme(plot.tag = element_text(face = "bold"))
+ggsave(out_path("plant_traits.png"), fig, width = 10, height = 11, dpi = 300, bg = "white")
+cat("Wrote plant_traits.png\n")

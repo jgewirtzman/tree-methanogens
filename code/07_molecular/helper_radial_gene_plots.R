@@ -87,7 +87,7 @@ prepare_long_genes <- function(df) {
       )
     ) %>%
     dplyr::filter(stringency == "loose", !is.na(sample_type)) %>%
-    dplyr::filter(gene %in% c("mcrA", "pmoA", "mmoX"))
+    dplyr::filter(gene %in% c("mcrA", "pmoA", "mmoX"), gene != "mcrA" | is_probe)  # mcrA: probe assay only (the EvaGreen mcrA columns give false positives in wood; Fig. S4)
 }
 
 tree_genes <- prepare_long_genes(ymf2021)

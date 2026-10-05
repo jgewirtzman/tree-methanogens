@@ -67,7 +67,7 @@ SI <- c(
   "Figure_S29_scaling-heatmap"           = "outputs/figures/generated/fig_scaling_heatmap.png",
   "Figure_S28_scaling-profiles"          = "outputs/figures/generated/fig_scaling_profiles.png",
   # Discussion
-  "Figure_S25_plant-traits"              = "outputs/figures/generated/traits_heatmap_robust.png")
+  "Figure_S25_plant-traits"              = "outputs/figures/generated/plant_traits.png")
 
 # Photographs that are numbered SI figures (static: exempt from the staleness check)
 SI_PHOTOS <- c(

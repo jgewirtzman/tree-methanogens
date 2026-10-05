@@ -177,8 +177,8 @@ pdp <- function(m, dat, xv, n = 40) {
   data.frame(x = g, y = vapply(g, function(v) { D <- dat; D[[xv]] <- v
     mean(predict(m, D, num.threads = 1)$predictions) }, numeric(1)))
 }
-PD_LAB <- c(soil_moisture_at_tree = "Soil moisture (m\u00b3 m\u207b\u00b3)",
-            soil_moisture_at_site = "Soil moisture (m\u00b3 m\u207b\u00b3)",
+PD_LAB <- c(soil_moisture_at_tree = "Soil moisture (m\u00b3/m\u00b3)",
+            soil_moisture_at_site = "Soil moisture (m\u00b3/m\u00b3)",
             soil_temp_C_mean = "Soil temperature (\u00b0C)",
             air_temp_C_mean  = "Air temperature (\u00b0C)",
             dbh_m = "DBH (m)",                       # was mislabelled a z-score

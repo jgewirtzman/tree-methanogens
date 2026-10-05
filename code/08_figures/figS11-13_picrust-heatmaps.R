@@ -50,6 +50,7 @@ meta$log16S <- log10(1 + meta$X16S_per_ul)
 # Load pathway abundances (used for display matrix in heatmaps)
 pathways_raw <- read.table("data/raw/picrust/path_abun_unstrat_descrip.tsv",
                             sep = "\t", header = TRUE, quote = "")
+HTML_ENT <- c("&alpha;" = "\u03b1", "&beta;" = "\u03b2", "&gamma;" = "\u03b3", "&delta;" = "\u03b4", "&omega;" = "\u03c9", "&amp;" = "&")
 descriptions <- setNames(pathways_raw$description, pathways_raw$pathway)
 
 abundance <- pathways_raw[, 3:ncol(pathways_raw)]
@@ -188,6 +189,8 @@ make_pathway_heatmap <- function(pvals_file, meta_df, gene_col, gene_label,
   ## Row labels: pathway descriptions
   row_labels <- ifelse(!is.na(sig$description) & sig$description != "",
                         sig$description, sig$pathway)
+  # MetaCyc descriptions carry HTML entities (e.g. "&beta;-alanine"); render the characters
+  for (ent in names(HTML_ENT)) row_labels <- gsub(ent, HTML_ENT[[ent]], row_labels, fixed = TRUE)
 
   ## Figure dimensions: driven by cellheight for tight packing
   ## Annotation bar + legend + margins need ~1.0 in

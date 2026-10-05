@@ -81,6 +81,7 @@ D,code/09_tables_stats/21_write_parameter_record.R,root,FALSE,generated scaling 
 D,code/09_tables_stats/22_chamber-excess.R,root,FALSE,chamber excess over local ambient vs apparent uptake (SI Methods S2)
 D,code/09_tables_stats/23_si-table-workbook.R,root,FALSE,SI Tables S2 and S6 as an Excel workbook
 D,code/09_tables_stats/24_ddpcr-detection-precision.R,root,FALSE,SI Methods S3 table: mcrA detection and counting precision by threshold
+D,code/09_tables_stats/25_plant-traits.R,root,FALSE,Methods S5 and Fig S25: rule-based species trait correlations (all and broadleaf species) and multivariate check
 E,code/08_figures/fig01_temporal-flux.R,root,FALSE,Figure 1
 E,code/08_figures/fig02_height-flux.R,root,FALSE,Figure 2
 E,code/08_figures/fig03_variance-partition.R,root,FALSE,Figure 3
@@ -113,7 +114,7 @@ E,code/08_figures/figS24_rf-model-summary.R,root,FALSE,Figure S24
 E,code/08_figures/figS25_rf-calibration.R,root,FALSE,Figure S25
 E,code/08_figures/figS26_scaling-heatmap.R,root,FALSE,Figure S26
 E,code/08_figures/figS27_scaling-profiles.R,root,FALSE,Figure S27
-E,code/08_figures/figS28_plant-traits.R,root,FALSE,Figure S28
+E,code/08_figures/figS28_plant-traits.R,root,FALSE,Figure S25 (plant traits)
 E,code/08_figures/zz_assemble_figures.R,root,TRUE,number and copy every figure into outputs/figures/{main;SI}
 F,code/zenodo/02_compile_results.R,root,TRUE,the paper's computed results in data/compiled/results/
 F,code/zenodo/03_generate_data_readme.R,root,TRUE,data/compiled/README_data.md from the column dictionary

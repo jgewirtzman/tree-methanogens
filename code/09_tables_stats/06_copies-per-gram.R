@@ -35,7 +35,7 @@ d <- d %>% mutate(
 )
 
 # ---- wood vs soil: effect of real mass on the 2-orders-of-magnitude claim -----
-comp <- d %>% filter(target_gene %in% c("mcra","mcra_probe")) %>%
+comp <- d %>% filter(target_gene == "mcra_probe") %>%   # probe assay only (EvaGreen mcrA gives false positives in wood; Fig. S4)
   mutate(compartment = case_when(
     material == "Wood" & core_type == "Inner" ~ "Heartwood",
     material == "Wood" & core_type == "Outer" ~ "Sapwood",

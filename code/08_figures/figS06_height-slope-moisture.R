@@ -37,7 +37,7 @@ long <- tp %>% dplyr::select(tree_id, species_id, VWC_mean, landscape_position, 
 # per-tree height slope (need >=3 heights)
 slopes <- long %>% group_by(tree_id, species_id, VWC_mean, landscape_position) %>%
   filter(n_distinct(height_cm) >= 3) %>%
-  summarise(height_slope = coef(lm(flux ~ height_cm))[2],
+  summarise(height_slope = 100 * coef(lm(flux ~ height_cm))[2],   # per m, as Fig. 2b
             flux_base = flux[which.min(height_cm)][1], .groups = "drop") %>%
   mutate(species = sp_map[species_id]) %>% filter(!is.na(VWC_mean))
 
@@ -58,7 +58,7 @@ p1 <- ggplot(slopes, aes(VWC_mean, height_slope)) +
   geom_smooth(method = "lm", se = TRUE, color = "black", formula = y ~ x) +
   scale_color_manual(values = c(`FALSE` = "gray50", `TRUE` = "firebrick"),
                      labels = c("Other species", expression(italic("B. alleghaniensis"))), name = NULL) +
-  labs(x = "Soil VWC (%)", y = expression("Height slope (nmol m"^-2*" s"^-1*" per cm)")) +
+  labs(x = "Soil VWC (%)", y = expression("Height slope (nmol m"^-2*" s"^-1*" per m)")) +
   theme_bw(base_size = 12)
 
 # R3's specific birch check: birch flux (base height) vs VWC

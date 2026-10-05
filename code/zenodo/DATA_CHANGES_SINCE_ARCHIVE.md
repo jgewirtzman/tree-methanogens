@@ -47,7 +47,7 @@ Hand-made or imported inputs that had been kept in `data/processed/` now live in
 | `stem_gas_isotopes_picarro_run.csv` | `data/raw/internal_gas/` |
 | `bo_extraction_mass.csv`, `bo_soil_moisture.csv`, `bo_tree_cores_dna.csv` | `data/raw/field_data/black_oak/` |
 | `tree_data_methanogen_group.csv` (tree-microbiome `Tree_microbiome_all.R`, Nov 2023), `bo_its_load.csv` (QUVE rows of tree-microbiome `ITS_w_metadata.csv`) | `data/raw/external/tree-microbiome/` |
-| `ymf_species_traits.csv` (vendored by `code/tools/vendor_traits.R`) | `data/raw/external/tree-gas-traits/` |
+| `ymf_species_traits.csv` (vendored by `code/tools/vendor_traits.R`; re-vendored 2026-10-05 with the 16 rule-selected traits + gymnosperm, see `code/09_tables_stats/25_plant-traits.R`) | `data/raw/external/tree-gas-traits/` |
 | `PhytoPhylo` (megatree phylogeny) | `data/raw/external/phylogeny/` |
 | black-oak cross-section photos | `data/raw/photos/black_oak_cross_sections/` |
 
