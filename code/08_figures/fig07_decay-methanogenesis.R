@@ -97,7 +97,8 @@ ord<-function(v){v<-tolower(trimws(as.character(v)));x<-suppressWarnings(as.nume
 y<-read.csv("data/processed/flux/tree_flux_2023_cross_species.csv",check.names=FALSE);names(y)<-make.names(names(y))
 y<-y[!is.na(y$CH4_best.flux),];y$fx<-asinh10(y$CH4_best.flux);y$sp<-as.factor(y$Species);y$x<-ord(y$Bark.Missing);y<-y[!is.na(y$x),]
 mq<-lmer(fx~x+I(x^2)+(1|sp),data=y);co<-summary(mq)$coefficients;pqa<-co["I(x^2)","Pr(>|t|)"]
-mla<-lmer(fx~x+(1|sp),data=y);dAICa<-as.numeric(AIC(mla)-AIC(mq));R2a<-r2m(mq)
+# AIC compares fixed effects, so from ML refits (REML AICs are not comparable)
+mla<-lmer(fx~x+(1|sp),data=y);dAICa<-as.numeric(AIC(update(mla,REML=FALSE))-AIC(update(mq,REML=FALSE)));R2a<-r2m(mq)
 gA<-data.frame(x=seq(1,4,.05));Xa<-model.matrix(~x+I(x^2),gA);ba<-fixef(mq);Va<-as.matrix(vcov(mq));gA$fit<-as.vector(Xa%*%ba);gA$se<-sqrt(diag(Xa%*%Va%*%t(Xa)))
 obrk<-c(0,0.05,0.2,1)
 # stem-flux purple, matching Fig 2 (avoids implying 'wood' via brown)
@@ -125,7 +126,7 @@ gw<-fm("Wood",TRUE);gs<-fm("Soil",FALSE)
 # wood stats: quadratic (hump) vs linear
 dw<-d[d$material=="Wood",];dw$xc<-dw$X-mean(dw$X)
 mqb<-lmer(Y~xc+I(xc^2)+(1|sp),dw);mlb<-lmer(Y~xc+(1|sp),dw)
-pqb<-summary(mqb)$coefficients[3,"Pr(>|t|)"];dAICb<-as.numeric(AIC(mlb)-AIC(mqb));R2b<-r2m(mqb)
+pqb<-summary(mqb)$coefficients[3,"Pr(>|t|)"];dAICb<-as.numeric(AIC(update(mlb,REML=FALSE))-AIC(update(mqb,REML=FALSE)));R2b<-r2m(mqb)
 # paper BrBG convention: wood = brown, soil = teal (matches Fig 4/5 compartment palette)
 col_ws<-c(Wood="#a6611a",Soil="#018571")
 pb<-ggplot(d,aes(X,Y,colour=material))+geom_point(alpha=.4,size=1.2)+

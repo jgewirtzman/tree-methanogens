@@ -120,7 +120,8 @@ prepare_long_all_genes <- function(df) {
       )
     ) %>%
     filter(stringency == "loose", !is.na(sample_type),
-           sample_type %in% c("Heartwood", "Sapwood"))
+           sample_type %in% c("Heartwood", "Sapwood"),
+           gene != "mcrA" | is_probe)  # mcrA: probe assay only (the EvaGreen mcrA columns give false positives in wood; Fig. S4)
 }
 
 long_all <- prepare_long_all_genes(ymf2021)

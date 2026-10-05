@@ -28,13 +28,14 @@ panel<-function(metric,xlab,catlabs){
   d<-y[!is.na(y[[metric]]),]; d$x<-d[[metric]]
   ml<-lmer(fx~x+(1|sp),data=d); mq<-lmer(fx~x+I(x^2)+(1|sp),data=d)
   pq<-summary(mq)$coefficients["I(x^2)","Pr(>|t|)"]; pl<-summary(ml)$coefficients["x","Pr(>|t|)"]
-  aic_l<-AIC(ml); aic_q<-AIC(mq); r2l<-R2m(ml); r2q<-R2m(mq)
+  aic_l<-AIC(update(ml,REML=FALSE)); aic_q<-AIC(update(mq,REML=FALSE)); r2l<-R2m(ml); r2q<-R2m(mq)
   best<-if(aic_q<aic_l-2) "quadratic (hump)" else if(aic_l<aic_q-2) "linear" else "linear ~ quad"
   g<-data.frame(x=seq(min(d$x),max(d$x),.05))
   gl<-predci(ml,g,FALSE); gq<-predci(mq,g,TRUE)
   nl<-as.data.frame(table(d$x)); names(nl)<-c("x","n"); nl$x<-as.numeric(as.character(nl$x))
-  txt<-sprintf("linear:    AIC %.1f  R2m %.3f  (slope p=%.3f)\nquadratic: AIC %.1f  R2m %.3f  (x2 p=%.3f)\ndAIC=%.1f  ->  %s",
-    aic_l,r2l,pl, aic_q,r2q,pq, aic_l-aic_q, best)
+  pf<-function(p) if(p<0.001) "p<0.001" else sprintf("p=%.3f",p)
+  txt<-sprintf("linear:    AIC %.1f  R2m %.3f  (slope %s)\nquadratic: AIC %.1f  R2m %.3f  (x\u00b2 %s)\ndAIC=%.1f  ->  %s",
+    aic_l,r2l,pf(pl), aic_q,r2q,pf(pq), aic_l-aic_q, best)
   ggplot(d,aes(x,fx))+geom_hline(yintercept=0,linetype=3,colour="grey60")+
     geom_jitter(width=.12,height=0,alpha=.16,size=1,colour="#b8732b")+
     geom_ribbon(data=gq,aes(x,ymin=lo,ymax=hi),alpha=.15,fill="#5e3a06",inherit.aes=FALSE)+
