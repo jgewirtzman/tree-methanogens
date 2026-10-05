@@ -409,75 +409,14 @@ if (nrow(beal_env) > 0) {
 
 section_header("SECTION 3: VARIANCE PARTITIONING (Figure 3)")
 
-# Combine datasets (matches 04_variance_partition.R)
-data_2023 <- ymf2023 %>%
-  select(Species.Code, DBH = DBH..cm., Air_temp = air_temp_C,
-         # the degree sign in "Soil Temp (°C)" is mangled differently by locale
-         # ("Soil.Temp....C." under C, "Soil.Temp...C." under UTF-8), so match by pattern
-         Soil_temp = all_of(grep("^Soil\\.Temp", names(ymf2023), value = TRUE)[1]),
-         VWC = vwc_mean, CH4_flux = CH4_best.flux) %>%
-  mutate(Year = "2023", Species_Latin = species_mapping[Species.Code]) %>%
-  drop_na(CH4_flux)
-
-data_2021 <- ymf2021 %>%
-  select(Species.Code = species_id, DBH = dbh, Air_temp = Temp_Air_125cm,
-         Soil_temp = SoilTemp_mean, VWC = VWC_mean, CH4_flux = CH4_best.flux_125cm) %>%
-  mutate(Year = "2021", Species_Latin = species_mapping[Species.Code]) %>%
-  drop_na(CH4_flux) %>% filter(!is.nan(CH4_flux))
-
-combined <- bind_rows(data_2023, data_2021) %>%
-  filter(!is.na(Species_Latin)) %>%
-  group_by(Species_Latin) %>% filter(n() > 3) %>% ungroup()
-
-stat("Total observations", nrow(combined))
-stat("2021 observations", sum(combined$Year == "2021"))
-stat("2023 observations", sum(combined$Year == "2023"))
-stat("Number of species", n_distinct(combined$Species_Latin))
-
-# Standardize
-for (v in c("DBH", "Air_temp", "Soil_temp", "VWC")) {
-  if (v %in% names(combined))
-    combined[[paste0(v, "_std")]] <- scale(combined[[v]])[, 1]
-}
-
-# Models
-m_env <- lm(CH4_flux ~ DBH_std + Air_temp_std + Soil_temp_std + VWC_std, data = combined)
-m_sp  <- lm(CH4_flux ~ Species_Latin, data = combined)
-m_full <- lm(CH4_flux ~ DBH_std + Air_temp_std + Soil_temp_std + VWC_std + Species_Latin, data = combined)
-m_int  <- lm(CH4_flux ~ (DBH_std + Air_temp_std + Soil_temp_std + VWC_std) * Species_Latin, data = combined)
-
-r2_env <- summary(m_env)$r.squared
-r2_sp  <- summary(m_sp)$r.squared
-r2_full <- summary(m_full)$r.squared
-r2_int  <- summary(m_int)$r.squared
-
-env_pct <- max(0, r2_full - r2_sp) * 100
-sp_pct  <- max(0, r2_full - r2_env) * 100
-int_pct <- max(0, r2_int - r2_full) * 100
-unexp_pct <- (1 - r2_int) * 100
-
-sub_header("Variance partitioning (Method 2)")
-stat("Environment unique", env_pct, "%")
-stat("Species unique", sp_pct, "%")
-stat("Env x Species interaction", int_pct, "%")
-stat("Unexplained", unexp_pct, "%")
-record("variance_species_pct", sp_pct)
-record("variance_interaction_pct", int_pct)
-record("variance_unexplained_pct", unexp_pct)
-
-# Top species mean flux
-sub_header("Species mean fluxes (nmol m-2 s-1)")
-sp_means <- combined %>%
-  group_by(Species_Latin) %>%
-  summarise(mean_flux = mean(CH4_flux), se_flux = sd(CH4_flux) / sqrt(n()),
-            n = n(), .groups = "drop") %>%
-  arrange(desc(mean_flux))
-
-for (i in 1:min(5, nrow(sp_means))) {
-  cat(sprintf("  %s: %.3f +/- %.3f (n=%d)\n",
-              sp_means$Species_Latin[i], sp_means$mean_flux[i],
-              sp_means$se_flux[i], sp_means$n[i]))
-}
+# The partition and species means reported in Results §3 come from the Figure 3
+# script (one growing-season breast-height value per tree, 472 trees, inverse-variance
+# weighted), printed to outputs/logs/fig03_variance-partition.txt. The earlier
+# per-measurement version that stood here (476 rows, a different model) disagreed
+# with the figure and the text, so it was removed (2026-10-05) rather than kept as a
+# second, conflicting set of numbers.
+cat("  See outputs/logs/fig03_variance-partition.txt (Figure 3 script) for the partition\n")
+cat("  and species means quoted in Results §3.\n")
 
 
 # ==============================================================================
@@ -1499,8 +1438,11 @@ sub_header("Monthly predicted fluxes")
 # Phi_*_umol_m2_s already holds nmol m-2 s-1 -- the name is a documented misnomer.
 # The x1000 that stood here reported the tree mean as 4.96 nmol m-2 s-1 instead of
 # 0.00496 and soil as -1078 instead of -1.08.
-tree_monthly_nmol <- monthly_fluxes$Phi_tree_umol_m2_s
-soil_monthly_nmol <- monthly_fluxes$Phi_soil_umol_m2_s
+# canonical_monthly.csv (code/06_upscale) is the source of the monthly numbers in
+# Results §10 and Fig 9c; the legacy MONTHLY_FLUXES.csv used here before disagreed.
+canon_monthly <- read.csv("outputs/data/canonical_monthly.csv")
+tree_monthly_nmol <- canon_monthly$tree_nmol_m2_s
+soil_monthly_nmol <- canon_monthly$soil_nmol_m2_s
 
 stat("Tree stem annual mean", mean(tree_monthly_nmol), "nmol m-2 s-1")
 stat("Tree stem monthly range", paste(round(min(tree_monthly_nmol), 4), "to",
