@@ -42,7 +42,7 @@ res <- do.call(rbind, lapply(seq_len(nrow(rows)), function(i) {
     round(100 * mean(if (lod) d$concentration_copies_per_uL >= LOD_CONC else d$positives >= k), 1)
   })
   data.frame(threshold = rows$threshold[i], positive_droplets = round(droplets, 1),
-             cv_pct = round(100 / sqrt(droplets)), log10_error = round(log10(1 + 1 / sqrt(droplets)), 2),
+             cv_pct = round(100 / sqrt(droplets)), sd_log10 = round(log10(exp(1)) / sqrt(droplets), 2),   # SD on log10 scale = 0.434 x CV (delta method); log10(1 + CV) was only the upper side
              copies_per_g_wood_100mg = round(ddpcr_copies_per_g(conc, REF_MASS_MG[["Wood"]], "Wood"), -1),
              copies_per_g_soil_250mg = round(ddpcr_copies_per_g(conc, REF_MASS_MG[["Soil"]], "Soil"), -1),
              pct_heartwood = share[["Inner"]], pct_sapwood = share[["Outer"]],
