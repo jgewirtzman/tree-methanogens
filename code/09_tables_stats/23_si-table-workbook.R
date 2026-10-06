@@ -19,7 +19,7 @@ S2 <- read.csv(out_path("known_putative_taxa_table.csv"), stringsAsFactors = FAL
 S2$note <- sub("^Capacity rule [0-9-]+: *", "", S2$note)            # internal dating, not for readers
 S2$classification <- sub("^Methanotroph_", "Methanotroph, ", S2$classification)
 S2[is.na(S2)] <- ""
-names(S2) <- c("Class", "Family", "Taxon", "Level", "ASVs", "Mean relative abundance (%)", "Source", "Note")
+names(S2) <- c("Class", "Family", "Taxon", "Level", "ASVs", "Share of all 16S reads, pooled (%)", "Source", "Note")
 
 S4 <- read.csv(out_path("dbh_by_species_campaign.csv"), stringsAsFactors = FALSE, check.names = FALSE)
 names(S4) <- c("Campaign", "Location", "Species", "Status", "Trees", "DBH (cm), mean ± SD")
@@ -29,9 +29,10 @@ LEG <- list(
     paste("Methanotrophs are classified by methane monooxygenase capacity. Known: genera that carry particulate or soluble",
           "methane monooxygenase, including the NC10 genus Candidatus Methylomirabilis. Putative: an upper bound -- members of",
           "methanotroph-containing families unresolved at genus level, and genera in those families whose capacity",
-          "is untested (no sequenced genome) or found in only some genomes (Methylovirgula, Rhodoblastus; Table S3). Genera inside those families with genome",
-          "evidence of no methane monooxygenase (Table S3) are listed in Table S3 and not counted.",
-          "ASVs: number of amplicon sequence variants; mean relative abundance across all samples.")),
+          "is untested (no sequenced genome) or found in only some genomes (Methylovirgula, Rhodoblastus; Table S3). Genera inside those families with no",
+          "annotated methane monooxygenase among their NCBI protein records are listed in Table S3 and not counted.",
+          "ASVs: number of amplicon sequence variants in the full, unrarefied 16S table (all libraries); share: the taxon's reads as a percentage of all 16S reads pooled across libraries.",
+          "Counts differ from Methods S3, which counts ASVs present in survey samples after rarefaction to 3,500 reads.")),
   `Table S6` = c("Table S6. Diameter at breast height of measured trees by campaign, location, species and status.",
     "Trees: number of individual trees; DBH: mean ± standard deviation across those trees (a single value where n = 1)."))
 
