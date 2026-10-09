@@ -221,13 +221,13 @@ cat(sprintf("WAI axis (%d levels): %s\n", length(WAIS), paste(names(WAIS), colla
 # outputs/data/flux_FINAL.csv (code/02_flux/03_precision_and_detection.R), not typed.
 # It was a typed literal (-0.0262) until 2026-09-25, when the MDF was corrected to divide by
 # closure seconds rather than logged samples (the 2021 campaign logged every 5 s) and the
-# literal silently went stale. Now -0.0248, n = 66.
+# literal silently went stale. Now -0.0244, n = 67 (sigma from 02b_instrument_precision.R).
 #
 #   The 5th percentile (-0.0943) was tested and REJECTED. Uptake prevalence tracks
 #   instrument precision, not any biological covariate:
-#       Height+molecular  sigma 1.200 ppb   1.4% uptake   deepest -0.0283   median r2 0.38
-#       Cross-species     sigma 1.725 ppb  10.1% uptake   deepest -0.3912   median r2 0.39
-#       Monthly survey    sigma 2.181 ppb   7.0% uptake   deepest -0.1757   median r2 0.21
+#       Height+molecular  sigma 1.216 ppb   1.4% uptake   deepest -0.0263   median r2 0.38
+#       Cross-species     sigma 1.719 ppb  10.1% uptake   deepest -0.3843   median r2 0.39
+#       Monthly survey    sigma 2.285 ppb   6.5% uptake   deepest -0.1747   median r2 0.21
 #   The 5th percentile is 3x deeper than anything seen under the best instrument
 #   conditions and is drawn from the two noisy campaigns' tails. Because the floor applies
 #   to ~90% of woody surface, adopting it would make an extreme tail value the modal

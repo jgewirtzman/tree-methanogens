@@ -22,7 +22,7 @@ source("code/lib/outputs.R")
 #     - Moves, breaths and chamber changes create large isolated differences. MAD
 #       tolerates these to ~40% contamination; SD does not (SD/MAD is 6-10x here).
 #
-#   VALIDATION: computed over the whole record it gives 1.200 ppb for the
+#   VALIDATION (July 2026, with the earlier constant 1.200 ppb): computed over the whole record it gave 1.200 ppb for the
 #   Height+molecular period, against 1.038 ppb computed independently from
 #   first differences inside manually-clicked closure windows only -- two disjoint
 #   data subsets agreeing to 15%. Measured inside vs outside closures on the same
@@ -56,7 +56,11 @@ suppressMessages({library(dplyr)})
 outdir <- "outputs"
 rule <- function(s) cat("\n",strrep("=",78),"\n ",s,"\n",strrep("=",78),"\n",sep="")
 
-SIGMA <- c(`Height+molecular`=1.200, `Cross-species`=1.725, `Monthly survey`=2.181)
+# sigma per field period, computed from the raw analyzer records by
+# 02b_instrument_precision.R (until 2026-10-09 three constants were typed here).
+.prec <- read.csv(out_path("instrument_precision.csv"), stringsAsFactors = FALSE)
+SIGMA <- setNames(.prec$sigma_ppb, .prec$camp)
+stopifnot(setequal(names(SIGMA), c("Height+molecular", "Cross-species", "Monthly survey")), all(SIGMA > 0))
 Z <- qnorm(0.95)
 
 G <- bind_rows(
