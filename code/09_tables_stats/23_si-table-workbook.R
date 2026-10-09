@@ -29,7 +29,7 @@ LEG <- list(
     paste("Methanotrophs are classified by methane monooxygenase capacity. Known: genera that carry particulate or soluble",
           "methane monooxygenase, including the NC10 genus Candidatus Methylomirabilis. Putative: an upper bound -- members of",
           "methanotroph-containing families unresolved at genus level, and genera in those families whose capacity",
-          "is untested (no sequenced genome) or found in only some genomes (Methylovirgula, Rhodoblastus; Table S3). Genera inside those families with no",
+          "is untested (no sequenced genome), found in only some genomes (Methylovirgula), or represented by a single candidate homolog of unresolved source (Rhodoblastus; Table S3). Genera inside those families with no",
           "annotated methane monooxygenase among their NCBI protein records are listed in Table S3 and not counted.",
           "ASVs: number of amplicon sequence variants in the full, unrarefied 16S table (all libraries); share: the taxon's reads as a percentage of all 16S reads pooled across libraries.",
           "Counts differ from Methods S3, which counts ASVs present in survey samples after rarefaction to 3,500 reads.")),
