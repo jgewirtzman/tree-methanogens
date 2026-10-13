@@ -25,7 +25,7 @@ DDPCR_REACTION_UL <- 25     # total reaction volume (µL)
 DDPCR_TEMPLATE_UL <- 2.5    # DNA extract per reaction (µL)
 DDPCR_ELUTION_UL  <- c(Wood = 75, Soil = 100)   # elution volume (µL) by material
 DDPCR_LYSATE_UL    <- 800                         # lysis buffer per sample (µL)
-DDPCR_PROCESSED_UL <- c(Wood = 250, Soil = 250)   # cleared lysate taken to cleanup (µL); confirm with Wyatt
+DDPCR_PROCESSED_UL <- c(Wood = 250, Soil = 250)   # cleared lysate taken to cleanup (µL); method-study records
 # material: "Wood"/"Soil", or a compartment ("Inner", "Outer", "Mineral", "Organic")
 ddpcr_elution_ul <- function(material) {
   soil <- material %in% c("Soil", "Mineral", "Organic")
