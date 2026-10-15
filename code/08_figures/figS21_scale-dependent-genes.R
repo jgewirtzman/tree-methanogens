@@ -1,6 +1,6 @@
 source("code/lib/outputs.R")
 # ==============================================================================
-# REVISION — S11 rebuilt: 4-column scale-dependent gene-flux figure.
+# S11 rebuilt: 4-column scale-dependent gene-flux figure.
 # ALL columns on a common arcsinh flux scale (asinh(x/0.1)/log10; cofactor matches Fig 1/2/3),
 # and aggregation is TRANSFORM-THEN-AGGREGATE on both axes, so the median-vs-mean
 # comparison reflects real aggregation, not raw right-skew sensitivity.

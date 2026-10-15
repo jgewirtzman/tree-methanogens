@@ -1,6 +1,6 @@
 source("code/lib/outputs.R")
 # ==============================================================================
-# REVISION — S1/S2 tree- & species-level flux prediction, REDONE with an
+# S1/S2 tree- & species-level flux prediction, REDONE with an
 # arcsinh-transformed RESPONSE (asinh(flux/0.1)/log10; cofactor matches Fig 1/2/3).
 # The original workflow (20_manuscript_statistics.R, 01_rf_models.R) fit RAW CH4_flux;
 # flux is right-skewed, so the response should be variance-stabilized. Predictors
@@ -9,7 +9,7 @@ source("code/lib/outputs.R")
 # heartwood-mcrA, S2 area-weighted mcrA/methanotroph/ratio + AIC.
 # DEFERRED (separate pass): soil-gene additions; random forests (variance-reduction
 # splits are also not transform-invariant — redo, but rankings expected stable).
-# NEW file; originals untouched (02_scale sourced for data only, its 2 outputs
+# Originals untouched (02_scale sourced for data only, its 2 outputs
 # git-restored by the wrapper). Output: outputs/audit/S1S2_arcsinh_report.txt
 # ==============================================================================
 suppressWarnings(suppressMessages(source("code/07_molecular/helper_scale_dependent_gene_patterns.R")))

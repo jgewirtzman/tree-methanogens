@@ -274,7 +274,7 @@ tq <- seq(0, max(tt), by = 0.5)
 CH <- data.frame(X = predict(smooth.spline(tt, P0$X, df = dfk), tq)$y, Y = predict(smooth.spline(tt, P0$Y, df = dfk), tq)$y)
 seg_d <- function(px, py, ax, ay, bx, by) { vx <- bx - ax; vy <- by - ay; t <- pmin(1, pmax(0, ((px - ax) * vx + (py - ay) * vy) / (vx^2 + vy^2 + 1e-12))); sqrt((px - ax - t * vx)^2 + (py - ay - t * vy)^2) }
 chan_d <- function(P, L) { d <- rep(Inf, nrow(P)); for (j in seq_len(nrow(L) - 1)) d <- pmin(d, seg_d(P$X, P$Y, L$X[j], L$Y[j], L$X[j + 1], L$Y[j + 1])); d }
-STREAM_HALF_WIDTH_M <- 0.75   # a 1-2 m brook (Jon, 2026-10-02)
+STREAM_HALF_WIDTH_M <- 0.75   # a 1-2 m brook
 G$VWC[chan_d(G, CH) <= STREAM_HALF_WIDTH_M] <- 100
 cat(sprintf("Moisture surface (04_moisture_surface.R fit) over the map: %d cells, VWC %.1f-%.1f%%\n", nrow(G), min(G$VWC), max(G$VWC)))
 

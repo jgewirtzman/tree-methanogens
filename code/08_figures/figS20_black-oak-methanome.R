@@ -1,6 +1,5 @@
-# REVISION: black-oak methanome heatmap on the REVISED methanotroph definitions
-# (Methylacidiphilaceae family-level Known->Putative). Copy of
-# code/archive/superseded_2026-10-01/08_figures/10_black_oak_methanome_heatmap.R; only the defs path + output changed.
+# Black-oak methanome heatmap on the REVISED methanotroph definitions
+# (Methylacidiphilaceae family-level Known->Putative).
 
 # ==============================================================================
 # Black Oak Methanogen/Methanotroph Heatmap (Figure S12)

@@ -1,7 +1,7 @@
 # ==============================================================================
-# REVISION — assemble the numbered manuscript figure set.
+# Assemble the numbered manuscript figure set.
 # Copies each final figure into outputs/figures/{main,SI,photos}/ with its
-# manuscript number + slug. Sources: the rev_* generators write to outputs/;
+# manuscript number + slug. Sources: the figure generators write to outputs/;
 # a few unchanged figures come from the original pipeline's outputs/figures/
 # (run code/make_figures.R to (re)create those). Run after the generators
 # (see run_all.R). Idempotent.
@@ -75,9 +75,8 @@ SI_PHOTOS <- c(
   "Figure_S02b_rigid-chamber"            = "data/raw/photos/rigid_chamber.jpg",
   "Figure_S20_black-oak-cross-sections"  = "outputs/figures/generated/figS_black_oak_cross_sections.png")
 
-# Manuscript tables (ratified w/ Jon). Table S1 = primer sequences (formatted markdown in
-# notes/primer_sequences.md), not assembled here. Dropped: pmoA/mmoX by compartment/species
-# (intermediate), pathway classification (method lives in code: 02_picrust_pathway_associations.R).
+# Manuscript tables. Table S1 = primer sequences, not assembled here. Dropped:
+# pmoA/mmoX by compartment/species (intermediate), pathway classification (method lives in code: 02_picrust_pathway_associations.R).
 TABLES <- c(
   "Table_1_campaign-summary"             = "outputs/data/campaign_counts.csv",
   "Table_S2_known-putative-taxa"         = "outputs/data/known_putative_taxa_table.csv",

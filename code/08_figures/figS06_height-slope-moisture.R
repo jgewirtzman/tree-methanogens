@@ -1,18 +1,15 @@
 source("code/lib/outputs.R")
 # ==============================================================================
-# REVISION — Does the flux-decline-with-height correspond to soil moisture?
+# Does the flux-decline-with-height correspond to soil moisture?
 # ==============================================================================
-# Referee 3's logical-gap challenge: "Reduction in stem methane flux with height
-# does not necessarily imply a soil-source... A trend with height for B.
-# alleghaniensis is used as evidence that wetter soil dominates... Are the highest
-# B. alleghaniensis fluxes found in the wettest soil? It doesn't appear so from
-# Figure 3."
+# A decline in stem CH4 flux with height does not by itself imply a soil source.
+# Tests whether the B. alleghaniensis height trend reflects wetter soil: are the
+# highest B. alleghaniensis fluxes found in the wettest soil?
 #
 # Logic being tested: if height-decline reflects soil-derived CH4 transported up
 # and attenuating with height, then a STEEPER (more negative) height slope should
 # occur in WETTER soils (more soil CH4 source). We test per-tree height slope vs VWC.
 #
-# NEW file; edits nothing. Run: Rscript code/revision/R_height_slope_vs_moisture.R
 # Outputs: outputs/figures/generated/height_slope_vs_moisture.png, height_slope_moisture_summary.txt
 # ==============================================================================
 
@@ -61,7 +58,7 @@ p1 <- ggplot(slopes, aes(VWC_mean, height_slope)) +
   labs(x = "Soil VWC (%)", y = expression("Height slope (nmol m"^-2*" s"^-1*" per m)")) +
   theme_bw(base_size = 12)
 
-# R3's specific birch check: birch flux (base height) vs VWC
+# Birch check: B. alleghaniensis flux (base height) vs VWC
 birch <- slopes %>% filter(species == "Betula alleghaniensis")
 p2 <- ggplot(birch, aes(VWC_mean, flux_base)) +
   geom_point(size = 2.5, color = "firebrick") +
@@ -78,7 +75,7 @@ ggsave(out_path("height_slope_vs_moisture.png"),
 # ---- Summary -----------------------------------------------------------------
 sink(out_path("height_slope_moisture_summary.txt"))
 cat("=================================================================\n")
-cat("HEIGHT-DECLINE SLOPE vs SOIL MOISTURE (Referee 3's logical gap)\n")
+cat("HEIGHT-DECLINE SLOPE vs SOIL MOISTURE\n")
 cat("=================================================================\n\n")
 cat(sprintf("Trees with >=3 heights AND VWC: %d\n\n", nrow(slopes)))
 cat("Hypothesis: if height-decline = soil-transported CH4, wetter soils (more soil\n")
@@ -90,16 +87,15 @@ if (!is.null(ct_species))
   cat(sprintf("Species:   Pearson r(median slope, median VWC) = %.3f, p = %.4f (n=%d species)\n",
               ct_species$estimate, ct_species$p.value, nrow(sp_lvl)))
 cat("\nSpecies-level slope vs VWC:\n"); print(as.data.frame(sp_lvl), row.names = FALSE)
-cat("\nB. alleghaniensis wettest-soil check (R3):\n")
+cat("\nB. alleghaniensis wettest-soil check:\n")
 if (nrow(birch) > 2) {
   bc <- cor.test(birch$VWC_mean, birch$flux_base)
   cat(sprintf("  r(base flux, VWC) = %.2f, p = %.3f, n = %d\n", bc$estimate, bc$p.value, nrow(birch)))
   cat("  -> if positive & significant, highest birch fluxes ARE in wettest soil (supports\n")
-  cat("     transport); if not, R3's skepticism stands and the claim needs softening.\n")
+  cat("     transport); if not, this check does not support a soil source.\n")
 } else cat("  n too small for a birch-only correlation.\n")
-cat("\nHONEST READ: report whatever the sign/significance actually is. If the per-tree\n")
-cat("slope-vs-VWC correlation is weak, concede R3's point that height-decline alone does\n")
-cat("not establish a soil source, and lean on the cross-species height-effect vs soil-\n")
-cat("methanogen correlation (r=-0.76, manuscript L302-304) instead.\n")
+cat("\nINTERPRETATION: if the per-tree slope-vs-VWC correlation is weak, height-decline\n")
+cat("alone does not establish a soil source; the cross-species height-effect vs soil-\n")
+cat("methanogen correlation (r=-0.76) is the stronger evidence.\n")
 sink()
 cat(readLines(out_path("height_slope_moisture_summary.txt")), sep="\n")

@@ -143,7 +143,7 @@ rf_slope <- as.numeric(apply(PROFI,1,function(f){
   if(any(!is.finite(f))||all(f<=0)||sd(f)==0) return(0)
   as.numeric(coef(lm(log(pmax(f,1e-9))~zh))[2])}))
 
-# The three disclosures that must accompany the named cell (decision D) are COMPUTED
+# The three disclosures that must accompany the named cell are COMPUTED
 # here; the values that stood in the comments below were typed by hand and drifted
 # across model versions (-0.914 / +0.052 / 0.580 and -0.672 / +0.057 / 0.559).
 slope_fit <- function(f, z) {
@@ -349,8 +349,7 @@ write.csv(R, out_path("scaling_full_grid.csv"), row.names=FALSE)
 #                           estimate", and the only direct measurements above 2 m
 #                           (the climbed oak, 0.82x at 10 m) contradict it -- this
 #                           form puts the median stem at 0.005x by 10 m.
-#                           ADOPTED as the named cell, decided 2026-07-30 (decision D,
-#                           manuscript/OPEN_DECISIONS.md). A budget cascade needs a
+#                           ADOPTED as the named cell (2026-07-30). A budget cascade needs a
 #                           centre and a mean over scenarios would be arbitrary
 #                           weighting; of the candidates this is the only one whose
 #                           SHAPE is model-informed -- the decay rate varies per stem
@@ -578,7 +577,7 @@ R$flux <- factor(R$flux, levels=FORMS[order(-tapply(R$total_mg, R$flux, median)[
 # A log10 axis cannot render the uptake form: linear_bounded_median goes negative, so
 # log10 sent 40 of the 240 rows to NaN and ggplot dropped them with only a warning --
 # the same silent-loss failure as the factor-level bug above, and it hid precisely the
-# scenario the reviewers asked about. Use a signed log (asinh, base 10, unit cofactor)
+# uptake scenario. Use a signed log (asinh, base 10, unit cofactor)
 # so sign is preserved and the whole grid is visible.
 slog <- scales::trans_new("signed_log10",
           transform = function(x) asinh(x/2)/log(10),

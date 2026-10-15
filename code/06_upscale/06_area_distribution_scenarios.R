@@ -80,7 +80,7 @@ GY <- c("Pinus strobus","Tsuga canadensis")
 # One allometry, from geometry.R. This was a copy-pasted duplicate that retyped
 # the canopy anchor and both exponents and recomputed the 95th-percentile DBH
 # locally, so changing CANOPY_H_M or the exponents would have moved none of them.
-# NO shrub cap: the published allometry is applied uniformly (see scaling_parameters.md)
+# NO shrub cap: the published allometry is applied uniformly
 INV$H <- stem_height_m(INV$dbh, INV$species)
 
 TAPER <- 1.275     # midpoint of W&W 1.20-1.35

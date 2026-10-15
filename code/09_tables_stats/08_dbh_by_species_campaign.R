@@ -1,8 +1,8 @@
 #!/usr/bin/env Rscript
 # ==============================================================================
-# 08_dbh_by_species_campaign.R  (SI Table — R3 L286)
+# 08_dbh_by_species_campaign.R  (SI Table)
 # "Number of trees of each species and their DBH (mean +/- sd) in each location."
-# Tree SETS mirror rev_stat_campaign_counts EXACTLY (unique trees with valid CH4
+# Tree SETS mirror 02_campaign_counts.R EXACTLY (unique trees with valid CH4
 # flux), so per-campaign totals == campaign_counts (41 monthly / 150 height / 332
 # in 2023). DBH is joined onto those canonical trees.
 #   * 2020-2021 monthly  -> unique Plot.Tag w/ flux; grouped by moisture class
@@ -22,7 +22,7 @@ sp_map <- c(ACRU="Acer rubrum",ACSA="Acer saccharum",BEAL="Betula alleghaniensis
   QUVE="Quercus velutina",SAAL="Sassafras albidum",TSCA="Tsuga canadensis")
 # BEPO/CALA are in-plot 2023 IDs absent from the census -> reported at genus level (uncertain sp.)
 # confirmed data-entry code corrections (not real distinct species)
-corr <- c(TSLA="TSCA")   # TSLA typo for Tsuga canadensis (2021 aux); BEPO/CALA RESOLVED at genus (Betula/Carya sp., final per Jon)
+corr <- c(TSLA="TSCA")   # TSLA typo for Tsuga canadensis (2021 aux); BEPO/CALA RESOLVED at genus (Betula/Carya sp.)
 lab<-function(code){code<-toupper(trimws(code)); code<-ifelse(code %in% names(corr), corr[code], code)
   ifelse(code %in% names(sp_map), sp_map[code], code)}
 fd<-"data/processed/flux"

@@ -94,7 +94,7 @@ cat(sprintf("  Inventory: %d stems, DBH range %.1f-%.1f cm (canonical, pre-repai
 # UNIT CONVERSION: nmol TO μmol
 # =============================================================================
 
-# NOTE (2026 revision): we now work in nmol m-2 s-1 END TO END, which is the unit the
+# NOTE: we now work in nmol m-2 s-1 END TO END, which is the unit the
 # paper reports in. Previously the pipeline divided by 1000 here to model in umol.
 # That mattered for more than bookkeeping: asinh() has a fixed knee at |x| ~ 1, so at
 # umol magnitudes (median ~2.6e-5) asinh(y) was the IDENTITY to 7 significant figures --
@@ -113,7 +113,7 @@ cat("  TREE_YEAR: [", round(min(TREE_YEAR$stem_flux_umol_m2_s, na.rm=T), 6), ","
 cat("  SOIL_YEAR: [", round(min(SOIL_YEAR$soil_flux_umol_m2_s, na.rm=T), 6), ",", 
     round(max(SOIL_YEAR$soil_flux_umol_m2_s, na.rm=T), 6), "]\n")
 
-# NOTE (2026 revision fix): TREE_YEAR already carries its own `species` column.
+# NOTE: TREE_YEAR already carries its own `species` column.
 # The previous `left_join(INVENTORY %>% select(tree_id, species))` collided with it,
 # producing species.x/species.y and leaving NO `species` column. Every one of the 369
 # year-long monthly rows then failed the downstream completeness filter, so TreeRF was
@@ -153,12 +153,12 @@ smart_impute <- function(df, feature_cols) {
             group_by(month) %>%
             summarise(med_val = median(!!sym(col), na.rm = TRUE), .groups = "drop")
           
-          # NOTE (2026 revision): month can be NA for recovered deployments whose date
+          # NOTE: month can be NA for recovered deployments whose date
           # could not be resolved; `df$month == m` then yields NA and any() errors.
           for(m in unique(df$month[!is.na(df$month)])) {
             month_idx <- !is.na(df$month) & df$month == m & is.na(df[[col]])
             if(any(month_idx)) {
-              # NOTE (2026 revision): guard against duplicate/NA month keys returning a
+              # NOTE: guard against duplicate/NA month keys returning a
               # vector here, which made the if() condition length > 1.
               month_med <- monthly_medians$med_val[which(monthly_medians$month == m)][1]
               if(length(month_med) == 1 && !is.na(month_med)) {
@@ -304,7 +304,7 @@ tree_combined <- tree_combined %>%
   ) %>%
   dplyr::select(-dbh_original, -dbh_corrected, -dbh_final)
 
-# NOTE (2026 revision): environmental covariates are no longer median-imputed.
+# NOTE: environmental covariates are no longer median-imputed.
 # smart_impute() substituted a monthly (then overall) median, which fabricates exactly
 # the temp/moisture signal the model is trying to learn -- and it was operating on 26%
 # of tree rows. ranger splits on observed values only, so passing NA through is both
@@ -312,7 +312,7 @@ tree_combined <- tree_combined %>%
 # an environmental driver, and a missing DBH would otherwise drop the row entirely.
 tree_combined <- smart_impute(tree_combined, c("dbh_m"))
 
-# NOTE (2026 revision): the 1st/99th-percentile trim on asinh(flux) has been REMOVED.
+# NOTE: the 1st/99th-percentile trim on asinh(flux) has been REMOVED.
 # It deleted the largest stem emissions -- the hotspots this study documents -- and cost
 # 33% of the mean tree flux, biasing the budget low. Chamber artifacts are now screened
 # mechanistically at load time (C0 > 5000 ppb; see 01_load_and_prep_data.R), which flags
@@ -324,7 +324,7 @@ cat("  Tree flux outlier trimming disabled (chamber-integrity screen applied ups
 # =============================================================================
 # CHAMBER CALIBRATION (spec §2.5)
 # -----------------------------------------------------------------------------
-# NOTE (2026 revision fix): this step previously did nothing --
+# NOTE: this step previously did nothing --
 #   stem_flux_corrected <- stem_flux_umol_m2_s
 # -- because the species-join collision upstream had already dropped every
 # semirigid (monthly-chamber) row, leaving a July/rigid-only training set with no
@@ -410,7 +410,7 @@ remove_outliers_mad <- function(x, k = 8) {
 # See note above: environmental covariates are passed through with their NAs.
 # (soil coverage is now 88% measured)
 
-# NOTE (2026 revision): MAD k=8 outlier removal has been DISABLED. It deleted four
+# NOTE: MAD k=8 outlier removal has been DISABLED. It deleted four
 # genuine wetland-margin emissions (11.6, 25.7, 51.3, 63.1 nmol m-2 s-1 -- all with
 # normal chamber C0, from the plots adjacent to the wetland) while RETAINING the one
 # real artifact (-176.1 nmol m-2 s-1, C0 = 49,049 ppb). Net effect: the soil sink came
@@ -582,7 +582,7 @@ cat("✓ Taxonomy priors computed\n")
 
 # ---------------------------------------------------------------------------
 # Shared species -> genus -> family lookup for taxon_prior_asinh.
-# NOTE (2026 revision fix): the training path applied this prior, but the
+# NOTE: the training path applied this prior, but the
 # prediction path hard-set taxon_prior_asinh = 0 for every inventory tree, so the
 # feature was systematically offset from its training distribution and contributed
 # nothing at prediction time. This helper is now used in BOTH places.
@@ -613,7 +613,7 @@ build_features_tree <- function(df, drivers, Mhat_fn, SI_table, taxonomy, taxon_
   df <- df %>%
     left_join(si_tree, by = "month")
   
-  # PAIRED PER-MEASUREMENT TEMPERATURES (2026 revision).
+  # PAIRED PER-MEASUREMENT TEMPERATURES.
   #
   # These were the monthly plot-level means ONLY, so soil and air temperature each took
   # exactly one value per month across every tree: 10 and 11 distinct values over 1,130
@@ -687,7 +687,7 @@ build_features_tree <- function(df, drivers, Mhat_fn, SI_table, taxonomy, taxon_
     df$soil_moisture_at_tree <- NA_real_
   }
   
-  # NOTE (2026 revision): the interpolated December-anchored moisture surface is no
+  # NOTE: the interpolated December-anchored moisture surface is no
   # longer used to FILL training rows. With the per-collar env archive compiled,
   # measured moisture now covers ~87% of monthly, 90% of 2021-height and 100% of 2023
   # measurements, and filling the remainder from a surface that was itself fitted to
@@ -808,7 +808,7 @@ build_features_tree <- function(df, drivers, Mhat_fn, SI_table, taxonomy, taxon_
   )
   
   if("stem_flux_corrected" %in% names(df) && !all(is.na(df$stem_flux_corrected))) {
-    # NOTE (2026 revision): the response is RAW flux in nmol m-2 s-1, not asinh.
+    # NOTE: the response is RAW flux in nmol m-2 s-1, not asinh.
     # asinh was inert at umol (identity to 7 s.f.); moving to nmol made it bite but
     # introduced a 13% low bias at back-transformation (Jensen), concentrated in the
     # top flux decile which carries 68% of the total. Fitting raw is unbiased with no
@@ -834,7 +834,7 @@ build_features_soil <- function(df, drivers, Mhat_fn, SI_table) {
   df <- df %>%
     left_join(si_soil, by = "month")
   
-  # NOTE (2026 revision): previously these took the MONTHLY PLOT-LEVEL means only, so
+  # NOTE: previously these took the MONTHLY PLOT-LEVEL means only, so
   # soil temperature had exactly ONE value per month across all collars -- it carried no
   # spatial information whatsoever and could only encode season. The campaign's own
   # per-collar readings (104 of 266 measurements) were discarded. Prefer the observed
@@ -894,7 +894,7 @@ cat("✓ Features built for training\n\n")
 
 cat("Training Species-First Random Forest models...\n")
 
-# NOTE (2026 revision): requiring non-missing MOISTURE dropped 84 otherwise usable
+# NOTE: requiring non-missing MOISTURE dropped 84 otherwise usable
 # measurements once training-time imputation was removed. ranger splits on observed
 # values only, so a row with a missing environmental covariate still contributes
 # through species, size and season. Only the response and species identity are
@@ -932,7 +932,7 @@ cat("  Species dummies:", nrow(species_dummies_full), "rows,", ncol(species_dumm
 cat("  Species×moisture:", nrow(species_moisture_full), "rows,", ncol(species_moisture_full), "columns\n")
 
 # =============================================================================
-# TREE FEATURE MATRIX -- final specification (2026 revision)
+# TREE FEATURE MATRIX -- final specification
 # -----------------------------------------------------------------------------
 # Six predictors, chosen by testing each against a single random reference column
 # over 20 fits (a predictor is kept only if its permutation importance beats pure
@@ -989,8 +989,8 @@ X_tree_species_first <- data.frame(
   dbh_m         = tree_train_complete$dbh_m,
   soil_moisture_at_tree = tree_train_complete$soil_moisture_at_tree,
   soil_temp_C_mean = tree_train_complete$soil_temp_C_mean,
-  # air_temp_C_mean RESTORED 2026-07-30. Decision A dropped it; three independent lines
-  # of evidence reversed that, and the reversal is the honest reading:
+  # air_temp_C_mean RESTORED 2026-07-30. An earlier specification dropped it; three
+  # independent lines of evidence reversed that:
   #   1. at 30 CV repeats (the 5-repeat SE was understated ~4x) re-adding it is a
   #      significant skill gain, 0.1199 +/- 0.0053 against 0.1067 +/- 0.0055;
   #   2. it carries about HALF the tree term's seasonal amplitude -- without it the
@@ -1018,7 +1018,7 @@ X_tree_species_first <- data.frame(
 # Remove any columns with zero variance
 tree_train_complete_species_levels <- factor(tree_train_complete$species_clean)
 
-# NOTE (2026 revision): species is now a native factor, and var() errors on factors.
+# NOTE: species is now a native factor, and var() errors on factors.
 zero_var_cols <- sapply(X_tree_species_first, function(x) {
   if (is.factor(x) || is.character(x)) return(length(unique(x[!is.na(x)])) < 2)
   if (all(is.na(x))) return(TRUE)
@@ -1056,7 +1056,7 @@ cat("  OOB RMSE (asinh):", round(sqrt(TreeRF$prediction.error), 4), "\n")
 
 # Soil model
 # =============================================================================
-# SOIL FEATURE SET -- final specification (2026 revision)
+# SOIL FEATURE SET -- final specification
 # -----------------------------------------------------------------------------
 # Four predictors. All beat a random reference column in 100% of 20 fits:
 #   moisture   1.121   soil CH4 uptake is diffusion-limited, so this dominates
@@ -1223,7 +1223,7 @@ monthly_results <- tibble(month = 1:12)
 tree_fluxes_monthly <- list()
 
 # =============================================================================
-# BACK-TRANSFORMATION BIAS CORRECTION (2026 revision)
+# BACK-TRANSFORMATION BIAS CORRECTION
 # -----------------------------------------------------------------------------
 # The models are unbiased ON THE MODELLED SCALE (mean asinh predicted / observed =
 # 1.005 for trees) but sinh() of an unbiased asinh prediction is not unbiased on the
@@ -1285,12 +1285,12 @@ for (t in 1:12) {
         species_clean,
         levels = levels(tree_train$species_factor)
       ),
-      # NOTE (2026 revision fix): was hard-coded to 0 here, which zeroed the taxon
+      # NOTE: was hard-coded to 0 here, which zeroed the taxon
       # prior for every inventory tree while training rows carried non-zero values.
       taxon_prior_asinh = lookup_taxon_prior(species, TAXONOMY, TAXONOMY_PRIORS)
     )
   
-  # Prediction features must match the trained specification exactly (2026 revision):
+  # Prediction features must match the trained specification exactly:
   # species as a native factor, absolute DBH, the three environmental drivers, and
   # height fixed at the 0-2 m band mid-point.
   X_pred_tree <- data.frame(
@@ -1304,7 +1304,7 @@ for (t in 1:12) {
   )
 
   # Align columns with training.
-  # NOTE (2026 revision fix): this loop silently zero-fills any trained feature that is
+  # NOTE: this loop silently zero-fills any trained feature that is
   # absent from the prediction frame, which is how a name mismatch can blank out most of
   # the model's inputs without any error. Check first and fail loudly.
   missing_tree_feats <- setdiff(colnames(X_tree), colnames(X_pred_tree))
@@ -1401,7 +1401,7 @@ for (t in 1:12) {
       moisture_x_airT = soil_moisture_abs * air_temp_C
     )
   
-  # NOTE (2026 revision fix): these columns are renamed to match the names SoilRF was
+  # NOTE: these columns are renamed to match the names SoilRF was
   # TRAINED on. Previously they were passed as soil_temp_C / air_temp_C /
   # soil_moisture_abs / SI_soil, none of which matched the model's
   # soil_temp_C_mean / air_temp_C_mean / soil_moisture_at_site / SI. The alignment loop
@@ -1552,7 +1552,7 @@ p1b <- ggplot(outlier_summary, aes(x = dataset, y = pct_outliers)) +
 ggsave("../../outputs/figures/QC_OUTLIERS.png", p1b, width = 6, height = 6)
 
 # QC2: Predictions vs observations - Trees
-# NOTE (2026 revision fix): TreeRF is fitted on tree_train_complete (complete cases),
+# NOTE: TreeRF is fitted on tree_train_complete (complete cases),
 # so its predictions align with THAT frame, not the unfiltered tree_train.
 tree_train_complete$pred_asinh <- TreeRF$predictions
 tree_train_complete$pred_flux <- tree_train_complete$pred_asinh
@@ -1695,7 +1695,7 @@ diagnostics <- list(
   TreeRF_OOB_RMSE = sqrt(TreeRF$prediction.error),
   SoilRF_OOB_R2 = SoilRF$r.squared,
   SoilRF_OOB_RMSE = sqrt(SoilRF$prediction.error),
-  # NOTE (2026 revision fix): chamber is now handled by the beta1 correction on the
+  # NOTE: chamber is now handled by the beta1 correction on the
   # target (spec 2.5), not carried as a predictor.
   Chamber_as_predictor = FALSE,
   Month_as_predictor = TRUE,
@@ -1715,12 +1715,12 @@ diagnostics <- list(
     tree_pct = 100*n_outliers_tree/(n_outliers_tree + nrow(tree_combined)),
     soil_n = n_outliers_soil,
     soil_pct = 100*n_outliers_soil/(n_outliers_soil + nrow(SOIL_YEAR)),
-    # NOTE (2026 revision fix): the two datasets use DIFFERENT rules; this was
+    # NOTE: the two datasets use DIFFERENT rules; this was
     # previously mislabelled as "MAD with k=8" for both.
     method_tree = "asinh 1st/99th percentile trim",
     method_soil = "MAD with k=8"
   ),
-  # NOTE (2026 revision fix): these four counters referenced variables that were never
+  # NOTE: these four counters referenced variables that were never
   # assigned anywhere in the script, so building `diagnostics` aborted before the file
   # could be saved -- which is why DIAGNOSTICS.RData on disk was stale (Sep 2025) and
   # disagreed with the saved models (its n_tree_training = 718 vs the model's 353).
@@ -1765,7 +1765,7 @@ cat("All spatial data uses GPS coordinates (x = longitude, y = latitude)\n")
 cat("\nGenerating updated plots with nmol units...\n")
 
 # QC2: Predictions vs observations - Trees (in nmol)
-# NOTE (2026 revision fix): TreeRF is fitted on tree_train_complete (complete cases),
+# NOTE: TreeRF is fitted on tree_train_complete (complete cases),
 # so its predictions align with THAT frame, not the unfiltered tree_train.
 tree_train_complete$pred_asinh <- TreeRF$predictions
 tree_train_complete$pred_flux <- tree_train_complete$pred_asinh
@@ -1876,7 +1876,7 @@ cat("\n✓ Plot updates complete - all units now in nmol m⁻² s⁻¹\n")
 
 
 # =============================================================================
-# NOTE (2026 revision): a verbatim duplicate of the QC-plot section used to follow
+# NOTE: a verbatim duplicate of the QC-plot section used to follow
 # here. It re-ran the same plots against stale frames, errored, and aborted the
 # script before its final messages. The canonical QC block is above (Section 10).
 # =============================================================================

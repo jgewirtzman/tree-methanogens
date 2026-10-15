@@ -1,15 +1,14 @@
 source("code/lib/outputs.R")
 # ==============================================================================
-# REVISION — FAPROTAX/PICRUSt caveat metrics (Referee 2 #3)
+# FAPROTAX/PICRUSt caveat metrics
 # ==============================================================================
-# R2 #3: the caveats of 16S-based functional prediction should be explicit; many
-# functions are poorly predicted (esp. when 16S can't resolve genus); the low
-# fermentation fraction is implausible for a hypoxic habitat; and "dark hydrogen
-# oxidation" (3.6% HW) is on par with hydrogenotrophic methanogens (also H2
-# oxidisers) -> the H2 economy is understated.
+# Caveats of 16S-based functional prediction: many functions are poorly predicted
+# (esp. when 16S can't resolve genus); the low fermentation fraction is implausible
+# for a hypoxic habitat; and "dark hydrogen oxidation" (3.6% HW) is on par with
+# hydrogenotrophic methanogens (also H2 oxidisers) -> the H2 economy is understated.
 #
 # This reproduces the manuscript's FAPROTAX chain (code/08_figures/08d, same seed)
-# and computes the numbers that quantify R2's point but were NOT reported:
+# and computes the numbers that quantify these caveats:
 #   (1) ANNOTATED FRACTION: % of community abundance FAPROTAX assigns ANY function
 #       (the rest is functionally invisible -> the % values are of the WHOLE
 #       community, so unannotated taxa could include many more fermenters).
@@ -19,7 +18,6 @@ source("code/lib/outputs.R")
 #       (methanogens are H2 oxidisers filed under a different category).
 #   (4) Redox-implausibility flag: aerobic_chemoheterotrophy in (hypoxic) heartwood.
 #
-# NEW file. Run: Rscript code/revision/R_faprotax_caveat_metrics.R
 # Output: outputs/audit/faprotax_caveat_metrics.txt
 # ==============================================================================
 
@@ -87,7 +85,7 @@ p <- tf$res_spe_func_perc                        # compartments x functions (%)
 getf <- function(f, grp) if (f %in% colnames(p)) p[grp, f] else NA
 sink(out_path("faprotax_caveat_metrics.txt"))
 cat("=================================================================\n")
-cat("FAPROTAX caveat metrics (Referee 2 #3) — heartwood=Inner, sapwood=Outer\n")
+cat("FAPROTAX caveat metrics — heartwood=Inner, sapwood=Outer\n")
 cat("=================================================================\n\n")
 cat("(1) FRACTION OF COMMUNITY FAPROTAX ANNOTATES AT ALL (abundance-weighted):\n")
 for (g in names(cov)) cat(sprintf("    %-7s: %.1f%% annotated  ->  %.1f%% functionally UNCHARACTERISED\n",

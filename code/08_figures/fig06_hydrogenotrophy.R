@@ -1,12 +1,12 @@
 source("code/lib/outputs.R")
 # ==============================================================================
-# REVISION — Synthesis figure: hydrogenotrophic, syntrophy-fed methanogenesis.
+# Synthesis figure: hydrogenotrophic, syntrophy-fed methanogenesis.
 # Reproduces existing figures' EXACT data/filters (S6 strict, FAPROTAX/S3, Fig6, S9),
 # restyled into 4 panels with a SINGLE semantic colour scheme used consistently:
 #   purple = methanogenesis/methanogen/hydrogenotrophic   orange = fermentation/H2 source
 #   teal   = C1 metabolism / methylotrophy                amber  = H2 oxidation
 #   blue   = aerobic / methanotrophy                      grey   = other
-# NEW file. Run: Rscript code/revision/R_fig_hydrogenotrophy.R -> fig_hydrogenotrophy.png
+# Output: fig_hydrogenotrophy.png
 # ==============================================================================
 
 suppressPackageStartupMessages({ library(tidyverse); library(patchwork) })
@@ -29,7 +29,7 @@ th <- theme_bw(base_size = 13) +
         legend.title = element_text(size = 10.5))
 
 # ---- (a) TAXA (S6 STRICT family-mcrA associations, FDR < 0.05) ----------------
-# Three evidence-graded groups (see code/revision/notes/panel_a_taxa_citations.md):
+# Three evidence-graded groups:
 #   Methanogen (red) | Associate / syntroph (gold) | Other fermenter (grey)
 methanogen_fams <- c("Methanobacteriaceae","Methanomassiliicoccaceae","Methanosarcinaceae","Methanocellaceae")
 syntroph_fams   <- c("Christensenellaceae","Dysgonomonadaceae")  # demonstrated / community-level H2 associates

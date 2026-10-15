@@ -1,8 +1,8 @@
 source("code/lib/outputs.R")
 # ==============================================================================
-# REVISION — Robustness of the central gene-flux results to splitting pmoA/mmoX
+# Robustness of the central gene-flux results to splitting pmoA/mmoX
 # ==============================================================================
-# R2 #1c asked pmoA and mmoX be treated separately (many methanotrophs encode both).
+# Tests pmoA and mmoX separately (many methanotrophs encode both).
 # The central Fig-8 inferences use the COMBINED methanotroph total (pmoA+mmoX):
 #   (i)  median_flux ~ log10(gene)         [abundance -> flux]
 #   (ii) median_flux ~ log10(mcrA:methanotroph ratio)   [the strong R2~0.51 result]
@@ -10,7 +10,7 @@ source("code/lib/outputs.R")
 # to check whether any major conclusion changes.
 #
 # Reuses the exact per-species objects from helper_scale_dependent_gene_patterns.R
-# (analysis_mcra/pmoa/mmox/methanotroph/ratio; 10 species). NEW file; edits nothing.
+# (analysis_mcra/pmoa/mmox/methanotroph/ratio; 10 species). Edits nothing.
 # Output: outputs/audit/pmoa_mmox_robustness.txt
 # ==============================================================================
 suppressPackageStartupMessages({ library(tidyverse) })

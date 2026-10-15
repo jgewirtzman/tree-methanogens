@@ -16,11 +16,11 @@ source("code/lib/outputs.R")
 #   multiple   Benjamini-Hochberg across every test drawn in the figure
 #   cells with fewer than 5 samples where the group is present are not tested
 #
-# Groups follow the capacity rule set (OPEN_DECISIONS, 2026-09-30): a taxon counts if it
+# Groups follow the capacity rule set: a taxon counts if it
 # carries methane monooxygenase genes; tiers Known / Putative / listed-not-counted, classified by code/lib/load_methanotroph_definitions.R.
 # Join of 16S and ddPCR samples as in code/09_tables_stats/05_table_ddpcr-16s-concordance.R.
 #
-# NEW file. Outputs: figSI_16s_ddpcr_association.png, 16s_ddpcr_association.csv
+# Outputs: figSI_16s_ddpcr_association.png, 16s_ddpcr_association.csv
 # ==============================================================================
 suppressMessages({library(dplyr); library(ggplot2)})
 options(warn = -1)

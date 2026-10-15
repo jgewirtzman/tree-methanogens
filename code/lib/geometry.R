@@ -195,7 +195,7 @@ GYMNOSPERMS   <- c("Pinus strobus", "Tsuga canadensis")
 
 #' Per-stem height from diameter, H = 1.37 + a * DBH^b.
 #' `a` is fitted so a stem at the 95th percentile of diameter (over stems > 10 cm)
-#' reaches CANOPY_H_M. No shrub cap, by decision -- see scaling_parameters.md.
+#' reaches CANOPY_H_M. No shrub cap: the allometry is applied uniformly.
 stem_height_m <- function(dbh_m, species, canopy_h = CANOPY_H_M) {
   gy <- species %in% GYMNOSPERMS
   d_anchor <- stats::quantile(dbh_m[dbh_m > 0.10], 0.95, na.rm = TRUE)

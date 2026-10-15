@@ -20,7 +20,7 @@
 OUT_ROOT <- "outputs"
 
 # data   : canonical CSV/RDS products -- the numbers everything else cites
-# audit  : referee-facing plain-text transcripts
+# audit  : human-readable plain-text transcripts
 # figures/generated : raw generator output, before the assembler numbers it
 OUT_KIND <- c(csv = "data",  rds = "data",  rda = "data",
               txt = "audit", md  = "audit",

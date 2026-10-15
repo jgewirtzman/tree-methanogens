@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 # ==============================================================================
-# code/tools/click_untagged_windows.R  (revision "rescue" — INTERACTIVE, run in RStudio)
+# code/tools/click_untagged_windows.R  ("rescue" — INTERACTIVE, run in RStudio)
 # Computes CH4 (+CO2) fluxes for the 49 monthly untagged/dead-snag measurements
 # that were dropped before flux calc. Follows the standard semirigid workflow:
 # import LGR (import2RData) -> obs.win -> click.peak2 (YOU click ~49 peaks) -> goFlux.
@@ -26,6 +26,7 @@ if (file.exists(cache)) {
   txt2 <- list.files(temp_extract, recursive = TRUE, pattern = "\\.txt$", full.names = TRUE)
   flat <- tempfile("lgr3_flat_"); dir.create(flat, recursive = TRUE); file.copy(c(txt1, txt2), flat)
   cat("Flattened", length(list.files(flat, pattern = "\\.txt$")), "trace files. Importing...\n")
+  unlink("RData", recursive = TRUE)  # import2RData(merge = TRUE) merges every file already in ./RData
   lgr_data <- import2RData(path = flat, instrument = "UGGA", date.format = "mdy",
                            timezone = "UTC", keep_all = FALSE, prec = c(0.35, 0.9, 200), merge = TRUE)
   unlink(temp_extract, recursive = TRUE); unlink(flat, recursive = TRUE); saveRDS(lgr_data, cache)

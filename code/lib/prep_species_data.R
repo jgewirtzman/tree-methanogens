@@ -1,9 +1,9 @@
 # ==============================================================================
-# REVISION HELPER — shared species/gene/flux data prep (NEW file; sourced)
+# HELPER — shared species/gene/flux data prep (sourced)
 # ==============================================================================
 # Reproduces the prep chain from
 # code/07_molecular/helper_scale_dependent_gene_patterns.R (lines 50-302),
-# VERBATIM logic, so numbers match the as-reviewed manuscript
+# VERBATIM logic, so numbers match the main species-level analysis
 # (ratio R2 = 0.513, r = 0.717). Builds, in the calling environment:
 #   tree_level_complete  - per-tree area-weighted genes + 125cm flux + log_ratio
 #   flux_all             - individual chamber CH4 fluxes (pooled 2021+2023) + species
@@ -11,7 +11,7 @@
 #   analysis_ratio       - species-level: median_log_ratio, median_flux (n_trees>=5, n_flux>=5)
 #   analysis_mcra        - species-level area-weighted mcrA (col 'value')
 #   analysis_meth        - species-level methanotroph_total (col 'value')
-# Side-effect free (no writes, no plots). Sourced by revision analysis scripts.
+# Side-effect free (no writes, no plots). Sourced by the species-level analysis scripts.
 #
 # Inputs:
 #   data/processed/flux/tree_flux_2023_cross_species.csv

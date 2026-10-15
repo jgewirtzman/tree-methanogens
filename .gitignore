@@ -66,3 +66,14 @@ Rplots.pdf
 
 # goFlux import intermediates (regenerable; see rescue workflow)
 RData/
+
+# --- Local-only files that must never be committed ---
+CLAUDE.md
+CLAUDE.local.md
+AGENTS.md
+.Renviron
+/notes/
+code/**/*.pdf
+code/**/*.rds
+code/**/*.RData
+code/**/*.rda

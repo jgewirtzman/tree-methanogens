@@ -3,8 +3,8 @@
 # 03_generate_data_readme.R -- write data/compiled/README_data.md from the archive
 # itself plus code/zenodo/column_dictionary.csv.
 #
-# The README used to be maintained by hand and drifted from the archive twice in
-# one session: it documented seven datasets that had been moved or dropped and
+# The README used to be maintained by hand and drifted from the archive repeatedly:
+# it documented seven datasets that had been moved or dropped and
 # omitted four that had been added. Generating it means the dictionary is the
 # only thing to maintain, and the check below means a new column cannot ship
 # undocumented.

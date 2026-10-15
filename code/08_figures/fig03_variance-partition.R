@@ -98,12 +98,11 @@ asinh_t <- function(x) asinh(x / ASINH_SIGMA)
 # Figure 2's subject, so including 50 and 200 cm here would put vertical structure
 # into a figure about species and environment, where -- since height is not a term
 # -- it would be absorbed by tree identity and the residual. The unlabelled rows
-# are the monthly and 2023 campaigns, measured at breast height (confirmed with
-# Jon); they are kept, and the 50 cm and 200 cm rows are dropped. This costs
+# are the monthly and 2023 campaigns, measured at breast height; they are kept, and the 50 cm and 200 cm rows are dropped. This costs
 # little: the partition moves by 1-2 points either way.
 #
 # chamber_type is carried as a nuisance covariate. The campaigns differ ~6-fold in
-# median flux, so pooling designs is the obvious referee question; including the
+# median flux, so pooling designs needs checking; including the
 # term answers it, and it changes the partition by under a point, which says the
 # difference is between the trees measured rather than between chamber designs.
 # GROWING SEASON ONLY (May-September). Averaging a tree's measurements assumes

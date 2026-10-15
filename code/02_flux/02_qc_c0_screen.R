@@ -4,7 +4,7 @@ source("code/lib/monthly_cols.R")
 # ==============================================================================
 # 02_qc_c0_screen.R          TIER 1 HARD QC: chamber contamination screen
 # ------------------------------------------------------------------------------
-# REVISION override, following the compile_zenodo_semirigid.R pattern: originals
+# Override layer, following the compile_zenodo_semirigid.R pattern: originals
 # under code/ are left untouched; this script annotates the compiled products.
 #
 # THE RULE
@@ -157,7 +157,7 @@ cat("
 
 # --- guard for downstream ------------------------------------------------------
 cat(sprintf("
-  Downstream revision scripts should assert the flag exists, e.g.
+  Downstream scripts should assert the flag exists, e.g.
       stopifnot(\"qc_pass\" %%in%% names(d))
       d <- d[d$qc_pass, ]
   so that re-running the ORIGINAL compiler (which does not add qc_pass) fails loudly

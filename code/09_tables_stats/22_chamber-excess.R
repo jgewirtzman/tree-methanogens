@@ -13,7 +13,7 @@
 # mean, because back-to-back enclosures leave elevated tails). Excess = the median of the
 # first 10 enclosed readings minus local ambient. Diagnostic only: nothing is removed.
 #
-# Rebuilt 2026-10-02 from archive/revision/rev_mdf_09_local_ambient.R (July 2026), which
+# Rebuilt 2026-10-02 from an earlier exploratory script (July 2026), which
 # used the pre-28 cm3 flux table and its own detection limit; fluxes and detection classes
 # now come from outputs/data/flux_FINAL.csv (02_flux/03_precision_and_detection.R).
 #

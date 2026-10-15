@@ -1,15 +1,15 @@
 source("code/lib/outputs.R")
 # ==============================================================================
-# REVISION — Known/Putative methanotroph & methanogen taxa table (Referee 2 #2)
+# Known/Putative methanotroph & methanogen taxa table
 # ==============================================================================
-# R2: "provide a supplementary table for the taxa classified as known and putative
-# methanotrophs and methanogens", and (R2 #2b) Methylacidiphilaceae: only geothermal
-# members are methanotrophic; mesophilic ones are not.
+# Supplementary table of the taxa classified as known and putative methanotrophs and
+# methanogens. Methylacidiphilaceae: only geothermal members are methanotrophic;
+# mesophilic ones are not.
 #
 # CLASSIFICATION LOGIC: the project's shared, genus-aware classifier
 # (code/lib/load_methanotroph_definitions.R, revised definitions file) -- the SAME
 # rule Figure 5 and the Results use. Until 2026-09-30 this script carried its own
-# classify(), which read the pre-revision definitions and marked every mixed-family
+# classify(), which read the earlier definitions and marked every mixed-family
 # ASV Putative WITHOUT checking the genus, so resolved non-methanotroph genera
 # (Methylobacterium, Roseiarcus, Bosea, ...) were listed as putative methanotrophs:
 #   METHANOTROPH, "Known"    = ASV genus is a cultivated methanotroph genus, OR ASV
@@ -22,11 +22,10 @@ source("code/lib/outputs.R")
 #                              are NOT methanotrophs and are excluded.
 #   METHANOGEN               = ASV family is one of 9 established methanogen families.
 #
-# METHYLACIDIPHILACEAE REVISION (answers R2 #2b): reclassify from Known -> Putative,
+# METHYLACIDIPHILACEAE: reclassify from Known -> Putative,
 # since verified methanotrophy is restricted to thermoacidophilic geothermal members;
 # temperate-forest (mesophilic) Methylacidiphilaceae are not known to oxidize CH4.
 #
-# NEW file. Run: Rscript code/revision/R_known_putative_table.R
 # Outputs: outputs/data/known_putative_taxa_table.csv, kp_counts.txt
 # ==============================================================================
 
@@ -35,7 +34,7 @@ out <- "outputs"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
 
 source("code/lib/load_methanotroph_definitions.R")
 defs_rev  <- load_methanotroph_defs()                                     # revised (current)
-# Pre-revision rule, for the R2 #2b comparison: Methylacidiphilaceae counted as an exclusive
+# Previous rule, for the Methylacidiphilaceae comparison: Methylacidiphilaceae counted as an exclusive
 # (Known) family. Built from the revised file rather than read from
 # data/compiled/methanotroph_definitions.csv, which is now byte-identical to the revised file
 # and so made the comparison report "moves 0 ASVs".
@@ -80,7 +79,7 @@ c0 <- cnt("class_orig"); c1 <- cnt("class_rev")
 
 sink(out_path("kp_counts.txt"))
 cat("=================================================================\n")
-cat("Known/Putative methanotroph & methanogen classification (R2 #2)\n")
+cat("Known/Putative methanotroph & methanogen classification\n")
 cat("=================================================================\n\n")
 cat("Methanotroph ASV counts (n ASVs):\n")
 cat(sprintf("  Original scheme : Known = %d, Putative = %d  (total %d)\n",
@@ -99,7 +98,7 @@ print(as.data.frame(tab %>% filter(grepl("Methanotroph", classification)) %>%
 cat("\nMethanogen taxa:\n")
 print(as.data.frame(tab %>% filter(classification=="Methanogen") %>%
   transmute(display_taxon, level, n_ASVs, mean_relabund_pct)), row.names = FALSE)
-cat("\nNOTE: Methylacidiphilaceae now PUTATIVE (was Known) per R2 -- verified methanotrophy\n")
+cat("\nNOTE: Methylacidiphilaceae now PUTATIVE (was Known) -- verified methanotrophy\n")
 cat("is restricted to thermoacidophilic geothermal members; mesophilic forest members are not\n")
 cat("known to oxidize CH4 (peatland & tree-stem genomes lack methanotrophy genes).\n")
 sink()

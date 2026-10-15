@@ -1,9 +1,9 @@
 source("code/lib/outputs.R")
 # ==============================================================================
-# REVISION — NEW main figure: plot CH4 budget (maps + seasonal + net waterfall)
+# Main figure: plot CH4 budget (maps + seasonal + net waterfall)
 # Redesign: color = PROCESS (sink cool / source warm), consistent across panels.
 # ==============================================================================
-# Design principles (Jon):
+# Design principles:
 #   * color encodes CH4 direction: SINK = cool (teal/blue), SOURCE = warm (orange/red),
 #     used consistently in maps AND budget so soil reads sink, tree reads source.
 #   * spatial -> temporal -> net reading order.
@@ -11,7 +11,6 @@ source("code/lib/outputs.R")
 #   * units: maps + seasonal = nmol m-2 s-1 (rate); budget = mg m-2 yr-1 (integrated).
 #   * honesty: bounding scenario flagged unconstrained; RF OOB R2 noted.
 #
-# NEW file. Run: Rscript code/revision/R_fig_component_budget.R
 # Output: outputs/figures/generated/fig_budget_maps.png
 # ==============================================================================
 
@@ -30,7 +29,7 @@ SINK <- "#2166ac"; SRC <- "#b2182b"; SRC_LT <- "#f4a582"; NETC <- "grey40"
 # MONTHLY_FLUXES.csv -- two independent estimates of one quantity, 4.7% apart --
 # and the budget panel stacked a 5.41 mg measured band (canonical) under an 85 mg
 # whole-surface bar built on a 5.79 mg band (grid). Soil is the interpolated
-# surface everywhere (decision 2026-07-27); the tree term is the canonical band.
+# surface everywhere; the tree term is the canonical band.
 source("code/lib/geometry.R")
 soil_map <- read.csv("outputs/tables/soil_surface_annual.csv")     # clipped to the stand
 tree_pts <- read.csv("outputs/tables/tree_flux_predictions.csv")

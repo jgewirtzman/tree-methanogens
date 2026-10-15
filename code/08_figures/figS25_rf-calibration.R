@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 # ==============================================================================
-# figS25_rf-calibration.R  (SI — RF budget calibration, R3.3/3.5)
+# figS25_rf-calibration.R  (SI — RF budget calibration)
 # Out-of-bag CALIBRATION of the upscaling RF (predicted on x; binned means only — the
 # raw point scatter is already in the RF-predictions SI fig). Bin by PREDICTED flux
 # (deciles) and plot mean observed vs mean predicted vs the 1:1 line: (a) stem (b) soil.

@@ -1,6 +1,6 @@
 source("code/lib/outputs.R")
 # ==============================================================================
-# ISOTOPES — FINAL settled workflow (the submission revision)
+# ISOTOPES — FINAL settled workflow
 # ==============================================================================
 # Supersedes the exploratory isotope scripts. Self-contained. Produces:
 #   outputs/audit/ISOTOPES_methods.md      methods text
@@ -9,7 +9,7 @@ source("code/lib/outputs.R")
 #   outputs/figures/generated/ISOTOPES_fig2_crossplot.png  d13CH4 vs d13CO2 + alpha_C isolines
 #   outputs/data/ISOTOPES_sample_table.csv    per-sample data
 #
-# SETTLED DECISIONS (from the revision thread):
+# SETTLED DECISIONS:
 #  * Use WHOLE-TREE single-borehole samples (manuscript basis). Exclude
 #    calibration standards, atmosphere (Amb), incubations (V*), and the paired
 #    heartwood/sapwood tissue set (dropped: no significant HW->SW enrichment).
@@ -22,8 +22,6 @@ source("code/lib/outputs.R")
 #    source-corrected. Report the CO2-CH4 coupling check (bulk CO2 is respiration-
 #    dominated -> eps_C is an APPARENT, corroborating fractionation).
 #  * Single delta-13C only (no dD-CH4): a stated limitation.
-#
-# Run: Rscript code/revision/ISOTOPES_final.R
 # ==============================================================================
 
 suppressPackageStartupMessages({ library(tidyverse); library(gridExtra) })
@@ -77,7 +75,7 @@ cpl_all <- cor.test(wt$d13CH4, wt$d13CO2, method = "spearman", exact = FALSE)
 hi <- wt %>% filter(ch4_ppm >= 10); cpl_hi <- cor.test(hi$d13CH4, hi$d13CO2, method = "spearman", exact = FALSE)
 # among-species homogeneity (is one pooled estimate ok?) at reliable conc
 hi_join <- hi   # species already attached by isotope_whole_tree_samples()
-kw_matched <- sum(!is.na(hi_join$species)); kw_total <- nrow(hi)   # join-count check (reviewer #4)
+kw_matched <- sum(!is.na(hi_join$species)); kw_total <- nrow(hi)   # join-count check
 sp10 <- hi_join %>% filter(!is.na(species)) %>% group_by(species) %>% filter(n() >= 4) %>% ungroup()
 kw_ngrp <- n_distinct(sp10$species); kw_n <- nrow(sp10)
 kw_p <- if (kw_ngrp > 1) kruskal.test(d13CH4 ~ species, sp10)$p.value else NA

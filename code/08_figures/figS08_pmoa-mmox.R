@@ -1,6 +1,6 @@
 source("code/lib/outputs.R")
 # ==============================================================================
-# REVISION — SI: pmoA and mmoX by compartment (a), coupling (b,c) and composition (d,e),
+# SI: pmoA and mmoX by compartment (a), coupling (b,c) and composition (d,e),
 # WOOD (focus) vs SOIL (contrast).
 # Tree-focused; four compartments (BrBG palette): Heartwood, Sapwood (wood) /
 # Organic, Mineral (soil), each with its own fit.
@@ -28,7 +28,7 @@ source("code/lib/outputs.R")
 # NOTE size axis = geometric-mean center (the 1/2 is the Bland-Altman mean); NOT the
 #   arithmetic-sum "total abundance" used elsewhere.
 # Copies g-1 from code/lib/ddpcr_constants.R (as the harmonized data); ratios/slopes are unit-free.
-# NEW file; original S10 generator untouched. Output: outputs/figures/generated/figS10_final.png
+# Original S10 generator untouched. Output: outputs/figures/generated/figS10_final.png
 # ==============================================================================
 suppressPackageStartupMessages({ library(tidyverse); library(patchwork) })
 out <- "outputs"; dir.create(out, showWarnings = FALSE, recursive = TRUE)

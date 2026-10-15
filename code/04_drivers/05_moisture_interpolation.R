@@ -8,7 +8,7 @@
 # triangles between survey points. That is why the Figure 9 soil panel shows
 # planar facets meeting at visible creases, worst near the hull edge where the
 # triangles get long and thin. No comparison was ever recorded: the file
-# code/archive/superseded_2026-10-01/06_upscale/03_interpolation_methods.R is titled a comparison of Akima, TPS
+# earlier interpolation script (03_interpolation_methods.R, since removed) was titled a comparison of Akima, TPS
 # and GAM, and contains TPS and GAM implementations, but they were written to
 # extend the surface beyond the convex hull rather than chosen on accuracy.
 #

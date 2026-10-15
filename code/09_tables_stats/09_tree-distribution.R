@@ -1,17 +1,14 @@
 source("code/lib/outputs.R")
 # ==============================================================================
-# REVISION — Tree species distribution: DBH x landscape table + moisture niches
+# Tree species distribution: DBH x landscape table + moisture niches
 # ==============================================================================
-# Serves: R3 L286 (table of #trees/species + DBH mean+/-sd by location),
-# R3 L125 (species distribution across the transect), and the editor + R3 + Mark
-# plant-framing ask (species niche preferences, e.g. yellow birch in wetter soils).
+# Table of #trees/species + DBH mean+/-sd by location, species distribution across
+# the transect, and species niche preferences (e.g. yellow birch in wetter soils).
 #
-# NEW file; edits nothing.
 # Inputs: data/compiled/tree_properties.csv (measured trees: species, dbh, VWC,
 #         landscape_position), data/compiled/forest_inventory_stems.csv (full census).
-# Run: Rscript code/revision/R_tree_distribution.R
 # Outputs (outputs/):
-#   tree_dbh_landscape_table.csv     R3 L286 table
+#   tree_dbh_landscape_table.csv     species x landscape x DBH table
 #   tree_species_moisture_niche.csv  median VWC per species (niche summary)
 #   tree_distribution_panels.png     DBH-by-landscape + species-VWC niche figure
 # ==============================================================================
@@ -33,7 +30,7 @@ tp <- read_csv("data/compiled/tree_properties.csv", show_col_types = FALSE) %>%
          landscape_position = na_if(landscape_position, "Lab")) %>%
   filter(!is.na(species))
 
-# ---- R3 L286: species x landscape count + DBH mean+/-sd -----------------------
+# ---- species x landscape count + DBH mean+/-sd --------------------------------
 dbh_tab <- tp %>% filter(!is.na(landscape_position)) %>%
   group_by(species, group, landscape_position) %>%
   summarise(n = n(),
@@ -93,7 +90,7 @@ if (requireNamespace("gridExtra", quietly = TRUE)) {
                               widths = c(1.3, 1))
   ggsave(out_path("tree_distribution_panels.png"), g, width = 13, height = 7, dpi = 140)
 }
-# panel A (species soil-moisture niches) standalone -> SI figure (R3 L286)
+# panel A (species soil-moisture niches) standalone -> SI figure
 # title/subtitle stripped for publication (moves to caption)
 ggsave(out_path("tree_species_moisture_niche.png"),
        p_niche + labs(title = NULL, subtitle = NULL), width = 6.8, height = 6.2, dpi = 200)
@@ -109,7 +106,7 @@ fi_summary <- fi %>% mutate(species = sp_map[species_code]) %>%
 write.csv(fi_summary, out_path("forest_inventory_species_summary.csv"), row.names = FALSE)
 
 # ---- Console summary ---------------------------------------------------------
-cat("=== R3 L286 species x landscape x DBH table (head) ===\n")
+cat("=== species x landscape x DBH table (head) ===\n")
 print(as.data.frame(head(dbh_tab, 12)), row.names = FALSE)
 cat("\n=== Species moisture niches (VWC median, wettest first) ===\n")
 print(as.data.frame(niche %>% dplyr::select(species, group, n, vwc_median)), row.names = FALSE)

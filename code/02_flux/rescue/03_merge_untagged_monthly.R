@@ -2,13 +2,13 @@
 # ==============================================================================
 # 03_merge_untagged_monthly.R
 # Folds the recovered untagged/dead-snag monthly measurements into the monthly
-# tree-flux dataset, producing a REVISION merged file (original left untouched):
+# tree-flux dataset, producing a merged file (original left untouched):
 #   data/processed/flux/semirigid_tree_final_complete_dataset_with_untagged.csv
 # Schema-matched to the original (Plot.Tag, Plot.Letter, Date, CH4_best.flux,
 # CH4_LM.r2, CH4_HM.r2, CO2_LM.r2/HM.r2; plain names, see code/lib/monthly_cols.R)
 # + a new `dead` flag. The tagged trees
 # 4156 & 5091 (flagged dead in field notes) get dead=TRUE too.
-# Revision Fig 1 + manuscript-stat recompute read this file.
+# Fig 1 + the manuscript-statistics recompute read this file.
 # ==============================================================================
 suppressMessages(library(dplyr)); options(warn=-1); num<-function(x)suppressWarnings(as.numeric(x))
 source("code/lib/monthly_cols.R")

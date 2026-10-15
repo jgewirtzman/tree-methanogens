@@ -66,6 +66,7 @@ cat("Total files prepared:", length(list.files(complete_lgr3_dir, pattern = "\\.
 
 # Import complete LGR3 dataset
 cat("Importing LGR3 data...\n")
+unlink("RData", recursive = TRUE)  # import2RData(merge = TRUE) merges every file already in ./RData
 lgr3_data_complete <- import2RData(
   path = complete_lgr3_dir,
   instrument = "UGGA",

@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 # ==============================================================================
-# 01_untagged_auxfile.R  (revision "rescue" — monthly untagged tree fluxes)
+# 01_untagged_auxfile.R  ("rescue" — monthly untagged tree fluxes)
 # The 2020-21 monthly campaign fluxed ~7 untagged/dead-snag trees, but they were
 # dropped at 02_join_flux_geometry (non-numeric Plot Tag -> no geometry join),
 # BEFORE flux calc. Their measurements live in treeflux_total.xlsx and their

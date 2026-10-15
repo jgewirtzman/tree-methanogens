@@ -118,8 +118,8 @@ A_PLOT <- STAND_AREA_M2; CONV <- 86400*365.25*16e-6
 GY <- c("Pinus strobus","Tsuga canadensis")
 # Height comes from the single allometry in geometry.R (canonical_inventory() has
 # already applied it), not from a fifth local copy.
-# The 3 m Kalmia shrub cap that stood here is REMOVED: the project decision (2026-07-26,
-# scaling_parameters.md section 3) is to apply the published allometry uniformly and
+# The 3 m Kalmia shrub cap that stood here is REMOVED: the project rule (2026-07-26)
+# is to apply the published allometry uniformly and
 # document the limitation, because Kalmia is ~2% of woody area and a cap moves the stand
 # total by ~1%. This script was the only place still applying it, so it disagreed with
 # every other estimate of woody area. It also used == rather than %in%.

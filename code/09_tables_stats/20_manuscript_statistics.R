@@ -1487,7 +1487,7 @@ record("plot_offset_pct", offset_pct)
 # WHOLE-SURFACE SCALING: read the grid, do not re-derive it here.
 # What stood here multiplied a PER-M2-OF-GROUND tree flux by a woody area index, which
 # is per m2 of woody surface per m2 of ground -- the two are not composable that way,
-# and the error was recorded as open in code/revision/notes/STATUS.md. The scaling is
+# so that calculation was removed. The scaling is
 # now a 240-combination grid (6 flux forms x 5 WAI x 4 branch x 2 bole) produced by
 # 07_scaling_full_grid.R, which holds the measured 0-2 m band fixed and lets only the
 # area above 2 m absorb the WAI choice. Quote the RANGE; the named cell is one of 240.

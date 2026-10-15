@@ -2,7 +2,7 @@
 # ==============================================================================
 # check_consistency.R   --   fast invariant check over the canonical outputs
 # ------------------------------------------------------------------------------
-# run_all.R takes ~40 minutes and is the only end-to-end check the repo has, which
+# run_all.R takes ~100 minutes and is the only end-to-end check the repo has, which
 # means in practice it does not get run and inconsistencies survive. This script
 # re-derives every canonical quantity from the files on disk and asserts the
 # invariants, in seconds. It RUNS NOTHING and WRITES NOTHING -- it only reads.

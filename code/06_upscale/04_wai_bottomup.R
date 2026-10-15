@@ -152,10 +152,9 @@ cat(sprintf("
 
   Note also that agreement with W&W's published value was never independent evidence:
   our estimate is built FROM their taper correction and branch:stem ratios, so any
-  resemblance corroborates the arithmetic, not the value (scaling_parameters.md 4).
+  resemblance corroborates the arithmetic, not the value.
   The stand is 65%% conifer by basal area while those ratios come from deciduous and
-  pitch-pine stands, which is the standing limitation. See decision E in
-  manuscript/OPEN_DECISIONS.md.
+  pitch-pine stands, which is the standing limitation.
 ", wai_lo, wai_hi))
 
 # ==============================================================================

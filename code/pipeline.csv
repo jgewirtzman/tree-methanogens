@@ -56,16 +56,16 @@ D,code/05_model/12_model_family_comparison.R,root,FALSE,random forest against ot
 D,code/05_model/13_height_form_crossvalidation.R,root,FALSE,leave-one-height-out test of flux forms above 2 m
 D,code/05_model/14_rf_height_extrapolation.R,root,FALSE,model behaviour above its training heights
 D,code/07_molecular/01_faprotax_dump_HW_SW.R,root,FALSE,FAPROTAX functions by compartment (Fig 6b)
-D,code/07_molecular/02_picrust_pathway_associations.R,root,FALSE,PICRUSt2 pathway associations with mcrA and pmoA (Fig 6c; S11-S13)
-D,code/07_molecular/03_methanotroph_resolution.R,root,FALSE,methanotrophs at several taxonomic resolutions; tree placement (Placed tier); sensitivity
+D,code/07_molecular/02_picrust_pathway_associations.R,root,FALSE,PICRUSt2 pathway associations with mcrA and pmoA (Fig 6c; Figs S13-S15)
+D,code/07_molecular/03_methanotroph_resolution.R,root,FALSE,Table S4: methanotrophs at several taxonomic resolutions; tree placement (Placed tier); sensitivity
 D,code/09_tables_stats/01_height_effects.R,root,FALSE,height effects by species (Results 2)
 D,code/09_tables_stats/02_campaign_counts.R,root,FALSE,Table 1 and campaign sample sizes
 D,code/09_tables_stats/03_clade-census.R,root,FALSE,census of methane-cycling clades in the 16S data
 D,code/09_tables_stats/04_known-putative-table.R,root,FALSE,Table S2
-D,code/09_tables_stats/05_table_ddpcr-16s-concordance.R,root,FALSE,Table S3
+D,code/09_tables_stats/05_table_ddpcr-16s-concordance.R,root,FALSE,Table S5
 D,code/09_tables_stats/06_copies-per-gram.R,root,FALSE,gene copies per gram by compartment
 D,code/09_tables_stats/07_mass-basis-sensitivity.R,root,FALSE,dry vs fresh mass basis sensitivity
-D,code/09_tables_stats/08_dbh_by_species_campaign.R,root,FALSE,Table S4
+D,code/09_tables_stats/08_dbh_by_species_campaign.R,root,FALSE,Table S6
 D,code/09_tables_stats/09_tree-distribution.R,root,FALSE,species distribution and moisture niche (Fig S7)
 D,code/09_tables_stats/10_tree_flux_merged.R,root,FALSE,merged per-tree flux summary
 D,code/09_tables_stats/11_variance-partition.R,root,FALSE,variance partition (Fig 3)
@@ -89,10 +89,10 @@ E,code/08_figures/fig02_height-flux.R,root,FALSE,Figure 2
 E,code/08_figures/fig03_variance-partition.R,root,FALSE,Figure 3
 E,code/08_figures/fig04_gene-abundance.R,root,FALSE,Figure 4
 E,code/08_figures/fig05_methane-cycling.R,root,FALSE,Figure 5
-E,code/08_figures/figS14_taxonomy-mcra.R,root,FALSE,Figure S14 (writes the family mcrA table fig06 reads; so runs first)
+E,code/08_figures/figS14_taxonomy-mcra.R,root,FALSE,Figure S10 (writes the family mcrA table fig06 reads; so runs first)
 E,code/08_figures/fig06_hydrogenotrophy.R,root,FALSE,Figure 6
 E,code/08_figures/fig07_decay-methanogenesis.R,root,FALSE,Figure 7
-E,code/08_figures/fig08_radial-species.R,root,FALSE,Figure 8 (also writes Fig S23)
+E,code/08_figures/fig08_radial-species.R,root,FALSE,Figure 8 (also writes Fig S24)
 E,code/08_figures/fig09_budget.R,root,FALSE,Figure 9
 E,code/08_figures/figS01_moisture-overlay.R,root,FALSE,Figure S1
 E,code/08_figures/methodsS3_extraction_recovery.R,root,FALSE,SI Methods S3 schematic: target copies through DNA extraction (method-study recoveries)
@@ -101,21 +101,21 @@ E,code/08_figures/figS03_detection-limits.R,root,FALSE,Figure S3
 E,code/08_figures/figS04_mcra-probe-validation.R,root,FALSE,Figure S4
 E,code/08_figures/figS05_16s-ddpcr-association.R,root,FALSE,Figure S5
 E,code/08_figures/figS06_height-slope-moisture.R,root,FALSE,Figure S6
-E,code/08_figures/figS08_pmoa-mmox.R,root,FALSE,Figure S8
-E,code/08_figures/figS09_taxonomy-pmoa.R,root,FALSE,Figure S9
-E,code/08_figures/figS10_faprotax.R,root,FALSE,Figure S10
-E,code/08_figures/figS11-13_picrust-heatmaps.R,root,FALSE,Figures S11-S13
-E,code/08_figures/figS15-16_internal-gas.R,root,FALSE,Figures S15-S16
-E,code/08_figures/figS17_isotope-sources.R,root,FALSE,Figure S17
-E,code/08_figures/figS18_stem-deterioration.R,root,FALSE,Figure S18
-E,code/08_figures/figS19_black-oak-cross-sections.R,root,FALSE,Figure S19
-E,code/08_figures/figS20_black-oak-methanome.R,root,FALSE,Figure S20
-E,code/08_figures/figS21_scale-dependent-genes.R,root,FALSE,Figure S21
-E,code/08_figures/figS22_radial-sections.R,root,FALSE,Figure S22
-E,code/08_figures/figS24_rf-model-summary.R,root,FALSE,Figure S24
-E,code/08_figures/figS25_rf-calibration.R,root,FALSE,Figure S25
-E,code/08_figures/figS26_scaling-heatmap.R,root,FALSE,Figure S26
-E,code/08_figures/figS27_scaling-profiles.R,root,FALSE,Figure S27
+E,code/08_figures/figS08_pmoa-mmox.R,root,FALSE,Figure S9
+E,code/08_figures/figS09_taxonomy-pmoa.R,root,FALSE,Figure S11
+E,code/08_figures/figS10_faprotax.R,root,FALSE,Figure S12
+E,code/08_figures/figS11-13_picrust-heatmaps.R,root,FALSE,Figures S13-S15
+E,code/08_figures/figS15-16_internal-gas.R,root,FALSE,Figures S16-S17
+E,code/08_figures/figS17_isotope-sources.R,root,FALSE,Figure S18
+E,code/08_figures/figS18_stem-deterioration.R,root,FALSE,Figure S19
+E,code/08_figures/figS19_black-oak-cross-sections.R,root,FALSE,Figure S20
+E,code/08_figures/figS20_black-oak-methanome.R,root,FALSE,Figure S21
+E,code/08_figures/figS21_scale-dependent-genes.R,root,FALSE,Figure S22
+E,code/08_figures/figS22_radial-sections.R,root,FALSE,Figure S23
+E,code/08_figures/figS24_rf-model-summary.R,root,FALSE,Figure S26
+E,code/08_figures/figS25_rf-calibration.R,root,FALSE,Figure S27
+E,code/08_figures/figS26_scaling-heatmap.R,root,FALSE,Figure S29
+E,code/08_figures/figS27_scaling-profiles.R,root,FALSE,Figure S28
 E,code/08_figures/figS28_plant-traits.R,root,FALSE,Figure S25 (plant traits)
 E,code/08_figures/zz_assemble_figures.R,root,TRUE,number and copy every figure into outputs/figures/{main;SI}
 F,code/zenodo/02_compile_results.R,root,TRUE,the paper's computed results in data/compiled/results/

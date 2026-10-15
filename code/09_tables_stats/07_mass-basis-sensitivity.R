@@ -2,7 +2,7 @@ source("code/lib/outputs.R")
 # ==============================================================================
 # 07_mass-basis-sensitivity.R
 # ------------------------------------------------------------------------------
-# Referee 2 #1: gene copies per gram on a dry vs wet basis. Wood was freeze-dried
+# Gene copies per gram on a dry vs wet basis. Wood was freeze-dried
 # before weighing (dry basis); soil was weighed field-moist (fresh basis). How much
 # does the choice of a common basis change the results?
 #
@@ -19,7 +19,7 @@ source("code/lib/outputs.R")
 # orders of magnitude); species ranking rho = 0.72 dry vs fresh, because core water
 # content spans 10-74%; heartwood:sapwood unchanged. Recommendation: dry basis.
 #
-# NEW file. Output: outputs/audit/mass_basis_sensitivity.txt
+# Output: outputs/audit/mass_basis_sensitivity.txt
 # ==============================================================================
 suppressMessages(library(dplyr))
 norm <- function(x) toupper(gsub("[^A-Za-z0-9]", "", x))
@@ -51,7 +51,7 @@ gwc <- c(Soil_Organic = median(g[grepl("Organic", bo$`Sample Name`)], na.rm = TR
          Soil_Mineral = median(g[grepl("Mineral", bo$`Sample Name`)], na.rm = TRUE))
 
 sink(out_path("mass_basis_sensitivity.txt"))
-cat("MASS BASIS SENSITIVITY (R2 #1)\n\n")
+cat("MASS BASIS SENSITIVITY\n\n")
 cat(sprintf("wood samples with a per-tree water content: %d\n", nrow(w)))
 cat("dry -> fresh factor (1 - water fraction):\n")
 print(w %>% group_by(comp) %>% summarise(n = n(), median = round(median(1 - mc), 2),

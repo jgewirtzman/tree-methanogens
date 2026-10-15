@@ -1,0 +1,54 @@
+cff-version: 1.2.0
+message: "If you use this code or data, please cite the archive and the paper."
+title: "tree-methanogens: code and data for 'Methane emissions from upland tree stems reflect a balance of microbial production and consumption'"
+type: software
+authors:
+  - family-names: Gewirtzman
+    given-names: Jonathan
+    orcid: "https://orcid.org/0000-0003-3959-3758"
+    affiliation: Yale University
+doi: 10.5281/zenodo.18779715
+repository-code: "https://github.com/jgewirtzman/tree-methanogens"
+license: MIT
+keywords:
+  - methane
+  - tree stems
+  - methanogens
+  - methanotrophs
+  - ddPCR
+  - upland forest
+preferred-citation:
+  type: article
+  title: "Methane emissions from upland tree stems reflect a balance of microbial production and consumption"
+  authors:
+    - family-names: Gewirtzman
+      given-names: Jonathan
+    - family-names: Arnold
+      given-names: Wyatt
+    - family-names: Taylor
+      given-names: Meghan
+    - family-names: Burrows
+      given-names: Hannah
+    - family-names: Merenstein
+      given-names: Carter
+    - family-names: Woodbury
+      given-names: David
+    - family-names: Whitlock
+      given-names: Naomi
+    - family-names: Kraut
+      given-names: Kendall
+    - family-names: Gonzalez
+      given-names: Leslie
+    - family-names: Brodersen
+      given-names: Craig R.
+    - family-names: Duguid
+      given-names: Marlyse
+    - family-names: Raymond
+      given-names: Peter A.
+    - family-names: Peccia
+      given-names: Jordan
+    - family-names: Bradford
+      given-names: Mark A.
+  doi: 10.1101/2025.09.30.679632
+  journal: bioRxiv
+  year: 2025

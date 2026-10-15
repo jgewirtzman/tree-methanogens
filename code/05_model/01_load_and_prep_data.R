@@ -36,8 +36,8 @@ cat("Started at:", format(Sys.time()), "\n\n")
 paths <- list(
   merged_tree = "../../data/processed/integrated/merged_tree_dataset_final.csv",
   tree_2023 = "../../data/processed/flux/tree_flux_2023_cross_species.csv",
-  # NOTE (2026 revision): use the dataset that includes the recovered untagged/dead-snag
-  # monthly trees (+45 fluxes, +7 trees). The revision analyses all use this file.
+  # NOTE: use the dataset that includes the recovered untagged/dead-snag
+  # monthly trees (+45 fluxes, +7 trees). All downstream analyses use this file.
   semirigid_tree = "../../data/processed/flux/semirigid_tree_final_complete_dataset_with_untagged.csv",
   soil = "../../data/processed/flux/semirigid_tree_final_complete_dataset_soil.csv",
   inventory = "../../data/raw/inventory/ForestGEO_data2021UPDATE_6_21_DW_2019.csv",
@@ -141,13 +141,13 @@ semirigid_data <- load_safe(paths$semirigid_tree, read_csv, show_col_types = FAL
 soil_data <- load_safe(paths$soil, read_csv, show_col_types = FALSE)
 fg19 <- load_safe(paths$inventory, read.csv)
 ymf_met <- load_safe(paths$met_tower, read.csv)
-# NOTE (2026 revision): this CSV carries a UTF-8 BOM, which mangles the first column
+# NOTE: this CSV carries a UTF-8 BOM, which mangles the first column
 # name ("Date") unless declared -- previously it silently failed to load at all.
 semirigid_moisture <- load_safe(paths$moisture_extra, read.csv, fileEncoding = "UTF-8-BOM")
 plot_locations <- load_safe(paths$plot_locations, read.csv)
 
 # =============================================================================
-# CHAMBER INTEGRITY SCREEN (2026 revision)
+# CHAMBER INTEGRITY SCREEN
 # -----------------------------------------------------------------------------
 # A chamber whose CH4 concentration STARTS far above ambient (~2000 ppb) was not
 # properly flushed -- the "flux" then records the chamber venting down, not soil or
@@ -183,7 +183,7 @@ screen_chamber_integrity <- function(df, c0_col, flux_col, label) {
   df
 }
 
-# The revision dataset was written with syntactic column names (Plot.Tag); the older
+# The current dataset was written with syntactic column names (Plot.Tag); the older
 # file used literal spaces (`Plot Tag`). Normalise so downstream code is agnostic.
 if (!is.null(semirigid_data)) {
   source(Filter(file.exists, c("code/lib/monthly_cols.R", "../lib/monthly_cols.R", "../../lib/monthly_cols.R"))[1])
@@ -317,7 +317,7 @@ INVENTORY <- fg19_clean %>%
   filter(!is.na(x), !is.na(y))
 
 # =============================================================================
-# CENSUSED PLOT DOMAIN (2026 revision)
+# CENSUSED PLOT DOMAIN
 # -----------------------------------------------------------------------------
 # PLOT_AREA is the denominator of the entire tree budget (Phi_tree = sum(F_i*S_i)/A_plot),
 # so getting it right matters more than anything else in the scaling.
@@ -409,7 +409,7 @@ cat("  Sample 2021 tree IDs (first 10):", paste(head(unique(merged_tree_data$tre
 cat("  Sample inventory tree IDs (first 10):", paste(head(unique(INVENTORY$tree_id), 10), collapse=", "), "\n")
 
 # -----------------------------------------------------------------------------
-# REAL MEASUREMENT DATES (2026 revision). This was:
+# REAL MEASUREMENT DATES. This was:
 #
 #     base_date <- as.POSIXct("2021-07-28", tz = "UTC")
 #
@@ -498,7 +498,7 @@ TREE_JULY_125 <- merged_tree_data %>%
          measurement_height_cm)
 
 # =============================================================================
-# 2021 HEIGHT CAMPAIGN: 50 cm and 200 cm (2026 revision)
+# 2021 HEIGHT CAMPAIGN: 50 cm and 200 cm
 # -----------------------------------------------------------------------------
 # Only the 125 cm measurements were previously used, so 291 of the campaign's 439
 # fluxes never reached the model. Including all three heights is not just more data:
@@ -641,7 +641,7 @@ if (!is.null(tree_2023_data)) {
     
     # Match with inventory
     # =========================================================================
-    # NOTE (2026 revision): this block previously required every 2023 tree to match an
+    # NOTE: this block previously required every 2023 tree to match an
     # INVENTORY record, because it took x, y AND dbh from the inventory and then filtered
     # on !is.na(x). That discarded 93 measurements on trees that were never censused --
     # even though the 2023 file carries its OWN DBH (338/338), VWC (~330), soil temp
@@ -744,7 +744,7 @@ cat("  With coordinates:", n_with_coords, "of", nrow(TREE_JULY), "\n\n")
 cat("Preparing moisture calibration data...\n")
 
 # =============================================================================
-# PER-COLLAR SOIL TEMPERATURE AND MOISTURE (2026 revision)
+# PER-COLLAR SOIL TEMPERATURE AND MOISTURE
 # -----------------------------------------------------------------------------
 # The pipeline previously drew these only from soilmoisture_total.csv, which keys on
 # PLOT (1 or 2) rather than collar, so every collar in a plot received the same value
@@ -895,7 +895,7 @@ if (!is.null(semirigid_data)) {
         soil_moisture_abs_original = if("soil_moisture_abs" %in% names(.)) soil_moisture_abs else NA_real_
       ) %>%
       # Join with moisture data allowing many-to-many
-      # NOTE (2026 revision): joins the COMPILED per-collar env archive (291 records,
+      # NOTE: joins the COMPILED per-collar env archive (291 records,
       # 22 dates) rather than soilmoisture_total.csv (103 records, plot-level, ends
       # Feb 2021). Trees and soil collars were visited on adjacent days of the same
       # campaign, so the closest-match logic below recovers most of them; monthly-tree
@@ -977,7 +977,7 @@ if (!is.null(semirigid_data)) {
 # 12. PREPARE SOIL DATA
 # =============================================================================
 
-# NOTE (2026 revision): these paths were stale after the data reorganisation, so
+# NOTE: these paths were stale after the data reorganisation, so
 # plot_locations silently failed to load and SOIL_YEAR came out EMPTY -- the saved
 # RData predated the breakage and hid it. Fail loudly instead.
 if (is.null(plot_locations)) stop("plot_locations failed to load - check paths$plot_locations")
@@ -1002,7 +1002,7 @@ if (!is.null(soil_data) && !is.null(plot_locations)) {
     filter(!is.na(soil_flux_umol_m2_s))
 
   # =========================================================================
-  # OUT-OF-STAND COLLARS (2026 revision)
+  # OUT-OF-STAND COLLARS
   # -------------------------------------------------------------------------
   # The soil campaign spans a designed moisture gradient (U -> I -> WD -> WS). Two
   # WS collars sit in OPEN WETLAND, not forest: WS-1-1 and WS-1-2 are the only
@@ -1077,7 +1077,7 @@ if (!is.null(soil_data) && !is.null(plot_locations)) {
     mutate(plot_num = as.integer(sub("-.*", "", plot_tag)))
   
   # =========================================================================
-  # PER-COLLAR COORDINATES (2026 revision)
+  # PER-COLLAR COORDINATES
   # -------------------------------------------------------------------------
   # plots.csv holds a row per collar (Label = e.g. "WS-1-2") with its own lat/lon.
   # These were being averaged to a single point per PLOT, so all 30 collars collapsed

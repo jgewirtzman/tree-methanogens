@@ -1,12 +1,12 @@
 #!/usr/bin/env Rscript
 # ==============================================================================
-# 10_tree_flux_merged.R   (REVISION recompute of manuscript_statistics §1)
+# 10_tree_flux_merged.R   (recompute of manuscript_statistics §1)
 # Recomputes the main-text tree-flux statistics on the MERGED monthly dataset
 # (tagged + 7 recovered untagged/dead-snag trees), using the SAME QC filter as
 # 20_manuscript_statistics.R:
 #     (CO2_LM.r2|CO2_HM.r2|CH4_LM.r2|CH4_HM.r2) >= 0.7  &  CH4 in [-100,200]
 # Reports ORIGINAL vs MERGED side by side so the revised numbers are traceable,
-# and adds the dead-vs-live breakdown (new to the revision). Does NOT edit the
+# and adds the dead-vs-live breakdown. Does NOT edit the
 # original pipeline script. Writes outputs/audit/tree_flux_merged_stats.txt.
 # ==============================================================================
 suppressPackageStartupMessages(library(dplyr)); options(warn=-1)

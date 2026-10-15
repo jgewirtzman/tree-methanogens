@@ -50,7 +50,7 @@ stopifnot(identical(colnames(X0), TreeRF$forest$independent.variable.names))
 
 # Candidate specifications. "base" is what is currently locked.
 # Variants are built by DROPPING from / ADDING to whatever the locked model actually
-# has. air_temp_C_mean was removed from the specification on 2026-07-30 (decision A),
+# has. air_temp_C_mean was removed from the specification on 2026-07-30,
 # so any variant defined as setdiff(X0, "air_temp_C_mean") is now a silent no-op --
 # it would duplicate `base` and be reported as a distinct comparison. Guard against
 # that by constructing readmissions explicitly and asserting every variant is unique.

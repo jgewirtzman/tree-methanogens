@@ -22,7 +22,7 @@
 #           soil temperature    88.0        18.7
 #
 # The old SI panel therefore told the reader the SOIL model was a temperature
-# model. It is a moisture model. That also contradicted the revision's own
+# model. It is a moisture model. That also contradicted the paper's own
 # position that air temperature is a monthly mean and so is not identifiable
 # separately from season.
 #

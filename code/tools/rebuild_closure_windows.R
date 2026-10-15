@@ -42,6 +42,7 @@ import_lgr <- function(dp) {   # same import as the goFlux scripts (zips + loose
   cd <- tempfile(); dir.create(cd); file.copy(ex, cd)
   file.copy(list.files(tx, recursive = TRUE, pattern = "\\.txt$", full.names = TRUE), cd)
   on.exit(unlink(c(tx, cd), recursive = TRUE))
+  unlink("RData", recursive = TRUE)  # import2RData(merge = TRUE) merges every file already in ./RData
   import2RData(path = cd, instrument = "UGGA", date.format = "mdy", timezone = "UTC",
                keep_all = FALSE, prec = c(0.35, 0.9, 200), merge = TRUE)
 }

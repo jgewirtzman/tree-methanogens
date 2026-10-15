@@ -1,8 +1,8 @@
 # ==============================================================================
-# REVISION — Fig 5 FINAL. Copy of code/08_figures/08c with ONE change: loads the
-# revised methanotroph definitions (R2 #2) in which family-level Methylacidiphilaceae
-# is Putative not Known (genus Methylacidiphilum stays Known). NEW file; edits
-# nothing existing. Output: outputs/figures/generated/fig5_final.png
+# Fig 5 FINAL. Copy of code/08_figures/08c with ONE change: loads the
+# current methanotroph definitions, in which family-level Methylacidiphilaceae
+# is Putative not Known (genus Methylacidiphilum stays Known); the original is not
+# edited. Output: outputs/figures/generated/fig5_final.png
 # ==============================================================================
 # Combined Methanogen + Methanotroph Composition (4-panel layout)
 # ==============================================================================
@@ -109,7 +109,7 @@ for (fam in methanogen_families) {
 # ==============================================================================
 
 source("code/lib/load_methanotroph_definitions.R")
-mt_defs <- load_methanotroph_defs()  # R2 #2: Methylacidiphilaceae family Known->Putative
+mt_defs <- load_methanotroph_defs()  # Methylacidiphilaceae family Known->Putative
 
 # Classify each ASV as Known, Putative, or NA
 tax_df$mt_status <- classify_methanotrophs(tax_df, mt_defs, include_conditional = TRUE)

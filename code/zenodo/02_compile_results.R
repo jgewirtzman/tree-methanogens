@@ -10,7 +10,7 @@ out <- "data/compiled/results"
 dir.create(out, showWarnings = FALSE, recursive = TRUE)
 unlink(list.files(out, full.names = TRUE))
 RESULTS <- c(
-  # stand budget and scaling (Results 10, Fig 9, Figs S26-S27)
+  # stand budget and scaling (Results 10, Fig 9, Figs S28-S29)
   "canonical_budget.csv"         = "outputs/data/canonical_budget.csv",
   "canonical_monthly.csv"        = "outputs/data/canonical_monthly.csv",
   "scaling_full_grid.csv"        = "outputs/data/scaling_full_grid.csv",
@@ -25,10 +25,10 @@ RESULTS <- c(
   # tables
   "table1_campaign_counts.csv"   = "outputs/data/campaign_counts.csv",
   "tableS2_known_putative_taxa.csv" = "outputs/data/known_putative_taxa_table.csv",
-  "tableS3_ddpcr_16s_concordance.csv" = "outputs/data/tbl_ddpcr_16s_concordance.csv",
-  "tableS4_dbh_by_species_campaign.csv" = "outputs/data/dbh_by_species_campaign.csv",
-  "tableS5_mmo_capacity_screen.csv" = "code/lib/mmo_capacity_screen_table_S5_2026-09-30.csv",  # committed NCBI run
-  # PICRUSt2 pathway associations (Fig 6c, Figs S11-S13)
+  "tableS3_mmo_capacity_screen.csv" = "code/lib/mmo_capacity_screen_table_S5_2026-09-30.csv",  # committed NCBI run
+  "tableS5_ddpcr_16s_concordance.csv" = "outputs/data/tbl_ddpcr_16s_concordance.csv",
+  "tableS6_dbh_by_species_campaign.csv" = "outputs/data/dbh_by_species_campaign.csv",
+  # PICRUSt2 pathway associations (Fig 6c, Figs S13-S15)
   "picrust_pathway_associations.csv" = "data/processed/molecular/picrust/pathway_associations_combined.csv",
   "picrust_pathway_associations_pmoa.csv" = "data/processed/molecular/picrust/pathway_associations_pmoa.csv")
 miss <- RESULTS[!file.exists(RESULTS)]

@@ -1,12 +1,11 @@
 source("code/lib/outputs.R")
 # ==============================================================================
-# REVISION — Gene copies per gram (real mass) + dry/wet weight basis
+# Gene copies per gram (real mass) + dry/wet weight basis
 # ==============================================================================
-# Addresses R2 #1 (unit basis: dry vs wet; "copies per gram") and R2 Fig 7b
+# Unit basis (dry vs wet; "copies per gram") and Fig 7b
 # (copies per uL depends on elution volume & extraction mass -> use copies/g).
 #
-# The original pipeline (code/archive/superseded_2026-10-01/07_molecular/05_ddpcr_analysis.R, L287)
-# converted with a FIXED 100 mg proxy mass. This uses the ACTUAL per-sample mass
+# An earlier version of the pipeline converted with a FIXED 100 mg proxy mass. This uses the ACTUAL per-sample mass
 # (sample_mass_mg) and the conversion in code/lib/ddpcr_constants.R:
 #     copies g-1 = Conc x (25/2.5) x elution (75 wood, 100 soil) x (800/250) / mass (g)
 # and converts to a DRY-weight basis for wood using per-tree tissue moisture.
@@ -106,10 +105,10 @@ cat("\n*** CONFIRMED MASS BASIS (Black Oak Tree Project Data.xlsx extraction she
 cat("    'TARGET MASS FOR WOOD: 100 mg; SOIL: 250 mg'; matches sample_mass_mg): ***\n")
 cat("  * sample_mass_mg = mass weighed into the extraction tube.\n")
 cat("  * WOOD was FREEZE-DRIED before weighing -> wood copies/g is ALREADY DRY-weight.\n")
-cat("  * SOIL was FRESH -> soil copies/g is WET-weight. (Exactly R2's observation.)\n")
+cat("  * SOIL was FRESH -> soil copies/g is WET-weight.\n")
 cat("  NOTE: the 'copies_per_g_fresh' column name above is a misnomer for wood\n")
 cat("  (it is dry for wood, fresh for soil). Values are correct; label per material.\n")
-cat("\nDRY/WET STANDARDIZATION (answer to R2):\n")
+cat("\nDRY/WET STANDARDIZATION:\n")
 cat("  * To a COMMON basis we can convert WOOD dry->fresh using core moisture\n")
 cat("    (fresh & dry masses per core), giving everything on a FRESH/wet basis\n")
 cat("    (soil already fresh). This is the feasible common unit without soil GWC.\n")
@@ -134,10 +133,10 @@ if (!is.null(soil_dry)) {
 }
 cat("\nDNA EXTRACTION EFFICIENCY: the workflow applies NO recovery/efficiency\n")
 cat("correction, so all copies/g are conservative LOWER BOUNDS (extraction <100%).\n")
-cat("Worth a one-line discussion mention; it only strengthens 'methanogens abundant'.\n\n")
-cat("FIG 7b (R2): the height-resolved black-oak mcrA profile is NOT in the\n")
+cat("\n")
+cat("FIG 7b: the height-resolved black-oak mcrA profile is NOT in the\n")
 cat("compiled ddPCR table (QUVE_BO1 is single-tissue), so the per-gram fix for\n")
-cat("Fig 7b needs the height-resolved molecular source file located (flag Jon).\n")
+cat("Fig 7b needs the height-resolved molecular source file located.\n")
 cat("Once located, apply the same copies/g formula (it has mass) to replace\n")
 cat("copies/uL with copies/g.\n")
 sink()

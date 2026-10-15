@@ -1,15 +1,15 @@
 source("code/lib/outputs.R")
 # ==============================================================================
-# REVISION — species-level multi-gene flux models (does adding a methanotroph term
+# Species-level multi-gene flux models (does adding a methanotroph term
 # to mcrA improve the fit?). Companion to R_S1S2_arcsinh.R / R_figS11_final.R.
 # Species level (n=10, >=5 trees & >=5 flux). Response = arcsinh flux (cofactor 0.1),
 # transform-then-aggregate on both axes. Reports every combination with R2, ADJUSTED
 # R2, AIC (the fair small-n metrics), and the per-term coefficient sign + p, for BOTH
 # median and mean aggregation.
-# Key question (Jon): flux ~ mcrA + pmoA vs flux ~ mcrA. Honest reading: adding the
+# Key question: flux ~ mcrA + pmoA vs flux ~ mcrA. Honest reading: adding the
 # oxidation term improves adj-R2 under MEDIAN (mcrA enters +, methanotroph -), but not
 # under MEAN, and no methanotroph term is individually significant at n=10.
-# Sources 02_scale for data only (outputs git-restored by wrapper). NEW file.
+# Sources 02_scale for data only (outputs git-restored by wrapper).
 # Output: outputs/audit/species_multigene_models.txt
 # ==============================================================================
 suppressWarnings(suppressMessages(source("code/07_molecular/helper_scale_dependent_gene_patterns.R")))

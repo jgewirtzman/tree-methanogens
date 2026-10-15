@@ -1,0 +1,22 @@
+{
+  "title": "tree-methanogens: code and data for 'Methane emissions from upland tree stems reflect a balance of microbial production and consumption'",
+  "upload_type": "software",
+  "description": "<p>Analysis code and data for Gewirtzman, Arnold et al., <em>Methane emissions from upland tree stems reflect a balance of microbial production and consumption</em> (preprint: <a href=\"https://doi.org/10.1101/2025.09.30.679632\">10.1101/2025.09.30.679632</a>). Stem and soil CH<sub>4</sub> fluxes, ddPCR gene abundances (<em>mcrA</em>, <em>pmoA</em>, <em>mmoX</em>), 16S rRNA amplicons, and the forest inventory from Yale-Myers Forest, Connecticut, USA (2020–2023). See README.md for how to run the pipeline and README_data.md for the datasets. Code: MIT; data: CC BY 4.0.</p>",
+  "creators": [
+    {
+      "name": "Gewirtzman, Jonathan",
+      "affiliation": "Yale University",
+      "orcid": "0000-0003-3959-3758"
+    }
+  ],
+  "license": "cc-by-4.0",
+  "keywords": ["methane", "tree stems", "methanogens", "methanotrophs", "ddPCR", "upland forest", "Yale-Myers Forest"],
+  "related_identifiers": [
+    {
+      "identifier": "10.1101/2025.09.30.679632",
+      "relation": "isSupplementTo",
+      "scheme": "doi",
+      "resource_type": "publication-preprint"
+    }
+  ]
+}

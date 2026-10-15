@@ -1,6 +1,6 @@
 source("code/lib/outputs.R")
 # ==============================================================================
-# REVISION — S1 area-weighted RANDOM FOREST + SOIL-gene additions, redone with an
+# S1 area-weighted RANDOM FOREST + SOIL-gene additions, redone with an
 # arcsinh RESPONSE (asinh(flux/0.1)/log10). Companion to R_S1S2_arcsinh.R.
 # Area-weighted RF (species + dbh + area-weighted genes) is reliably assemblable from
 # tree_level_complete + dbh; reports RAW vs ARCSINH variance-explained + importance.
@@ -10,7 +10,7 @@ source("code/lib/outputs.R")
 # NOT reconstructed here; the faithful way to redo those is a copy-and-modify of that
 # script swapping the response to asf(flux). RF variable-importance rankings are
 # permutation-based and expected stable to a monotonic response transform.
-# NEW file; 02_scale sourced for data only (2 outputs git-restored by wrapper).
+# 02_scale sourced for data only (2 outputs git-restored by wrapper).
 # Output: outputs/audit/S1_rf_soil_arcsinh_report.txt
 # ==============================================================================
 suppressWarnings(suppressMessages(source("code/07_molecular/helper_scale_dependent_gene_patterns.R")))

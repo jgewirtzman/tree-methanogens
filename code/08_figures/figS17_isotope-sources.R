@@ -1,10 +1,10 @@
 source("code/lib/outputs.R")
 # ==============================================================================
-# REVISION — SI extended-isotope source composite (4 panels, 2x2).
-# Design (Jon): CH4 Keeling      | CO2 Keeling
+# SI extended-isotope source composite (4 panels, 2x2).
+# Design:       CH4 Keeling      | CO2 Keeling
 #               d13CH4 convergence | eps_C convergence
 # (Miller-Tans dropped: leverage-biased, redundant with Keeling.)
-# Data load replicated verbatim from ISOTOPES_final.R (settled QC). NEW file.
+# Data load replicated verbatim from ISOTOPES_final.R (settled QC).
 # Output: outputs/figures/generated/SI_isotopes_source_composite.png
 # ==============================================================================
 suppressPackageStartupMessages({ library(tidyverse); library(patchwork) })

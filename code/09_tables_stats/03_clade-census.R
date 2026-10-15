@@ -12,7 +12,7 @@ source("code/lib/outputs.R")
 # pass counts ASVs anywhere in the full dataset, including samples outside the
 # analysis (black-oak tissues, muck, aquatic), unrarefied.
 #
-# NEW file; edits nothing. Output: outputs/audit/clade_census.txt
+# Edits nothing. Output: outputs/audit/clade_census.txt
 # ==============================================================================
 suppressMessages({library(phyloseq); library(dplyr)})
 source("code/lib/build_phyloseq.R"); source("code/lib/load_methanotroph_definitions.R")

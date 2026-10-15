@@ -1,17 +1,17 @@
 # ==============================================================================
-# REVISION ANALYSIS — Species-level aggregation: OLS vs SMA/RMA robustness
+# Species-level aggregation: OLS vs SMA/RMA robustness
 # ==============================================================================
-# Purpose: Address Referee 3 (L664 "precedent for averaging across individuals",
-#   L668-674 "seems circular") and Mark's ecological-correlation-vs-regression-
-#   dilution point. Demonstrates that the species-level gene-flux relationships
+# Purpose: tests whether averaging across individuals is justified and not circular,
+#   and whether species-level slopes are attenuated by regression dilution
+#   (ecological correlation). Demonstrates that the species-level gene-flux relationships
 #   are robust to using a Model II (standardized major axis / reduced major axis)
 #   estimator that accounts for measurement error on BOTH axes, and that the
 #   ratio result is not driven by any single species (leave-one-species-out).
 #
-# STATUS: NEW revision-only script. Does NOT modify any existing pipeline code.
+# STATUS: Does NOT modify any existing pipeline code.
 #   It reproduces (verbatim) the species-level aggregation from
 #   code/07_molecular/helper_scale_dependent_gene_patterns.R (lines 50-302)
-#   so the numbers match the as-reviewed manuscript, then adds the RMA analysis.
+#   so the numbers match the main species-level analysis, then adds the RMA analysis.
 #
 # Inputs (same as script 02):
 #   - data/processed/flux/tree_flux_2023_cross_species.csv
@@ -23,7 +23,7 @@
 #   - rma_variance_partition.txt      between-species share of individual flux variance
 #   - rma_summary.txt                 human-readable summary
 #
-# Run from project root:  Rscript code/revision/R2_species_aggregation_RMA.R
+# Run from project root:  Rscript code/09_tables_stats/17_species-aggregation-rma.R
 # ==============================================================================
 
 suppressPackageStartupMessages({
@@ -282,7 +282,6 @@ writeLines(vp, out_path("rma_variance_partition.txt"))
 sink(out_path("rma_summary.txt"))
 cat("================================================================\n")
 cat("SPECIES-LEVEL AGGREGATION: OLS vs SMA/RMA ROBUSTNESS\n")
-cat("Revision analysis for the submission (R3 L664/L668-674; Mark)\n")
 cat("================================================================\n\n")
 cat("SMA slope = OLS slope / |r|; corrects attenuation from error on x.\n")
 cat("Significance (p, r) is unchanged by estimator choice; only slope moves.\n\n")

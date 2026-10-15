@@ -3,8 +3,8 @@ source("code/lib/outputs.R")
 # mmo_capacity_screen.R
 # ------------------------------------------------------------------------------
 # Genome evidence for methane monooxygenase (MMO) capacity in the resolved genera
-# that sit inside mixed methanotroph families. Supports the capacity rule set
-# (manuscript OPEN_DECISIONS, 2026-09-30): a taxon counts as a methanotroph if it
+# that sit inside mixed methanotroph families. Supports the capacity rule set:
+# a taxon counts as a methanotroph if it
 # carries pMMO or sMMO genes.
 #
 #   1. per genus: NCBI Assembly count, and NCBI Protein records named as copper-MMO
