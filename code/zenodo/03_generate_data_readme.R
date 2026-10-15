@@ -133,6 +133,11 @@ sprintf("**Inventory.** `forest_inventory_stems.csv` is the whole stand (%s stem
 "assignment for each ASV, and `sample_metadata_16S.csv` the sample attributes,",
 "including the sequencing facility's qPCR 16S and ITS copy numbers.",
 "",
+"**Plant traits.** `species_traits.csv` holds one value per species and trait (16",
+"species), built from TRY (request 47607) and GWDD v2.2 records; `species_trait_sources.csv`",
+"lists, for every value, the contributing TRY datasets or GWDD sources with their record",
+"IDs. Cite TRY and each contributing dataset's reference when reusing these values.",
+"",
 "---",
 "")
 for (i in seq_along(files)) {

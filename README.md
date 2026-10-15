@@ -77,7 +77,7 @@ Every cleaning rule — what is removed, flagged or corrected, where, and how ma
 tree-methanogens/
 ├── data/                  # from Zenodo (see above)
 ├── code/
-│   ├── 01_import/         # raw -> tidy per source; tree IDs, cores, internal gas, ddPCR, inventory
+│   ├── 01_import/         # raw -> tidy per source; tree IDs, cores, internal gas, ddPCR, inventory, traits
 │   ├── 02_flux/           # chamber geometry, goFlux processing, QC, detection limits
 │   │   ├── semirigid/     #   semi-rigid chamber monthly survey (2020-2021)
 │   │   ├── static/        #   rigid chamber surveys (2021, 2023)
@@ -114,7 +114,7 @@ Scripts are numbered within each folder in run order. Files named `helper_*` are
 
 | Stage | Purpose | Key outputs |
 |-------|---------|-------------|
-| `01_import` | Tree-ID consensus, wood cores, internal gas, ddPCR import, stem inventory | `tree_id_comprehensive_mapping.csv`, `processed_ddpcr_data.csv`, `inventory_stems.csv` |
+| `01_import` | Tree-ID consensus, wood cores, internal gas, ddPCR import, stem inventory, species traits | `tree_id_comprehensive_mapping.csv`, `processed_ddpcr_data.csv`, `inventory_stems.csv`, `species_traits.csv` |
 | `02_flux` | Chamber geometry, goFlux flux calculation, quality screens, analyzer precision, detection limits | `semirigid_tree_final_complete_dataset.csv`, `tree_flux_2021_multiheight.csv`, `tree_flux_2023_cross_species.csv` |
 | `03_merge` | Soil flux correction, soil environment, and harmonization across sources | `merged_tree_dataset_final.csv` |
 | `04_drivers` | Reference evapotranspiration, moisture surface, soil temperature climatology | `moisture_surface_grid.csv`, monthly climatologies |
@@ -170,7 +170,7 @@ This runs every figure generator (stage E) and then assembles the numbered set: 
 | Fig. S22 | Scale-dependent gene–flux relationships | `08_figures/figS21_scale-dependent-genes.R` |
 | Fig. S23 | Radial sections | `08_figures/figS22_radial-sections.R` |
 | Fig. S24 | *mcrA* vs. methanotroph genes | `07_molecular/helper_scale_dependent_gene_patterns.R` (sourced by `fig04_gene-abundance.R`) |
-| Fig. S25 | Plant traits | `08_figures/figS28_plant-traits.R` (statistics in `09_tables_stats/25_plant-traits.R`) |
+| Fig. S25 | Plant traits | `08_figures/figS28_plant-traits.R` (statistics in `09_tables_stats/25_plant-traits.R`; trait table from `01_import/10_species_traits.R`) |
 | Fig. S26 | Random forest model summary | `08_figures/figS24_rf-model-summary.R` |
 | Fig. S27 | Random forest calibration | `08_figures/figS25_rf-calibration.R` |
 | Fig. S28 | Scaling profiles | `08_figures/figS27_scaling-profiles.R` |
@@ -255,7 +255,7 @@ Classification (first match wins):
 ## Notes
 
 - Run everything from the repository root. Some older processing scripts use paths relative to their own folder; their rows in `code/pipeline.csv` have `workdir = script`, and `run_all.R` runs each of them from its folder. To run one of these by hand, start R in that script's folder.
-- The plant trait table for Fig. S25 and `09_tables_stats/25_plant-traits.R` is included in the data at `data/raw/external/tree-gas-traits/ymf_species_traits.csv`. It was copied from the companion `tree-gas-traits` analysis by `code/tools/vendor_traits.R`; that repository is not needed to run the pipeline.
+- The plant trait table for Fig. S25 and `09_tables_stats/25_plant-traits.R` (`outputs/data/species_traits.csv`) is built by `01_import/10_species_traits.R` from the TRY (request 47607) and GWDD v2.2 records for the 16 species archived in `data/raw/external/try/` and `data/raw/external/gwdd/`; `species_trait_sources.csv` lists the contributing datasets and record IDs. Sources, licences and citation requirements are in `data/raw/external/README.md`.
 
 ## License
 

@@ -14,7 +14,9 @@
 #   ddpcr_gene_abundances.csv, otu_table_16S.csv, taxonomy_key_16S.csv,
 #   sample_metadata_16S.csv, tree_properties.csv, forest_inventory_stems.csv,
 #   environmental_timeseries.csv, black_oak_experiment.csv, black_oak_its_load.csv,
-#   methanotroph_definitions.csv
+#   methanotroph_definitions.csv,
+#   species_traits.csv, species_trait_sources.csv   one species / one species x trait x
+#     source dataset (from code/01_import/10_species_traits.R, run earlier in stage B)
 #
 # Replaces (2026-10-01) the five overlapping flux files: semirigid_chamber_flux,
 # static_chamber_flux, height_chamber_flux, flux_measurements_tree, flux_measurements_soil.
@@ -207,4 +209,9 @@ wr(read_csv("data/raw/field_data/black_oak/ymf_black_oak_flux_compiled.csv", sho
 wr(read_csv("data/raw/external/tree-microbiome/bo_its_load.csv", show_col_types = FALSE) %>%
      transmute(sample_id = `Sample ID`, ITS_copies_uL = ITS_per_ul, material = Material), "black_oak_its_load.csv")
 wr(read_csv("code/lib/methanotroph_definitions.csv", show_col_types = FALSE), "methanotroph_definitions.csv")
+
+# ------------------------------------------------------------ plant traits ---
+wr(read_csv("outputs/data/species_traits.csv", show_col_types = FALSE), "species_traits.csv")
+wr(read_csv("outputs/data/species_trait_sources.csv", col_types = cols(dataset_id = "c", record_ids = "c")),
+   "species_trait_sources.csv")
 cat(sprintf("\n%d datasets in %s/\n", length(list.files(out_dir, "\\.csv$")), out_dir))

@@ -1,19 +1,21 @@
 source("code/lib/outputs.R")
 # ==============================================================================
 # Fig S25: plant traits and the stem methane-cycling community
-#   (a) Spearman correlations of the 16 rule-selected traits with mcrA, pmoA + mmoX,
+#   (a) Spearman correlations of the rule-selected traits with mcrA, pmoA + mmoX,
 #       the methanogen:methanotroph balance and net flux, across all ten gene-flux
 #       species (left) and the eight broadleaf species alone (right); * p < 0.05.
 #   (b) the three associations named in Results §9, conifers as open symbols.
 # Correlations come from code/09_tables_stats/25_plant-traits.R (traits_correlations.csv),
-# which also documents the trait inclusion rules. Descriptive, n = 10 species.
+# which also documents the trait inclusion and reporting rules; trait values from
+# outputs/data/species_traits.csv (code/01_import/10_species_traits.R). Descriptive,
+# n = 10 species.
 # (File name kept from the earlier numbering; it draws Figure S25.)
 # Output: outputs/figures/generated/plant_traits.png
 # ==============================================================================
 suppressPackageStartupMessages({ library(tidyverse); library(patchwork); library(ggrepel) })
 
 S <- read_csv("outputs/data/traits_correlations.csv", show_col_types = FALSE)
-inc <- read_csv("outputs/data/traits_included.csv", show_col_types = FALSE)
+inc <- read_csv("outputs/data/traits_included.csv", show_col_types = FALSE) %>% filter(included)
 sp_map <- c(ACRU="Acer rubrum",ACSA="Acer saccharum",BEAL="Betula alleghaniensis",BELE="Betula lenta",
   BEPA="Betula papyrifera",FAGR="Fagus grandifolia",FRAM="Fraxinus americana",
   PIST="Pinus strobus",QURU="Quercus rubra",TSCA="Tsuga canadensis")
@@ -21,7 +23,7 @@ invisible(capture.output(suppressMessages(source("code/lib/prep_species_data.R")
 resp <- analysis_ratio %>% transmute(species_id, balance = median_log_ratio) %>%
   left_join(analysis_mcra %>% transmute(species_id, mcra = log10(value + 1)), by = "species_id") %>%
   left_join(analysis_meth %>% transmute(species_id, meth = log10(value + 1)), by = "species_id")
-tr <- read_csv("data/raw/external/tree-gas-traits/ymf_species_traits.csv", show_col_types = FALSE)
+tr <- read_csv("outputs/data/species_traits.csv", show_col_types = FALSE) %>% select(-species)
 niche <- read_csv("outputs/data/tree_species_moisture_niche.csv", show_col_types = FALSE) %>%
   mutate(spcode = names(sp_map)[match(species, sp_map)]) %>% select(spcode, vwc_realized = vwc_mean)
 dat <- resp %>% left_join(tr, by = c("species_id" = "spcode")) %>% left_join(niche, by = c("species_id" = "spcode"))

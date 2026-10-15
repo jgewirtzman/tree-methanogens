@@ -15,7 +15,14 @@ Recorded 2026-09-30.
 | `data/raw/inventory/fg_2018_problems.csv` | sheet "problems" |
 | `data/raw/inventory/README_fg_2018_sheets.txt` | provenance note |
 
+| file | source |
+|---|---|
+| `data/raw/external/try/try_request47607_records.csv` | TRY request 47607: the 5,955 records of 11 traits for the 16 species, all original columns (UTF-8). Added 2026-10-14; read by `code/01_import/10_species_traits.R`. |
+| `data/raw/external/gwdd/gwdd_v2.2_records_16spp.csv` | GWDD v2.2 (with bark): the 4,114 records of the 16 species, all columns. Added 2026-10-14. |
+| `data/raw/external/README.md` | sources, versions, licences and citation requirements of every external input. |
 | `data/raw/photos/{semirigid,rigid}_chamber.jpg` | chamber photographs (SI Fig. S2), copied 2026-10-01 from `outputs/figures/photos/`, which is git-ignored and not regenerable |
+
+The vendored `data/raw/external/tree-gas-traits/ymf_species_traits.csv` (copied from the companion tree-gas-traits repository by the now-removed `code/tools/vendor_traits.R`) is no longer used: it moved to `data/deprecated/tree-gas-traits_vendored_2026-10-14/` on 2026-10-14 and should be left out of the next archive.
 
 ## 1a. Closure windows and model choices — must be uploaded (now in data/raw/flux_windows/)
 
@@ -47,7 +54,6 @@ Hand-made or imported inputs that had been kept in `data/processed/` now live in
 | `stem_gas_isotopes_picarro_run.csv` | `data/raw/internal_gas/` |
 | `bo_extraction_mass.csv`, `bo_soil_moisture.csv`, `bo_tree_cores_dna.csv` | `data/raw/field_data/black_oak/` |
 | `tree_data_methanogen_group.csv` (tree-microbiome `Tree_microbiome_all.R`, Nov 2023), `bo_its_load.csv` (QUVE rows of tree-microbiome `ITS_w_metadata.csv`) | `data/raw/external/tree-microbiome/` |
-| `ymf_species_traits.csv` (vendored by `code/tools/vendor_traits.R`; re-vendored 2026-10-05 with the 16 rule-selected traits + gymnosperm, see `code/09_tables_stats/25_plant-traits.R`) | `data/raw/external/tree-gas-traits/` |
 | `PhytoPhylo` (megatree phylogeny) | `data/raw/external/phylogeny/` |
 | black-oak cross-section photos | `data/raw/photos/black_oak_cross_sections/` |
 
