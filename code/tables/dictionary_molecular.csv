@@ -1,0 +1,67 @@
+table,column,type,unit,key,range,description,source
+samples,sample_id,character,,PK,,"Physical DNA sample. 2021 survey: NCBI isolation_source form = tree_id + compartment (AB10Inner, AB3slash5Mineral; + lab ID where a tree has two samples of one compartment: YB9Inner44c). Felled oak: extraction-sheet sample ID without hyphens (QUVE50SAP, QUVEBRANCH4BARK)",20_samples.R
+samples,tree_id,character,,FK:trees.tree_id,,Tree sampled; NA for RO7slash8Mineral (soil sampled between RO7 and RO8),20_samples.R
+samples,campaign,character,,NN,,2021_survey or 2022_felled_oak,20_samples.R
+samples,material,character,,NN,,"wood, soil (2021); felled oak also bark, root, foliage, litter",extraction guides; bo_extraction_mass.csv
+samples,position,character,,NN,,"2021: inner (heartwood-side core section), outer (sapwood-side core section), organic, mineral (soil horizons). Felled oak: sapwood, heartwood, bark, branch, branch bark, branch interior, coarse root (+ epidermis, interior), fine root, foliage, heart rot, litter, organic, mineral",extraction guides; bo_extraction_mass.csv
+samples,height_cm,numeric,cm,,0;2000,Felled oak: height along the stem of the stem-tissue samples (NA otherwise),bo_extraction_mass.csv
+samples,replicate,character,,,,"Felled oak replicate as labelled (1, 2, 3, 4; 1+2 = sapwood cores 1 and 2 ground together)",bo_extraction_mass.csv
+samples,extraction_mass_mg,numeric,mg,,50;500,"Mass added to the extraction tube: freeze-dried, cryo-ground wood (dry); sieved, frozen soil (fresh). NA where not recorded",extraction guides; bo_extraction_mass.csv
+samples,extraction_plate,integer,identifier,,1;8,DNA extraction plate (2021 survey),extraction guides
+samples,extraction_well,character,,,,Well on the extraction plate (row letter + column; the ddPCR runs used the same layout),extraction guides
+samples,lab_id,character,,,,"2021: lab ID (tree number + a outer, c inner, d organic, e mineral). Felled oak: ddPCR sample number (BO1-BO21)",extraction guides; black_oak_mcrA.csv
+samples,well_marked_blank,logical,,,,"TRUE for three samples whose extraction-guide well is marked blank (no mass recorded) but that have a 16S library and facility qPCR (SM15Organic, YB12Mineral, YB15Inner); their ddPCR rows fail qc. FALSE for other guide samples; NA where there is no guide entry",20_samples.R
+samples,notes,character,,,,Notes from the extraction guide (weighing and sample notes),extraction guides
+samples,source,character,,NN,,"Record the sample comes from: extraction guide, 16S library map (sequenced but not in the guides), felled-oak extraction sheet",20_samples.R
+ddpcr,sample_id,character,,PK,,Sample (FK samples.sample_id),21_ddpcr.R
+ddpcr,gene,character,,PK,,"mcrA, pmoA, mmoX, 16S_archaea, 16S_bacteria",QX200 export Target
+ddpcr,assay,character,,PK,,probe (mcrA; ddPCR Supermix for Probes) or EvaGreen (all others and the EvaGreen mcrA assay of Fig. S4),QX200 export Supermix
+ddpcr,plate_id,character,,PK,,"ddPCR run: the loose export's file name without _loose.csv (data/raw/ddpcr/Data Files/Raw Data/); black_oak_mcrA for the felled oak",21_ddpcr.R
+ddpcr,ddpcr_well,character,,NN,,Well on the ddPCR plate,QX200 export
+ddpcr,accepted_droplets,integer,count,,0;30000,Accepted droplets,QX200 export
+ddpcr,positive_droplets,integer,count,,0;30000,Positive droplets at the loose threshold (the threshold used throughout the paper); NA where the run was exported at the strict threshold only,QX200 export (_loose)
+ddpcr,copies_per_uL_rxn,numeric,copies/uL reaction,,0;1e6,QX200 Conc (copies per µL of the 25 µL reaction; 2.5 µL extract) at the loose threshold; 1e6 = saturated well,QX200 export (_loose)
+ddpcr,positive_droplets_strict,integer,count,,0;30000,Positive droplets at the strict threshold; NA where not exported at the strict threshold (probe-mcrA plate 1; felled oak),QX200 export (_strict)
+ddpcr,copies_per_uL_rxn_strict,numeric,copies/uL reaction,,0;1e6,QX200 Conc at the strict threshold,QX200 export (_strict)
+ddpcr,copies_per_g,numeric,copies/g,,0;1e11,"Gene copies per gram of sample, loose threshold: Conc x 25/2.5 x elution (75 µL wood, 100 µL soil) x 800/250 / extraction mass (code/lib/ddpcr_constants.R). NA where qc_pass is FALSE or the mass is missing. Basis in mass_basis",code/lib/ddpcr_constants.R
+ddpcr,mass_basis,character,,NN,,dry (freeze-dried wood) or fresh (soil),Methods; 21_ddpcr.R
+ddpcr,below_lod,logical,,,,Loose Conc below the limit of detection (3 copies per 20 µL well = 0.15 copies/µL); NA where qc_pass is FALSE or no loose value,code/09_tables_stats/24_ddpcr-detection-precision.R
+ddpcr,saturated,logical,,,,"Every accepted droplet positive at the loose threshold (concentration not quantifiable; reported as 1e6)",21_ddpcr.R
+ddpcr,qc_pass,logical,,NN,,"FALSE where accepted droplets < 5000, the software made no call, or the extraction guide marks the well blank (the filters of 01_import/05_ddpcr_import_and_align.R)",21_ddpcr.R
+ddpcr,qc_reason,character,,,,Why qc_pass is FALSE,21_ddpcr.R
+ddpcr,note,character,,,,"Plate-1 probe-mcrA wells re-run on the plate-8 run; felled-oak export (threshold not recorded)",21_ddpcr.R
+qpcr,sample_id,character,,PK,,Sample (FK samples.sample_id),22_qpcr.R
+qpcr,target,character,,PK,,16S or ITS,22_qpcr.R
+qpcr,copies_per_uL_extract,numeric,copies/uL extract,,0;1e9,"Sequencing-facility qPCR, gene copies per µL of DNA extract as reported; NA where reported Undetected",16s_w_metadata.csv; tree_data_methanogen_group.csv; bo_its_load.csv
+qpcr,undetected,logical,,NN,,TRUE where the facility reported Undetected (2021 ITS),tree_data_methanogen_group.csv
+qpcr,facility_well,character,,,,Well on the facility's qPCR plate (NA for the 2021 ITS values),16s_w_metadata.csv; bo_its_load.csv
+qpcr,source,character,,NN,,File the value comes from (data/raw/16s/ or data/raw/external/tree-microbiome/),22_qpcr.R
+samples_16S,library_id,character,,PK,,Sequenced library = the column name in the count matrix (asv_counts_16S or asv_counts_16S_felled_oak),tree_16s_mapping_dada2_corrected.txt; black_oak/OTU_table.txt
+samples_16S,run,character,,NN,,main or felled_oak (separately denoised; separate count and taxonomy tables),23_16s.R
+samples_16S,sample_id,character,,FK:samples.sample_id,,Sample sequenced; NA for the mock community and the 13 libraries of type other,23_16s.R
+samples_16S,library_type,character,,NN,,"sample, mock (Zymo), other (muck, aquatic, microbial goo, inside rot, WMAVan, an unknown ACSA SM1 / ACRU RMS1 sample, and library 202.C02: no survey sample)",23_16s.R
+samples_16S,label,character,,NN,,Library name without the .16S.S<n> suffix,23_16s.R
+samples_16S,fastq_forward,character,,,,Forward read file (main run),tree_16s_mapping_dada2_corrected.txt
+samples_16S,fastq_reverse,character,,,,Reverse read file (main run),tree_16s_mapping_dada2_corrected.txt
+samples_16S,date_seq,date,,,2022-01-01;2024-12-31,Sequencing date (main run; not recorded for the felled-oak run),tree_16s_mapping_dada2_corrected.txt
+samples_16S,note,character,,,,Corrections applied (fastq 206_B01_16S_S3 = RO104 Inner; code/lib/build_phyloseq.R),23_16s.R
+asv_counts_16S,feature_id,character,,PK,,ASV identifier of the main run (seq1 ...); the felled-oak run reuses these ids for different sequences,data/raw/16s/OTU_table.txt
+asv_counts_16S,*,integer,count,FKnames:samples_16S.library_id,0;1e6,One column per library (column name = samples_16S.library_id; 589 columns): reads of the ASV in that library,data/raw/16s/OTU_table.txt
+asv_taxonomy_16S,feature_id,character,,PK,,ASV identifier (FK-equivalent to asv_counts_16S.feature_id),data/raw/16s/OTU_table.txt
+asv_taxonomy_16S,kingdom,character,,,,SILVA 138 kingdom (domain),OTU_table.txt (= taxonomy_table.txt)
+asv_taxonomy_16S,phylum,character,,,,SILVA 138 phylum,OTU_table.txt
+asv_taxonomy_16S,class,character,,,,SILVA 138 class,OTU_table.txt
+asv_taxonomy_16S,order,character,,,,SILVA 138 order (Chloroplast is an order here),OTU_table.txt
+asv_taxonomy_16S,family,character,,,,SILVA 138 family (Mitochondria is a family here),OTU_table.txt
+asv_taxonomy_16S,genus,character,,,,SILVA 138 genus,OTU_table.txt
+asv_taxonomy_16S,species,character,,,,SILVA 138 species (NA where unassigned),OTU_table.txt
+asv_counts_16S_felled_oak,feature_id,character,,PK,,ASV identifier of the felled-oak run; NOT the same sequences as asv_counts_16S.feature_id,data/raw/16s/black_oak/OTU_table.txt
+asv_counts_16S_felled_oak,*,integer,count,FKnames:samples_16S.library_id,0;1e6,One column per felled-oak library (column name = samples_16S.library_id; 60 columns): reads of the ASV,data/raw/16s/black_oak/OTU_table.txt
+asv_taxonomy_16S_felled_oak,feature_id,character,,PK,,ASV identifier of the felled-oak run,data/raw/16s/black_oak/OTU_table.txt
+asv_taxonomy_16S_felled_oak,kingdom,character,,,,kingdom as assigned in the felled-oak run (SILVA ranks),black_oak/OTU_table.txt
+asv_taxonomy_16S_felled_oak,phylum,character,,,,phylum as assigned in the felled-oak run (SILVA ranks),black_oak/OTU_table.txt
+asv_taxonomy_16S_felled_oak,class,character,,,,class as assigned in the felled-oak run (SILVA ranks),black_oak/OTU_table.txt
+asv_taxonomy_16S_felled_oak,order,character,,,,order as assigned in the felled-oak run (SILVA ranks),black_oak/OTU_table.txt
+asv_taxonomy_16S_felled_oak,family,character,,,,family as assigned in the felled-oak run (SILVA ranks),black_oak/OTU_table.txt
+asv_taxonomy_16S_felled_oak,genus,character,,,,genus as assigned in the felled-oak run (SILVA ranks),black_oak/OTU_table.txt
+asv_taxonomy_16S_felled_oak,species,character,,,,species as assigned in the felled-oak run (SILVA ranks),black_oak/OTU_table.txt

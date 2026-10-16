@@ -33,11 +33,23 @@ B,code/tables/01_species.R,root,TRUE,canonical table: species (one row per speci
 B,code/tables/02_site.R,root,TRUE,canonical table: site (stand reference point and geometry)
 B,code/tables/03_collars.R,root,TRUE,canonical table: soil collars
 B,code/tables/04_trees.R,root,TRUE,canonical tables: inventory stems; measured trees; tree-name crosswalk (needs the stage-B inventory)
-B,code/tables/validate_tables.R,root,TRUE,check data/tables/ against code/tables/dictionary.csv
 B,code/05_model/02_rf_models.R,script,TRUE,fit the stem and soil random forests
 B,code/05_model/03_export_canonical_tables.R,root,TRUE,measurement tables with training flags and exclusion reasons
 B,code/05_model/04_rf_grouped_cv.R,root,TRUE,held-out skill with whole trees or collars held out
 B,code/zenodo/01_compile_datasets.R,root,TRUE,archive datasets in data/compiled/ (what every later stage reads)
+B,code/tables/10_flux_stem.R,root,TRUE,canonical table: stem flux deployments with start times (checked against the model export and archive)
+B,code/tables/11_flux_soil.R,root,TRUE,canonical table: soil flux deployments with start times
+B,code/tables/20_samples.R,root,TRUE,canonical table: DNA samples
+B,code/tables/21_ddpcr.R,root,TRUE,canonical table: ddPCR by sample x gene x assay x run
+B,code/tables/22_qpcr.R,root,TRUE,canonical table: facility qPCR (16S and ITS)
+B,code/tables/23_16s.R,root,TRUE,canonical tables: 16S libraries; ASV counts and taxonomy (main and felled-oak runs)
+B,code/tables/30_wood_cores.R,root,TRUE,canonical table: wood core sections
+B,code/tables/31_soil_readings.R,root,TRUE,canonical table: soil readings at trees and collars
+B,code/tables/32_internal_gas.R,root,TRUE,canonical table: internal stem gas (incl. felled-oak GC calibration)
+B,code/tables/33_isotopes.R,root,TRUE,canonical table: Picarro isotope runs
+B,code/tables/34_weather.R,root,TRUE,canonical table: hourly weather station record
+B,code/tables/35_moisture_survey.R,root,TRUE,canonical table: December 2020 soil-moisture survey
+B,code/tables/validate_tables.R,root,TRUE,check data/tables/ against code/tables/dictionary*.csv
 C,code/04_drivers/01_wb_reference_et.R,root,TRUE,reference evapotranspiration for the water balance
 C,code/04_drivers/02_moisture_climatology.R,root,TRUE,monthly plot-wide soil-moisture level
 C,code/04_drivers/03_soil_temp_climatology.R,root,TRUE,monthly soil-temperature climatology
@@ -126,5 +138,5 @@ E,code/08_figures/figS28_plant-traits.R,root,FALSE,Figure S25 (plant traits)
 E,code/08_figures/zz_assemble_figures.R,root,TRUE,number and copy every figure into outputs/figures/{main;SI}
 F,code/zenodo/02_compile_results.R,root,TRUE,the paper's computed results in data/compiled/results/
 F,code/zenodo/03_generate_data_readme.R,root,TRUE,data/compiled/README_data.md from the column dictionary
-G,code/tables/validate_tables.R,root,TRUE,check data/tables/ against code/tables/dictionary.csv
+G,code/tables/validate_tables.R,root,TRUE,check data/tables/ against code/tables/dictionary*.csv
 G,code/check_consistency.R,root,TRUE,the consistency gate

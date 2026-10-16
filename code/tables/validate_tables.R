@@ -2,7 +2,7 @@
 # ==============================================================================
 # validate_tables.R -- check every table in data/tables/ against the dictionary
 # ------------------------------------------------------------------------------
-# Rules come from code/tables/dictionary.csv (table, column, type, unit, key,
+# Rules come from code/tables/dictionary*.csv (table, column, type, unit, key,
 # range):
 #   every column of every table is in the dictionary, and every dictionary row
 #     names a column that exists;
@@ -18,7 +18,9 @@
 #   Rscript code/tables/validate_tables.R
 # ==============================================================================
 DIR <- "data/tables"
-D <- utils::read.csv("code/tables/dictionary.csv", stringsAsFactors = FALSE, na.strings = "")
+# one dictionary file per group of tables: dictionary.csv plus dictionary_*.csv
+D <- do.call(rbind, lapply(sort(Sys.glob("code/tables/dictionary*.csv")), utils::read.csv,
+                           stringsAsFactors = FALSE, na.strings = ""))
 FAILS <- character(0)
 fail <- function(...) FAILS <<- c(FAILS, sprintf(...))
 
@@ -52,6 +54,21 @@ parse <- function(x, type) switch(type,
 
 for (t in names(X)) {
   x <- X[[t]]; d <- D[D$table == t, ]
+  # wide matrices: a row with column "*" stands for every column not listed by name;
+  # key FKnames:<table>.<column> requires those column names to be values of that column
+  w <- d[d$column %in% "*", ]
+  if (nrow(w)) {
+    wide <- setdiff(names(x), d$column)
+    k <- ifelse(is.na(w$key[1]), "", w$key[1])
+    if (startsWith(k, "FKnames:")) {
+      ref <- strsplit(sub("^FKnames:", "", k), ".", fixed = TRUE)[[1]]
+      miss <- setdiff(wide, X[[ref[1]]][[ref[2]]])
+      if (length(miss)) fail("%s: %d columns not in %s.%s (e.g. %s)", t, length(miss), ref[1], ref[2], paste(head(miss, 3), collapse = ", "))
+    }
+    w$key <- NA
+    d <- rbind(d[!d$column %in% "*", ], w[rep(1, length(wide)), , drop = FALSE])
+    if (length(wide)) d$column[(nrow(d) - length(wide) + 1):nrow(d)] <- wide
+  }
   for (cn in setdiff(names(x), d$column)) fail("%s.%s: column not in the dictionary", t, cn)
   for (cn in setdiff(d$column, names(x))) fail("%s.%s: in the dictionary but not in the table", t, cn)
   d <- d[d$column %in% names(x), ]

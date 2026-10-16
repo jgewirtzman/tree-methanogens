@@ -1,0 +1,90 @@
+table,column,type,unit,key,range,description,source
+wood_cores,core_id,character,,PK,,"Increment core: <tree_id>-<n>, n = 1, 2 in sheet order (WA14, WA102 and YB9 were cored twice)",30_wood_cores.R
+wood_cores,tree_id,character,,FK:trees.tree_id,,Tree cored (via tree_tags),tree_tags.csv
+wood_cores,position,character,,PK,,"Radial section: outer (bark end; sapwood in the paper), middle, inner (pith end; heartwood in the paper)",Tree Core Sectioning Data.csv
+wood_cores,sectioning_date,date,,NN,2022-01-01;2022-12-31,Date the core was sectioned and weighed (cores collected in the 2021 survey),Tree Core Sectioning Data.csv
+wood_cores,section_length_cm,numeric,cm,,0;50,Section length as recorded (middle sections recorded in mm; converted); 0 where no section could be cut,Tree Core Sectioning Data.csv
+wood_cores,fresh_mass_g,numeric,g,,0;10,Fresh mass of the section,Tree Core Sectioning Data.csv
+wood_cores,dry_mass_g,numeric,g,,0;10,Mass after freeze-drying,Tree Core Sectioning Data.csv
+wood_cores,density_g_cm3,numeric,g cm-3,,0.1;2,Basic density: dry mass / section volume (5.15 mm corer); species median where filled,02_process_wood_cores.R rule
+wood_cores,moisture_fresh_pct,numeric,%,,0;100,(fresh - dry) / fresh x 100; species median where filled,02_process_wood_cores.R rule
+wood_cores,moisture_dry_pct,numeric,%,,0;400,(fresh - dry) / dry x 100; species median where filled,02_process_wood_cores.R rule
+wood_cores,filled,logical,,NN,,"TRUE where density and moistures are gap-filled: a section of the seven flagged trees (AB6', H104, HX2, RM1, rms1, WA14, YB15) with dry > fresh mass, moisture_dry > 300 % or density outside 0.1-2 g cm-3, replaced by the species x position median of the unflagged sections",02_process_wood_cores.R
+wood_cores,notes,character,,,,Core notes and section processing notes from the sheet,Tree Core Sectioning Data.csv
+soil_readings,reading_id,character,,PK,,"tree_<tree_id>_<hole> (2021 survey holes) or collar_<collar_id>_<date> (monthly campaign); _<k> where a hole or collar-date has more than one record",31_soil_readings.R
+soil_readings,tree_id,character,,FK:trees.tree_id,,Tree the hole was dug at (exactly one of tree_id and collar_id is set),soil_tree_level_means.csv spellings via tree_tags
+soil_readings,collar_id,character,,FK:collars.collar_id,,Soil collar (exactly one of tree_id and collar_id is set),iPad soil sheets
+soil_readings,date,date,,,2020-06-01;2021-12-31,Date of the reading (NA for the 8 WPBERENICE holes: not recorded),field sheets
+soil_readings,time_local,character,,,,Time the hole was sampled (HH:MM local; trees only; often not recorded),Soils_Data_filled.csv
+soil_readings,hole,character,,,,"N, E, S or W of the stem (tree holes)",Soils_Data_filled.csv
+soil_readings,distance_from_stem_cm,numeric,cm,,0;500,Distance of the hole from the stem,Soils_Data_filled.csv
+soil_readings,hole_depth_cm,numeric,cm,,0;100,Total depth of the hole,Soils_Data_filled.csv
+soil_readings,organic_depth_cm,numeric,cm,,0;100,Depth of the organic-horizon sample,Soils_Data_filled.csv
+soil_readings,mineral_depth_cm,numeric,cm,,0;100,"Depth of the mineral-horizon sample; NA where recorded as "">45"" or ""water"" (see notes)",Soils_Data_filled.csv
+soil_readings,soil_temp_C,numeric,degC,,-5;35,Soil temperature (probe),field sheets
+soil_readings,soil_vwc_pct,numeric,%,,0;100,"Volumetric water content. Trees: mean of the probe readings at the hole (up to 3), 60 where the probe read ""saturated"". Collars: the sheet's VWC percent",field sheets
+soil_readings,vwc_n_probes,integer,count,,0;3,Number of numeric probe readings averaged into soil_vwc_pct (trees; 0 for saturated holes),Soils_Data_filled.csv
+soil_readings,vwc_saturated,logical,,,,TRUE where the probe read saturated and soil_vwc_pct is set to 60 % (the value soil_tree_level_means.csv uses) (trees),Soils_Data_filled.csv
+soil_readings,orp_mV,numeric,mV,,-500;1000,Oxidation-reduction potential (trees),Soils_Data_filled.csv
+soil_readings,shared_with,character,,,,"Other trees the same hole was recorded for (semicolon list; e.g. ""RO8 & RO7"" on the field sheet)",Soils_Data_filled.csv
+soil_readings,source,character,,NN,,Source file of the record,31_soil_readings.R
+soil_readings,notes,character,,,,Field notes and parse notes,Soils_Data_filled.csv
+internal_gas,sample_id,character,,PK,,"GC lab ID (2021; the two lab IDs ""BLANK"" as BLANK_<lab no>), sample name (2024: <tree><H|S>, Atm1-3), oak_<lab no> (felled oak)",32_internal_gas.R
+internal_gas,tree_id,character,,FK:trees.tree_id,,Tree sampled (via tree_tags); NA for the three 2024 atmosphere vials,tree_tags.csv
+internal_gas,campaign,character,,NN,,"2021_survey, 2024_heartwood_sapwood, 2022_felled_oak",32_internal_gas.R
+internal_gas,tissue,character,,NN,,"whole stem (bark to pith) (2021), heartwood or sapwood or atmosphere (2024), whole stem (trunk gas) (felled oak)",GC sheets
+internal_gas,height_m,numeric,m,,0;20,Position along the felled oak stem (felled oak only),quve_gc_data.csv
+internal_gas,analysis_date,date,,,2022-01-01;2024-12-31,GC run date (FID file date); NA for 10 vials of the 2024 sample list with no GC result (no gas values),GC sheets
+internal_gas,CH4_ppm,numeric,ppm,,0;1e6,"CH4 mole fraction, calibrated (2021: 03_process_internal_gas.R; 2024: 04_process_internal_gas_2024.R; felled oak: two-range linear, this build)",GC runs
+internal_gas,CO2_ppm,numeric,ppm,,0;1e6,CO2 mole fraction (2021 and 2024; not calibrated for the felled-oak run),GC runs
+internal_gas,N2O_ppm,numeric,ppm,,0;1e3,N2O mole fraction (2021 only),GC runs
+internal_gas,O2_ppm,numeric,ppm,,0;1e6,O2 mole fraction (2021 and felled oak; no O2 standards in the 2024 run),GC runs
+internal_gas,CH4_below_lod,logical,,,,CH4 below the run's detection limit (3 x SD of SB1 replicates; 2021 only),03_process_internal_gas.R
+internal_gas,CO2_below_lod,logical,,,,CO2 below the detection limit (2021 only),03_process_internal_gas.R
+internal_gas,N2O_below_lod,logical,,,,N2O below the detection limit (2021 only),03_process_internal_gas.R
+internal_gas,CH4_above_top_standard,logical,,,,"CH4 peak area above the run's highest certified standard (2021 SB6: value held at 60,340 ppm, a lower bound; 2024 SB5; felled oak SB6)",32_internal_gas.R
+isotopes,run_id,character,,PK,,<results file stamp>_<autosampler position>,33_isotopes.R
+isotopes,run_file,character,,NN,,Picarro results file (data/raw/internal_gas/picarro/),Picarro
+isotopes,run_date,date,,NN,2025-01-01;2025-12-31,Run date (Rundate),Picarro
+isotopes,run_time,character,,NN,,Run start time (Runtime; HH:MM:SS instrument clock),Picarro
+isotopes,position,integer,identifier,NN,1;999,Autosampler position,Picarro
+isotopes,sample_name,character,,NN,,Vial name as run,Picarro
+isotopes,tree_id,character,,FK:trees.tree_id,,Tree sampled (via tree_tags); set for every whole-tree and heartwood/sapwood vial,tree_tags.csv
+isotopes,campaign,character,,,,2021_survey (whole-tree vials) or 2024_heartwood_sapwood,tree_tags.csv
+isotopes,d13CH4_permil,numeric,permil VPDB,NN,-1000;3000,delta13C of CH4 (HR_Delta_iCH4_Raw_mean; uncorrected),Picarro
+isotopes,CH4_ppm,numeric,ppm,NN,0;1e6,CH4 (HR_12CH4_dry_mean),Picarro
+isotopes,d13CO2_permil,numeric,permil VPDB,NN,-1000;3000,delta13C of CO2 (Delta_Raw_iCO2_mean; uncorrected),Picarro
+isotopes,CO2_ppm,numeric,ppm,NN,0;1e6,CO2 (12CO2_mean),Picarro
+isotopes,sample_type,character,,NN,,"whole tree, heartwood/sapwood pair, incubation, atmosphere or room air, standard",code/zenodo/01_compile_datasets.R rule
+isotopes,redone,logical,,NN,,The vial was re-run (_Redo) and this original is replaced,code/lib/isotope_samples.R
+isotopes,in_whole_tree_set,logical,,NN,,In the whole-tree delta13C set (code/lib/isotope_samples.R; 128 runs),code/lib/isotope_samples.R
+isotopes,exclusion_reason,character,,,,Why a run is not in the whole-tree set,code/lib/isotope_samples.R
+weather,timestamp_logger,character,,PK,,"End of the hourly interval, logger clock as recorded (YYYY-MM-DDTHH:MM:SS). No DST shifts; about UTC-7 before the 2021-08-03 clock reset and about UTC-4 after (see before_clock_reset)",ymf_clean_sorted.csv
+weather,record,integer,identifier,NN,0;1e6,Logger record number (RECORD),ymf_clean_sorted.csv
+weather,before_clock_reset,logical,,NN,,TRUE for records stamped before the logger clock was reset on 2021-08-03 (34_weather.R),34_weather.R
+weather,year,integer,identifier,NN,2018;2023,Year of timestamp_logger,ymf_clean_sorted.csv
+weather,month,integer,identifier,NN,1;12,Month of timestamp_logger,ymf_clean_sorted.csv
+weather,day,integer,identifier,NN,1;31,Day of timestamp_logger,ymf_clean_sorted.csv
+weather,hour,integer,identifier,NN,0;23,Hour of timestamp_logger,ymf_clean_sorted.csv
+weather,air_temp_C,numeric,degC,NN,-40;45,Air temperature at the end of the interval (Tair),ymf_clean_sorted.csv
+weather,air_temp_avg_C,numeric,degC,NN,-40;45,Hourly mean air temperature (Tair_Avg),ymf_clean_sorted.csv
+weather,air_temp_max_C,numeric,degC,NN,-40;45,Hourly maximum air temperature (Tair_Max),ymf_clean_sorted.csv
+weather,air_temp_min_C,numeric,degC,NN,-40;45,Hourly minimum air temperature (Tair_Min),ymf_clean_sorted.csv
+weather,soil_temp_avg_C,numeric,degC,,-40;45,Station soil temperature probe (Tsoil_Avg; as logged),ymf_clean_sorted.csv
+weather,relative_humidity_pct,numeric,%,NN,0;100,Relative humidity (RH),ymf_clean_sorted.csv
+weather,vwc,numeric,m3 m-3,,-10;1,Station soil water content (VWC; as logged -- contains spurious negatives),ymf_clean_sorted.csv
+weather,vwc_avg,numeric,m3 m-3,,0;1,Hourly mean station soil water content (VWC_Avg),ymf_clean_sorted.csv
+weather,precip_mm,numeric,mm,NN,0;200,Hourly precipitation total (Rain_mm_Tot),ymf_clean_sorted.csv
+weather,wind_speed_avg_ms,numeric,m s-1,NN,0;500,Hourly mean wind speed (WindSpeed_ms_Avg; as logged -- contains spurious values to 289),ymf_clean_sorted.csv
+weather,wind_speed_max_ms,numeric,m s-1,NN,0;500,Hourly maximum wind speed (WindSpeed_ms_Max; as logged),ymf_clean_sorted.csv
+weather,wind_dir_deg,numeric,degrees,NN,0;360,Wind direction (WindDir),ymf_clean_sorted.csv
+weather,solar_rad_avg_W_m2,numeric,W m-2,NN,0;1500,Hourly mean solar radiation (logger column Solar_Rad_kW_Avg; the values are W m-2),ymf_clean_sorted.csv
+weather,solar_rad_total_MJ_m2,numeric,MJ m-2,,0;10,Hourly total solar radiation (Solar_Rad_Tot_MJ_Tot),ymf_clean_sorted.csv
+weather,dewpoint_C,numeric,degC,NN,-50;40,Dew point (TdewPointC),ymf_clean_sorted.csv
+weather,ET_ref,numeric,mm,NN,-10;500,Logger reference evapotranspiration (ETos; as logged -- not screened),ymf_clean_sorted.csv
+moisture_survey,point_id,character,,PK,,GPS waypoint label of the flag,soil_moisture_20201216.csv
+moisture_survey,date,date,,NN,2020-12-16;2020-12-16,Survey date,soil_moisture_20201216.csv
+moisture_survey,latitude,numeric,degrees,NN,lat_bbox,WGS84 latitude (handheld GPS),soil_moisture_20201216.csv
+moisture_survey,longitude,numeric,degrees,NN,lon_bbox,WGS84 longitude (handheld GPS),soil_moisture_20201216.csv
+moisture_survey,soil_vwc_pct,numeric,%,NN,0;100,Volumetric water content (probe),soil_moisture_20201216.csv
+moisture_survey,shared_position,logical,,NN,,TRUE for points 788-796: one identical GPS position recorded for all nine,35_moisture_survey.R
