@@ -7,16 +7,17 @@ source("code/lib/outputs.R")
 # and the trait table. Binomials are those of the species_mapping vectors in the
 # analysis scripts (all agree code by code; 08_dbh_by_species_campaign.R reports
 # BEPO and CALA at genus level as uncertain field identifications) and of
-# code/lib/trait_species.csv; family/order/class follow the TAXONOMY object in
-# the model's .RData, extended to the census-only genera. "TSLA" (2021 aux file)
+# code/lib/trait_species.csv; family/order/class are those the model's TAXONOMY used,
+# extended to the census-only genera. The model takes its TAXONOMY from this table
+# (codes MODEL_SPECIES, code/lib/species_levels.R). "TSLA" (2021 aux file)
 # is a typo for TSCA and is not a species (code/lib/tree_ids.R).
 #
-# Checks: every code in the sources has a row; binomial, family, order and class
-# agree with TAXONOMY and trait_species.csv; gymnosperm agrees with geometry.R.
+# Checks: every code in the sources and in MODEL_SPECIES has a row; binomial agrees
+# with trait_species.csv; gymnosperm agrees with geometry.R.
 # Writes data/tables/species.csv
 # ==============================================================================
 suppressPackageStartupMessages(library(tidyverse))
-source("code/lib/tree_ids.R"); source("code/lib/geometry.R")
+source("code/lib/tree_ids.R"); source("code/lib/geometry.R"); source("code/lib/species_levels.R")
 OUT <- "data/tables"; dir.create(OUT, showWarnings = FALSE, recursive = TRUE)
 
 SP <- tribble(
@@ -65,12 +66,8 @@ miss <- setdiff(unlist(used), SP$species_code)
 if (length(miss)) stop("species codes with no row in species.csv: ", paste(miss, collapse = ", "))
 
 # ---- agreement with the existing definitions ---------------------------------------
-e <- new.env(); load("data/processed/integrated/rf_workflow_input_data_with_2023.RData", envir = e)
-TAX <- e$rf_workflow_data$PLACEHOLDER_TAXONOMY
-cmp <- inner_join(SP, TAX, by = "species_code", suffix = c("", ".tax"))
-bad <- cmp %>% filter(species != species.tax | genus != genus.tax | family != family.tax |
-                        order != order.tax | class != class.tax)
-if (nrow(bad)) { print(bad); stop("species.csv disagrees with the model TAXONOMY") }
+if (length(setdiff(MODEL_SPECIES, SP$species_code)))
+  stop("MODEL_SPECIES codes with no row in species.csv: ", paste(setdiff(MODEL_SPECIES, SP$species_code), collapse = ", "))
 TR <- rd("code/lib/trait_species.csv")
 stopifnot(all(SP$species[match(TR$spcode, SP$species_code)] == TR$species),
           all(SP$gymnosperm[match(TR$spcode, SP$species_code)] == (TR$gymnosperm == 1)),
@@ -78,5 +75,5 @@ stopifnot(all(SP$species[match(TR$spcode, SP$species_code)] == TR$species),
 
 write_csv(SP, file.path(OUT, "species.csv"), na = "")
 cat(sprintf("species.csv: %d codes (%d in the model TAXONOMY, %d with traits)\n", nrow(SP),
-            nrow(cmp), nrow(TR)))
+            length(MODEL_SPECIES), nrow(TR)))
 for (k in names(used)) cat(sprintf("  %-13s %2d codes\n", k, length(used[[k]])))

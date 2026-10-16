@@ -43,3 +43,20 @@ tower_air <- local({
     }, numeric(1))
   }
 })
+
+# read.csv, with the columns in `readr_cols` parsed as readr::read_csv parses them:
+# the values the model has always used (it read these files with readr). The two
+# parsers disagree for some long decimals (readr by up to ~1e-13 relative, and badly
+# below 1e-307), so only the columns the model reads are taken from readr.
+read_flux_csv <- function(f, readr_cols, ...) {
+  d <- utils::read.csv(f, check.names = FALSE, stringsAsFactors = FALSE, ...)
+  txt <- utils::read.csv(f, check.names = FALSE, colClasses = "character", na.strings = character(0), ...)
+  stopifnot(all(readr_cols %in% names(d)))
+  for (j in readr_cols) {
+    v <- suppressWarnings(readr::parse_double(trimws(txt[[j]]), na = c("", "NA")))
+    stopifnot(is.double(d[[j]]) || is.integer(d[[j]]), identical(is.na(v), is.na(d[[j]])),
+              isTRUE(all.equal(v, as.double(d[[j]]), tolerance = 1e-12)))
+    d[[j]] <- v
+  }
+  d
+}

@@ -84,3 +84,10 @@ report_species_levels <- function(species, level, trained) {
   }
   invisible(NULL)
 }
+
+# Species codes the random-forest workflow names (05_model/01_load_and_prep_data.R
+# TAXONOMY, in this order; names and taxonomy from data/tables/species.csv). Census
+# stems of any other code are left out of the model's inventory, and
+# 01_import/08_inventory_build.R names only these codes.
+MODEL_SPECIES <- c("ACRU", "ACSA", "ACPE", "BEAL", "BELE", "BEPA", "BEPO", "FAGR", "FRAM",
+                   "PIST", "QURU", "QUAL", "QUVE", "TSCA", "CAOV", "CALA", "KALA", "PRSE", "SAAL")

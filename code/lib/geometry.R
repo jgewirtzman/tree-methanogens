@@ -120,23 +120,67 @@ square_ring_local <- function() {
 }
 
 # --- lon/lat projection -------------------------------------------------------
-#' Geodetic parameters live in the workflow RData alongside the transform itself.
+# Plot-local PX/PY (m) <-> WGS84: great-circle offset from the reference point after
+# rotating the plot axes. The one definition of the reference point and the
+# transform; data/tables/site.csv (02_site.R) and the model's .RData carry copies.
+GEO_REF_LAT      <- 41.989211   # plot reference point, decimal degrees
+GEO_REF_LON      <- -72.13092
+GEO_ROTATION_RAD <- 0.174533    # plot axes vs true north (10 degrees)
+GEO_EARTH_RADIUS <- 6371000     # m
+
+# Forward transformation: plot coords (m) to GPS (decimal degrees)
+geodetic_transform <- function(px, py, lat1_rad, lon1_rad, rotation_angle, earth_radius) {
+  distance <- sqrt(px^2 + py^2)
+  original_bearing <- atan2(px, py)
+  rotated_bearing <- original_bearing + rotation_angle
+
+  px_rotated <- distance * sin(rotated_bearing)
+  py_rotated <- distance * cos(rotated_bearing)
+
+  bearing <- atan2(px_rotated, py_rotated)
+  distance_m <- sqrt(px_rotated^2 + py_rotated^2)
+
+  lat2_rad <- asin(sin(lat1_rad) * cos(distance_m/earth_radius) +
+                     cos(lat1_rad) * sin(distance_m/earth_radius) * cos(bearing))
+
+  lon2_rad <- lon1_rad + atan2(sin(bearing) * sin(distance_m/earth_radius) * cos(lat1_rad),
+                               cos(distance_m/earth_radius) - sin(lat1_rad) * sin(lat2_rad))
+
+  return(list(longitude = lon2_rad * 180/pi, latitude = lat2_rad * 180/pi))
+}
+
+# Inverse transformation: GPS to plot coords
+geodetic_inverse <- function(lat, lon, lat1_rad, lon1_rad, rotation_angle, earth_radius) {
+  lat_rad <- lat * pi/180
+  lon_rad <- lon * pi/180
+  delta_lon <- lon_rad - lon1_rad
+
+  y_comp <- sin(delta_lon) * cos(lat_rad)
+  x_comp <- cos(lat1_rad) * sin(lat_rad) - sin(lat1_rad) * cos(lat_rad) * cos(delta_lon)
+  bearing <- atan2(y_comp, x_comp)
+
+  a <- sin((lat_rad - lat1_rad)/2)^2 + cos(lat1_rad) * cos(lat_rad) * sin(delta_lon/2)^2
+  c <- 2 * asin(sqrt(a))
+  distance_m <- earth_radius * c
+
+  bearing_adjusted <- bearing - rotation_angle
+  x <- distance_m * sin(bearing_adjusted)
+  y <- distance_m * cos(bearing_adjusted)
+
+  return(list(x = x, y = y))
+}
+
 #' Returns a list with `fwd(PX,PY)` and `inv(lat,lon)`, both vectorised.
-geo_transforms <- function(rdata = "data/processed/integrated/rf_workflow_input_data_with_2023.RData") {
-  # Callable from the repo root or from code/05_model/, whose scripts use ../../
-  if (!file.exists(rdata) && file.exists(file.path("../..", rdata)))
-    rdata <- file.path("../..", rdata)
-  if (!file.exists(rdata)) stop("geo_transforms(): cannot find ", rdata)
-  e <- new.env(); load(rdata, envir = e); w <- e$rf_workflow_data
-  lat0 <- w$ref_lat * pi/180; lon0 <- w$ref_lon * pi/180
-  rot  <- w$rotation_angle;   er   <- w$earth_radius
+geo_transforms <- function() {
+  lat0 <- GEO_REF_LAT * pi/180; lon0 <- GEO_REF_LON * pi/180
+  rot  <- GEO_ROTATION_RAD;     er   <- GEO_EARTH_RADIUS
   list(
     fwd = function(PX, PY) {
-      r <- w$geodetic_transform(PX, PY, lat0, lon0, rot, er)
+      r <- geodetic_transform(PX, PY, lat0, lon0, rot, er)
       data.frame(lon = r$longitude, lat = r$latitude)
     },
     inv = function(lat, lon) {
-      r <- w$geodetic_inverse(lat, lon, lat0, lon0, rot, er)
+      r <- geodetic_inverse(lat, lon, lat0, lon0, rot, er)
       data.frame(PX = r$x, PY = r$y)
     })
 }

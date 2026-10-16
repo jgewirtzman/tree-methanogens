@@ -37,7 +37,7 @@ source("code/lib/outputs.R")
 # start_time = goFlux start.time (chamber closure as logged); window_start/_end =
 # the hand-picked fitting window (start.time_corr / end.time_corr).
 #
-# ENVIRONMENT (the values 05_model/01_load_and_prep_data.R uses; env_source per row):
+# ENVIRONMENT (the values the model trains on, read by 05_model/01_load_and_prep_data.R; env_source per row):
 #   monthly   air: met-tower Tair_Avg nearest the logged start (within 24 h; noon of
 #             the date where the merged file has no start time), else chamber temp.
 #             soil: per-collar readings (data/processed/environmental/soil_env_by_collar.csv)
@@ -52,9 +52,13 @@ source("code/lib/outputs.R")
 #   dead_stem      monthly `dead` column / _dead label; 2021 name containing "dead";
 #                  2023 bark-missing or wounding score "dead" (code/lib/dead_stems.R rules).
 #   in_rf_training not dead, not the 2021 root-crown deployment, not the felled oak.
-# Both are checked against outputs/data/flux_measurements_tree.csv (the model's
-# export, matched by campaign + flux to 8 decimals) and data/compiled/flux_stem.csv;
-# flux, MDF and detection are checked against flux_FINAL.csv and the archive.
+# Both are checked against outputs/data/flux_measurements_tree.csv (the previous
+# stage-B run's export, matched by campaign + flux to 8 decimals; skipped when absent)
+# and data/compiled/flux_stem.csv; flux, MDF and detection against flux_FINAL.csv and
+# the archive.
+# The columns the model reads (CH4 flux; 2023 air temperature, soil temperature, VWC
+# and DBH) are parsed as readr parses them (read_flux_csv, code/lib/flux_times.R).
+# dbh_recorded_cm: DBH written on the 2023 field sheet for the deployment (2023 only).
 #
 # Writes data/tables/flux_stem.csv, outputs/audit/flux_2023_clock_offsets.csv
 # ==============================================================================
@@ -82,7 +86,7 @@ tree_of <- function(file, column, tag, species = NA, dbh = NA) {
 # 1. MONTHLY SURVEY 2020-21 (semi-rigid chambers, 1.25 m)
 # ==============================================================================
 F_MON <- file.path(FD, "semirigid_tree_final_complete_dataset_with_untagged.csv")
-mon <- monthly_plain(read.csv(F_MON, check.names = FALSE, stringsAsFactors = FALSE)) %>% filter(!is.na(CH4_best.flux))
+mon <- monthly_plain(read_flux_csv(F_MON, "CH4_best.flux")) %>% filter(!is.na(CH4_best.flux))
 names(mon) <- gsub(" ", ".", names(mon))
 w_mon <- read_windows(file.path(WD, "lgr_manual_identification_semirigid_tree.csv"))
 # untagged stems: start time and window from the hand-picked records, by UniqueID
@@ -147,7 +151,7 @@ mon_out$chamber_id[mon_out$chamber_id %in% c("na", "NA", "")] <- NA
 # 2. 2021 MULTI-HEIGHT (rigid chambers; 0.5, 1.25, 2 m; Kalmia 0.75 m and root crown)
 # ==============================================================================
 F_H21 <- file.path(FD, "tree_flux_2021_multiheight.csv")
-h21 <- read.csv(F_H21, check.names = FALSE, stringsAsFactors = FALSE) %>% filter(!is.na(CH4_best.flux)) %>%
+h21 <- read_flux_csv(F_H21, "CH4_best.flux") %>% filter(!is.na(CH4_best.flux)) %>%
   left_join(read_windows(file.path(WD, "lgr_manual_identification_2021_multiheight_final.csv")), by = "UniqueID")
 F_MT <- "data/processed/integrated/merged_tree_dataset_final.csv"
 MT <- read.csv(F_MT, check.names = FALSE)
@@ -185,7 +189,7 @@ h21_out <- h21 %>% transmute(
 # 3. 2023 CROSS-SPECIES (rigid chambers, 1.25 m) -- analyzer clock correction
 # ==============================================================================
 F_23 <- file.path(FD, "tree_flux_2023_cross_species.csv")
-y <- read.csv(F_23, check.names = FALSE, stringsAsFactors = FALSE) %>% filter(!is.na(CH4_best.flux)) %>%
+y <- read_flux_csv(F_23, c("CH4_best.flux", "air_temp_C", "vwc_mean", "Soil Temp (°C)", "DBH (cm)")) %>% filter(!is.na(CH4_best.flux)) %>%
   left_join(read_windows(file.path(WD, "lgr_manual_identification_2023_cross_species.csv")), by = "UniqueID")
 hms_s <- function(x) {                       # "9:42:00", "10;31", "9:51" -> seconds after midnight
   p <- strsplit(gsub(";", ":", trimws(x)), ":")
@@ -214,6 +218,7 @@ y_out <- y %>% transmute(
   measurement_id = UniqueID, campaign = "2023_cross_species",
   tree_id = tree_of(F_23, "Tree Tag", `Tree Tag`, `Species Code`, `DBH (cm)`),
   height_cm = 125, height_label = NA_character_, chamber_type = "rigid", chamber_id = as.character(`Chamber ID`),
+  dbh_recorded_cm = num(`DBH (cm)`),
   st = wall_clock(start.time) - off_s, win_start = win_start - off_s, win_end = win_end - off_s,
   chamber_area_cm2 = Area, system_volume_L = Vtot, chamber_temp_C = Tcham,
   air_temp_C = y_air, soil_temp_C = num(`Soil Temp (°C)`), soil_vwc = num(vwc_mean) / 100,
@@ -274,25 +279,31 @@ S <- S %>% mutate(
   start_time = iso_local(st), window_start = iso_local(win_start), window_end = iso_local(win_end))
 
 # ---- checks against the model's export and the archive --------------------------
+# The table is built before the model (stage B reads it), so the export compared is
+# that of the previous stage-B run, when there is one.
 key8 <- function(x) round(as.numeric(x), 8)
-FM <- read.csv("outputs/data/flux_measurements_tree.csv")
+same <- function(a, b) (is.na(a) & is.na(b)) | (!is.na(a) & !is.na(b) & abs(a - b) < 1e-9)
 surv <- S$campaign != "2022_felled_oak"
-mk <- paste(S$campaign, key8(S$CH4_flux_nmol_m2_s)); fk <- paste(FM$campaign, key8(FM$stem_flux_nmol_m2_s))
-dup_in <- sum(duplicated(mk[surv])); dup_fm <- sum(duplicated(fk))
-fi <- match(mk, fk)
-stopifnot(dup_in == 0, dup_fm == 0, all(!is.na(fi[surv])), length(unique(fi[surv])) == nrow(FM))
-mm_train <- which(surv & S$in_rf_training != FM$in_rf_training[fi])
-mm_dead <- which(surv & S$dead_stem != FM$dead_stem[fi])
-mm_reason <- which(surv & !S$in_rf_training & S$exclusion_reason != FM$exclusion_reason[fi])
+tr <- which(surv & S$in_rf_training)
+F_FM <- "outputs/data/flux_measurements_tree.csv"
+mm_train <- mm_dead <- mm_reason <- integer(0); dup_in <- dup_fm <- NA; env_mm <- rep(NA, 3)
+if (file.exists(F_FM)) {
+  FM <- read.csv(F_FM)
+  mk <- paste(S$campaign, key8(S$CH4_flux_nmol_m2_s)); fk <- paste(FM$campaign, key8(FM$stem_flux_nmol_m2_s))
+  dup_in <- sum(duplicated(mk[surv])); dup_fm <- sum(duplicated(fk))
+  fi <- match(mk, fk)
+  stopifnot(dup_in == 0, dup_fm == 0, all(!is.na(fi[surv])), length(unique(fi[surv])) == nrow(FM))
+  mm_train <- which(surv & S$in_rf_training != FM$in_rf_training[fi])
+  mm_dead <- which(surv & S$dead_stem != FM$dead_stem[fi])
+  mm_reason <- which(surv & !S$in_rf_training & S$exclusion_reason != FM$exclusion_reason[fi])
+  # environment: equal to the model's training rows?
+  env_mm <- c(sum(!same(S$air_temp_C[tr], FM$air_temp_C[fi[tr]])),
+              sum(!same(S$soil_temp_C[tr], FM$soil_temp_C[fi[tr]])),
+              sum(!same(S$soil_vwc[tr], FM$soil_moisture_abs[fi[tr]])))
+}
 # dead_stems.R matches dead flux values across campaigns: would any live deployment collide?
 dead_vals <- key8(S$CH4_flux_nmol_m2_s[S$dead_stem])
 x_camp <- sum(!S$dead_stem & key8(S$CH4_flux_nmol_m2_s) %in% dead_vals)
-# environment: equal to the model's training rows?
-tr <- which(surv & S$in_rf_training)
-same <- function(a, b) (is.na(a) & is.na(b)) | (!is.na(a) & !is.na(b) & abs(a - b) < 1e-9)
-env_mm <- c(sum(!same(S$air_temp_C[tr], FM$air_temp_C[fi[tr]])),
-            sum(!same(S$soil_temp_C[tr], FM$soil_temp_C[fi[tr]])),
-            sum(!same(S$soil_vwc[tr], FM$soil_moisture_abs[fi[tr]])))
 C <- read.csv("data/compiled/flux_stem.csv", stringsAsFactors = FALSE)
 ci <- match(S$measurement_id, C$unique_id)
 stopifnot(!anyNA(ci))
@@ -313,7 +324,7 @@ out <- S %>% select(measurement_id, campaign, tree_id, height_cm, height_label, 
                     CH4_flux_nmol_m2_s, CH4_model, CH4_LM_flux_nmol_m2_s, CH4_LM_r2, CH4_LM_pval,
                     CH4_HM_flux_nmol_m2_s, CH4_quality, CO2_flux_umol_m2_s, CO2_model,
                     CH4_MDF_nmol_m2_s, analyzer_sigma_ppb, detected, detection_class,
-                    bark_missing, wounding, moss_lichen_cover, qc_pass, qc_reason, dead_stem,
+                    dbh_recorded_cm, bark_missing, wounding, moss_lichen_cover, qc_pass, qc_reason, dead_stem,
                     untagged_rescue, in_rf_training, exclusion_reason, notes)
 write_csv(out, file.path(OUT, "flux_stem.csv"), na = "")
 
@@ -330,8 +341,8 @@ for (i in seq_len(nrow(DAY))) cat(sprintf("    %s  %5.2f  %s (pairs %d; deployme
 if (nrow(dropped)) cat(sprintf("    dropped pairs (entry errors): %s\n",
                                paste(sprintf("%s %.1f min", dropped$date, dropped$offset_min), collapse = "; ")))
 cat(sprintf("  felled oak: analyzer minus real = %s min; real times used\n", paste(oak_offset, collapse = ", ")))
-cat(sprintf("  flux-value join (campaign + flux to 8 dp): %d duplicate keys; %d training / %d dead / %d reason mismatches vs the key-based flags\n",
-            dup_in, length(mm_train), length(mm_dead), length(mm_reason)))
+if (file.exists(F_FM)) cat(sprintf("  vs the previous model export, flux-value join (campaign + flux to 8 dp): %d duplicate keys; %d training / %d dead / %d reason mismatches vs the key-based flags\n",
+            dup_in, length(mm_train), length(mm_dead), length(mm_reason))) else cat("  no previous model export: flags not compared\n")
 cat(sprintf("  dead_stems.R cross-campaign value match: %d live deployments share a dead deployment's flux value\n", x_camp))
 cat(sprintf("  environment vs the model's training rows (%d): mismatches air %d, soil temp %d, VWC %d\n",
             length(tr), env_mm[1], env_mm[2], env_mm[3]))

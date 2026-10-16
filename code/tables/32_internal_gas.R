@@ -34,7 +34,8 @@ source("code/lib/outputs.R")
 # sample_id: the GC lab ID (2021), sample name (2024), oak_<lab no> (felled oak).
 # Two 2021 samples carry lab ID "BLANK" (trees BOWSER, H301): BLANK_<lab no>.
 # tree_id: tree_tags.csv; the 2024 names "RO??" and "BB11/4?" map to
-# RO_unidentified_2024 and BB11_or_BB4_2024.
+# RO_unidentified_2024 and BB11_or_BB4_2024. species_recorded: the species code on
+# the 2021 sample sheet (Species.ID), as written; NA for the other campaigns.
 #
 # Checks: 2021 and 2024 rows equal data/compiled/internal_gas.csv; the felled-oak
 # values equal those of the fig07 / 20_manuscript_statistics.R code, run verbatim
@@ -59,7 +60,7 @@ a <- read.csv(G21, stringsAsFactors = FALSE)
 t21 <- tags_for(G21, "Tree.ID")
 g21 <- a %>% transmute(
   sample_id = ifelse(Lab.ID == "BLANK", paste0("BLANK_", Lab.No), Lab.ID),
-  tree_id = t21$tree_id[match(trimws(Tree.ID), t21$tag)], campaign = "2021_survey",
+  tree_id = t21$tree_id[match(trimws(Tree.ID), t21$tag)], species_recorded = Species.ID, campaign = "2021_survey",
   tissue = "whole stem (bark to pith)", height_m = NA_real_, analysis_date = as.Date(FID.Date),
   CH4_ppm = CH4_concentration, CO2_ppm = CO2_concentration, N2O_ppm = N2O_concentration, O2_ppm = O2_concentration,
   CH4_below_lod, CO2_below_lod, N2O_below_lod, CH4_above_top_standard = CH4_above_SB6)

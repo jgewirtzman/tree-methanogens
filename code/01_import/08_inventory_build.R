@@ -3,7 +3,7 @@
 # 08_inventory_build.R  --  THE stem inventory, rebuilt from raw.
 # ------------------------------------------------------------------------------
 # Run from the repo root:  Rscript code/01_import/08_inventory_build.R
-# Reads  data/raw/inventory/  (Zenodo drop-in)
+# Reads  data/raw/inventory/  (Zenodo drop-in); species names from data/tables/species.csv
 # Writes outputs/tables/inventory_stems.csv   -- one row per stem, all sources
 #
 # This replaces a workflow in which the mapped tree list existed ONLY inside
@@ -56,11 +56,12 @@ RAW <- "data/raw/inventory"
 OUT <- "outputs/tables/inventory_stems.csv"
 MAX_DBH_CM <- 100      # largest defensible stem at this site; see header note 3
 
-# ---- species code -> name, from the workflow taxonomy ------------------------
-e <- new.env(); load("data/processed/integrated/rf_workflow_input_data_with_2023.RData", envir = e)
-lut <- e$rf_workflow_data$PLACEHOLDER_INVENTORY %>%
-  distinct(species_code, species) %>% filter(!is.na(species_code)) %>%
-  mutate(species_code = trimws(species_code))
+# ---- species code -> name, for the codes the model names -------------------
+# data/tables/species.csv restricted to MODEL_SPECIES (code/lib/species_levels.R);
+# stems of other codes keep species = NA.
+source("code/lib/species_levels.R")
+lut <- read.csv("data/tables/species.csv", stringsAsFactors = FALSE) %>%
+  filter(species_code %in% MODEL_SPECIES) %>% select(species_code, species)
 
 # ---- decimal-typo repair -----------------------------------------------------
 #' Shift the decimal left until the diameter is defensible. Returns the repaired

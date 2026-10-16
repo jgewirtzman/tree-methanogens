@@ -31,6 +31,7 @@ flux_stem,CH4_MDF_nmol_m2_s,numeric,nmol m-2 s-1,NN,0;1,Minimum detectable CH4 f
 flux_stem,analyzer_sigma_ppb,numeric,ppb,,0;10,Analyzer CH4 precision for the field period (02b_instrument_precision.R); NA for the felled oak,outputs/data/flux_FINAL.csv
 flux_stem,detected,logical,,,,|CH4 flux| > MDF; NA for the felled oak,outputs/data/flux_FINAL.csv
 flux_stem,detection_class,character,,,,"emission, uptake or below detection; NA for the felled oak",outputs/data/flux_FINAL.csv
+flux_stem,dbh_recorded_cm,numeric,cm,,0;200,DBH written on the field sheet for the deployment (2023 only; NA otherwise),2023 field sheet
 flux_stem,bark_missing,character,,,,"2023 condition score as recorded (0-3, or dead); NA otherwise",2023 field sheet
 flux_stem,wounding,character,,,,"2023 wounding/holes score as recorded (1-3, or dead); NA otherwise",2023 field sheet
 flux_stem,moss_lichen_cover,character,,,,"2023 moss/lichen cover score as recorded (1-3, or dead); NA otherwise",2023 field sheet

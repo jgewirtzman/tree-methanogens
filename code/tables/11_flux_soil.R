@@ -18,7 +18,7 @@ source("code/lib/outputs.R")
 # Five 19 May 2021 deployments have two saved windows; the one whose length matches
 # the closure length of the fit (flux_FINAL t_sec) is reported.
 #
-# ENVIRONMENT (the values 05_model/01_load_and_prep_data.R uses; env_source per row):
+# ENVIRONMENT (the values the model trains on, read by 05_model/01_load_and_prep_data.R; env_source per row):
 #   soil temperature, VWC  the collar's own reading that date
 #                          (data/processed/environmental/soil_env_by_collar.csv); else
 #                          the mean for that plot tag (e.g. 1-3, all landscape
@@ -27,9 +27,11 @@ source("code/lib/outputs.R")
 #                          lookup), else the chamber temperature (tower at deployment).
 #
 # FLAGS by key: qc_pass (closure screen); in_rf_training = qc_pass and the collar is
-# in the stand (collars.csv in_stand). Checked against the model's export
-# (outputs/data/flux_measurements_soil.csv, matched by collar + flux to 8 decimals)
-# and data/compiled/flux_soil.csv.
+# in the stand (collars.csv in_stand). Checked against the previous stage-B run's
+# export (outputs/data/flux_measurements_soil.csv, matched by collar + flux to 8
+# decimals; skipped when absent) and data/compiled/flux_soil.csv.
+# CH4 flux is parsed as readr parses it (read_flux_csv, code/lib/flux_times.R), the
+# values the model has always used.
 #
 # Writes data/tables/flux_soil.csv
 # ==============================================================================
@@ -39,7 +41,7 @@ OUT <- "data/tables"; WD <- "data/raw/flux_windows"
 num <- function(x) suppressWarnings(as.numeric(x))
 
 F_SOIL <- "data/processed/flux/semirigid_tree_final_complete_dataset_soil.csv"
-s <- read.csv(F_SOIL, check.names = FALSE, stringsAsFactors = FALSE) %>% filter(!is.na(CH4_best.flux))
+s <- read_flux_csv(F_SOIL, "CH4_best.flux") %>% filter(!is.na(CH4_best.flux))
 DET <- read.csv("outputs/data/flux_FINAL.csv") %>% filter(type == "soil")
 QX <- read.csv("outputs/data/qc_excluded_measurements.csv", stringsAsFactors = FALSE)
 COL <- read.csv(file.path(OUT, "collars.csv"), stringsAsFactors = FALSE)
@@ -103,20 +105,27 @@ out <- S %>% transmute(
   notes = as.character(Notes))
 
 # ---- checks against the model's export and the archive --------------------------
+# The table is built before the model (stage B reads it), so the export compared is
+# that of the previous stage-B run, when there is one.
 key8 <- function(x) round(as.numeric(x), 8)
-FM <- read.csv("outputs/data/flux_measurements_soil.csv")
-mk <- paste(out$collar_id, key8(out$CH4_flux_nmol_m2_s)); fk <- paste(FM$site_id, key8(FM$soil_flux_nmol_m2_s))
-fi <- match(mk, fk)
-dup_in <- sum(duplicated(mk)); dup_fm <- sum(duplicated(fk))
-mm_train <- sum(out$in_rf_training != !is.na(fi))
-tr <- which(out$in_rf_training)
 same <- function(a, b) (is.na(a) & is.na(b)) | (!is.na(a) & !is.na(b) & abs(a - b) < 1e-9)
-env_mm <- c(sum(!same(out$air_temp_C[tr], FM$air_temp_C[fi[tr]])), sum(!same(out$soil_temp_C[tr], FM$soil_temp_C[fi[tr]])),
-            sum(!same(out$soil_vwc[tr], FM$soil_moisture_abs[fi[tr]])))
+tr <- which(out$in_rf_training)
+F_FM <- "outputs/data/flux_measurements_soil.csv"
+dup_in <- dup_fm <- mm_train <- NA; env_mm <- rep(NA, 3)
+if (file.exists(F_FM)) {
+  FM <- read.csv(F_FM)
+  mk <- paste(out$collar_id, key8(out$CH4_flux_nmol_m2_s)); fk <- paste(FM$site_id, key8(FM$soil_flux_nmol_m2_s))
+  fi <- match(mk, fk)
+  dup_in <- sum(duplicated(mk)); dup_fm <- sum(duplicated(fk))
+  mm_train <- sum(out$in_rf_training != !is.na(fi))
+  env_mm <- c(sum(!same(out$air_temp_C[tr], FM$air_temp_C[fi[tr]])), sum(!same(out$soil_temp_C[tr], FM$soil_temp_C[fi[tr]])),
+              sum(!same(out$soil_vwc[tr], FM$soil_moisture_abs[fi[tr]])))
+  stopifnot(dup_in == 0, dup_fm == 0, mm_train == 0, sum(out$in_rf_training) == nrow(FM))
+}
 C <- read.csv("data/compiled/flux_soil.csv", stringsAsFactors = FALSE)
 ci <- match(out$measurement_id, C$unique_id)
 eq <- function(a, b) all(same(as.numeric(a), as.numeric(b)))
-stopifnot(!anyNA(ci), dup_in == 0, dup_fm == 0, mm_train == 0, sum(out$in_rf_training) == nrow(FM),
+stopifnot(!anyNA(ci),
           eq(out$CH4_flux_nmol_m2_s, C$CH4_flux_nmol_m2_s[ci]), eq(out$CH4_MDF_nmol_m2_s, C$CH4_MDF_nmol_m2_s[ci]),
           eq(out$analyzer_sigma_ppb, C$analyzer_sigma_ppb[ci]), eq(out$closure_s, C$closure_s[ci]),
           identical(out$detected, as.logical(C$detected[ci])), identical(out$detection_class, C$detection_class[ci]),

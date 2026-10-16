@@ -12,7 +12,11 @@ source("code/lib/outputs.R")
 # GPS elevation (column Elevation, ~820-850, unit not recorded) is not carried;
 # collars.csv and the lidar DEM give ground elevation.
 #
-# Writes data/tables/moisture_survey.csv
+# stream_points: the 21 flags along the stream channel (waypoints 762-782 of the same
+# receiver, data/raw/inventory/spatial_data/River.xlsx); no VWC was measured there.
+# The model's December moisture raster sets them to saturation.
+#
+# Writes data/tables/moisture_survey.csv, data/tables/stream_points.csv
 # ==============================================================================
 suppressPackageStartupMessages(library(tidyverse))
 OUT <- "data/tables"
@@ -26,5 +30,11 @@ MS <- tibble(point_id = as.character(D$Label), date = SURVEY_DATE, latitude = D$
              soil_vwc_pct = D$VWC, shared_position = pos %in% pos[duplicated(pos)])
 stopifnot(sum(!duplicated(pos)) == 71, sum(MS$shared_position) == 9)
 write_csv(MS, file.path(OUT, "moisture_survey.csv"), na = "")
+
+R <- readxl::read_excel("data/raw/inventory/spatial_data/River.xlsx")
+stopifnot(nrow(R) == 21, !anyDuplicated(R$Label), all(is.finite(R$Latitude)), all(is.finite(R$Longitude)))
+SPT <- tibble(point_id = as.character(R$Label), latitude = R$Latitude, longitude = R$Longitude)
+write_csv(SPT, file.path(OUT, "stream_points.csv"), na = "")
 cat(sprintf("moisture_survey: %d points, %d distinct positions, VWC %.1f-%.1f %%\n", nrow(MS), sum(!duplicated(pos)),
             min(MS$soil_vwc_pct), max(MS$soil_vwc_pct)))
+cat(sprintf("stream_points: %d flags along the stream channel\n", nrow(SPT)))

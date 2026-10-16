@@ -31,6 +31,7 @@ soil_readings,source,character,,NN,,Source file of the record,31_soil_readings.R
 soil_readings,notes,character,,,,Field notes and parse notes,Soils_Data_filled.csv
 internal_gas,sample_id,character,,PK,,"GC lab ID (2021; the two lab IDs ""BLANK"" as BLANK_<lab no>), sample name (2024: <tree><H|S>, Atm1-3), oak_<lab no> (felled oak)",32_internal_gas.R
 internal_gas,tree_id,character,,FK:trees.tree_id,,Tree sampled (via tree_tags); NA for the three 2024 atmosphere vials,tree_tags.csv
+internal_gas,species_recorded,character,,,,"Species code written on the 2021 sample sheet (Species.ID), as recorded; NA for the 2024 and felled-oak campaigns",sample_data_only.csv
 internal_gas,campaign,character,,NN,,"2021_survey, 2024_heartwood_sapwood, 2022_felled_oak",32_internal_gas.R
 internal_gas,tissue,character,,NN,,"whole stem (bark to pith) (2021), heartwood or sapwood or atmosphere (2024), whole stem (trunk gas) (felled oak)",GC sheets
 internal_gas,height_m,numeric,m,,0;20,Position along the felled oak stem (felled oak only),quve_gc_data.csv
@@ -88,3 +89,6 @@ moisture_survey,latitude,numeric,degrees,NN,lat_bbox,WGS84 latitude (handheld GP
 moisture_survey,longitude,numeric,degrees,NN,lon_bbox,WGS84 longitude (handheld GPS),soil_moisture_20201216.csv
 moisture_survey,soil_vwc_pct,numeric,%,NN,0;100,Volumetric water content (probe),soil_moisture_20201216.csv
 moisture_survey,shared_position,logical,,NN,,TRUE for points 788-796: one identical GPS position recorded for all nine,35_moisture_survey.R
+stream_points,point_id,character,,PK,,GPS waypoint label of the flag,River.xlsx
+stream_points,latitude,numeric,degrees,NN,lat_bbox,WGS84 latitude (handheld GPS),River.xlsx
+stream_points,longitude,numeric,degrees,NN,lon_bbox,WGS84 longitude (handheld GPS),River.xlsx

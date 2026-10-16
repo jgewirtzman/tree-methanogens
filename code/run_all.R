@@ -8,7 +8,7 @@
 #
 # Stages
 #   A  raw -> processed      import, flux fitting (goFlux), cleaning, harmonisation
-#   B  model                 random-forest training tables, fit, export, held-out skill
+#   B  tables and model      canonical tables (data/tables/), then random-forest training tables, fit, export, held-out skill
 #   C  drivers and scaling   climatologies, moisture surface, predictions, budget, grid
 #   D  analyses              model audits, molecular summaries, statistics and tables
 #   E  figures               one generator per paper figure, then the assembler

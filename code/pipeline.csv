@@ -25,19 +25,14 @@ A,code/02_flux/02b_instrument_precision.R,root,TRUE,analyzer CH4 precision (sigm
 A,code/02_flux/03_precision_and_detection.R,root,TRUE,analyzer precision; minimum detectable flux; detection status
 A,code/03_merge/02_compile_soil_env.R,root,TRUE,soil temperature and moisture per collar and date
 A,code/03_merge/04_harmonize_all_data.R,script,TRUE,master per-tree table (flux; genes; gas; wood; soil)
-B,code/05_model/01_load_and_prep_data.R,script,TRUE,random-forest training tables
-B,code/01_import/08_inventory_build.R,root,TRUE,stand inventory from the 2018 and 2019 censuses and by-tag survey (reads the model's training tables; so after 01_load_and_prep_data)
-B,code/01_import/09_audit_inventory_duplicates.R,root,FALSE,check: no stem counted in both censuses
-B,code/01_import/10_species_traits.R,root,TRUE,species trait table from archived TRY and GWDD records (Methods S5)
 B,code/tables/01_species.R,root,TRUE,canonical table: species (one row per species code)
 B,code/tables/02_site.R,root,TRUE,canonical table: site (stand reference point and geometry)
 B,code/tables/03_collars.R,root,TRUE,canonical table: soil collars
+B,code/01_import/08_inventory_build.R,root,TRUE,stand inventory from the 2018 and 2019 censuses and by-tag survey (species names from data/tables/species.csv)
+B,code/01_import/09_audit_inventory_duplicates.R,root,FALSE,check: no stem counted in both censuses
+B,code/01_import/10_species_traits.R,root,TRUE,species trait table from archived TRY and GWDD records (Methods S5)
 B,code/tables/04_trees.R,root,TRUE,canonical tables: inventory stems; measured trees; tree-name crosswalk (needs the stage-B inventory)
-B,code/05_model/02_rf_models.R,script,TRUE,fit the stem and soil random forests
-B,code/05_model/03_export_canonical_tables.R,root,TRUE,measurement tables with training flags and exclusion reasons
-B,code/05_model/04_rf_grouped_cv.R,root,TRUE,held-out skill with whole trees or collars held out
-B,code/zenodo/01_compile_datasets.R,root,TRUE,archive datasets in data/compiled/ (what every later stage reads)
-B,code/tables/10_flux_stem.R,root,TRUE,canonical table: stem flux deployments with start times (checked against the model export and archive)
+B,code/tables/10_flux_stem.R,root,TRUE,canonical table: stem flux deployments with start times (checked against the previous model export and the archive)
 B,code/tables/11_flux_soil.R,root,TRUE,canonical table: soil flux deployments with start times
 B,code/tables/20_samples.R,root,TRUE,canonical table: DNA samples
 B,code/tables/21_ddpcr.R,root,TRUE,canonical table: ddPCR by sample x gene x assay x run
@@ -48,8 +43,13 @@ B,code/tables/31_soil_readings.R,root,TRUE,canonical table: soil readings at tre
 B,code/tables/32_internal_gas.R,root,TRUE,canonical table: internal stem gas (incl. felled-oak GC calibration)
 B,code/tables/33_isotopes.R,root,TRUE,canonical table: Picarro isotope runs
 B,code/tables/34_weather.R,root,TRUE,canonical table: hourly weather station record
-B,code/tables/35_moisture_survey.R,root,TRUE,canonical table: December 2020 soil-moisture survey
+B,code/tables/35_moisture_survey.R,root,TRUE,canonical tables: December 2020 soil-moisture survey; stream-channel flags
 B,code/tables/validate_tables.R,root,TRUE,check data/tables/ against code/tables/dictionary*.csv
+B,code/05_model/01_load_and_prep_data.R,script,TRUE,random-forest training tables (reads data/tables/ only)
+B,code/05_model/02_rf_models.R,script,TRUE,fit the stem and soil random forests
+B,code/05_model/03_export_canonical_tables.R,root,TRUE,measurement tables with training flags and exclusion reasons
+B,code/05_model/04_rf_grouped_cv.R,root,TRUE,held-out skill with whole trees or collars held out
+B,code/zenodo/01_compile_datasets.R,root,TRUE,archive datasets in data/compiled/ (what every later stage reads)
 C,code/04_drivers/01_wb_reference_et.R,root,TRUE,reference evapotranspiration for the water balance
 C,code/04_drivers/02_moisture_climatology.R,root,TRUE,monthly plot-wide soil-moisture level
 C,code/04_drivers/03_soil_temp_climatology.R,root,TRUE,monthly soil-temperature climatology
