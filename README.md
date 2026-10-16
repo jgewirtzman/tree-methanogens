@@ -11,7 +11,7 @@ The project combines:
 - **Flux measurements** — 1,200 stem CH₄ flux measurements from 502 trees and 288 soil flux measurements (2020–2023), made with semi-rigid and rigid stem chambers and static soil chambers connected to a portable off-axis ICOS analyzer (Los Gatos Research GLA131-GGA)
 - **Molecular quantification** — ddPCR of *mcrA* (methanogens) and *pmoA*/*mmoX* (methanotrophs) in 593 wood and soil samples
 - **Community characterization** — 16S rRNA amplicon sequencing, PICRUSt2, FAPROTAX
-- **Stand-scale bounds** — random forest models that scale stem and soil CH₄ flux to the 8,205 stems of a 3.72-ha censused stand
+- **Stand-scale bounds** — random forest models that scale stem and soil CH₄ flux to the 8,194 stems of a 3.72-ha censused stand
 
 ## Getting started
 
@@ -219,7 +219,7 @@ Written to `outputs/data/` and copied, for the archive, into `data/compiled/resu
 | `wai_bottomup.csv` | `06_upscale/04_wai_bottomup.R` | Bottom-up woody area index |
 | `rf_grouped_cv.csv` | `05_model/04_rf_grouped_cv.R` | Cross-validated model skill, grouped by tree and by collar |
 
-The stand inventory, `outputs/tables/inventory_stems.csv` (`01_import/08_inventory_build.R`), has one row per stem record (8,208); the 8,205 inside the censused stand (`in_stand`) are the stems used for scaling.
+The stand inventory, `outputs/tables/inventory_stems.csv` (`01_import/08_inventory_build.R`), has one row per stem record (8,197); the 8,194 inside the censused stand (`in_stand`) are the stems used for scaling.
 
 ## Methanotroph definitions
 

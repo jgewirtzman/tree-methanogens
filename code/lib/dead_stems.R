@@ -5,8 +5,8 @@
 # 03_export_canonical_tables.R (to say why they are not in it).
 #
 # WHY (2026-09-30). The stand inventory is live stems only: neither census records
-# a dead status, so standing dead trees are outside the upscaling. Ten dead stems
-# were measured -- 6 untagged snags in the monthly survey, 1 dead red oak in 2021,
+# a dead status, so standing dead trees are outside the upscaling. Twelve dead stems
+# were measured -- 6 untagged snags and 2 tagged stems in the monthly survey, 1 dead red oak in 2021,
 # 3 trees marked dead in the 2023 survey (bark loss or wounding = "dead") -- an
 # unplanned subset, half of the monthly ones in the wetland swamp, with
 # inconsistent fluxes (monthly snags ~10x live on a typical day; the 2023 dead
@@ -17,6 +17,9 @@
 #
 # Deployments are identified by campaign and CH4 flux value, which is unique within
 # a campaign (03_export_canonical_tables.R asserts this).
+# 2026-10-15: monthly stems flagged in the sheet's `dead` column are included
+# (tagged red oak 4156 and hemlock 5091, also noted dead in the field notes and,
+# for 5091, in 2023): 12 stems, 59 deployments.
 # ==============================================================================
 dead_stem_flux <- function(dir = NULL) {
   source(Filter(file.exists, c("code/lib/monthly_cols.R", "../lib/monthly_cols.R", "../../lib/monthly_cols.R"))[1])
@@ -28,8 +31,12 @@ dead_stem_flux <- function(dir = NULL) {
   y <- rd("tree_flux_2023_cross_species.csv")
   y_dead <- grepl("^dead$", trimws(y[["Bark Missing (1-3)"]] %||% y[[grep("^Bark", names(y))[1]]]), ignore.case = TRUE) |
             grepl("^dead$", trimws(y[[grep("^Wounding", names(y))[1]]]), ignore.case = TRUE)
+  # monthly: untagged snags (label ends "_dead") and tagged stems the sheet records
+  # as dead (`dead` column: 4156 and 5091)
+  m_dead <- grepl("_dead$", m$`Plot Tag` %||% m$Plot.Tag) |
+            (!is.null(m$dead) & toupper(as.character(m$dead)) %in% "TRUE")
   out <- rbind(
-    data.frame(campaign = "monthly_2020_2021",  flux = m$CH4_best.flux[grepl("_dead$", m$`Plot Tag` %||% m$Plot.Tag)]),
+    data.frame(campaign = "monthly_2020_2021",  flux = m$CH4_best.flux[m_dead]),
     data.frame(campaign = "2021_multiheight",   flux = h$CH4_best.flux[grepl("dead", h$tree_id, ignore.case = TRUE)]),
     data.frame(campaign = "2023_cross_species", flux = y$CH4_best.flux[y_dead]))
   out[is.finite(out$flux), ]

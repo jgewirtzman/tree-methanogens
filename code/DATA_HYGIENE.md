@@ -37,9 +37,9 @@ pipeline itself; those are being wired so the counts are produced, not typed.
 
 | # | rule | action | applied in | rows affected | why |
 |---|---|---|---|---|---|
-| T1 | Dead stems | flagged; excluded from model training | lib/dead_stems.R | 43 deployments on 10 stems | the inventory contains no dead stems; kept in all descriptive analyses |
+| T1 | Dead stems | flagged; excluded from model training | lib/dead_stems.R | 59 deployments on 12 stems | the inventory contains no dead stems; kept in all descriptive analyses |
 | T2 | Root-crown measurement | excluded from model training | 05_model/03_export_canonical_tables.R | 1 deployment | not a stem surface |
-| T3 | Every deployment carried in one table with `in_rf_training` and `exclusion_reason` | defined | 05_model/03_export_canonical_tables.R | 1,191 deployments; 1,147 train | row accounting is checked by check_consistency.R |
+| T3 | Every deployment carried in one table with `in_rf_training` and `exclusion_reason` | defined | 05_model/03_export_canonical_tables.R | 1,191 deployments; 1,131 train | row accounting is checked by check_consistency.R |
 | T4 | Species calibration needs ≥ 5 training measurements | defined | lib/species_calibration.R | levels with < 5 get ratio 1 | one measurement cannot calibrate a species |
 
 ## 3. Internal gas and isotopes

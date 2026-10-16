@@ -145,6 +145,18 @@ B <- bind_rows(B, ms_stems)
 
 INV <- bind_rows(A, B) %>% filter(is.finite(dbh_cm_raw), dbh_cm_raw > 0)
 
+# CROSS-CENSUS DUPLICATES (2026-10-15). In one white-pine sapling patch (PX 190-194,
+# PY 115-118) ten tags were measured in both the 2019 census and the by-tag survey:
+# same species, diameter within 1 cm, under 1 m apart. The by-tag copies are dropped;
+# so is the 2019 record of witch hazel 150, which the by-tag survey lists stem by
+# stem. Same-tag pairs that differ in species or diameter are kept as distinct stems.
+DUP <- read.csv(Filter(file.exists, c("code/lib/inventory_cross_census_duplicates.csv",
+                                      "../lib/inventory_cross_census_duplicates.csv"))[1],
+                stringsAsFactors = FALSE)
+n_inv <- nrow(INV)
+INV <- INV %>% filter(!paste(source, tag) %in% paste(DUP$source, DUP$tag))
+stopifnot(n_inv - nrow(INV) == nrow(DUP))
+
 rp <- repair_dbh(INV$dbh_cm_raw)
 INV <- INV %>% mutate(
   dbh_cm       = rp$cm,
@@ -270,7 +282,7 @@ wr("  stand area %d m2 (%.2f ha); nominal %d m2; gap %d m2\n",
 wr("\nRECORD COUNTS\n  fg19 %d | bytag %d | total %d\n",
    sum(INV$source == "fg19"), sum(INV$source == "bytag"), nrow(INV))
 wr("  tags de-duplicated WITHIN source only (tag namespaces are disjoint)\n")
-wr("  cross-census duplicates: none (tested; see the note above the dedupe section)\n")
+wr("  cross-census duplicates dropped: %d (code/lib/inventory_cross_census_duplicates.csv)\n", nrow(DUP))
 wr("  2018 multi-stem sheet: %d stems on %d trees added\n", N_MS, N_MS_TREES)
 wr("\nPOSITIONS\n"); for (k in names(table(INV$position, useNA = "ifany"))) wr("  %-28s %d\n", ifelse(is.na(k), "none (unlocated)", k), sum(INV$position %in% k | (is.na(k) & is.na(INV$position))))
 wr("  2019 stems > 1 quadrat from their label, now unlocated: %d\n", N_FAR)

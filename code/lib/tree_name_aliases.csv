@@ -1,0 +1,13 @@
+spelling,tree_id,reason
+OB501,PB501,flux datasheet typo (paper birch 501); as in 01_tree_id_consensus.R
+WB403,WP403,flux datasheet typo (white pine 403); as in 01_tree_id_consensus.R
+SF1,SA1,the one sassafras tree; SA1 in ddPCR and 16S
+SASSAFRASS,SA1,the one sassafras tree; core sheet spelling
+BOWSER,ROBOWSER,dead red oak 'Bowser'; ROBowser in the 16S library map
+BOWSERDEADREDOAK,ROBOWSER,dead red oak 'Bowser'; flux datasheet spelling
+YBCUL8R,CUL8R,as in 01_tree_id_consensus.R
+WPBERNICE,WPBERENICE,spelling variant in the merged tree table
+PB4query,PB5,flux datasheet 'PB4?' is PB5 (04_harmonize_all_data.R)
+RM301,RM301A,16S soil samples labelled RM301; the flux and gas tree is RM301A (RM301B was cored only)
+ROquery,RO_unidentified_2024,2024 gas label 'RO??': red oak not identified; no other record
+BB11slash4query,BB11_or_BB4_2024,2024 gas label 'BB11/4?': tree BB11 or BB4, not resolved; no other record

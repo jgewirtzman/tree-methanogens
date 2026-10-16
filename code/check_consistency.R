@@ -203,7 +203,9 @@ for (f in setdiff(live, SANDBOX_WRITERS)) {
   for (ln in L[grepl(wpat, L)]) {
     ks <- basename(gsub("[\"']", "", regmatches(ln, gregexpr(pathre, ln))[[1]]))
     for (v in names(vmap)) if (grepl(paste0("[(,]\\s*", gsub(".", "\\.", v, fixed = TRUE), "\\s*[,)]"), ln)) ks <- c(ks, vmap[[v]])
-    for (k in unique(ks)) writers[[k]] <- union(writers[[k]], f)
+    # canonical tables (code/tables/ -> data/tables/) share some basenames with outputs/
+    pre <- if (startsWith(f, "code/tables/")) "data/tables/" else ""
+    for (k in unique(ks)) writers[[paste0(pre, k)]] <- union(writers[[paste0(pre, k)]], f)
   }
 }
 multi <- Filter(function(w) length(w) > 1, writers)
@@ -217,7 +219,7 @@ chk("every output file has exactly one writing script", !length(multi),
 #     stats scripts write outputs/. 02_qc_c0_screen.R rewrote data/compiled/ in place
 #     through a variable (f <- "data/compiled/..."), which the literal-path scan above
 #     cannot see, so paths held in variables are followed here.
-DATA_STAGES <- c("code/01_import", "code/02_flux", "code/03_merge", "code/zenodo", "code/tools", "code/05_model/01_load_and_prep_data.R")  # stages that build data/; tools/ holds the hand-run window picker
+DATA_STAGES <- c("code/01_import", "code/02_flux", "code/03_merge", "code/tables", "code/zenodo", "code/tools", "code/05_model/01_load_and_prep_data.R")  # stages that build data/; tools/ holds the hand-run window picker
 analysis <- live[!vapply(live, function(f) any(startsWith(f, DATA_STAGES)), TRUE) & !grepl("check_consistency", live)]
 writes_data <- character(0)
 for (f in analysis) {
