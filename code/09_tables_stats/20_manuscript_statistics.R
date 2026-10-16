@@ -1490,7 +1490,8 @@ record("plot_offset_pct", offset_pct)
 # so that calculation was removed. The scaling is
 # now a 240-combination grid (6 flux forms x 5 WAI x 4 branch x 2 bole) produced by
 # 07_scaling_full_grid.R, which holds the measured 0-2 m band fixed and lets only the
-# area above 2 m absorb the WAI choice. Quote the RANGE; the named cell is one of 240.
+# area above 2 m absorb the WAI choice. Quote the RANGE; the named pair (flux declines /
+# holds above 2 m) is two cells of 240.
 local({
   f <- "outputs/data/scaling_full_grid.csv"; h <- "outputs/data/scaling_headline.csv"
   if (!file.exists(f) || !file.exists(h)) {
@@ -1504,11 +1505,18 @@ local({
   stat("Net budget across the grid",
        sprintf("%.1f to %.1f", min(G$net_mg), max(G$net_mg)), "mg CH4 m-2 yr-1")
   stat("Sink in", sprintf("%d of %d combinations", sum(G$net_mg < 0), nrow(G)))
-  stat("Illustrative scenario", sprintf("%.2f mg (%.1f%% of soil, %.0f%% extrapolated)",
-       H$total_mg[1], H$pct_of_soil[1], H$pct_extrapolated[1]))
+  Gp <- G[G$flux != "linear_bounded_median", ]
+  stat(sprintf("Range excluding the uptake form (%d)", nrow(Gp)),
+       sprintf("%.1f to %.1f", min(Gp$total_mg), max(Gp$total_mg)), "mg CH4 m-2 yr-1")
+  for (k in seq_len(nrow(H))) {
+    stat(sprintf("Whole surface, flux %s above 2 m (%s)",
+                 ifelse(H$case[k] == "decline", "declines", "holds"), H$flux[k]),
+         sprintf("%.2f mg (%.1f%% of soil, %.0f%% extrapolated; net %.1f)",
+                 H$total_mg[k], H$pct_of_soil[k], H$pct_extrapolated[k], H$net_mg[k]))
+    record(sprintf("whole_surface_%s_mg_m2_yr", H$case[k]), H$total_mg[k])
+  }
   record("whole_surface_lo_mg_m2_yr", min(G$total_mg))
   record("whole_surface_hi_mg_m2_yr", max(G$total_mg))
-  record("headline_total_mg_m2_yr", H$total_mg[1])
 })
 
 

@@ -61,7 +61,7 @@ C,code/06_upscale/03_budget_canonical.R,root,TRUE,measured-band budget; soil bud
 C,code/06_upscale/04_wai_bottomup.R,root,TRUE,bottom-up woody area index for this stand
 C,code/06_upscale/05_surface_area_model.R,root,FALSE,stem surface-area model
 C,code/06_upscale/06_area_distribution_scenarios.R,root,FALSE,vertical distributions of woody area
-C,code/06_upscale/07_scaling_full_grid.R,root,TRUE,the 240-combination whole-surface grid and named scenario
+C,code/06_upscale/07_scaling_full_grid.R,root,TRUE,the 240-combination whole-surface grid and the named pair (decline; hold)
 C,code/06_upscale/08_scaling_assumptions_audit.R,root,FALSE,audit of height and allometry assumptions
 D,code/05_model/05_audit_training_population.R,root,FALSE,evidence for the training-population decisions
 D,code/05_model/06_rf_model_diagnostics.R,root,FALSE,four-panel diagnostics for each model

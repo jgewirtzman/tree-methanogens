@@ -66,13 +66,17 @@ D_TREE <- as.numeric(local({ i <- canonical_inventory(); quantile(i$dbh_m[i$dbh_
 # grep returned NA, panel (d) filtered to zero rows and the subtitle printed "NA".
 REP_WAI <- grep("bottom-up, this stand", unique(AR$WAI), value = TRUE)[1]
 stopifnot(length(REP_WAI) == 1, !is.na(REP_WAI))
-REP_BRANCH <- "gaussian_75"; REP_BOLE <- "cone"; REP_FLUX <- "exp_band_slope"
+# geometry and the two flux forms of the named pair, read from the producer
+HL <- read.csv(out_path("scaling_headline.csv"), stringsAsFactors = FALSE)
+stopifnot(identical(HL$case, c("decline", "hold")), length(unique(HL$branch)) == 1,
+          length(unique(HL$bole)) == 1, all(HL$WAI == REP_WAI))
+REP_BRANCH <- HL$branch[1]; REP_BOLE <- HL$bole[1]
 
 COLF <- setNames(c("#b2182b","#d6604d","#f4a582","#92c5de","#4393c3","#2166ac"), FO)
 th <- theme_bw(base_size = 11) +
   theme(panel.grid.minor = element_blank(), legend.title = element_blank(),
         legend.key.size = unit(0.45, "cm"), legend.text = element_text(size = 9.5))
-FLUX_LAB <- c(constant = "Constant", exp_band_slope = "Per-stem exponential (illustrative)", power = "Power",
+FLUX_LAB <- c(constant = "Constant", exp_band_slope = "Per-stem exponential", power = "Power",
               exponential = "Exponential", linear_floored = "Linear, floored at zero",
               linear_bounded_median = "Linear into uptake")
 BRANCH_LAB <- c(uniform_all = "Uniform,\nwhole stem", uniform_top50 = "Uniform,\nupper half",
@@ -161,7 +165,10 @@ pb <- ggplot(TREE %>% filter(bole == REP_BOLE), aes(area_per_m, z, fill = part))
 # height. They are different questions and the second is the one that ends up in
 # the budget: a crown can hold most of the area and still contribute little if the
 # flux there is assumed low, which is exactly what separates the two forms.
-C_FORMS <- c("constant", "exp_band_slope")
+# The two forms are the named pair (decline = exponential, hold = constant).
+C_FORMS <- HL$flux
+CASE_LAB <- setNames(sprintf("%s: flux %s above 2 m", FLUX_LAB[HL$flux],
+                             ifelse(HL$case == "decline", "declines", "holds")), HL$flux)
 fx_of <- function(form) FX[FX$flux == form, ]
 fl_at <- function(z, form) {
   fx <- fx_of(form)
@@ -208,18 +215,17 @@ pc2 <- ggplot(ONE2, aes(y = z)) +
   th + theme(legend.position = "none", strip.text = element_text(size = 7))
 
 # ---- d: the inventory sum, for the same two forms ---------------------------
-# Which scenario is being drawn was previously implicit. It is now read from
-# scaling_headline.csv, defined once in 07_scaling_full_grid.R: the conservative
-# flux form, our own bottom-up WAI for this stand, a crown centred at 0.75H, and
-# the bole shape that makes no difference. Both forms are shown, because the RANGE
-# is the result and a single bar would read as an estimate.
-HL <- read.csv(out_path("scaling_headline.csv"), stringsAsFactors = FALSE)
+# The named pair from scaling_headline.csv (07_scaling_full_grid.R): decline and
+# hold, at our own bottom-up WAI, a crown centred at 0.75H and a cone bole.
 MEAS_BAND <- unique(GR$measured_mg)[1]
 mkP <- function(form) {
   AR %>% filter(WAI == REP_WAI, bole == REP_BOLE, branch == REP_BRANCH) %>%
     select(z, fluxarea_per_m) %>%
     left_join(fx_of(form) %>% select(z, ratio), "z") %>%
-    mutate(ratio = ifelse(is.na(ratio), 1, ratio),
+    # the forms apply ABOVE 2 m only. The 0-2 m band is the measured profile for
+    # every form; without this the exponential's own curve was carried below 2 m
+    # (ratio > 1) and bent the band, which no capped form had exposed before.
+    mutate(ratio = ifelse(is.na(ratio) | z <= BAND, 1, ratio),
            integrand = fluxarea_per_m * ratio / STAND_AREA_M2 * CONV,
            form = factor(form, levels = C_FORMS))
 }
@@ -233,12 +239,12 @@ LAB <- PD %>% group_by(form) %>%
             above = 100*(1 - sum(integrand[z <= BAND])*dzP/sum(integrand*dzP)), .groups="drop")
 # The printed totals are the GRID's (scaling_full_grid.csv), the numbers the text quotes.
 # The binned integral drawn here is a 1 m approximation of the same sum and read
-# 13.9 mg against the grid's 15.4 for the named cell; the shape is the figure's job,
+# 13.9 mg against the grid's 15.4 for one cell; the shape is the figure's job,
 # the number is the grid's.
 GRD <- read.csv("outputs/data/scaling_full_grid.csv", stringsAsFactors = FALSE)
 LAB_BIN <- LAB
 LAB <- LAB %>% mutate(form_chr = as.character(form)) %>%
-  left_join(GRD %>% filter(WAI == HL$WAI, branch == HL$branch, bole == HL$bole) %>%
+  left_join(GRD %>% filter(WAI == REP_WAI, branch == REP_BRANCH, bole == REP_BOLE) %>%
               transmute(form_chr = flux, g_tot = total_mg, g_above = pct_extrapolated), "form_chr") %>%
   mutate(tot = g_tot, above = g_above)
 stopifnot(all(is.finite(LAB$tot)))
@@ -252,7 +258,7 @@ pd <- ggplot(PD, aes(y = z)) +
   geom_hline(yintercept = BAND, colour = "grey25", linewidth = 0.3, linetype = "dashed") +
   geom_text(data = LAB, aes(x = Inf, y = 24, label = sprintf("%.1f mg in total\n%.0f%% above 2 m", tot, above)),
             hjust = 1.05, size = 3.4, colour = "grey20", inherit.aes = FALSE) +
-  facet_wrap(~form, nrow = 1, labeller = as_labeller(FLUX_LAB)) +
+  facet_wrap(~form, nrow = 1, labeller = as_labeller(CASE_LAB)) +
   scale_y_continuous(limits = c(0, 26), expand = c(0, 0)) +
   scale_x_continuous(expand = c(0, 0)) +
   labs(x = expression("mg CH"[4]*" m"^-2*" yr"^-1*" per m of height"), y = "Height (m)") +
@@ -285,11 +291,10 @@ cat("  per species at the base:\n")
 print(as.data.frame(BPsp %>% group_by(series) %>% slice_min(z, n = 1) %>%
       transmute(species = series, base_ratio = round(ratio, 2)) %>% arrange(-base_ratio)),
       row.names = FALSE)
-cat("\n=== HEADLINE SCENARIO drawn in (c) and (d) ===\n")
-cat(sprintf("  flux %s | WAI %s | branch %s | bole %s\n",
-            HL$flux, HL$WAI, HL$branch, HL$bole))
-cat(sprintf("  grid total %.1f mg CH4 m-2 yr-1 (%.1f%% of soil, %.0f%% extrapolated)\n",
-            HL$total_mg, HL$pct_of_soil, HL$pct_extrapolated))
+cat(sprintf("\n=== NAMED PAIR drawn in (c): WAI %s | branch %s | bole %s ===\n",
+            REP_WAI, REP_BRANCH, REP_BOLE))
+cat(sprintf("  %-8s %-12s grid total %.1f mg CH4 m-2 yr-1 (%.1f%% of soil, %.0f%% extrapolated)\n",
+            HL$case, HL$flux, HL$total_mg, HL$pct_of_soil, HL$pct_extrapolated), sep = "")
 cat("\n  panel (d) labels (grid) against this figure's 1 m binned integral:\n")
 print(as.data.frame(LAB %>% transmute(form, grid_mg = round(tot,1), grid_pct_above = round(above),
                                       binned_mg = round(LAB_BIN$tot,1))), row.names = FALSE)

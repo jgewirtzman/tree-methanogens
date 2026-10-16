@@ -215,7 +215,7 @@ Written to `outputs/data/` and copied, for the archive, into `data/compiled/resu
 | `canonical_budget.csv` | `06_upscale/03_budget_canonical.R` | Stand area, stem area, tree and soil flux terms, net budget, model skill |
 | `canonical_monthly.csv` | `06_upscale/03_budget_canonical.R` | Monthly tree and soil terms |
 | `scaling_full_grid.csv` | `06_upscale/07_scaling_full_grid.R` | All 240 scaling scenario combinations |
-| `scaling_headline.csv` | `06_upscale/07_scaling_full_grid.R` | The reported scaling scenario |
+| `scaling_headline.csv` | `06_upscale/07_scaling_full_grid.R` | The two reported whole-surface cases: flux declines / holds above 2 m |
 | `wai_bottomup.csv` | `06_upscale/04_wai_bottomup.R` | Bottom-up woody area index |
 | `rf_grouped_cv.csv` | `05_model/04_rf_grouped_cv.R` | Cross-validated model skill, grouped by tree and by collar |
 

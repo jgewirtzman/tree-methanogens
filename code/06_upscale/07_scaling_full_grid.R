@@ -30,8 +30,8 @@ source("code/lib/outputs.R")
 #       linear_floored    linear decline truncated at zero
 #       linear_bounded_median  linear decline continuing THROUGH zero into net
 #                         uptake, bounded at the median detected stem uptake
-#       exp_band_slope per-stem slope learned by the RF from species, moisture,
-#                         temperature and DBH, capped at that stem's own 2 m value
+#       exp_band_slope    per-stem decay fitted to that stem's MODELLED 0-2 m profile,
+#                         capped at its own 2 m value
 #
 #   An asymptotic ("decline then plateau") form is NOT carried separately: it is
 #   algebraically phi*constant + (1-phi)*exponential, so the family is spanned by the
@@ -143,7 +143,7 @@ rf_slope <- as.numeric(apply(PROFI,1,function(f){
   if(any(!is.finite(f))||all(f<=0)||sd(f)==0) return(0)
   as.numeric(coef(lm(log(pmax(f,1e-9))~zh))[2])}))
 
-# The three disclosures that must accompany the named cell are COMPUTED
+# The three disclosures that must accompany exp_band_slope are COMPUTED
 # here; the values that stood in the comments below were typed by hand and drifted
 # across model versions (-0.914 / +0.052 / 0.580 and -0.672 / +0.057 / 0.559).
 slope_fit <- function(f, z) {
@@ -330,75 +330,40 @@ for (bn in names(BOLE)) for (rn in names(BRANCH)) {
 R <- bind_rows(res)
 write.csv(R, out_path("scaling_full_grid.csv"), row.names=FALSE)
 
-# ---- THE ILLUSTRATIVE SCENARIO, defined once ---------------------------------------
-# One combination is quoted in the text and drawn in the figures, so it is defined
-# here rather than chosen ad hoc in each script:
-#   flux    exp_band_slope  a decay rate taken from the model's own within-band
-#                           profile rather than from an assumed shape.
-#                           IT IS NOT "the lowest of the positive forms" -- that
-#                           claim stood here and is false. At this geometry it is
-#                           third of five positive forms (constant 55.9, power 25.5,
-#                           exp_band_slope 15.7, exponential 7.7, linear_floored
-#                           5.1 mg), so it cannot be defended as the conservative
-#                           choice. It is also the form the project's own evidence
-#                           argues against quoting: leave-one-height-out CV ranks
-#                           this family LAST on upward extrapolation (exp_zero RMSE
-#                           6.899 vs constant 0.425), 14_rf_height_extrapolation.R
-#                           concludes in its own text that it should be reported
-#                           "as a low-end bounding scenario, not as the best
-#                           estimate", and the only direct measurements above 2 m
-#                           (the climbed oak, 0.82x at 10 m) contradict it -- this
-#                           form puts the median stem at 0.005x by 10 m.
-#                           ADOPTED as the named cell (2026-07-30). A budget cascade needs a
-#                           centre and a mean over scenarios would be arbitrary
-#                           weighting; of the candidates this is the only one whose
-#                           SHAPE is model-informed -- the decay rate varies per stem
-#                           with species, size and moisture rather than being one
-#                           imposed curve -- so the stand total reflects composition.
-#                           It also sits mid-range rather than at an extreme.
-#
-#                           THREE THINGS MUST BE DISCLOSED WHEREVER IT IS QUOTED:
-#                             1. the fitted slope is dominated by the lowest interval --
-#                                refit without it and the median slope changes sign;
-#                             2. the per-stem 4-point fits are poor (median R2) and
-#                                1.13 m of fit is projected to ~25 m;
-#                                (values for 1-2: outputs/data/scaling_slope_diagnostics.csv)
-#                             3. it is the ONLY form whose shape depends on the model.
-#                                power, exponential and linear_floored are fitted to
-#                                the OBSERVED three-height means, so their shapes move
-#                                only through the 2 m anchor. When air temperature was
-#                                restored to the tree model this cell moved 20% while
-#                                those moved ~5%.
-#                           Alternatives considered and rejected: `constant` (best on
-#                           the leave-one-height-out CV and invariant to the unsourced
-#                           area shapes, but it is the LARGEST positive scenario, 92%
-#                           extrapolated, and the CV validates 0.75 m of extrapolation
-#                           rather than 23 m); `power` (mid-range and model-independent,
-#                           but not model-informed). THE RANGE IS STILL THE RESULT --
-#                           this is the cascade's centre, not an estimate of the truth.
-#   WAI     2.11            our bottom-up estimate for THIS stand, not a
-#                           literature value imported from another forest
-#   branch  gaussian_75     a crown centred at 0.75H, which is what a closed-canopy
-#                           dominant looks like after self-pruning; the hard-cutoff
-#                           and low-centred alternatives are kept as scenarios
-#   bole    cone            irrelevant (0.3 mg across the whole grid), so the
-#                           simpler of the two W&W forms
-# The RANGE, not this cell, is the result; this is the cell to point at.
-# Select the headline WAI by its MEANING, not by its digits. This was
-# grep("2.11", names(WAIS)) -- a numeric string match, so the moment the bottom-up
-# estimate was corrected from 2.11 to 2.82 the selector silently returned NA.
-HEADLINE <- list(flux = "exp_band_slope", branch = "gaussian_75", bole = "cone",
-                 WAI = grep("bottom-up, this stand", names(WAIS), value = TRUE)[1])
-stopifnot(length(HEADLINE$WAI) == 1, !is.na(HEADLINE$WAI))
-hr <- R[R$flux == HEADLINE$flux & R$branch == HEADLINE$branch &
-        R$bole == HEADLINE$bole & R$WAI == HEADLINE$WAI, ]
-write.csv(cbind(as.data.frame(HEADLINE), hr[, c("measured_mg","extrapolated_mg",
-          "total_mg","pct_extrapolated","pct_of_soil","net_mg")]),
-          out_path("scaling_headline.csv"), row.names=FALSE)
-cat(sprintf("\n=== HEADLINE SCENARIO ===\n  %s | %s | %s | %s\n",
-            HEADLINE$flux, HEADLINE$WAI, HEADLINE$branch, HEADLINE$bole))
-cat(sprintf("  total %.1f mg CH4 m-2 yr-1 (%.1f%% of soil uptake, %.0f%% extrapolated)\n",
-            hr$total_mg, hr$pct_of_soil, hr$pct_extrapolated))
+# ---- THE NAMED PAIR, defined once (2026-10-16) --------------------------------
+# The whole-surface estimate is quoted as TWO cases at one geometry, not one cell:
+#   decline  flux `exponential`: the decay fitted to the observed campaign means at
+#            0.5 / 1.25 / 2 m, carried upward. This is the pooled measured decline,
+#            and it is mostly yellow birch: without that species the pooled slope
+#            is ~0. It is not a validated extrapolator (exponential decay scored last
+#            on upward leave-one-height-out CV).
+#   hold     flux `constant`: each stem keeps its own 2 m value. Best upward
+#            extrapolator in the same CV (13_height_form_crossvalidation.R) and
+#            consistent with the climbed oak (0.82x the 2 m flux at 10 m).
+# Both shapes come from MEASUREMENTS. exp_band_slope (a per-stem decay fitted to
+# the RF's modelled 0-2 m profile) is no longer named: it extrapolates the
+# forest's within-band height step, which nothing measured above 2 m supports. It
+# remains one of the six grid forms.
+# Shared geometry: WAI = our bottom-up estimate for THIS stand (selected by its
+# label, never by its digits -- a digit match silently returned NA once the value
+# was corrected); branch gaussian_75 (crown centred at 0.75H); bole cone (bole
+# shape is worth <1 mg across the grid). THE RANGE IS STILL THE RESULT.
+HEAD_WAI <- grep("bottom-up, this stand", names(WAIS), value = TRUE)[1]
+stopifnot(length(HEAD_WAI) == 1, !is.na(HEAD_WAI))
+CASES <- data.frame(case = c("decline", "hold"), flux = c("exponential", "constant"),
+                    branch = "gaussian_75", bole = "cone", WAI = HEAD_WAI,
+                    stringsAsFactors = FALSE)
+HL <- merge(CASES, R, by = c("flux", "branch", "bole", "WAI"), sort = FALSE)
+stopifnot(nrow(HL) == nrow(CASES))
+HL <- HL[match(CASES$case, HL$case), c("case", "flux", "branch", "bole", "WAI",
+         "measured_mg", "extrapolated_mg", "total_mg", "pct_extrapolated",
+         "pct_of_soil", "net_mg")]
+write.csv(HL, out_path("scaling_headline.csv"), row.names = FALSE)
+cat(sprintf("\n=== NAMED CASES === (%s | %s | %s)\n", HEAD_WAI, CASES$branch[1], CASES$bole[1]))
+for (i in seq_len(nrow(HL)))
+  cat(sprintf("  %-8s %-12s total %.1f mg CH4 m-2 yr-1 (%.1f%% of soil uptake, %.0f%% extrapolated), net %.1f\n",
+              HL$case[i], HL$flux[i], HL$total_mg[i], HL$pct_of_soil[i],
+              HL$pct_extrapolated[i], HL$net_mg[i]))
 
 # ---- export the SHAPES themselves, for figS27_scaling-profiles.R ------------
 # The profile figure must show exactly what this grid computed, so the curves are
@@ -559,7 +524,7 @@ for (i in seq_len(nrow(att))) cat(sprintf("  %-8s (%d levels)  median total %7.1
 cat(sprintf("\n  the flux form dominates the geometry by %.1fx (%.1f vs %.1f mg)\n",
             att$spread[1]/att$spread[2], att$spread[1], att$spread[2]))
 
-cat("\n--- headline candidate: constant flux, by WAI ---\n")
+cat("\n--- the hold case (constant flux), by WAI ---\n")
 hc <- R %>% filter(flux=="constant") %>% group_by(WAI) %>%
   summarise(total=mean(total_mg), measured=mean(measured_mg),
             pct_extrap=mean(pct_extrapolated), pct_soil=mean(pct_of_soil), .groups="drop")
@@ -570,7 +535,7 @@ cat("\n  (constant flux is identical across all 8 area shapes -- the vertical\n 
 # Order the panel by the forms that ACTUALLY exist. This was a hardcoded list of
 # six names, three of which (asymptote50, rf_learned, log_linear) were retired or
 # renamed: factor() silently mapped them to NA, so 120 of the 240 rows -- including
-# exp_band_slope, the headline form -- vanished from the figure without a warning.
+# exp_band_slope -- vanished from the figure without a warning.
 # Derive the order from FORMS so it can never fall out of step again.
 stopifnot(setequal(unique(R$flux), FORMS))
 R$flux <- factor(R$flux, levels=FORMS[order(-tapply(R$total_mg, R$flux, median)[FORMS])])

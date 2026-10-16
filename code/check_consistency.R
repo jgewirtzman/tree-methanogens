@@ -109,9 +109,17 @@ if (!is.null(G)) {
   chk("net = soil + total (all rows)",
       all(abs(G$net_mg - (v("soil_mg_m2_yr") + G$total_mg)) < 1e-6))
   chk("sink in every combination", all(G$net_mg < 0), sprintf("%d/%d", sum(G$net_mg < 0), nrow(G)))
-  if (!is.null(H)) chk("headline row is present in the grid",
-    any(G$flux == H$flux[1] & G$branch == H$branch[1] & G$bole == H$bole[1] & G$WAI == H$WAI[1]),
-    sprintf("%s | %s", H$flux[1], H$WAI[1]))
+  if (!is.null(H)) {
+    chk("named pair is decline = exponential, hold = constant",
+        identical(H$case, c("decline", "hold")) && identical(H$flux, c("exponential", "constant")),
+        paste(H$case, H$flux, sep = "=", collapse = ", "))
+    for (k in seq_len(nrow(H))) {
+      g <- G[G$flux == H$flux[k] & G$branch == H$branch[k] & G$bole == H$bole[k] & G$WAI == H$WAI[k], ]
+      chk(sprintf("%s case matches its grid row", H$case[k]),
+          nrow(g) == 1 && near(g$total_mg, H$total_mg[k]) && near(g$net_mg, H$net_mg[k]),
+          sprintf("%s | %s | %.2f mg", H$flux[k], H$WAI[k], H$total_mg[k]))
+    }
+  }
 }
 
 cat("\n== WAI provenance ==\n")

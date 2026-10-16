@@ -9,7 +9,7 @@ source("code/lib/outputs.R")
 #   * spatial -> temporal -> net reading order.
 #   * net flux made explicit via a waterfall (0 -> soil -> tree offset -> net).
 #   * units: maps + seasonal = nmol m-2 s-1 (rate); budget = mg m-2 yr-1 (integrated).
-#   * honesty: bounding scenario flagged unconstrained; RF OOB R2 noted.
+#   * honesty: whole-surface cases drawn dashed (extrapolated), with the grid range.
 #
 # Output: outputs/figures/generated/fig_budget_maps.png
 # ==============================================================================
@@ -47,27 +47,26 @@ tree_meas <- val("tree_measured_mg_m2_yr")
 
 # whole-woody-surface scenarios, from the sensitivity grid
 GR <- read.csv("outputs/data/scaling_full_grid.csv", stringsAsFactors = FALSE)
-# THE SCENARIO BAR IS THE HEADLINE SCENARIO, and its error bar is the WHOLE grid.
-# It previously drew the constant-flux case at WAI 2.11 with a bar spanning only
-# the WAI axis (56-115), which understated the uncertainty badly: varying WAI is
-# the second-smallest of the four assumptions, and the flux form -- which the bar
-# held fixed -- moves the answer six times further. Showing that interval as "the"
-# uncertainty implied the geometry was the open question when it is not.
+# THE WHOLE-SURFACE BARS ARE THE NAMED PAIR (scaling_headline.csv, defined in
+# 07_scaling_full_grid.R): flux declines above 2 m (exponential fitted to the
+# measured three-height means) and flux holds at each stem's 2 m value (constant).
+# One whisker shows the grid range. It used to be drawn on a single "illustrative"
+# bar, which read as a central estimate; the pair plus the range does not.
 HLF <- read.csv("outputs/data/scaling_headline.csv", stringsAsFactors = FALSE)
-tree_scen <- HLF$total_mg
-# excluding the uptake form, which is contradicted by the climbed tree; the full
-# range including it is reported in the caption line below
+stopifnot(identical(HLF$case, c("decline", "hold")))
+tree_dec <- HLF$total_mg[HLF$case == "decline"]
+tree_hold <- HLF$total_mg[HLF$case == "hold"]
+# whisker: the grid excluding the uptake form, which is contradicted by the climbed
+# tree; the full range including it is printed below for the caption
 GRp <- GR[GR$flux != "linear_bounded_median", ]
 tree_lo <- min(GRp$total_mg); tree_hi <- max(GRp$total_mg)
 tree_grid_lo <- min(GR$total_mg); tree_grid_hi <- max(GR$total_mg)
-CF <- GR[GR$flux == "constant", ]
-pct_extrapolated <- HLF$pct_extrapolated
 
 off <- function(x) 100 * abs(x)/abs(soil_ann)
 rf_tree_r2 <- val("tree_r2_oob"); rf_soil_r2 <- val("soil_r2_oob")
 n_trees <- nrow(tree_pts)
-cat(sprintf("read canonical: soil %.2f | tree measured %.2f | scenario %.1f (%.1f-%.1f) | grid %.1f-%.1f\n",
-            soil_ann, tree_meas, tree_scen, tree_lo, tree_hi, tree_grid_lo, tree_grid_hi))
+cat(sprintf("read canonical: soil %.2f | tree measured %.2f | decline %.1f | hold %.1f | grid %.1f-%.1f (all %.1f-%.1f)\n",
+            soil_ann, tree_meas, tree_dec, tree_hold, tree_lo, tree_hi, tree_grid_lo, tree_grid_hi))
 
 # shared map extent so a & b align exactly
 # MAPPED IN PLOT-LOCAL METRES, not lon/lat. The moisture grid is regular in PX/PY
@@ -217,85 +216,84 @@ pc <- ggplot(mon, aes(month, nmol, colour = src)) +
   scale_y_continuous(labels = function(b) sub("^-", "\u2212", format(b, trim = TRUE, drop0trailing = TRUE))) +
   labs(x = NULL, y = expression("CH"[4]*" flux (nmol m"^-2*" s"^-1*")")) +
   theme_bw(base_size = 11) +
-  theme(axis.text.x = element_text(size = 9),
+  theme(axis.text.x = element_text(size = 8),
         strip.background = element_rect(fill = "white", color = NA),
         strip.text = element_text(size = 9, color = "black"),
         panel.grid.minor = element_blank())
 
 # ---- (d) net budget waterfall (mg m-2 yr-1) ----------------------------------
-# steps: baseline 0 -> soil -> tree(measured) -> tree(scenario) -> NET(total)
+# steps: 0 -> soil -> stems 0-2 m -> whole surface (two alternative cases, each
+# starting from the top of the 0-2 m bar) -> net (one half-bar per case)
+STEPS <- c("Soil\nuptake", "Stems,\n0–2 m", "Whole\nsurface:\ndeclines\nabove 2 m",
+           "Whole\nsurface:\nholds\nabove 2 m", "Net\nbudget", "Foliage\n(unknown)")
+base <- soil_ann + tree_meas
+HW <- 0.42                      # bar half-width
 wf <- tibble(
-  step  = factor(c("Soil\nuptake","Stems,\n0–2 m","Stems,\nwhole\nsurface","Net\nbudget"),
-                 levels = c("Soil\nuptake","Stems,\n0–2 m","Stems,\nwhole\nsurface","Net\nbudget")),
-  ymin  = c(soil_ann, soil_ann, soil_ann + tree_meas, 0),
-  ymax  = c(0, soil_ann + tree_meas, soil_ann + tree_meas + (tree_scen - tree_meas),
-            soil_ann + tree_scen),
-  fill  = c("sink","src","src_lt","net"),
-  # scenario bar (whole woody surface, constant-flux extrapolation) drawn dashed = hypothetical
-  lty   = c("solid","solid","dashed","solid"))
-netmeas <- soil_ann + tree_meas    # net if only measured tree offset
-# foliage: an unmeasured term of unknown MAGNITUDE and SIGN (illustrative half-height only)
-fol_h <- tree_scen
-fol   <- tibble(x = 5)
-FOLIAGE_STYLE <- "dashed"   # "dashed" (hard box; preferred) or "gradient" (alpha fades with |flux| — too noisy)
-if (FOLIAGE_STYLE == "dashed") {
-  fol_layer <- list(geom_rect(data = fol, aes(xmin = x-0.42, xmax = x+0.42, ymin = -fol_h, ymax = fol_h),
-                    fill = "grey88", color = "grey45", linetype = "dashed", linewidth = 0.4, inherit.aes = FALSE))
-} else {                       # opaque at zero -> increasingly transparent away from zero (both signs)
-  .bs   <- seq(-fol_h, fol_h, length.out = 121)
-  fgrad <- tibble(x = 5, ymin = head(.bs, -1), ymax = tail(.bs, -1))
-  fgrad$a <- 1 - abs((fgrad$ymin + fgrad$ymax) / 2) / fol_h
-  fol_layer <- list(
-    geom_rect(data = fgrad, aes(xmin = x-0.42, xmax = x+0.42, ymin = ymin, ymax = ymax, alpha = a),
-              fill = "grey35", inherit.aes = FALSE),
-    scale_alpha_identity())
-}
+  x    = c(1, 2, 3, 4, 5 - HW/2, 5 + HW/2),
+  hw   = c(HW, HW, HW, HW, HW/2 - 0.02, HW/2 - 0.02),
+  ymin = c(soil_ann, soil_ann, base, base, soil_ann + tree_dec, soil_ann + tree_hold),
+  ymax = c(0, base, soil_ann + tree_dec, soil_ann + tree_hold, 0, 0),
+  fill = c("sink", "src", "src_lt", "src_lt", "net", "net"),
+  # whole-surface bars are extrapolations: drawn dashed
+  lty  = c("solid", "solid", "dashed", "dashed", "solid", "solid"))
+# foliage: an unmeasured term of unknown MAGNITUDE and SIGN; the box is drawn at the
+# larger (hold) whole-surface magnitude, purely to signal scale
+fol_h <- max(tree_dec, tree_hold)
+fol   <- tibble(x = 6)
+lab1 <- function(v) sprintf(if (abs(v) < 20) "+%.1f" else "+%.0f", v)
+neg  <- function(v) sub("-", "\u2212", sprintf("%.0f", v))
 pd <- ggplot(wf) +
-  geom_rect(aes(xmin = as.numeric(step)-0.42, xmax = as.numeric(step)+0.42,
-                ymin = ymin, ymax = ymax, fill = fill, linetype = lty),
-            color = "grey30", linewidth = 0.35) +
+  geom_rect(aes(xmin = x - hw, xmax = x + hw, ymin = ymin, ymax = ymax,
+                fill = fill, linetype = lty), color = "grey30", linewidth = 0.35) +
   scale_linetype_identity() +
-  geom_segment(aes(x = as.numeric(step)+0.42, xend = as.numeric(step)+1-0.42, y = ymax, yend = ymax),
-               data = wf[1:3,], color = "grey55", linetype = "dashed", linewidth = 0.3) +
-  # foliage — bar straddling zero (unknown sign); style set by FOLIAGE_STYLE above
-  fol_layer +
-  annotate("text", x = 5, y = 0, label = "?", size = 4.4, fontface = "bold",
-           color = if (FOLIAGE_STYLE == "gradient") "white" else "grey35") +
+  # connectors: soil -> 0-2 m -> both whole-surface cases
+  annotate("segment", x = 1 + HW, xend = 2 - HW, y = soil_ann, yend = soil_ann,
+           color = "grey55", linetype = "dashed", linewidth = 0.3) +
+  annotate("segment", x = 2 + HW, xend = 4 - HW, y = base, yend = base,
+           color = "grey55", linetype = "dashed", linewidth = 0.3) +
+  # grid range (200 combinations excluding the uptake form), between the two cases
+  annotate("errorbar", x = 3.5, ymin = soil_ann + tree_lo, ymax = soil_ann + tree_hi,
+           width = 0.1, colour = "grey25", linewidth = 0.45) +
+  annotate("text", x = 3.5, y = soil_ann + tree_hi, label = "grid\nrange",
+           vjust = -0.25, size = 2.9, colour = "grey30", lineheight = 0.85) +
+  geom_rect(data = fol, aes(xmin = x - HW, xmax = x + HW, ymin = -fol_h, ymax = fol_h),
+            fill = "grey88", color = "grey45", linetype = "dashed", linewidth = 0.4,
+            inherit.aes = FALSE) +
+  annotate("text", x = 6, y = 0, label = "?", size = 4.4, fontface = "bold", color = "grey35") +
   geom_hline(yintercept = 0, color = "grey60") +
   scale_fill_manual(values = c(sink = SINK, src = SRC, src_lt = SRC_LT, net = NETC), guide = "none") +
-  scale_x_continuous(breaks = 1:5, labels = c(levels(wf$step), "Foliage\n(unknown)"), limits = c(0.4, 5.6)) +
+  scale_x_continuous(breaks = 1:6, labels = STEPS, limits = c(0.45, 6.55), expand = c(0, 0)) +
   scale_y_continuous(labels = function(b) sub("^-", "\u2212", format(b, trim = TRUE, drop0trailing = TRUE))) +
-  # labels computed from the variables above -- never hardcode, they drift
-  # negative totals sit inside the bottom of their bars (white); the axis edge and bar end crowded them
-  annotate("text", x = 1, y = soil_ann,             label = sub("-", "\u2212", sprintf("%.0f", soil_ann)),
-           vjust = -0.7, size = 3.6, colour = "white", fontface = "bold") +
-  annotate("text", x = 2, y = soil_ann + tree_meas, label = sprintf("+%.1f", tree_meas),
-           vjust = -0.8, size = 3.6) +
-  # total, not an increment: this bar INCLUDES the measured band drawn at x = 2
-  # placed above the top of the range line so the line does not cross it
-  annotate("text", x = 3, y = soil_ann + tree_hi, label = sprintf("+%.0f", tree_scen),
-           vjust = -0.6, size = 3.6) +
-  annotate("text", x = 4, y = soil_ann + tree_scen, label = sub("-", "\u2212", sprintf("%.0f", soil_ann + tree_scen)),
-           vjust = -0.7, size = 3.6, colour = "white", fontface = "bold") +
-  # bounding range on the scenario bar (WAI 1.50 - 3.07, constant flux)
-  annotate("linerange", x = 3, ymin = soil_ann + tree_lo, ymax = soil_ann + tree_hi,
-           colour = "grey25", linewidth = 0.5) +
-  # range sits BELOW the scenario bar: at x = 3.46 it overprinted the net-budget bar
+  # labels computed from the variables above -- never hardcode, they drift.
+  # Whole-surface labels are TOTALS (they include the 0-2 m band).
+  annotate("text", x = 1, y = soil_ann, label = neg(soil_ann),
+           vjust = -0.7, size = 3.4, colour = "white", fontface = "bold") +
+  annotate("text", x = 2, y = base, label = sprintf("+%.1f", tree_meas), vjust = -0.8, size = 3.4) +
+  annotate("text", x = 3, y = soil_ann + tree_dec, label = lab1(tree_dec), vjust = -0.6, size = 3.4) +
+  annotate("text", x = 4, y = soil_ann + tree_hold, label = lab1(tree_hold), vjust = -0.6, size = 3.4) +
+  # net: one half-bar per case, named and valued inside (too narrow for a level label)
+  annotate("text", x = wf$x[5:6], y = (soil_ann + c(tree_dec, tree_hold)) / 2,
+           label = sprintf("%s  %s", c("declines", "holds"), neg(soil_ann + c(tree_dec, tree_hold))),
+           angle = 90, size = 3.0, colour = "white", fontface = "bold") +
   labs(x = NULL, y = expression("CH"[4]*" (mg m"^-2*" yr"^-1*", per m"^2*" ground)")) +
   theme_bw(base_size = 11) +
-  theme(axis.text.x = element_text(size = 9.5), panel.grid.minor = element_blank())
+  theme(axis.text.x = element_text(size = 8, lineheight = 0.9),
+        panel.grid.minor = element_blank(), panel.grid.major.x = element_blank())
 
 # ---- assemble (net-sink / RF-R2 / basis notes go in the figure CAPTION) -------
-fig <- (pa | pb) / (pc | pd) + plot_layout(heights = c(1.05, 1)) +
+# panel (d) carries six labelled columns, so the bottom row gives it more width
+fig <- (pa | pb) / ((pc | pd) + plot_layout(widths = c(0.85, 1.15))) + plot_layout(heights = c(1.05, 1)) +
   plot_annotation(tag_levels = 'a', tag_prefix = "(", tag_suffix = ")") & theme(plot.tag = element_text(face = "bold", size = 13))
 ggsave(out_path("fig_budget_maps.png"), fig, width = 9.2, height = 8, dpi = 300, bg = "white")   # near print size
 cat("Wrote fig_budget_maps.png\n")
-cat(sprintf("Soil %.1f | tree measured %.2f (%.2f%% of soil) | tree scenario %.1f (%.1f%%, %.0f%% extrapolated)\n",
-            soil_ann, tree_meas, off(tree_meas), tree_scen, off(tree_scen), pct_extrapolated))
-cat(sprintf("headline scenario: %s | %s | %s | %s\n", HLF$flux, HLF$WAI, HLF$branch, HLF$bole))
-cat(sprintf("bar %.1f, error bar %.1f-%.1f (%d combinations excluding the uptake form)\n",
-            tree_scen, tree_lo, tree_hi, nrow(GRp)))
+for (k in seq_len(nrow(HLF)))
+  cat(sprintf("%-8s %s | %s | %s | %s : total %.1f (%.1f%% of soil, %.0f%% extrapolated), net %.0f\n",
+              HLF$case[k], HLF$flux[k], HLF$WAI[k], HLF$branch[k], HLF$bole[k], HLF$total_mg[k],
+              HLF$pct_of_soil[k], HLF$pct_extrapolated[k], HLF$net_mg[k]))
+cat(sprintf("Soil %.1f | tree measured %.2f (%.2f%% of soil)\n", soil_ann, tree_meas, off(tree_meas)))
+cat(sprintf("grid-range whisker %.1f-%.1f (%d combinations excluding the uptake form)\n",
+            tree_lo, tree_hi, nrow(GRp)))
 cat(sprintf("full %d-combination range including it: %.1f-%.1f\n",
             nrow(GR), tree_grid_lo, tree_grid_hi))
-cat(sprintf("Net budget %.0f (measured only) to %.0f (scenario) mg CH4 m-2 yr-1 -- sink throughout\n",
-            soil_ann+tree_meas, soil_ann+tree_scen))
+cat(sprintf("Net budget %.0f (measured only); %.0f (declines) to %.0f (holds) mg CH4 m-2 yr-1 -- sink throughout\n",
+            soil_ann + tree_meas, soil_ann + tree_dec, soil_ann + tree_hold))
