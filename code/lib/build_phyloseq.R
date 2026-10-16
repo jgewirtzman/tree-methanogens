@@ -52,7 +52,11 @@ build_16s_phyloseq <- function() {
   ddpcr <- merge(ddpcr, water,    by = c("core_type", "seq_id"), all.x = TRUE)
   ddpcr <- merge(ddpcr, qpcr_16s, by = c("core_type", "seq_id"), all.x = TRUE)
 
-  otu_tab <- read.delim("data/raw/16s/OTU_table.txt", header = TRUE, row.names = 1)
+  # check.names = FALSE: the default renames the two libraries whose names start with
+  # a digit (202.C02, 206.B01 -> X202..., X206...), so they no longer matched the
+  # mapping file and phyloseq dropped them -- including 206.B01, RO104 heartwood.
+  otu_tab <- read.delim("data/raw/16s/OTU_table.txt", header = TRUE, row.names = 1,
+                        check.names = FALSE)
   # Positional split -- fail loudly if the table is no longer 596 columns wide.
   if (ncol(otu_tab) != max(OTU_TAX_COLS))
     stop(sprintf("OTU_table.txt has %d columns, expected %d; the positional split at %s would mis-assign taxonomy.",
@@ -84,6 +88,8 @@ build_16s_phyloseq <- function() {
   if (length(dups)) samp_data_merged <- samp_data_merged[-dups, ]
   row.names(samp_data_merged) <- samp_data_merged$RowName
 
+  miss <- setdiff(colnames(otu_tab_corr), row.names(samp_data_merged))
+  if (length(miss)) stop("16S libraries without mapping rows: ", paste(miss, collapse = ", "), call. = FALSE)
   raw_ps <- phyloseq::phyloseq(tax_tab_pre, otu_table_pre, phylo_tree,
                                phyloseq::sample_data(samp_data_merged))
 

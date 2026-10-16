@@ -14,8 +14,8 @@ source("code/lib/outputs.R")
 #   soil_vwc_pct: mean of the probe readings at the hole (VWC1-3); a hole whose
 #     first reading is "saturated" (no other reading) is 60 % -- the value
 #     soil_tree_level_means.csv uses; vwc_saturated marks these holes.
-#     "3,9" (RO2, hole N, VWC3) is read as 3.9 (decimal comma; the hole's other
-#     readings are 2.6 and 5.4). soil_tree_level_means.csv read it as 39.
+#     RO2 hole N's third reading was recorded "3,9" (decimal comma); corrected to 3.9
+#     in the raw sheets (data/raw/CORRECTIONS.md, 2026-10-15).
 #   mineral_depth_cm: NA where recorded as ">45" or "water" (kept in notes), as in
 #     soil_tree_level_means.csv.
 # The tree means in soil_tree_level_means.csv (which reach the analysis through
@@ -193,7 +193,7 @@ diffs <- function(ref, label) {
     transmute(against = label, tree_id, variable = v, today = .data[[paste0(v, "_today")]], table = .data[[paste0(v, "_table")]])))
 }
 D1 <- diffs(MTm, "merged_tree_dataset_final.csv"); D2 <- diffs(SM, "soil_tree_level_means.csv")
-EXPECTED <- tibble(tree_id = "RO2", variable = "VWC_mean")       # "3,9" read as 3.9, not 39
+EXPECTED <- tibble(tree_id = character(), variable = character())  # none since the RO2 raw fix (CORRECTIONS.md, 2026-10-15)
 unexpected <- bind_rows(D1, D2) %>% anti_join(EXPECTED, by = c("tree_id", "variable"))
 
 # (b) collars vs soil_env_by_collar.csv
