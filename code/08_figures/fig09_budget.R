@@ -223,7 +223,8 @@ pc <- ggplot(mon, aes(month, nmol, colour = src)) +
 # ---- (d) net budget waterfall (mg m-2 yr-1) ----------------------------------
 # steps: 0 -> soil -> stems 0-2 m -> whole surface -> net. The whole-surface bar is
 # the decline case (the lower of the named pair); the whisker spans the grid
-# (excluding the uptake form). The hold case and the net range go in the caption.
+# (excluding the uptake form), and the net bar carries the same range. Whiskers are
+# scenario ranges, not uncertainty intervals; the caption says so.
 STEPS <- c("Soil\nuptake", "Stems,\n0–2 m", "Whole\nwoody\nsurface", "Net\nbudget", "Foliage\n(unknown)")
 base <- soil_ann + tree_meas
 HW <- 0.38                      # bar half-width
@@ -234,9 +235,9 @@ wf <- tibble(
   fill = c("sink", "src", "src_lt", "net"),
   # the whole-surface bar is an extrapolation: drawn dashed
   lty  = c("solid", "solid", "dashed", "solid"))
-# foliage: an unmeasured term of unknown MAGNITUDE and SIGN; the box is drawn at the
-# whole-surface bar's magnitude, purely to signal scale
-fol_h <- tree_dec
+# foliage: an unmeasured term of unknown MAGNITUDE and SIGN; the box size is
+# arbitrary, chosen only to be readable
+fol_h <- 40
 fol   <- tibble(x = 5)
 lab1 <- function(v) sprintf(if (abs(v) < 20) "+%.1f" else "+%.0f", v)
 neg  <- function(v) sub("-", "\u2212", sprintf("%.0f", v))
@@ -251,9 +252,15 @@ pd <- ggplot(wf) +
            color = "grey55", linetype = "dashed", linewidth = 0.3) +
   annotate("segment", x = 3 + HW, xend = 4 - HW, y = soil_ann + tree_dec, yend = soil_ann + tree_dec,
            color = "grey55", linetype = "dashed", linewidth = 0.3) +
-  # grid range (200 combinations excluding the uptake form)
+  # scenario range (200 combinations excluding the uptake form), on the whole-surface
+  # bar and on the net bar; the net whisker is drawn black-under-white so it reads
+  # on the dark bar and on the white background
   annotate("errorbar", x = 3, ymin = soil_ann + tree_lo, ymax = soil_ann + tree_hi,
            width = 0.14, colour = "grey25", linewidth = 0.45) +
+  annotate("errorbar", x = 4, ymin = soil_ann + tree_lo, ymax = soil_ann + tree_hi,
+           width = 0.14, colour = "black", linewidth = 1.1) +
+  annotate("errorbar", x = 4, ymin = soil_ann + tree_lo, ymax = soil_ann + tree_hi,
+           width = 0.14, colour = "white", linewidth = 0.45) +
   geom_rect(data = fol, aes(xmin = x - HW, xmax = x + HW, ymin = -fol_h, ymax = fol_h),
             fill = "grey88", color = "grey45", linetype = "dashed", linewidth = 0.4,
             inherit.aes = FALSE) +
@@ -263,15 +270,17 @@ pd <- ggplot(wf) +
   scale_x_continuous(breaks = 1:5, labels = STEPS, limits = c(0.5, 5.5), expand = c(0, 0)) +
   scale_y_continuous(labels = function(b) sub("^-", "\u2212", format(b, trim = TRUE, drop0trailing = TRUE))) +
   # labels computed from the variables above -- never hardcode, they drift.
-  # The whole-surface label is the TOTAL (it includes the 0-2 m band); it sits left
-  # of the whisker so the two do not overlap.
+  # The whole-surface label is the TOTAL (it includes the 0-2 m band) with its
+  # scenario range, above the whisker; the net label sits inside the bar, above it.
   annotate("text", x = 1, y = soil_ann, label = neg(soil_ann),
            vjust = -0.7, size = 3.4, colour = "white", fontface = "bold") +
   annotate("text", x = 2, y = base, label = sprintf("+%.1f", tree_meas), vjust = -0.8, size = 3.4) +
-  annotate("text", x = 3 - 0.06, y = soil_ann + tree_dec, label = lab1(tree_dec),
-           hjust = 1, vjust = -0.6, size = 3.4) +
-  annotate("text", x = 4, y = soil_ann + tree_dec, label = neg(soil_ann + tree_dec),
-           vjust = -0.7, size = 3.4, colour = "white", fontface = "bold") +
+  annotate("text", x = 3, y = soil_ann + tree_hi,
+           label = sprintf("%s\n(%.1f–%.0f)", lab1(tree_dec), tree_lo, tree_hi),
+           vjust = -0.3, size = 3.2, lineheight = 0.9) +
+  annotate("text", x = 4, y = (soil_ann + tree_hi) / 2,
+           label = sprintf("%s\n(%s to\n%s)", neg(soil_ann + tree_dec), neg(soil_ann + tree_lo), neg(soil_ann + tree_hi)),
+           size = 3.2, lineheight = 0.9, colour = "white", fontface = "bold") +
   labs(x = NULL, y = expression("CH"[4]*" (mg m"^-2*" yr"^-1*", per m"^2*" ground)")) +
   theme_bw(base_size = 11) +
   theme(axis.text.x = element_text(size = 8, lineheight = 0.9),
