@@ -276,7 +276,7 @@ pd <- ggplot(wf) +
            vjust = -0.7, size = 3.4, colour = "white", fontface = "bold") +
   annotate("text", x = 2, y = base, label = sprintf("+%.1f", tree_meas), vjust = -0.8, size = 3.4) +
   annotate("text", x = 3, y = soil_ann + tree_hi,
-           label = sprintf("%s\n(%.1f–%.0f)", lab1(tree_dec), tree_lo, tree_hi),
+           label = sprintf("%s\n(%.1f to %.0f)", lab1(tree_dec), tree_lo, tree_hi),
            vjust = -0.3, size = 3.2, lineheight = 0.9) +
   annotate("text", x = 4, y = (soil_ann + tree_hi) / 2,
            label = sprintf("%s\n(%s to\n%s)", neg(soil_ann + tree_dec), neg(soil_ann + tree_lo), neg(soil_ann + tree_hi)),
@@ -286,9 +286,36 @@ pd <- ggplot(wf) +
   theme(axis.text.x = element_text(size = 8, lineheight = 0.9),
         panel.grid.minor = element_blank(), panel.grid.major.x = element_blank())
 
+# inset: the stem terms are a few mg against ~420 mg of soil uptake, so they are
+# redrawn on their own axis (mg emitted, from zero). The whole-surface bar is also
+# the difference between soil uptake and the net budget.
+zi <- tibble(x = 1:2, y = c(tree_meas, tree_dec), fill = c("src", "src_lt"),
+             lty = c("solid", "dashed"))
+pz <- ggplot(zi) +
+  geom_rect(aes(xmin = x - 0.32, xmax = x + 0.32, ymin = 0, ymax = y, fill = fill, linetype = lty),
+            color = "grey30", linewidth = 0.3) +
+  scale_linetype_identity() +
+  annotate("errorbar", x = 2, ymin = tree_lo, ymax = tree_hi, width = 0.16,
+           colour = "grey25", linewidth = 0.4) +
+  annotate("text", x = 1, y = tree_meas, label = sprintf("+%.1f", tree_meas), vjust = -0.5, size = 2.7) +
+  annotate("text", x = 2 - 0.04, y = tree_dec, label = lab1(tree_dec), hjust = 1, vjust = -0.5, size = 2.7) +
+  scale_fill_manual(values = c(src = SRC, src_lt = SRC_LT), guide = "none") +
+  scale_x_continuous(breaks = 1:2, labels = c("Stems,\n0–2 m", "Whole\nsurface")) +
+  scale_y_continuous(breaks = seq(0, 100, 25)) +
+  coord_cartesian(xlim = c(0.45, 2.55), ylim = c(0, tree_hi * 1.04), expand = FALSE) +
+  labs(x = NULL, y = NULL, title = "Stem emission, magnified") +
+  theme_bw(base_size = 7) +
+  theme(plot.title = element_text(size = 7, colour = "grey30"),
+        axis.text.x = element_text(size = 6, lineheight = 0.85),
+        panel.grid.minor = element_blank(), panel.grid.major.x = element_blank(),
+        plot.background = element_rect(fill = "white", colour = NA))
+# tags are set by hand: patchwork's automatic tags skip a plot that carries an inset
+pd <- pd + labs(tag = "(d)") + inset_element(pz, left = 0.20, bottom = 0.40, right = 0.58, top = 0.99,
+                         align_to = "panel", ignore_tag = TRUE)
+
 # ---- assemble (net-sink / RF-R2 / basis notes go in the figure CAPTION) -------
-fig <- (pa | pb) / (pc | pd) + plot_layout(heights = c(1.05, 1)) +
-  plot_annotation(tag_levels = 'a', tag_prefix = "(", tag_suffix = ")") & theme(plot.tag = element_text(face = "bold", size = 13))
+fig <- ((pa + labs(tag = "(a)")) | (pb + labs(tag = "(b)"))) / ((pc + labs(tag = "(c)")) | pd) +
+  plot_layout(heights = c(1.05, 1)) & theme(plot.tag = element_text(face = "bold", size = 13))
 ggsave(out_path("fig_budget_maps.png"), fig, width = 9.2, height = 8, dpi = 300, bg = "white")   # near print size
 cat("Wrote fig_budget_maps.png\n")
 for (k in seq_len(nrow(HLF)))
