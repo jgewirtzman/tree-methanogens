@@ -39,12 +39,12 @@
 #   trained  the model's own level vocabulary, i.e.
 #            sort(unique(as.character(tree_train_complete$species_clean)))
 #
-# Returns a character vector, every element guaranteed to be an element of
-# `trained`, so it is always safe to wrap in factor(levels = trained).
+# Returns a character vector: an element of `trained`, or NO_LEVEL for a stem with
+# no own or genus level (unidentified, or of a genus never measured). NO_LEVEL is not
+# a model level; such stems are predicted with predict_species_marginal() below.
+NO_LEVEL <- "SPECIES_OTHER"
 species_to_model_level <- function(species, trained) {
   stopifnot(is.character(trained), length(trained) > 0)
-  if (!"SPECIES_OTHER" %in% trained)
-    stop("`trained` has no SPECIES_OTHER level -- wrong vocabulary passed in")
 
   sp <- as.character(species)
 
@@ -55,30 +55,82 @@ species_to_model_level <- function(species, trained) {
 
   gen_level <- paste0("GEN_", sub(" .*", "", trimws(sp)))
 
-  out <- ifelse(unident,               "SPECIES_OTHER",
+  out <- ifelse(unident,               NO_LEVEL,
          ifelse(sp %in% trained,        sp,
          ifelse(gen_level %in% trained, gen_level,
-                                        "SPECIES_OTHER")))
+                                        NO_LEVEL)))
 
   # An own-species level must win over its genus level; the nesting above already
   # guarantees that, but assert it rather than trust the reading.
-  stopifnot(all(out %in% trained))
+  stopifnot(all(out %in% c(trained, NO_LEVEL)))
+  out
+}
+
+# STEMS WITHOUT A LEVEL (2026-10-16). An inventory stem whose species has no trained
+# level -- unidentified, or a species of an unmeasured genus (Hamamelis, Acer
+# pensylvanicum, Amelanchier, Vaccinium, Liriodendron, Quercus coccinea in this
+# inventory) -- is predicted under every trained level in turn, with its own DBH,
+# moisture and position, and the predictions are averaged. The weights are each
+# level's share of the 0-2 m band area (pi x DBH x band; Kalmia 0.75 m) of the
+# in-stand inventory stems that map to it, i.e. the stand's own woody-surface
+# composition. There is no genus fallback for these stems. (Until 2026-10-16 they
+# took a SPECIES_OTHER level whose only training record was tree 7809, an
+# unidentified 2021 stem that trees.csv identifies as Kalmia latifolia.)
+
+# Band-area share of each trained level among inventory stems mapped to it.
+#   level      species_to_model_level() of the in-stand inventory stems
+#   band_area  their 0-2 m band area (m2)
+species_level_weights <- function(level, band_area, trained) {
+  ok <- level %in% trained & is.finite(band_area)
+  w <- tapply(band_area[ok], factor(level[ok], levels = trained), sum)
+  w[is.na(w)] <- 0
+  stopifnot(sum(w) > 0)
+  w / sum(w)
+}
+
+# Predictions for stems with a level, and the weighted average over levels for
+# stems with NO_LEVEL.
+#   predict_fn  function(newdata) -> numeric predictions; newdata has a `species`
+#               factor with levels names(weights) plus the columns of `newdata`
+#   newdata     the other predictors, one row per stem (no species column)
+#   level       model level per row (species_to_model_level())
+#   weights     species_level_weights()
+#   mult        optional per-level multiplier (the per-species calibration), applied
+#               inside the average for NO_LEVEL rows only; rows with a level are
+#               returned as predicted
+predict_species_marginal <- function(predict_fn, newdata, level, weights, mult = NULL) {
+  lv <- names(weights)
+  stopifnot(length(level) == nrow(newdata), all(level %in% c(lv, NO_LEVEL)))
+  out <- rep(NA_real_, nrow(newdata))
+  own <- level != NO_LEVEL
+  if (any(own))
+    out[own] <- predict_fn(data.frame(species = factor(level[own], levels = lv), newdata[own, , drop = FALSE]))
+  if (any(!own)) {
+    nd <- newdata[!own, , drop = FALSE]
+    m <- if (is.null(mult)) setNames(rep(1, length(lv)), lv) else
+           setNames(ifelse(is.na(mult[lv]), 1, mult[lv]), lv)
+    acc <- 0
+    for (l in lv[weights > 0])
+      acc <- acc + weights[[l]] * m[[l]] *
+        predict_fn(data.frame(species = factor(rep(l, nrow(nd)), levels = lv), nd))
+    out[!own] <- acc
+  }
   out
 }
 
 # One-line audit of what the mapping did, so a silent fallback can never recur.
 # Print this wherever the mapping is applied.
 report_species_levels <- function(species, level, trained) {
-  fell <- level == "SPECIES_OTHER" & !is.na(species) &
+  fell <- level == NO_LEVEL & !is.na(species) &
           !grepl("^unknown", as.character(species), ignore.case = TRUE) &
           grepl(" ", trimws(as.character(species)))
-  cat(sprintf("species levels: %d stems -> %d of %d model levels | own %d | genus %d | SPECIES_OTHER %d\n",
-              length(level), length(unique(level)), length(trained),
-              sum(!grepl("^GEN_|^SPECIES_OTHER$", level)),
-              sum(grepl("^GEN_", level)), sum(level == "SPECIES_OTHER")))
+  cat(sprintf("species levels: %d stems -> %d of %d model levels | own %d | genus %d | no level (averaged over levels) %d\n",
+              length(level), length(unique(level[level != NO_LEVEL])), length(trained),
+              sum(!grepl("^GEN_", level) & level != NO_LEVEL),
+              sum(grepl("^GEN_", level)), sum(level == NO_LEVEL)))
   if (any(fell)) {
     tb <- sort(table(as.character(species)[fell]), decreasing = TRUE)
-    cat("  identified species with NO own or genus level (genuinely unmeasured):\n")
+    cat("  identified species with no own or genus level (genuinely unmeasured):\n")
     for (i in seq_along(tb))
       cat(sprintf("    %-26s %d\n", names(tb)[i], as.integer(tb[i])))
   }

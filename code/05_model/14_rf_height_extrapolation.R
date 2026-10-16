@@ -67,6 +67,8 @@ rule("PART 2  PER-TREE RF-LEARNED SHAPE, PROJECTED")
 INV <- INV %>% group_by(species) %>%
   ungroup() %>% as.data.frame()
 INV$sp <- species_to_model_level(INV$species, trained)
+# stems with no trained level: averaged over levels, weighted by band-area share
+LEVEL_W <- species_level_weights(INV$sp, INV$A_band_m2, trained)
 
 mm <- d %>% group_by(month) %>% summarise(m=mean(soil_moisture_at_tree,na.rm=TRUE),.groups="drop")
 sm <- soil_train_complete %>% group_by(month) %>% summarise(ms=mean(soil_moisture_at_site,na.rm=TRUE),.groups="drop")
@@ -77,11 +79,12 @@ DR$m <- fl(DR$m,DR$month); DR$soil_temp_C_mean <- fl(DR$soil_temp_C_mean,DR$mont
 HG <- seq(50,200,by=12.5)
 P <- array(NA_real_, c(nrow(INV), length(HG), 12))
 for (mo in 1:12) for (j in seq_along(HG)) {
-  nd <- data.frame(species=factor(INV$sp, levels=trained), dbh_m=INV$dbh,
+  nd <- data.frame(dbh_m=INV$dbh,
     soil_moisture_at_tree=DR$m[mo],
     soil_temp_C_mean=DR$soil_temp_C_mean[mo], air_temp_C_mean=DR$air_temp_C_mean[mo],
     height_cm=HG[j])
-  P[,j,mo] <- predict(TreeRF, nd, num.threads=1)$predictions
+  P[,j,mo] <- predict_species_marginal(function(x) predict(TreeRF, x, num.threads=1)$predictions,
+                                       nd, INV$sp, LEVEL_W)
 }
 PROF <- apply(P, c(1,2), mean)            # per-tree annual profile over 0.5-2.0 m
 z <- HG/100

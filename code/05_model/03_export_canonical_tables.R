@@ -2,12 +2,10 @@
 # ==============================================================================
 # 03_export_canonical_tables.R -- write the model's merged tables as CSV
 #
-# The flux data reaches the model through a merge built in 01_load_and_prep_data.R:
-# the 2021 multi-height campaign is assembled from five per-height pieces
-# (125 cm, 50 cm, 200 cm, Kalmia, other 75 cm), bound to the 2023 cross-species
-# campaign and the 2020-2021 semi-rigid monthly survey, then joined to
-# environmental drivers. The result is 1,130 stem measurements from 478 trees
-# across 2020, 2021 and 2023.
+# The flux data reaches the model through 01_load_and_prep_data.R: one row per
+# data/tables/flux_stem.csv deployment (measurement_id) of the 2021 multi-height,
+# 2023 cross-species and 2020-2021 semi-rigid monthly campaigns, with the tree's
+# trees.csv species, DBH and position and the deployment's environmental drivers.
 #
 # That merged table existed only inside outputs/models/TRAINING_DATA.RData, so
 # every other consumer rebuilt its own version from the component files:
@@ -26,11 +24,10 @@
 #
 # Outputs:
 #   outputs/data/flux_measurements_tree.csv   every stem deployment with a CH4 flux;
-#                                             in_rf_training marks the 1,130 the model used
+#                                             in_rf_training marks the rows the model used
 #   outputs/data/flux_measurements_soil.csv     266 soil measurements
 # ==============================================================================
 source("code/lib/outputs.R")
-source("code/lib/monthly_cols.R")
 
 NEED <- "outputs/models/TRAINING_DATA.RData"
 if (!file.exists(NEED))
@@ -60,89 +57,45 @@ names(tree_out)[names(tree_out) == "stem_flux_umol_m2_s"] <- "stem_flux_nmol_m2_
 names(soil_out)[names(soil_out) == "soil_flux_umol_m2_s"] <- "soil_flux_nmol_m2_s"
 
 # ---- every stem measurement, flagged -- not only the modelled ones -------------
-# 2026-09-30. This table used to hold ONLY the model's training rows, under a name
-# that said "measurements". 61 of the 1,191 stem deployments with a CH4 flux never
-# reach training, because the covariate assembly in 01_load_and_prep_data.R links
-# rows through tree tags and the inventory:
-#   2023 survey   22  tags that are not numbers ("Ash1".."Ash16", "untagged")
-#   monthly       38  recovered untagged / dead-snag stems ("UNTAG_...")
-#   2021 heights   1  a Kalmia root-crown deployment (no stem height)
-# The rebuilt Figure 3 read this file as if it were complete; losing 17 low-emitting
-# ash trees made white ash look like the top emitter. The model is frozen, so the
-# training set is not changed here. Instead every deployment is listed, with
-# in_rf_training and exclusion_reason, and the table refuses to write unless each
-# campaign's rows account exactly for its source file.
+# Every stem deployment of the three surveys in data/tables/flux_stem.csv is listed,
+# matched to the training rows by measurement_id: the training rows as the model
+# saw them, the others (dead stems; the root-crown deployment of the Kalmia that
+# also has a 75 cm one) from flux_stem and trees.csv (DBH: recorded with the
+# deployment, else the tree's), with in_rf_training
+# and exclusion_reason as flux_stem states them. The table refuses to write unless
+# the two account exactly for each other.
 #   Refit the model:            filter(in_rf_training)
 #   Describe the measurements:  all rows (covariates are NA where none were measured)
 suppressMessages(library(dplyr))
-source("code/lib/dead_stems.R"); DEAD <- dead_stem_flux()
-fd   <- "data/processed/flux"
-key  <- function(x) round(as.numeric(x), 8)
-LATIN <- setNames(as.character(tree_out$species), tree_out$species_code)
-LATIN <- LATIN[!duplicated(names(LATIN))]
+rdt <- function(t) read.csv(file.path("data/tables", paste0(t, ".csv")), colClasses = "character", na.strings = "")
+FS <- rdt("flux_stem") %>% filter(campaign != "2022_felled_oak")
+TR <- rdt("trees"); SP <- rdt("species")
+num <- function(x) suppressWarnings(as.numeric(x))
 
-tree_out$campaign <- ifelse(tree_out$chamber_type == "semirigid", "monthly_2020_2021",
-                     ifelse(tree_out$year == 2023, "2023_cross_species", "2021_multiheight"))
+i <- match(tree_out$measurement_id, FS$measurement_id)
+stopifnot(!anyNA(i), !anyDuplicated(tree_out$measurement_id), all(FS$in_rf_training[i] == "TRUE"),
+          identical(tree_out$tree_id, FS$tree_id[i]))
+tree_out$campaign         <- FS$campaign[i]
 tree_out$in_rf_training   <- TRUE
 tree_out$exclusion_reason <- NA_character_
 
-src <- list(
-  monthly_2020_2021 = monthly_plain(read.csv(file.path(fd, "semirigid_tree_final_complete_dataset_with_untagged.csv"),
-                               check.names = FALSE)) %>%
-    filter(!is.na(CH4_best.flux)) %>%
-    transmute(tree_id = Plot.Tag, flux = CH4_best.flux, Date = as.character(Date), height = NA_real_,
-              species_code = sub("^UNTAG_[A-Za-z]+_([A-Z]{4}).*$", "\\1", Plot.Tag),
-              dbh_m = NA_real_, air_temp_C = suppressWarnings(as.numeric(Tcham)),
-              soil_temp_C = NA_real_, soil_moisture_abs = NA_real_, chamber_type = "semirigid"),
-  `2021_multiheight` = read.csv(file.path(fd, "tree_flux_2021_multiheight.csv"), check.names = FALSE) %>%
-    filter(!is.na(CH4_best.flux)) %>%
-    transmute(tree_id = as.character(tree_id), flux = CH4_best.flux,   # date is the UniqueID prefix
-              Date = as.character(as.Date(substr(UniqueID, 1, 8), "%Y%m%d")),
-              height = suppressWarnings(as.numeric(measurement_height)), species_code = species,
-              dbh_m = NA_real_, air_temp_C = suppressWarnings(as.numeric(Tcham)),
-              soil_temp_C = NA_real_, soil_moisture_abs = NA_real_, chamber_type = "rigid"),
-  `2023_cross_species` = (function(r) {
-    pick <- function(p) suppressWarnings(as.numeric(r[[grep(p, names(r), ignore.case = TRUE, value = TRUE)[1]]]))
-    data.frame(tree_id = as.character(r$`Tree Tag`), flux = r$CH4_best.flux, Date = as.character(r$Date),
-               height = NA_real_, species_code = r$`Species Code`, dbh_m = pick("^DBH") / 100,
-               air_temp_C = pick("^air_temp_C$"), soil_temp_C = pick("^Soil.?Temp"),
-               soil_moisture_abs = pick("^vwc_mean$") / 100, chamber_type = "rigid") %>%
-      filter(!is.na(flux))
-  })(read.csv(file.path(fd, "tree_flux_2023_cross_species.csv"), check.names = FALSE))
-)
-
-reason <- c(monthly_2020_2021  = "untagged or dead-snag stem: no tag link for the model's covariates",
-            `2021_multiheight` = "root-crown deployment: no stem height",
-            `2023_cross_species` = "non-numeric tree tag: no link for the model's covariates")
-
-extra <- bind_rows(lapply(names(src), function(cmp) {
-  s <- src[[cmp]]; trained <- key(tree_out$stem_flux_nmol_m2_s[tree_out$campaign == cmp])
-  stopifnot(!anyDuplicated(key(s$flux)))            # flux values identify deployments within a campaign
-  miss <- s[!key(s$flux) %in% trained, ]
-  # ACCOUNTING: every source deployment is either in training or listed here, and
-  # every training row traces back to a source deployment. Anything else stops.
-  if (nrow(s) != sum(tree_out$campaign == cmp) + nrow(miss) || !all(trained %in% key(s$flux)))
-    stop(sprintf("%s: %d source deployments, %d in training, %d unmatched -- rows unaccounted for",
-                 cmp, nrow(s), sum(tree_out$campaign == cmp), nrow(miss)), call. = FALSE)
-  cat(sprintf("  %-20s %4d deployments = %4d in training + %3d excluded\n", cmp, nrow(s),
-              sum(tree_out$campaign == cmp), nrow(miss)))
-  if (!nrow(miss)) return(NULL)
-  d <- as.Date(substr(miss$Date, 1, 10), tryFormats = c("%Y-%m-%d", "%m/%d/%y", "%m/%d/%Y"))
-  why <- ifelse(is_dead_stem_flux(miss$flux, DEAD), "dead stem: the inventory the model is applied to is live stems only",
-                reason[[cmp]])
-  data.frame(tree_id = paste0(sub("_.*", "", cmp), "_", gsub("[^A-Za-z0-9]", "", miss$tree_id)),
-             species = unname(LATIN[miss$species_code]), species_code = miss$species_code,
-             Date = as.character(d), month = as.integer(format(d, "%m")), year = as.integer(format(d, "%Y")),
-             stem_flux_nmol_m2_s = miss$flux, air_temp_C = miss$air_temp_C, soil_temp_C = miss$soil_temp_C,
-             soil_moisture_abs = miss$soil_moisture_abs, dbh_m = miss$dbh_m, chamber_type = miss$chamber_type,
-             measurement_height_cm = miss$height, campaign = cmp, in_rf_training = FALSE,
-             dead_stem = is_dead_stem_flux(miss$flux, DEAD),   # was left NA for excluded rows
-             exclusion_reason = why, stringsAsFactors = FALSE)
-}))
-# Untagged stems share labels ("untagged" x5 in 2023); number them so each deployment
-# keeps its own id. Monthly UNTAG_ labels are per-stem and stay as they are.
-dup <- extra$tree_id %in% extra$tree_id[duplicated(extra$tree_id)] & extra$campaign == "2023_cross_species"
-extra$tree_id[dup] <- paste0(extra$tree_id[dup], "_", ave(seq_along(extra$tree_id[dup]), extra$tree_id[dup], FUN = seq_along))
+ex <- FS[!FS$measurement_id %in% tree_out$measurement_id, ]
+stopifnot(all(ex$in_rf_training == "FALSE"), !anyNA(ex$exclusion_reason),
+          nrow(tree_out) + nrow(ex) == nrow(FS))
+t <- match(ex$tree_id, TR$tree_id)
+d <- as.Date(ex$date)
+extra <- data.frame(measurement_id = ex$measurement_id, tree_id = ex$tree_id,
+                    species = SP$species[match(TR$species_code[t], SP$species_code)], species_code = TR$species_code[t],
+                    Date = as.character(d), month = as.integer(format(d, "%m")), year = as.integer(format(d, "%Y")),
+                    stem_flux_nmol_m2_s = num(ex$CH4_flux_nmol_m2_s), air_temp_C = num(ex$air_temp_C),
+                    soil_temp_C = num(ex$soil_temp_C), soil_moisture_abs = num(ex$soil_vwc),
+                    dbh_m = coalesce(num(ex$dbh_recorded_cm), num(TR$dbh_cm[t])) / 100, chamber_type = ex$chamber_type,
+                    measurement_height_cm = num(ex$height_cm), campaign = ex$campaign, in_rf_training = FALSE,
+                    dead_stem = ex$dead_stem == "TRUE", exclusion_reason = ex$exclusion_reason,
+                    stringsAsFactors = FALSE)
+for (cmp in sort(unique(FS$campaign)))
+  cat(sprintf("  %-20s %4d deployments = %4d in training + %3d excluded\n", cmp, sum(FS$campaign == cmp),
+              sum(tree_out$campaign == cmp), sum(extra$campaign == cmp)))
 
 tree_out$Date <- as.character(tree_out$Date)
 tree_out <- bind_rows(tree_out, extra)

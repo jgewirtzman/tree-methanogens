@@ -177,23 +177,13 @@ tree_mentions <- function() {
   M$oak <- .m(OAK, "data/compiled/flux_stem.csv", "tree_tag", "felled black oak", key = FELLED_OAK_ID,
               kind = "felled", measured = TRUE)
 
-  # ---- the model's measurement table (spellings of the previous stage-B run) ----------------
-  ft <- "outputs/data/flux_measurements_tree.csv"
-  if (file.exists(ft)) {
-    x <- .rd(ft) %>% distinct(campaign, tree_id, species_code, dbh_m)
-    raw <- sub("^(monthly|2021|2023)_", "", x$tree_id)
-    raw <- ifelse(x$campaign == C23 & grepl("^untagged", raw), "untagged", raw)
-    M$model <- .m(x$campaign, ft, "tree_id", x$tree_id, species_recorded = x$species_code,
-                  dbh_recorded_cm = round(x$dbh_m * 100, 1), measured = TRUE, model_raw = raw)
-  }
-
   A <- bind_rows(M)
-  for (v in c("key", "kind", "note", "species_recorded", "model_raw")) if (!v %in% names(A)) A[[v]] <- NA
+  for (v in c("key", "kind", "note", "species_recorded")) if (!v %in% names(A)) A[[v]] <- NA
   A$dbh_recorded_cm <- .num(A$dbh_recorded_cm)
   A$species_recorded <- as.character(A$species_recorded)
 
   # ---- classify and key every spelling ------------------------------------------------------
-  t0 <- ifelse(is.na(A$model_raw), A$tag_recorded, A$model_raw)
+  t0 <- A$tag_recorded
   is_mon <- A$campaign == MON; is_23 <- A$campaign == C23
   ulab <- function(z) gsub("[^A-Za-z0-9]", "", z)
   A$kind <- dplyr::case_when(

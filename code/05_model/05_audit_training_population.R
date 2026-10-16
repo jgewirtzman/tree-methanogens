@@ -27,7 +27,7 @@ e <- new.env(); load("outputs/models/RF_MODELS.RData", envir = e)
 CONV  <- 86400 * 365.25 * 16e-6
 SEEDS <- c(42, 1, 2)
 cand  <- tree_train_candidates
-restored <- grepl("^2023_|^UNTAG", cand$tree_id)
+restored <- grepl("^Ash[0-9]+$|^UNTAG_", cand$tree_id)   # 2023 ash and untagged; monthly untagged
 
 design <- function(d, with_dead = FALSE) {
   X <- data.frame(species = factor(d$species_clean), dbh_m = d$dbh_m,

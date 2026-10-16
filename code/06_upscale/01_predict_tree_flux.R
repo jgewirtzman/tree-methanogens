@@ -73,6 +73,12 @@ INV$A_stem_m2 <- pi * INV$dbh_m * INV$band_m
 cat(sprintf("stems %d | in stand %d | located %d\n",
             nrow(INV), sum(INV$in_stand), sum(INV$located)))
 report_species_levels(INV$species, INV$sp, trained)
+# Stems with no trained level are predicted under every level and averaged, weighted
+# by each level's share of the in-stand 0-2 m band area (code/lib/species_levels.R).
+LEVEL_W <- species_level_weights(INV$sp[INV$in_stand], INV$A_stem_m2[INV$in_stand], trained)
+NOLEV <- INV$sp == NO_LEVEL
+cat(sprintf("  %d stems with no level: band-area weights over %d levels (largest %s %.3f)\n",
+            sum(NOLEV), sum(LEVEL_W > 0), names(which.max(LEVEL_W)), max(LEVEL_W)))
 
 # --- moisture: PER STEM, from the same surface and climatology as the soil term -
 # This used to be one plot-mean scalar applied to all 8,006 stems, built from raw
@@ -139,54 +145,6 @@ STCLIM <- read.csv(STFILE, stringsAsFactors = FALSE)
 stopifnot(nrow(STCLIM) == 12, all(is.finite(STCLIM$soil_temp_C)))
 DR$soil_temp_C_mean <- STCLIM$soil_temp_C[match(DR$month, STCLIM$mo)]
 
-pred_at <- function(h, mo, idx = seq_len(nrow(INV))) predict(TreeRF, data.frame(
-    species = factor(INV$sp[idx], levels = trained), dbh_m = INV$dbh_m[idx],
-    soil_moisture_at_tree = MOIST[idx, mo],
-    soil_temp_C_mean = DR$soil_temp_C_mean[mo],
-    air_temp_C_mean = DR$air_temp_C_mean[mo],
-    height_cm = h,
-    dead_stem = 0), num.threads = RF_THREADS)$predictions   # inventory is live stems; ignored unless a variant uses it
-
-# --- locate the steps, rather than assuming where they are --------------------
-# Split thresholds are a property of the forest, so a sample of stems reveals all
-# of them. Scanned at 1 cm once, on one month; the result is the exact interval
-# structure of the model in height.
-set.seed(42)
-samp <- sample(nrow(INV), min(400, nrow(INV)))
-Hs <- H_LO:H_HI
-Ps <- vapply(Hs, function(h) pred_at(h, 7, samp), numeric(length(samp)))
-moved <- colSums(abs(Ps[, -1, drop = FALSE] - Ps[, -ncol(Ps), drop = FALSE])) > 0
-brk <- Hs[-1][moved]
-edges <- c(H_LO, brk, H_HI + 1)          # value is constant on [edges[k], edges[k+1])
-K <- length(edges) - 1
-cat(sprintf("height steps detected at %s cm -> %d constant intervals\n",
-            paste(brk, collapse = ", "), K))
-
-# --- evaluate every stem once per interval, per month -------------------------
-cat(sprintf("predicting %d stems x %d intervals x 12 months (%d calls, not %d)...\n",
-            nrow(INV), K, K*12, length(Hs)*12))
-F <- array(NA_real_, c(nrow(INV), K, 12))
-for (mo in 1:12) for (k in seq_len(K)) F[, k, mo] <- pred_at(edges[k], mo)
-
-# --- exact band integral ------------------------------------------------------
-# Lateral area of a cylinder accumulates uniformly with height (dA/dz = pi*D is
-# constant), so the flux-weighted band mean is the height-mean of f times the band
-# area. Below H_LO the model is out of training range and the H_LO value is held.
-# For Kalmia the band is 0.75 m, which lies entirely below the first step, so this
-# general form reproduces the old special case exactly.
-band_len_cm <- INV$band_m * 100
-band <- matrix(0, nrow(INV), 12)
-for (mo in 1:12) {
-  acc <- pmin(band_len_cm, H_LO) * F[, 1, mo]          # 0 .. 50 cm held
-  for (k in seq_len(K)) {
-    w <- pmax(0, pmin(band_len_cm, edges[k+1]) - max(edges[k], H_LO))
-    acc <- acc + w * F[, k, mo]
-  }
-  band[, mo] <- acc / band_len_cm
-}
-# the 2 m anchor for the above-band scenarios: the interval containing H_HI
-flux_2m <- rowMeans(F[, K, ])
-
 # --- per-species calibration --------------------------------------------------
 # A regression forest minimises squared error, and that shrinks predictions toward
 # the conditional mean: low-flux species come out high and high-flux species low.
@@ -226,7 +184,68 @@ print(as.data.frame(cal %>% arrange(ratio) %>%
 cat(sprintf("  ratio range %.3f - %.3f across %d levels; %d level(s) with n < %d set to 1\n",
             min(cal$ratio), max(cal$ratio), nrow(cal), sum(cal$n < MIN_CAL_N), MIN_CAL_N))
 
-band_uncal <- band
+# Predictions for stems with a level are uncalibrated here (calibrated below through
+# INV$cal); a stem with no level gets the weighted mean of the calibrated level
+# predictions (its INV$cal is 1), or of the uncalibrated ones with mult = NULL.
+pred_at <- function(h, mo, idx = seq_len(nrow(INV)), mult = cmap) predict_species_marginal(
+  function(nd) predict(TreeRF, nd, num.threads = RF_THREADS)$predictions,
+  data.frame(dbh_m = INV$dbh_m[idx],
+             soil_moisture_at_tree = MOIST[idx, mo],
+             soil_temp_C_mean = DR$soil_temp_C_mean[mo],
+             air_temp_C_mean = DR$air_temp_C_mean[mo],
+             height_cm = h,
+             dead_stem = 0),   # inventory is live stems; ignored unless a variant uses it
+  INV$sp[idx], LEVEL_W, mult)
+
+# --- locate the steps, rather than assuming where they are --------------------
+# Split thresholds are a property of the forest, so a sample of stems reveals all
+# of them. Scanned at 1 cm once, on one month; the result is the exact interval
+# structure of the model in height.
+set.seed(42)
+samp <- sample(nrow(INV), min(400, nrow(INV)))
+Hs <- H_LO:H_HI
+Ps <- vapply(Hs, function(h) pred_at(h, 7, samp), numeric(length(samp)))
+moved <- colSums(abs(Ps[, -1, drop = FALSE] - Ps[, -ncol(Ps), drop = FALSE])) > 0
+brk <- Hs[-1][moved]
+edges <- c(H_LO, brk, H_HI + 1)          # value is constant on [edges[k], edges[k+1])
+K <- length(edges) - 1
+cat(sprintf("height steps detected at %s cm -> %d constant intervals\n",
+            paste(brk, collapse = ", "), K))
+
+# --- evaluate every stem once per interval, per month -------------------------
+cat(sprintf("predicting %d stems x %d intervals x 12 months (%d calls, not %d)...\n",
+            nrow(INV), K, K*12, length(Hs)*12))
+F <- array(NA_real_, c(nrow(INV), K, 12))
+for (mo in 1:12) for (k in seq_len(K)) F[, k, mo] <- pred_at(edges[k], mo)
+
+# --- exact band integral ------------------------------------------------------
+# Lateral area of a cylinder accumulates uniformly with height (dA/dz = pi*D is
+# constant), so the flux-weighted band mean is the height-mean of f times the band
+# area. Below H_LO the model is out of training range and the H_LO value is held.
+# For Kalmia the band is 0.75 m, which lies entirely below the first step, so this
+# general form reproduces the old special case exactly.
+band_len_cm <- INV$band_m * 100
+band_of <- function(F) {
+  band <- matrix(0, nrow(INV), 12)
+  for (mo in 1:12) {
+    acc <- pmin(band_len_cm, H_LO) * F[, 1, mo]          # 0 .. 50 cm held
+    for (k in seq_len(K)) {
+      w <- pmax(0, pmin(band_len_cm, edges[k+1]) - max(edges[k], H_LO))
+      acc <- acc + w * F[, k, mo]
+    }
+    band[, mo] <- acc / band_len_cm
+  }
+  band
+}
+band <- band_of(F)
+# the same without calibration, for the report below
+F_uncal <- F
+if (any(NOLEV)) for (mo in 1:12) for (k in seq_len(K))
+  F_uncal[NOLEV, k, mo] <- pred_at(edges[k], mo, which(NOLEV), mult = NULL)
+# the 2 m anchor for the above-band scenarios: the interval containing H_HI
+flux_2m <- rowMeans(F[, K, ])
+
+band_uncal <- band_of(F_uncal)
 band    <- band    * INV$cal
 flux_2m <- flux_2m * INV$cal
 

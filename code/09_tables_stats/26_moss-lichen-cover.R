@@ -6,7 +6,8 @@ source("code/lib/outputs.R")
 # ------------------------------------------------------------------------------
 # The 2023 cross-species datasheet scored moss/lichen cover within each chamber
 # footprint visually on a 1-3 scale of relative cover (1 = least); taxa and
-# functional groups were not identified. Scores join to fluxes by tag and date.
+# functional groups were not identified. Scores join to fluxes by deployment
+# (measurement_id = the window file's UniqueID).
 # Tests: Spearman and Kruskal-Wallis across species; within species, a linear
 # model of asinh(flux x 100) on species plus score; Spearman within each species
 # with at least 10 scored trees.
@@ -15,15 +16,13 @@ source("code/lib/outputs.R")
 suppressPackageStartupMessages(library(tidyverse))
 
 f <- read_csv("outputs/data/flux_measurements_tree.csv", show_col_types = FALSE) %>%
-  filter(campaign == "2023_cross_species", !dead_stem) %>%
-  mutate(tag = as.character(tree_id), day = as.Date(Date))
+  filter(campaign == "2023_cross_species", !dead_stem)
 r <- read_csv("data/raw/flux_windows/lgr_manual_identification_2023_cross_species.csv",
               show_col_types = FALSE) %>%
   distinct(UniqueID, .keep_all = TRUE) %>%
-  transmute(tag = as.character(`Tree Tag`), day = as.Date(datetime_start), moss = `Moss/Lichen Cover`) %>%
-  distinct(tag, day, .keep_all = TRUE)
+  transmute(measurement_id = UniqueID, moss = `Moss/Lichen Cover`)
 
-j <- f %>% left_join(r, by = c("tag", "day")) %>%
+j <- f %>% left_join(r, by = "measurement_id") %>%
   filter(moss %in% c("1", "2", "3")) %>%
   mutate(moss = as.integer(moss), y = asinh(stem_flux_nmol_m2_s * 100))
 

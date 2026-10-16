@@ -1,8 +1,11 @@
 # ==============================================================================
 # dead_stems.R -- which flux deployments were made on dead stems
 # ------------------------------------------------------------------------------
-# One definition, used by 02_rf_models.R (to keep dead stems out of training) and
-# 03_export_canonical_tables.R (to say why they are not in it).
+# The flag lives in data/tables/flux_stem.csv (dead_stem, by measurement_id; built by
+# code/tables/10_flux_stem.R from the rules below). dead_stem_ids() is what
+# 02_rf_models.R reads to keep dead stems out of training; dead_stem_flux() applies
+# the same rules to the processed flux files, for the tree-level audit in
+# code/tables/04_trees.R.
 #
 # WHY (2026-09-30). The stand inventory is live stems only: neither census records
 # a dead status, so standing dead trees are outside the upscaling. Twelve dead stems
@@ -15,8 +18,6 @@
 # a live/dead predictor changed nothing (the forest rarely splits on a 3.6% flag).
 # They stay in every descriptive analysis.
 #
-# Deployments are identified by campaign and CH4 flux value, which is unique within
-# a campaign (03_export_canonical_tables.R asserts this).
 # 2026-10-15: monthly stems flagged in the sheet's `dead` column are included
 # (tagged red oak 4156 and hemlock 5091, also noted dead in the field notes and,
 # for 5091, in 2023): 12 stems, 59 deployments.
@@ -44,6 +45,11 @@ dead_stem_flux <- function(dir = NULL) {
 
 `%||%` <- function(a, b) if (is.null(a)) b else a
 
-# TRUE where a flux value (any campaign) belongs to a dead stem
-is_dead_stem_flux <- function(flux, dead = dead_stem_flux())
-  round(as.numeric(flux), 8) %in% round(dead$flux, 8)
+# measurement_id of every dead-stem deployment (data/tables/flux_stem.csv)
+dead_stem_ids <- function() {
+  f <- Filter(file.exists, c("data/tables/flux_stem.csv", "../../data/tables/flux_stem.csv"))[1]
+  if (is.na(f)) stop("data/tables/flux_stem.csv not found", call. = FALSE)
+  d <- utils::read.csv(f, colClasses = "character", na.strings = "")
+  stopifnot(all(d$dead_stem %in% c("TRUE", "FALSE")))
+  d$measurement_id[d$dead_stem == "TRUE"]
+}

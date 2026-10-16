@@ -42,10 +42,10 @@ load("../../data/processed/integrated/rf_workflow_input_data_with_2023.RData")
 TREE_JULY <- rf_workflow_data$PLACEHOLDER_TREE_JULY
 TREE_YEAR <- rf_workflow_data$PLACEHOLDER_TREE_YEAR
 SOIL_YEAR <- rf_workflow_data$PLACEHOLDER_SOIL_YEAR
-# CANONICAL inventory for the legacy upscaling block below. PLACEHOLDER_INVENTORY is
-# fg19-only: 7,010 stems with the entire 961-stem bytag survey missing, and unlocated
-# stems dropped. That is what made MONTHLY_FLUXES.csv / ANNUAL_SUMMARY.csv diverge from
-# the canonical budget by 38% (tree) and 29% (soil).
+# CANONICAL inventory for the legacy upscaling block below. The fg19-only census
+# copy this block once used (7,010 stems, the 961-stem bytag survey missing, unlocated
+# stems dropped) made MONTHLY_FLUXES.csv / ANNUAL_SUMMARY.csv diverge from the
+# canonical budget by 38% (tree) and 29% (soil).
 local({ g <- "code/lib/geometry.R"; if (!file.exists(g)) g <- "../../code/lib/geometry.R"
         source(g, local = FALSE)
         sl <- "code/lib/species_levels.R"; if (!file.exists(sl)) sl <- "../../code/lib/species_levels.R"
@@ -113,28 +113,9 @@ cat("  TREE_YEAR: [", round(min(TREE_YEAR$stem_flux_umol_m2_s, na.rm=T), 6), ","
 cat("  SOIL_YEAR: [", round(min(SOIL_YEAR$soil_flux_umol_m2_s, na.rm=T), 6), ",", 
     round(max(SOIL_YEAR$soil_flux_umol_m2_s, na.rm=T), 6), "]\n")
 
-# NOTE: TREE_YEAR already carries its own `species` column.
-# The previous `left_join(INVENTORY %>% select(tree_id, species))` collided with it,
-# producing species.x/species.y and leaving NO `species` column. Every one of the 369
-# year-long monthly rows then failed the downstream completeness filter, so TreeRF was
-# silently trained on the July campaign alone (353 rows, months 6-7, rigid chamber only)
-# and the chamber harmonisation in §2.5 never had any semirigid data to correct.
-# Fix: keep TREE_YEAR's own species and fill only genuine gaps from the inventory.
-# Tags are not unique in the inventory: the 2019 census reuses tag numbers for different
-# trees, and since 2026-09-30 those stems are kept. Join on one species per tag, and
-# only where every stem carrying that tag agrees -- otherwise rows would be copied.
-.n_before <- nrow(TREE_YEAR)
-TREE_YEAR <- TREE_YEAR %>%
-  left_join(INVENTORY %>% dplyr::group_by(tree_id) %>%
-              dplyr::summarise(species_from_inventory = if (dplyr::n_distinct(species) == 1) dplyr::first(species) else NA_character_,
-                               .groups = "drop"),
-            by = "tree_id") %>%
-  mutate(species = dplyr::coalesce(species, species_from_inventory)) %>%
-  dplyr::select(-species_from_inventory)
-stopifnot(nrow(TREE_YEAR) == .n_before)   # a join must never add measurements
-
-cat("  TREE_YEAR after species fill:", sum(!is.na(TREE_YEAR$species)), "of",
-    nrow(TREE_YEAR), "rows have species\n")
+# Species, DBH and position of every stem row are its tree's (data/tables/trees.csv,
+# by tree_id; 01_load_and_prep_data.R), so nothing is joined by tag here.
+stopifnot(!anyNA(TREE_JULY$species), !anyNA(TREE_YEAR$species))
 
 cat("\n✓ Data loaded successfully\n\n")
 
@@ -801,10 +782,13 @@ build_features_tree <- function(df, drivers, Mhat_fn, SI_table, taxonomy, taxon_
     }
   )
   
+  # SPECIES_OTHER first (when any row is unidentified), then levels by frequency.
+  # There need not be an unidentified row: indexing with -which() of an absent level
+  # selected nothing and left every row NA.
+  tb <- sort(table(df$species_clean), decreasing = TRUE)
   df$species_factor <- factor(
     df$species_clean,
-    levels = c("SPECIES_OTHER", names(sort(table(df$species_clean)[-which(names(table(df$species_clean)) == "SPECIES_OTHER")], 
-                                           decreasing = TRUE)))
+    levels = c(intersect("SPECIES_OTHER", names(tb)), setdiff(names(tb), "SPECIES_OTHER"))
   )
   
   if("stem_flux_corrected" %in% names(df) && !all(is.na(df$stem_flux_corrected))) {
@@ -906,7 +890,8 @@ complete_rows <- !is.na(tree_train$y_asinh) &
 # stems, so dead ones are kept out of training (see code/lib/dead_stems.R for the
 # definition and the evidence). They remain in every descriptive analysis.
 source("../lib/dead_stems.R")
-tree_train$dead_stem <- is_dead_stem_flux(tree_train$stem_flux_umol_m2_s)
+stopifnot(!anyNA(tree_train$measurement_id))
+tree_train$dead_stem <- tree_train$measurement_id %in% dead_stem_ids()
 cat("  Dead-stem deployments excluded from training:", sum(tree_train$dead_stem), "\n")
 complete_rows <- complete_rows & !tree_train$dead_stem
 # Every trainable row, dead stems included and flagged, for
@@ -1185,6 +1170,12 @@ cat("\n=== MONTHLY SPATIAL PREDICTIONS (SPECIES-FIRST) ===\n")
 # because species_counts_train[NA] is NA and TRUE & NA is NA.
 INVENTORY$species_clean <- species_to_model_level(
   INVENTORY$species, sort(unique(as.character(tree_train_complete$species_clean))))
+# stems with no trained level: averaged over levels, weighted by band-area share
+# (predict_species_marginal(), code/lib/species_levels.R)
+LEVEL_W <- species_level_weights(
+  INVENTORY$species_clean,
+  pi * INVENTORY$dbh_m * ifelse(INVENTORY$species %in% "Kalmia latifolia", 0.75, 2),
+  sort(unique(as.character(tree_train_complete$species_clean))))
 
 dbh_stats <- tree_train %>%
   group_by(species_clean) %>%
@@ -1303,26 +1294,17 @@ for (t in 1:12) {
     height_cm     = 125
   )
 
-  # Align columns with training.
-  # NOTE: this loop silently zero-fills any trained feature that is
-  # absent from the prediction frame, which is how a name mismatch can blank out most of
-  # the model's inputs without any error. Check first and fail loudly.
+  # Every trained feature must be in the prediction frame; fail loudly if not.
   missing_tree_feats <- setdiff(colnames(X_tree), colnames(X_pred_tree))
   if (length(missing_tree_feats) > 0) {
     stop("TreeRF prediction is missing trained features: ",
          paste(missing_tree_feats, collapse = ", "))
   }
 
-  X_pred_aligned <- matrix(0, nrow = nrow(X_pred_tree), ncol = ncol(X_tree))
-  colnames(X_pred_aligned) <- colnames(X_tree)
-
-  for (col_name in colnames(X_tree)) {
-    if (col_name %in% colnames(X_pred_tree)) {
-      X_pred_aligned[, col_name] <- X_pred_tree[[col_name]]
-    }
-  }
-  
-  pred_asinh <- predict(TreeRF, X_pred_aligned)$predictions
+  pred_asinh <- predict_species_marginal(
+    function(nd) predict(TreeRF, nd)$predictions,
+    X_pred_tree[, setdiff(colnames(X_tree), "species"), drop = FALSE],
+    as.character(inv_predictions$species_clean), LEVEL_W)
   pred_flux_umol_m2_s <- pred_asinh          # raw scale: no back-transform
   
   S_tree <- ifelse(
