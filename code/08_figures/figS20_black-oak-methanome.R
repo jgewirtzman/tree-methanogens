@@ -1,332 +1,90 @@
-# Black-oak methanome heatmap on the REVISED methanotroph definitions
-# (Methylacidiphilaceae family-level Known->Putative).
-
 # ==============================================================================
-# Black Oak Methanogen/Methanotroph Heatmap (Figure S12)
+# Felled black oak (QUVE): methane-cycling taxa across tissues (Figure S21)
 # ==============================================================================
-# Purpose: Creates a heatmap of methanogenic and methanotrophic taxa across
-#   tissue types in a felled black oak (QUVE), based on 16S rRNA amplicon
-#   data. Also computes alpha diversity metrics for methane-cycling taxa.
+# Heatmap of methanogen, Known methanotroph and Putative methanotroph genera (Table S2
+# classification, include_conditional = TRUE as Fig. 5) in each tissue of the felled oak.
 #
-# Pipeline stage: 4 — Publication Figures
+# Value per taxon (family | genus) and tissue: relative abundance in percent,
+#   100 x (reads of the taxon summed over the tissue's libraries) /
+#         (non-organelle 16S reads summed over the same libraries)
+# i.e. pooled within tissue, not a mean of per-library shares. Non-organelle reads are
+# asv_reads() (organelles by is_organelle(), the denominator of every 16S relative
+# abundance). Colour is on a log10 scale; a taxon with no reads in a tissue is grey.
 #
-# Inputs (data/tables/ via code/lib/tables_read.R):
-#   - asv_table("felled_oak"): felled-oak ASV counts + taxonomy
-#   - dna_samples("2022_felled_oak"): 16S library -> sample position (tissue)
-#
-# Outputs:
-#   - figS12_black_oak_methanome.png (absolute abundance heatmap)
-#
-# Required packages: tidyverse, viridis, cluster
+# Inputs (data/tables/ via code/lib/tables_read.R): asv_reads("felled_oak"),
+#   dna_samples("2022_felled_oak") (library -> tissue)
+# Output: outputs/figures/generated/black_oak_methanome_revised.png
 # ==============================================================================
-
-# Load libraries
 library(tidyverse)
-library(viridis)
-library(cluster)
-
-# ==============================================================================
-# STEP 1: Load and Prepare Data
-# ==============================================================================
 source("code/lib/tables_read.R")
-otu_table <- asv_table("felled_oak") %>% rownames_to_column("OTU_ID")
+source("code/lib/methanogen_families.R")
+source("code/lib/load_methanotroph_definitions.R")
 
-# tissue of each library: the sample's position (samples.csv, via samples_16S.csv), grouped
-# for display: branch bark with Bark, branch interior with Branch, root epidermis and
-# interior with Coarse Root, heart rot as Rot
+# tissue of each library, grouped for display: branch bark with Bark, branch interior with
+# Branch, root epidermis and interior with Coarse Root, heart rot as Rot
 MEDIA <- c(Heartwood = "Heartwood", Sapwood = "Sapwood", Litter = "Leaf Litter", Bark = "Bark",
            `Branch bark` = "Bark", Foliage = "Foliage", Mineral = "Mineral Soil", Organic = "Organic Soil",
            Branch = "Branch", `Branch interior` = "Branch", `Coarse root` = "Coarse Root",
            `Coarse root epidermis` = "Coarse Root", `Coarse root interior` = "Coarse Root",
            `Fine root` = "Fine Root", `Heart rot` = "Rot")
-bo_samples <- dna_samples("2022_felled_oak")
-media_of <- function(lib) unname(MEDIA[bo_samples$core_type[match(lib, bo_samples$library_id)]])
+media_order <- c("Heartwood", "Sapwood", "Rot", "Bark", "Branch", "Foliage", "Leaf Litter",
+                 "Coarse Root", "Fine Root", "Organic Soil", "Mineral Soil")   # interior -> exterior -> ground
 
-# Methanogen families (code/lib/methanogen_families.R, as Fig 5)
-source("code/lib/methanogen_families.R")
-methanogen_families <- METHANOGEN_FAMILIES
+A  <- asv_reads("felled_oak", samples_only = TRUE)            # non-organelle counts; A$tot per library
+bo <- dna_samples("2022_felled_oak")
+media <- unname(MEDIA[bo$core_type[match(colnames(A$cnt), bo$library_id)]])
+stopifnot(!anyNA(media), setequal(media, media_order))
 
-# Load REVISED methanotroph definitions (Methylacidiphilaceae family Known->Putative)
-source("code/lib/load_methanotroph_definitions.R")
-mt_defs <- load_methanotroph_defs()
+st <- classify_methanotrophs(data.frame(Family = A$tax$Family, Genus = A$tax$Genus, stringsAsFactors = FALSE),
+                             load_methanotroph_defs(), include_conditional = TRUE)
+grp <- case_when(A$tax$Family %in% METHANOGEN_FAMILIES ~ "Methanogen",
+                 st %in% "Known" ~ "Methanotroph (Known)",
+                 st %in% "Putative" ~ "Methanotroph (Putative)")
+k <- !is.na(grp) & !is.na(A$tax$Family)
 
-# ==============================================================================
-# STEP 2: Filter and classify taxa
-# ==============================================================================
-otu_table <- otu_table %>%
-  filter(!is.na(Family)) %>%
-  mutate(
-    mt_status = classify_methanotrophs(
-      data.frame(Family = Family, Genus = Genus, stringsAsFactors = FALSE),
-      mt_defs, include_conditional = TRUE),
-    Group = case_when(
-      Family %in% methanogen_families ~ "Methanogen",
-      mt_status == "Known" ~ "Methanotroph (known)",
-      mt_status == "Putative" ~ "Methanotroph (putative)",
-      TRUE ~ NA_character_
-    )
-  ) %>%
-  select(-mt_status) %>%
-  filter(!is.na(Group))
+tissue_tot <- tapply(A$tot, media, sum)                        # pooled denominator per tissue
+taxon_reads <- rowsum(A$cnt[k, , drop = FALSE],                # reads per taxon (family | genus) x library
+                      paste(grp[k], A$tax$Family[k], coalesce(A$tax$Genus[k], ""), sep = " | "))
+tis_reads <- t(rowsum(t(taxon_reads), media))                 # taxon x tissue
+pct <- sweep(tis_reads, 2, tissue_tot[colnames(tis_reads)], "/") * 100
 
-# Pivot to long format and assign tissue types
-data_cols <- otu_table %>%
-  select(where(is.numeric)) %>%
-  colnames()
+hm <- as.data.frame(as.table(pct), stringsAsFactors = FALSE) %>%
+  setNames(c("key", "Media", "pct")) %>%
+  separate(key, c("Group", "Family", "Genus"), sep = " \\| ", fill = "right") %>%
+  mutate(Media = factor(Media, levels = media_order),
+         Row_Label = paste(Family, coalesce(Genus, ""), sep = " | "),
+         fill_pct = ifelse(pct > 0, pct, NA_real_))
+nz <- range(hm$fill_pct, na.rm = TRUE)
+cat(sprintf("Fig S21: %d taxa x %d tissues; nonzero %.2g%% to %.2g%%; %d of %d cells zero\n",
+            n_distinct(hm$Row_Label), length(media_order), nz[1], nz[2], sum(hm$pct == 0), nrow(hm)))
 
-otu_table_long <- otu_table %>%
-  pivot_longer(cols = all_of(data_cols), names_to = "Sample", values_to = "Abundance") %>%
-  mutate(Media = media_of(Sample))
-stopifnot(!anyNA(otu_table_long$Media))
+BREAKS <- 10^(floor(log10(nz[1])):ceiling(log10(nz[2])))
+pct_lab <- function(x) paste0(format(x, scientific = FALSE, drop0trailing = TRUE, trim = TRUE), "%")
+taxon_labels <- function(v) do.call(expression, lapply(v, function(x) {
+  p <- strsplit(x, " | ", fixed = TRUE)[[1]]; gen <- if (length(p) > 1) trimws(p[2]) else ""
+  if (gen == "") bquote(.(paste0(p[1], " (genus unresolved)"))) else bquote(.(paste0(p[1], ": ")) * italic(.(gen)))
+}))
 
-# ==============================================================================
-# STEP 3: Absolute abundance heatmap
-# ==============================================================================
-aggregated_data <- otu_table_long %>%
-  group_by(Group, Family, Genus, Media) %>%
-  summarize(Total_Abundance = sum(Abundance, na.rm = TRUE), .groups = "drop") %>%
-  pivot_wider(names_from = Media, values_from = Total_Abundance, values_fill = 0)
+groups <- c("Methanogen", "Methanotroph (Known)", "Methanotroph (Putative)")
+groups <- groups[groups %in% hm$Group]
+hm$Panel <- factor(hm$Group, levels = groups,
+                   labels = paste0("(", letters[seq_along(groups)], ") ", groups))
+# one plot faceted by group: columns align across panels and rows keep equal height
+p <- ggplot(hm, aes(Media, Row_Label, fill = fill_pct)) +
+  geom_tile(colour = "white") +
+  geom_point(data = filter(hm, pct == 0), aes(shape = "Not detected"), alpha = 0) +   # legend key for grey
+  facet_grid(Panel ~ ., scales = "free_y", space = "free_y") +
+  scale_y_discrete(labels = taxon_labels) +
+  scale_fill_viridis_c(option = "C", trans = "log10", limits = range(BREAKS), breaks = BREAKS,
+                       labels = pct_lab, na.value = "grey85", oob = scales::squish,
+                       name = "Relative abundance\n(% of non-organelle\n16S reads)") +
+  scale_shape_manual(values = 15, name = NULL) +
+  guides(fill = guide_colourbar(order = 1, barheight = unit(40, "mm")),
+         shape = guide_legend(order = 2, override.aes = list(alpha = 1, size = 6, colour = "grey85"))) +
+  labs(x = NULL, y = NULL) +
+  theme_minimal(base_size = 11) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), panel.grid = element_blank(),
+        strip.text.y = element_text(angle = 0, hjust = 0, face = "bold"),
+        panel.spacing.y = unit(4, "mm"))
 
-# Log transform
-log_transformed_data <- aggregated_data %>%
-  mutate(across(where(is.numeric), ~ log10(. + 1)))
-
-# Prepare for ggplot
-heatmap_data <- log_transformed_data %>%
-  pivot_longer(cols = -c(Group, Family, Genus), names_to = "Media", values_to = "Abundance") %>%
-  mutate(Row_Label = paste(Family, coalesce(Genus, ""), sep = " | "))
-
-# Ecological order: tree interior -> exterior -> ground
-media_order <- c("Heartwood", "Sapwood", "Rot", "Bark", "Branch",
-                 "Foliage", "Leaf Litter", "Coarse Root", "Fine Root",
-                 "Organic Soil", "Mineral Soil")
-
-heatmap_data <- heatmap_data %>%
-  mutate(Media = factor(Media, levels = media_order))
-
-# Split into methanogen / known methanotroph / putative methanotroph panels
-library(patchwork)
-
-n_cols <- length(media_order)  # 11
-heatmap_mg    <- heatmap_data %>% filter(Group == "Methanogen")
-heatmap_mt_k  <- heatmap_data %>% filter(Group == "Methanotroph (known)")
-heatmap_mt_p  <- heatmap_data %>% filter(Group == "Methanotroph (putative)")
-n_rows_mg   <- max(n_distinct(heatmap_mg$Row_Label), 1)
-n_rows_mt_k <- max(n_distinct(heatmap_mt_k$Row_Label), 1)
-n_rows_mt_p <- max(n_distinct(heatmap_mt_p$Row_Label), 1)
-
-shared_heatmap_theme <- theme_minimal() +
-  theme(
-    axis.text.y = element_text(size = 10),
-    axis.text.x = element_text(size = 10, angle = 45, hjust = 1),
-    axis.title.x = element_blank()
-  )
-
-# Row labels: "Family: Genus" with the genus italic, or "Family (genus unresolved)".
-taxon_labels <- function(v) {
-  out <- lapply(v, function(x) {
-    p <- strsplit(x, " | ", fixed = TRUE)[[1]]; fam <- p[1]; gen <- if (length(p) > 1) trimws(p[2]) else ""
-    if (is.na(gen) || gen == "" || gen == "NA") bquote(.(paste0(fam, " (genus unresolved)")))
-    else bquote(.(paste0(fam, ": ")) * italic(.(gen)))
-  })
-  do.call(expression, out)
-}
-
-# Methanogen panel (top)
-p_mg <- ggplot(heatmap_mg, aes(x = Media, y = Row_Label, fill = Abundance)) +
-  geom_tile(color = "white") +
-  coord_fixed(ratio = 1) +
-  shared_heatmap_theme +
-  theme(axis.text.x = element_blank(),
-        axis.title.y = element_blank(),
-        plot.margin = margin(5, 5, 0, 5)) +
-  labs(subtitle = "Methanogen") + scale_y_discrete(labels = taxon_labels) +
-  scale_fill_viridis_c(option = "C", name = expression(log[10]~"(Abundance + 1)"))
-
-# Known methanotroph panel (middle)
-p_mt_k <- ggplot(heatmap_mt_k, aes(x = Media, y = Row_Label, fill = Abundance)) +
-  geom_tile(color = "white") +
-  coord_fixed(ratio = 1) +
-  shared_heatmap_theme +
-  theme(axis.text.x = element_blank(),
-        plot.margin = margin(0, 5, 0, 5)) +
-  labs(y = "Taxon", subtitle = "Methanotroph (known)") + scale_y_discrete(labels = taxon_labels) +
-  scale_fill_viridis_c(option = "C", name = expression(log[10]~"(Abundance + 1)"))
-
-# Putative methanotroph panel (bottom)
-p_mt_p <- ggplot(heatmap_mt_p, aes(x = Media, y = Row_Label, fill = Abundance)) +
-  geom_tile(color = "white") +
-  coord_fixed(ratio = 1) +
-  shared_heatmap_theme +
-  theme(plot.margin = margin(0, 5, 5, 5)) +
-  labs(y = "Taxon", subtitle = "Methanotroph (putative)") + scale_y_discrete(labels = taxon_labels) +
-  scale_fill_viridis_c(option = "C", name = expression(log[10]~"(Abundance + 1)"))
-
-# Stack with heights proportional to row counts
-tag_theme <- theme(plot.tag = element_text(size = 11, face = "bold"))
-p_mg   <- p_mg   + theme(legend.position = "none") + tag_theme
-p_mt_k <- p_mt_k + theme(legend.position = "none") + tag_theme
-
-# Only show x-axis labels and legend on bottom panel
-p_mt_p <- p_mt_p + tag_theme
-
-# Handle case where a panel has no data
-panels <- list()
-heights <- c()
-if (nrow(heatmap_mg) > 0)   { panels <- c(panels, list(p_mg));   heights <- c(heights, n_rows_mg) }
-if (nrow(heatmap_mt_k) > 0) { panels <- c(panels, list(p_mt_k)); heights <- c(heights, n_rows_mt_k) }
-if (nrow(heatmap_mt_p) > 0) { panels <- c(panels, list(p_mt_p)); heights <- c(heights, n_rows_mt_p) }
-
-p_abs <- Reduce(`/`, panels) +
-  plot_layout(heights = heights) +
-  plot_annotation(tag_levels = "a",
-                  tag_prefix = "(",
-                  tag_suffix = ")")
-
-print(p_abs)
-
-ggsave("outputs/figures/generated/black_oak_methanome_revised.png",
-       p_abs, width = 12, height = 8, dpi = 300, bg = "white")
-
-# ==============================================================================
-# STEP 4: Relative abundance heatmaps -- two denominators, for comparison
-# ==============================================================================
-# (i)  share of the library's methane-cycling reads (methanogens + methanotrophs): the
-#      version this script has always drawn;
-# (ii) share of the library's total 16S reads without organelles (asv_reads(), the
-#      denominator of every other 16S relative abundance).
-# Both are written to outputs/figures/generated/ (and side by side) for Jon to choose;
-# the assembled Fig. S21 is the absolute heatmap above.
-tot16 <- asv_reads("felled_oak")$tot          # non-organelle reads per library
-stopifnot(all(unique(otu_table_long$Sample) %in% names(tot16)))
-REL <- list(
-  methane_share = otu_table_long %>% group_by(Sample) %>%
-    mutate(Relative_Abundance = Abundance / sum(Abundance, na.rm = TRUE)) %>% ungroup(),
-  total16S_share = otu_table_long %>% mutate(Relative_Abundance = Abundance / tot16[Sample]))
-REL_TITLE <- c(methane_share = "Share of methane-cycling reads",
-               total16S_share = "Share of all 16S reads (organelles excluded)")
-
-make_rel_heatmap <- function(otu_table_long_relative, title) {
-  aggregated_relative_data <- otu_table_long_relative %>%
-    group_by(Group, Family, Genus, Media) %>%
-    summarize(Total_Relative_Abundance = sum(Relative_Abundance, na.rm = TRUE), .groups = "drop") %>%
-    pivot_wider(names_from = Media, values_from = Total_Relative_Abundance, values_fill = 0)
-
-  log_transformed_relative_data <- aggregated_relative_data %>%
-    mutate(across(where(is.numeric), ~ log10(. + 1)))
-
-  heatmap_relative_data <- log_transformed_relative_data %>%
-    pivot_longer(cols = -c(Group, Family, Genus), names_to = "Media", values_to = "Abundance") %>%
-    mutate(Row_Label = paste(Family, coalesce(Genus, ""), sep = " | ")) %>%
-    mutate(Media = factor(Media, levels = media_order))      # same ecological order
-
-  # Split into 3 panels (matching absolute heatmap)
-  heatmap_rel_mg   <- heatmap_relative_data %>% filter(Group == "Methanogen")
-  heatmap_rel_mt_k <- heatmap_relative_data %>% filter(Group == "Methanotroph (known)")
-  heatmap_rel_mt_p <- heatmap_relative_data %>% filter(Group == "Methanotroph (putative)")
-
-  n_rows_rel_mg   <- max(n_distinct(heatmap_rel_mg$Row_Label), 1)
-  n_rows_rel_mt_k <- max(n_distinct(heatmap_rel_mt_k$Row_Label), 1)
-  n_rows_rel_mt_p <- max(n_distinct(heatmap_rel_mt_p$Row_Label), 1)
-
-  rel_fill_scale <- scale_fill_viridis_c(option = "C",
-                                          name = expression(log[10]~"(Rel. Abundance + 1)"))
-
-  p_rel_mg <- ggplot(heatmap_rel_mg, aes(x = Media, y = Row_Label, fill = Abundance)) +
-    geom_tile(color = "white") + coord_fixed(ratio = 1) + shared_heatmap_theme +
-    theme(axis.text.x = element_blank(), axis.title.y = element_blank(), plot.margin = margin(5, 5, 0, 5)) +
-    labs(title = title, subtitle = "Methanogen") + rel_fill_scale
-  p_rel_mt_k <- ggplot(heatmap_rel_mt_k, aes(x = Media, y = Row_Label, fill = Abundance)) +
-    geom_tile(color = "white") + coord_fixed(ratio = 1) + shared_heatmap_theme +
-    theme(axis.text.x = element_blank(), plot.margin = margin(0, 5, 0, 5)) +
-    labs(y = "Taxa (Family | Genus)", subtitle = "Methanotroph (known)") + rel_fill_scale
-  p_rel_mt_p <- ggplot(heatmap_rel_mt_p, aes(x = Media, y = Row_Label, fill = Abundance)) +
-    geom_tile(color = "white") + coord_fixed(ratio = 1) + shared_heatmap_theme +
-    theme(plot.margin = margin(0, 5, 5, 5)) +
-    labs(y = "Taxa (Family | Genus)", subtitle = "Methanotroph (putative)") + rel_fill_scale
-
-  # Stack with same logic as absolute heatmap
-  p_rel_mg   <- p_rel_mg   + theme(legend.position = "none") + tag_theme
-  p_rel_mt_k <- p_rel_mt_k + theme(legend.position = "none") + tag_theme
-  p_rel_mt_p <- p_rel_mt_p + tag_theme
-
-  rel_panels  <- list(); rel_heights <- c()
-  if (nrow(heatmap_rel_mg) > 0)   { rel_panels <- c(rel_panels, list(p_rel_mg));   rel_heights <- c(rel_heights, n_rows_rel_mg) }
-  if (nrow(heatmap_rel_mt_k) > 0) { rel_panels <- c(rel_panels, list(p_rel_mt_k)); rel_heights <- c(rel_heights, n_rows_rel_mt_k) }
-  if (nrow(heatmap_rel_mt_p) > 0) { rel_panels <- c(rel_panels, list(p_rel_mt_p)); rel_heights <- c(rel_heights, n_rows_rel_mt_p) }
-  Reduce(`/`, rel_panels) + plot_layout(heights = rel_heights)
-}
-
-P_REL <- lapply(names(REL), function(k) make_rel_heatmap(REL[[k]], REL_TITLE[[k]]))
-names(P_REL) <- names(REL)
-p_rel <- P_REL$methane_share                 # the version used so far (i)
-for (k in names(P_REL))
-  ggsave(sprintf("outputs/figures/generated/figS21_black_oak_methanome_relative_%s.png", k),
-         P_REL[[k]], width = 12, height = 8, dpi = 300, bg = "white")
-ggsave("outputs/figures/generated/figS21_black_oak_methanome_relative_compare.png",
-       wrap_elements(P_REL$methane_share) | wrap_elements(P_REL$total16S_share),
-       width = 24, height = 8, dpi = 200, bg = "white")
-
-# ==============================================================================
-# STEP 5: Alpha Diversity Metrics
-# ==============================================================================
-library(vegan)
-
-# Calculate alpha diversity for each sample and media type
-diversity_data_otu <- otu_table_long %>%
-  filter(Abundance > 0) %>%
-  group_by(Sample, Media) %>%
-  summarize(
-    Total_OTUs = n_distinct(OTU_ID),
-    Chao1 = estimateR(Abundance)[1],
-    Shannon = diversity(Abundance, index = "shannon"),
-    Simpson = diversity(Abundance, index = "simpson"),
-    .groups = "drop"
-  )
-
-# Total OTUs across media
-total_otus_by_media <- otu_table_long %>%
-  filter(Abundance > 0) %>%
-  group_by(Media) %>%
-  summarize(
-    Total_OTUs = n_distinct(OTU_ID),
-    .groups = "drop"
-  )
-
-# Plot alpha diversity
-diversity_long_otu <- diversity_data_otu %>%
-  pivot_longer(cols = c(Total_OTUs, Chao1, Shannon, Simpson),
-               names_to = "Metric", values_to = "Value")
-
-p_alpha <- ggplot(diversity_long_otu, aes(x = Media, y = Value, fill = Media)) +
-  geom_boxplot(outlier.shape = NA, alpha = 0.7) +
-  geom_jitter(width = 0.2, alpha = 0.4, size = 1) +
-  facet_wrap(~ Metric, scales = "free_y") +
-  theme_minimal() +
-  theme(
-    axis.text.x = element_text(size = 10, angle = 45, hjust = 1),
-    strip.text = element_text(size = 12)
-  ) +
-  labs(
-    x = "Media",
-    y = "Diversity Metric Value",
-    title = "Alpha Diversity Metrics for Methane-Cycling Taxa (OTU Level)"
-  )
-
-print(p_alpha)
-
-# Plot total OTUs
-p_total <- ggplot(total_otus_by_media, aes(x = Media, y = Total_OTUs, fill = Media)) +
-  geom_bar(stat = "identity", alpha = 0.7) +
-  theme_minimal() +
-  theme(
-    axis.text.x = element_text(size = 10, angle = 45, hjust = 1),
-    strip.text = element_text(size = 12)
-  ) +
-  labs(
-    x = "Media",
-    y = "Total OTUs",
-    title = "Total Methane-Cycling OTUs Detected Across Tissues"
-  )
-
-print(p_total)
+ggsave("outputs/figures/generated/black_oak_methanome_revised.png", p, width = 11, height = 5, dpi = 300, bg = "white")

@@ -378,6 +378,12 @@ if (nrow(beal_env) > 0) {
   stat("BEAL soil VWC", beal_env$mean_VWC, "%")
   stat("BEAL soil mcrA (log10)", beal_env$log_mcra)
 }
+# A. saccharum, the same quantity (reply to Referee 3: "10^3.4 against 10^6.4")
+acsa_env <- sp_env %>% filter(species == "ACSA")
+stat("ACSA soil VWC", acsa_env$mean_VWC, "%")
+stat("ACSA soil mcrA (log10 of species-mean mineral copies/g + 1)", acsa_env$log_mcra)
+stat("BEAL / ACSA soil mcrA (fold)", 10^(beal_env$log_mcra - acsa_env$log_mcra))
+record("acsa_soil_mcra_log10", acsa_env$log_mcra)
 
 
 # ==============================================================================
@@ -441,6 +447,20 @@ for (ct in c("Inner", "Outer", "Mineral", "Organic")) {
   stat(sprintf("    %s: limit in copies/g at median mass %.0f mg", ct, median(m, na.rm = TRUE)),
        round(ddpcr_copies_per_g(LOD_CONC, median(m, na.rm = TRUE), ct)))
   record(sprintf("mcra_%s_pct_above_lod", tolower(ct)), round(100 * mean(v >= LOD_CONC), 1))
+}
+
+# Conifers (P. strobus, T. canadensis) against angiosperms, probe mcrA copies/g per sample,
+# all samples including zeros (Methods S1: "about a third", sapwood and heartwood p)
+sub_header("mcrA (probe, loose, copies/g): conifers vs angiosperms (Methods S1; Fig. S8)")
+for (ct in c("Outer", "Inner")) {
+  v <- ymf2021[[paste0("ddpcr_mcra_probe_", ct, "_loose")]]; k <- !is.na(v) & !is.na(ymf2021$species_id)
+  con <- ymf2021$species_id[k] %in% c("PIST", "TSCA"); v <- v[k]
+  w <- wilcox.test(v[con], v[!con])
+  cat(sprintf("  %s: conifer median %.0f (n = %d), angiosperm median %.0f (n = %d); conifer/angiosperm %.2f; Wilcoxon p = %.2g\n",
+              c(Outer = "Sapwood", Inner = "Heartwood")[ct], median(v[con]), sum(con), median(v[!con]), sum(!con),
+              median(v[con]) / median(v[!con]), w$p.value))
+  record(sprintf("mcra_conifer_angio_ratio_%s", tolower(ct)), median(v[con]) / median(v[!con]))
+  record(sprintf("mcra_conifer_angio_p_%s", tolower(ct)), w$p.value)
 }
 
 # Record key values
@@ -567,6 +587,20 @@ hw_samples <- samp_meta %>% filter(compartment == "Heartwood")
 anova_16s <- aov(methanogen_pct ~ species.x, data = hw_samples)
 anova_p_16s <- summary(anova_16s)[[1]]["species.x", "Pr(>F)"]
 cat(sprintf("  16S ANOVA p-value: %.4f\n", anova_p_16s))
+# ddPCR: heartwood probe mcrA copies/g by species, every 2021 tree with a heartwood value
+hw_dd <- ymf2021 %>% filter(!is.na(ddpcr_mcra_probe_Inner_loose), !is.na(species_id))
+anova_p_dd_log <- summary(aov(log10(ddpcr_mcra_probe_Inner_loose + 1) ~ species_id, data = hw_dd))[[1]]["species_id", "Pr(>F)"]
+anova_p_dd_raw <- summary(aov(ddpcr_mcra_probe_Inner_loose ~ species_id, data = hw_dd))[[1]]["species_id", "Pr(>F)"]
+cat(sprintf("  ddPCR ANOVA (heartwood mcrA by species; n = %d trees, %d species): log10(copies/g + 1) p = %.3g; untransformed p = %.3g\n",
+            nrow(hw_dd), n_distinct(hw_dd$species_id), anova_p_dd_log, anova_p_dd_raw))
+# the same among the species with at least five sampled trees (the convention of Methods S5),
+# and its rank-based counterpart
+hw_dd5 <- hw_dd %>% group_by(species_id) %>% filter(n() >= 5) %>% ungroup()
+anova_p_dd5 <- summary(aov(log10(ddpcr_mcra_probe_Inner_loose + 1) ~ species_id, data = hw_dd5))[[1]]["species_id", "Pr(>F)"]
+cat(sprintf("  ddPCR, species with >= 5 trees (n = %d trees, %d species): ANOVA log10(copies/g + 1) p = %.3g; Kruskal-Wallis p = %.3g\n",
+            nrow(hw_dd5), n_distinct(hw_dd5$species_id), anova_p_dd5,
+            kruskal.test(ddpcr_mcra_probe_Inner_loose ~ factor(species_id), data = hw_dd5)$p.value))
+record("anova_p_16s", anova_p_16s); record("anova_p_ddpcr_log", anova_p_dd_log); record("anova_p_ddpcr_log_5trees", anova_p_dd5)
 
 # A. saccharum heartwood
 acsa_hw <- hw_samples %>% filter(species.x == "ACSA")
@@ -716,6 +750,110 @@ for (fam in mt_families_detected) {
   pcts <- colSums(otu_df[asvs, rownames(hw_samples), drop = FALSE])
   cat(sprintf("    %s: mean %.3f%% in heartwood (n_ASVs=%d)\n", fam, mean(pcts), length(asvs)))
 }
+
+
+# --- Plastid removal and sample dropout (Methods S1) ---------------------------
+# The 575 study libraries (samples_16S library_type "sample", main run). Organelles by
+# is_organelle(); a library is RETAINED if it keeps >= RAREFY_DEPTH non-organelle reads,
+# DROPPED (by plastid removal) if it had >= RAREFY_DEPTH reads before removal but not after.
+# Taxon sets: methanogen families (METHANOGEN_FAMILIES); methanotrophs by the shared
+# classifier with include_conditional = TRUE, as Fig. 5.
+#  (1) Wood-wide, equal depth: dropped (>= 1,000 non-organelle reads) vs retained wood, each
+#      library subsampled to 1,000 reads (set counts drawn hypergeometrically, mean of 5
+#      seeds) for abundance, and the exact probability of >= 1 read at 1,000 for detection;
+#      Wilcoxon, BH over the 8 tests.
+#  (2) Species- and depth-conditioned detection, per compartment: each dropped library's
+#      chance of >= 1 read of the set is the mean, over retained libraries of the same
+#      species and compartment, of the exact probability of detecting the set when that
+#      library is subsampled to the dropped library's depth; observed detections are
+#      compared with that Poisson-binomial distribution (two-sided: twice the smaller
+#      tail); BH over the 8 tests (2 compartments x 4 sets).
+sub_header("Plastid removal and sample dropout (Methods S1)")
+source("code/lib/methanogen_families.R"); source("code/lib/load_methanotroph_definitions.R")
+plastid_dropout <- local({
+  .seed <- get(".Random.seed", globalenv())             # leave the RNG stream of later sections as it was
+  on.exit(assign(".Random.seed", .seed, globalenv()))
+  raw <- as(otu_table(.ps16$raw), "matrix"); if (!taxa_are_rows(.ps16$raw)) raw <- t(raw)
+  tt  <- as.data.frame(as(tax_table(.ps16$raw), "matrix"), stringsAsFactors = FALSE)[rownames(raw), ]
+  sd  <- .ps16$samp_data; sd <- sd[sd$library_type == "sample", ]
+  stopifnot(nrow(sd) == 575, all(sd$library_id %in% colnames(raw)))
+  raw <- raw[, sd$library_id]
+  org <- is_organelle(tt)
+  n_raw <- colSums(raw); n_org <- colSums(raw[org, ]); n_kept <- n_raw - n_org; share <- n_org / n_raw
+  wood <- sd$material == "Wood"; soil <- sd$material == "Soil"
+  dropped  <- n_raw >= RAREFY_DEPTH & n_kept < RAREFY_DEPTH
+  retained <- n_kept >= RAREFY_DEPTH
+  cat(sprintf("  Organelle reads: %s of %s (%.1f%%); median share per library: wood %.1f%% (n = %d), soil %.1f%% (n = %d)\n",
+              format(sum(n_org), big.mark = ","), format(sum(n_raw), big.mark = ","), 100 * sum(n_org) / sum(n_raw),
+              100 * median(share[wood], na.rm = TRUE), sum(wood), 100 * median(share[soil], na.rm = TRUE), sum(soil)))   # NA: a library with no reads
+  cat(sprintf("  Below %d reads: before removal %d (wood %d, soil %d); after %d (wood %d, soil %d)\n", RAREFY_DEPTH,
+              sum(n_raw < RAREFY_DEPTH), sum(n_raw < RAREFY_DEPTH & wood), sum(n_raw < RAREFY_DEPTH & soil),
+              sum(!retained), sum(!retained & wood), sum(!retained & soil)))
+  cat(sprintf("  Dropped by plastid removal: %d (wood %d = %.1f%% of %d wood libraries; soil %d); heartwood %d, sapwood %d\n",
+              sum(dropped), sum(dropped & wood), 100 * sum(dropped & wood) / sum(wood), sum(wood), sum(dropped & soil),
+              sum(dropped & sd$core_type == "Inner"), sum(dropped & sd$core_type == "Outer")))
+  cat(sprintf("  Dropped wood: median plastid share %.1f%% (range %.1f-%.1f%%); median raw depth %.0f vs retained wood %.0f\n",
+              100 * median(share[dropped & wood]), 100 * min(share[dropped & wood]), 100 * max(share[dropped & wood]),
+              median(n_raw[dropped & wood]), median(n_raw[retained & wood])))
+  sp_tab <- table(sd$species.x[wood], dropped[wood])
+  cat("  Wood dropout by species (dropped/total): ",
+      paste(sprintf("%s %d/%d", rownames(sp_tab), sp_tab[, "TRUE"], rowSums(sp_tab))[sp_tab[, "TRUE"] > 0], collapse = ", "), "\n", sep = "")
+
+  cnt <- raw[!org, ]; tx <- tt[!org, ]
+  mt <- classify_methanotrophs(tx, load_methanotroph_defs(), include_conditional = TRUE)
+  SETS <- list(methanogens = tx$Family %in% METHANOGEN_FAMILIES, `Known methanotrophs` = mt %in% "Known",
+               `Putative methanotrophs` = mt %in% "Putative", `all methanotrophs` = mt %in% c("Known", "Putative"))
+  M <- sapply(SETS, function(s) colSums(cnt[s, , drop = FALSE]))       # library x set reads
+  pdet <- function(m, N, d) 1 - exp(lchoose(N - m, d) - lchoose(N, d))  # P(>= 1 read in d of N)
+
+  # (1) wood-wide, equal depth (1,000 reads)
+  D1 <- 1000; use <- wood & (retained | (dropped & n_kept >= D1)); g <- dropped[use]
+  ww <- do.call(rbind, lapply(names(SETS), function(s) {
+    m <- M[use, s]; N <- n_kept[use]
+    ab <- rowMeans(sapply(0:4, function(i) { set.seed(RAREFY_SEED + i); rhyper(length(m), m, N - m, D1) / D1 }))
+    de <- pdet(m, N, D1)
+    data.frame(set = s, measure = c("abundance", "detection"),
+               dropped = c(mean(ab[g]), mean(de[g])), retained = c(mean(ab[!g]), mean(de[!g])),
+               p = c(wilcox.test(ab[g], ab[!g])$p.value, wilcox.test(de[g], de[!g])$p.value))
+  }))
+  ww$q <- p.adjust(ww$p, "BH")
+  cat(sprintf("  (1) All wood at %d reads: dropped n = %d vs retained n = %d\n", D1, sum(g), sum(!g)))
+  for (i in seq_len(nrow(ww))) cat(sprintf("      %-23s %-9s dropped %.4f retained %.4f  p = %.2g  q = %.2g\n",
+                                           ww$set[i], ww$measure[i], ww$dropped[i], ww$retained[i], ww$p[i], ww$q[i]))
+  cat(sprintf("      smallest q = %.2f\n", min(ww$q)))
+
+  # (2) species- and depth-conditioned detection, by compartment
+  pb <- function(p) { f <- 1; for (x in p) f <- c(f * (1 - x), 0) + c(0, f * x); f }
+  ct <- do.call(rbind, lapply(c("Inner", "Outer"), function(cmp) do.call(rbind, lapply(names(SETS), function(s) {
+    di <- which(dropped & sd$core_type %in% cmp)
+    p_i <- vapply(di, function(i) {
+      j <- which(retained & sd$core_type %in% cmp & sd$species.x %in% sd$species.x[i])
+      if (!length(j)) return(NA_real_)
+      mean(pdet(M[j, s], n_kept[j], n_kept[i]))
+    }, 0)
+    ok <- !is.na(p_i); obs <- sum(M[di[ok], s] > 0); f <- pb(p_i[ok])
+    data.frame(compartment = c(Inner = "heartwood", Outer = "sapwood")[cmp], set = s, n_dropped = length(di),
+               n_tested = sum(ok), detected = obs, expected = sum(p_i[ok]), reads_in_dropped = sum(M[di, s]),
+               p = min(1, 2 * min(sum(f[1:(obs + 1)]), sum(f[(obs + 1):length(f)]))))
+  }))))
+  ct$q <- p.adjust(ct$p, "BH")
+  cat("  (2) Dropped libraries vs retained of the same species and compartment, at the dropped library's depth\n")
+  for (i in seq_len(nrow(ct))) cat(sprintf("      %-9s %-23s detected %2d of %2d (expected %.1f; reads %d)  p = %.2g  q = %.2g\n",
+                                           ct$compartment[i], ct$set[i], ct$detected[i], ct$n_tested[i], ct$expected[i],
+                                           ct$reads_in_dropped[i], ct$p[i], ct$q[i]))
+  hd <- which(dropped & sd$core_type == "Inner")
+  cat(sprintf("      dropped heartwood: %d libraries, %d-%d non-organelle reads; species %s\n", length(hd),
+              min(n_kept[hd]), max(n_kept[hd]), paste(names(table(sd$species.x[hd])), table(sd$species.x[hd]), sep = " x", collapse = ", ")))
+  list(n_dropped_wood = sum(dropped & wood), pct_wood = 100 * sum(dropped & wood) / sum(wood),
+       median_share_dropped = 100 * median(share[dropped & wood]), min_q_woodwide = min(ww$q), cond = ct)
+})
+record("plastid_dropped_wood", plastid_dropout$n_dropped_wood)
+record("plastid_dropped_wood_pct", plastid_dropout$pct_wood)
+record("plastid_dropped_median_share_pct", plastid_dropout$median_share_dropped)
+record("plastid_woodwide_min_q", plastid_dropout$min_q_woodwide)
+with(subset(plastid_dropout$cond, compartment == "heartwood" & set == "methanogens"), {
+  record("plastid_hw_methanogen_detected", detected); record("plastid_hw_methanogen_expected", expected)
+  record("plastid_hw_methanogen_q", q) })
 
 
 # ==============================================================================
@@ -1365,6 +1503,44 @@ for (i in seq_len(nrow(SY)))
               SY$monthly_drivers[i], SY$daily_drivers[i], SY$units[i], SY$ratio_daily_to_monthly[i], SY$n_days[i]))
 record("sens_daily_soil_ratio", SY$ratio_daily_to_monthly[1]); record("sens_daily_tree_ratio", SY$ratio_daily_to_monthly[2])
 
+# Methods S6: "The model predicts higher flux below about 0.9 m than at breast height in every
+# species". The calibrated per-stem band profile (06_upscale/01_predict_tree_flux.R): the
+# lowest interval (from 0.5 m, held below) against the interval holding 1.3 m; budget stems,
+# by model species level, area-weighted mean and share of stems.
+sub_header("Band profile: lowest interval vs breast height, by species (Methods S6)")
+local({
+  E  <- read.csv("outputs/tables/tree_band_profile_edges.csv"); P <- read.csv("outputs/tables/tree_band_profile.csv")
+  TF <- read.csv("outputs/tables/tree_flux_predictions.csv", stringsAsFactors = FALSE)
+  stopifnot(nrow(P) == nrow(TF), identical(P$source, TF$source), identical(P$tag, TF$tag))
+  k_bh <- findInterval(130, c(E$edge_lo_cm, tail(E$edge_hi_cm, 1)))
+  low <- P$f_i1; bh <- P[[paste0("f_i", k_bh)]]; k <- TF$in_stand; w <- TF$A_stem_m2
+  cat(sprintf("  lowest interval %d-%d cm (held below %d cm) vs breast-height interval %d-%d cm\n",
+              E$edge_lo_cm[1], E$edge_hi_cm[1], E$edge_lo_cm[1], E$edge_lo_cm[k_bh], E$edge_hi_cm[k_bh]))
+  S <- do.call(rbind, lapply(split(which(k), TF$species_model[k]), function(i)
+    data.frame(stems = length(i), low = weighted.mean(low[i], w[i]), bh = weighted.mean(bh[i], w[i]),
+               share_low_higher = mean(low[i] > bh[i]))))
+  S$ratio <- S$low / S$bh
+  for (r in rownames(S)) cat(sprintf("  %-22s %5d stems  low %.4f  bh %.4f nmol m-2 s-1  low/bh %.2f  stems with low > bh %.0f%%\n",
+                                     r, S[r, "stems"], S[r, "low"], S[r, "bh"], S[r, "ratio"], 100 * S[r, "share_low_higher"]))
+  cat(sprintf("  low > bh (area-weighted) in %d of %d species levels; in %.1f%% of budget stems\n",
+              sum(S$ratio > 1), nrow(S), 100 * mean(low[k] > bh[k])))
+  record("band_low_gt_bh_species", sum(S$ratio > 1)); record("band_species_levels", nrow(S))
+})
+
+# Methods S6: "tuning these settings, with selection nested inside cross-validation, changed
+# grouped R2 by about ..." (05_model/16_rf_hyperparameter_tuning.R)
+sub_header("Hyperparameter tuning nested in grouped CV (05_model/16_rf_hyperparameter_tuning.R)")
+local({
+  H <- read.csv("outputs/data/rf_hyperparameters.csv", stringsAsFactors = FALSE)
+  H <- H[!duplicated(H$model), ]
+  for (i in seq_len(nrow(H))) {
+    cat(sprintf("  %s: grouped R2 untuned %.4f, tuned (nested) %.4f; change %+.4f (sd %.4f over %d repeats; tuned better in %d)\n",
+                H$model[i], H$grouped_r2_untuned[i], H$grouped_r2_tuned[i], H$tuning_delta_r2[i],
+                H$tuning_delta_r2_sd[i], H$n_repeats[i], H$repeats_tuning_better[i]))
+    record(sprintf("tuning_delta_r2_%s", H$model[i]), H$tuning_delta_r2[i])
+  }
+})
+
 # ==============================================================================
 # SECTION 11: ADDITIONAL METHANOTROPH RESULTS (S10, S12)
 
@@ -1815,16 +1991,11 @@ sub_header("Figure S14: mcrA vs methanotroph (see Section 9)")
 cat("  Tree-level and species-level correlations reported above.\n")
 
 # --- Figure S12: Black oak methanome heatmap ---
-sub_header("Figure S12: Black oak tissue methanome heatmap")
-# This is from 10_black_oak_methanome_heatmap.R — qualitative, but key result:
-# Methanobacteriaceae only in heartwood, no methanogens in soil
-cat("  Key qualitative results (from manuscript text):\n")
-cat("  - Only Methanobacterium (Methanobacteriaceae) detected as methanogen\n")
-cat("  - Found exclusively in heartwood and sapwood\n")
-cat("  - No methanogens in bark, branches, foliage, or soil\n")
-cat("  - Methanotrophs (Methylocella) in heartwood, sapwood, bark, foliage\n")
-cat("  - Methyloferula in sapwood, bark, leaf litter\n")
-cat("  - Methylorosula in heartwood, sapwood, leaf litter\n")
+sub_header("Figure S21: Black oak tissue methanome heatmap")
+# The typed qualitative list that stood here disagreed with the figure. Fig. S21
+# (code/08_figures/figS20_black-oak-methanome.R) prints its own range; the felled-oak
+# methanotroph percentages in the text come from Table S4 (07_molecular/03_methanotroph_resolution.R).
+cat("  See Table S4 (outputs/data/methanotroph_resolution_black_oak.csv) for the values quoted in the text.\n\n")
 
 # --- Figure S2: Taxonomy x pmoA heatmap ---
 sub_header("Figure S2: Family-level 16S x pmoA associations")

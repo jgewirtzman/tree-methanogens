@@ -74,6 +74,7 @@ D,code/05_model/12_model_family_comparison.R,root,FALSE,random forest against ot
 D,code/05_model/13_height_form_crossvalidation.R,root,FALSE,leave-one-height-out test of flux forms above 2 m
 D,code/05_model/14_rf_height_extrapolation.R,root,FALSE,model behaviour above its training heights
 D,code/05_model/15_rf_air_temperature_test.R,root,FALSE,sensitivity: both forests with the measured air temperature added (skill; budget under 24-h and daytime air)
+D,code/05_model/16_rf_hyperparameter_tuning.R,root,FALSE,what tuning mtry and min.node.size is worth: selection nested in grouped CV (Methods S6)
 D,code/06_upscale/11_sens_daily_drivers.R,root,FALSE,sensitivity: daily vs monthly drivers (averaging check; soil all cells; 300 sampled stems)
 D,code/07_molecular/01_faprotax_dump_HW_SW.R,root,FALSE,FAPROTAX functions by compartment (Fig 6b)
 D,code/07_molecular/02_picrust_pathway_associations.R,root,FALSE,PICRUSt2 pathway associations with mcrA and pmoA from data/tables/picrust_pathways.csv (Fig 6c; Figs S13-S15)
