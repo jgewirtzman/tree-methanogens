@@ -4,25 +4,30 @@
 # Same data/definitions as rev_figS21 (taxonomy-based, Fig 5 defs), summarized as
 # a concordance table: per gene x compartment, the 4 detection categories, ddPCR
 # vs 16S detection rates, and the quantitative fit (r, p) where both detect.
+# Reads data/tables/ via code/lib/tables_read.R: asv_table("main") (ASV counts + taxonomy),
+# dna_samples("2021_survey") (16S library -> sample, material; ddPCR copies per uL extract);
+# joined by library_id. Samples: 2021 DNA samples whose 16S library has at least RAREFY_DEPTH
+# (3500) non-organelle reads, the libraries the main 16S analysis keeps (build_phyloseq.R).
 # Writes outputs/data/tbl_ddpcr_16s_concordance.csv + .png
 # ==============================================================================
 suppressMessages({library(gridExtra);library(grid)}); options(warn=-1,stringsAsFactors=FALSE)
-num<-function(x) suppressWarnings(as.numeric(x))
-otu<-read.delim("data/raw/16s/OTU_table.txt",header=TRUE,row.names=1,check.names=FALSE)
-taxc<-intersect(c("Kingdom","Phylum","Class","Order","Family","Genus","Species"),names(otu))
-tax<-otu[,taxc]; cnt<-as.matrix(sapply(otu[,setdiff(names(otu),taxc),drop=FALSE],num)); rownames(cnt)<-rownames(otu); tot<-colSums(cnt,na.rm=TRUE)
+source("code/lib/tables_read.R"); source("code/lib/build_phyloseq.R")   # RAREFY_DEPTH
+# denominator: the library's non-organelle reads (asv_reads(): mitochondria and
+# chloroplast ASVs removed, as in the main 16S analysis)
+A<-asv_reads("main"); cnt<-A$cnt; tax<-A$tax; tot<-A$tot
+deep<-names(tot)[tot>=RAREFY_DEPTH]
 source("code/lib/methanogen_families.R"); mgfam<-METHANOGEN_FAMILIES
-mg_asv<-rownames(otu)[tax$Family %in% mgfam]
+mg_asv<-rownames(cnt)[tax$Family %in% mgfam]
 source("code/lib/load_methanotroph_definitions.R")
 dp<-"code/lib/methanotroph_definitions.csv"
 tax$mt<-classify_methanotrophs(tax,load_methanotroph_defs(dp),include_conditional=TRUE)
-mt_asv<-rownames(otu)[tax$mt %in% c("Known","Putative")]
-s16<-data.frame(key=sub("[.]16S[.]S[0-9]*$","",colnames(cnt)),
+mt_asv<-rownames(cnt)[tax$mt %in% c("Known","Putative")]
+s16<-data.frame(library_id=colnames(cnt),
                 mg16=100*colSums(cnt[mg_asv,,drop=FALSE],na.rm=TRUE)/tot,
                 mt16=100*colSums(cnt[mt_asv,,drop=FALSE],na.rm=TRUE)/tot)
-o<-read.csv("data/raw/external/tree-microbiome/tree_data_methanogen_group.csv",check.names=FALSE); o<-o[,names(o)!=""]
-o$mcra<-num(o$mcra_probe_loose); o$pmoa<-num(o$pmoa_loose); o$mmox<-num(o$mmox_loose); o$key<-paste0(o$seq_id,o$core_type)
-m<-merge(o[,c("key","material","mcra","pmoa","mmox")],s16,by="key")
+ds<-dna_samples("2021_survey"); ds<-ds[ds$library_id %in% deep,]
+o<-data.frame(library_id=ds$library_id,material=ds$material,mcra=ds$mcra_probe_ul,pmoa=ds$pmoa_ul,mmox=ds$mmox_ul)
+m<-merge(o,s16,by="library_id")
 row1<-function(gene,func,glab,mat){
   s<-m[m$material==mat & is.finite(m[[gene]])&is.finite(m[[func]]),]; g<-s[[gene]]; f<-s[[func]]
   pos<-g>0&f>0; rp<-c(NA,NA); if(sum(pos)>=4){ct<-suppressWarnings(cor.test(log10(g[pos]),log10(f[pos]))); rp<-c(ct$estimate,ct$p.value)}

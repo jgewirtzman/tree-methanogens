@@ -37,7 +37,9 @@ source("code/lib/outputs.R")
 # RO_unidentified_2024 and BB11_or_BB4_2024. species_recorded: the species code on
 # the 2021 sample sheet (Species.ID), as written; NA for the other campaigns.
 #
-# Checks: 2021 and 2024 rows equal data/compiled/internal_gas.csv; the felled-oak
+# Checks: (the comparison of the 2021 and 2024 rows with the old archive,
+# data/compiled/internal_gas.csv, was removed 2026-10-16: the archive is now a copy of
+# data/tables/); the felled-oak
 # values equal those of the fig07 / 20_manuscript_statistics.R code, run verbatim
 # (to 1e-12, relative: the two fits differ only in floating-point summation order).
 #
@@ -113,16 +115,6 @@ stopifnot(!anyDuplicated(IG$sample_id))
 # ==============================================================================
 same <- function(a, b) (is.na(a) & is.na(b)) | (!is.na(a) & !is.na(b) & a == b)
 near <- function(a, b) same(a, b) | (!is.na(a) & !is.na(b) & abs(a - b) <= 1e-12 * pmax(1, abs(a)))   # floating point
-# (a) 2021 + 2024 vs the archived table
-CP <- read.csv("data/compiled/internal_gas.csv", stringsAsFactors = FALSE)
-CP$sample_id[CP$campaign == "2021_survey"] <- g21$sample_id                       # same row order as sample_data_only.csv
-j <- IG %>% filter(campaign != "2022_felled_oak") %>% inner_join(CP, by = "sample_id", suffix = c("", ".c"))
-stopifnot(nrow(j) == nrow(CP), nrow(j) == nrow(g21) + nrow(g24), all(j$campaign == j$campaign.c))
-abad <- sapply(c("CH4_ppm", "CO2_ppm", "N2O_ppm", "O2_ppm", "CH4_below_lod", "CO2_below_lod", "N2O_below_lod"),
-               function(v) sum(!near(j[[v]], j[[paste0(v, ".c")]])))
-cdate <- ifelse(grepl("/", j$analysis_date.c), as.character(mdy(j$analysis_date.c)), j$analysis_date.c)   # 2024 dates archived as m/d/yy
-abad["analysis_date"] <- sum(!same(as.character(j$analysis_date), cdate))
-abad["CH4_above_top_standard (2021)"] <- with(j[j$campaign == "2021_survey", ], sum(!same(CH4_above_top_standard, CH4_above_top_standard.c)))
 # (b) felled oak vs the fig07 code, run verbatim
 fig07 <- local({
   O2s<-read.csv("data/raw/field_data/black_oak/o2_standards.csv",fileEncoding="UTF-8-BOM")
@@ -153,11 +145,10 @@ sink(out_path("internal_gas_build.txt", "audit")); op <- options(width = 160)
 cat(sprintf("internal_gas: %d samples (%s)\n", nrow(IG), paste(names(table(IG$campaign)), table(IG$campaign), collapse = ", ")))
 cat(sprintf("trees: %d; samples without a tree (2024 atmosphere vials): %d\n", n_distinct(IG$tree_id, na.rm = TRUE), sum(is.na(IG$tree_id))))
 cat(sprintf("CH4 above the top standard: %s\n", paste(IG$sample_id[IG$CH4_above_top_standard %in% TRUE], collapse = ", ")))
-cat("\n(a) 2021 + 2024 vs data/compiled/internal_gas.csv -- values differing:\n"); print(abad)
 cat("\n(b) felled oak vs fig07 / 20_manuscript_statistics.R calibration -- values differing:\n"); print(obad)
 cat("\nFelled-oak trunk gas:\n"); print(as.data.frame(oak %>% select(sample_id, height_m, analysis_date, CH4_ppm, O2_ppm)), row.names = FALSE)
 options(op); sink()
 cat(readLines(out_path("internal_gas_build.txt", "audit")), sep = "\n")
-if (any(abad > 0) || any(obad > 0)) stop("internal_gas does not reproduce today's values (outputs/audit/internal_gas_build.txt)")
+if (any(obad > 0)) stop("internal_gas does not reproduce today's values (outputs/audit/internal_gas_build.txt)")
 
 write_csv(IG, file.path(OUT, "internal_gas.csv"), na = "")

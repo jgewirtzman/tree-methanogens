@@ -43,16 +43,8 @@ cat(strrep("*", 72), "\n")
 # --- Shared constants ---
 NMOL_TO_UG <- 57.744  # nmol m-2 s-1 -> ug CH4 m-2 hr-1
 
-species_mapping <- c(
-  "ACRU" = "Acer rubrum", "ACSA" = "Acer saccharum",
-  "BEAL" = "Betula alleghaniensis", "BELE" = "Betula lenta",
-  "BEPA" = "Betula papyrifera", "FAGR" = "Fagus grandifolia",
-  "FRAM" = "Fraxinus americana", "PIST" = "Pinus strobus",
-  "QURU" = "Quercus rubra", "TSCA" = "Tsuga canadensis",
-  "CAOV" = "Carya ovata", "KALA" = "Kalmia latifolia",
-  "PRSE" = "Prunus serotina", "QUAL" = "Quercus alba",
-  "QUVE" = "Quercus velutina", "SAAL" = "Sassafras albidum"
-)
+source("code/lib/tables_read.R")   # data/tables/ readers; SPECIES_NAMES = species.csv code -> binomial
+
 
 # --- Shared utilities ---
 section_header <- function(title) {
@@ -79,15 +71,6 @@ detection_rate <- function(x) {
   100 * sum(x > 0) / length(x)
 }
 
-area_weighted_gene <- function(gene_inner, gene_outer, dbh_cm) {
-  R <- dbh_cm / 2
-  if (!is.finite(R) || R <= 0) return(NA_real_)
-  r1 <- min(5, R)
-  r2 <- max(R - 5, r1)
-  S <- r1^2 + r1 * r2 + r2^2
-  gene_outer + (gene_inner - gene_outer) * (S / (3 * R^2))
-}
-
 # --- Summary collector for footer ---
 summary_stats <- list()
 record <- function(name, value) {
@@ -97,26 +80,30 @@ record <- function(name, value) {
 # --- Load ALL data upfront ---
 cat("\nLoading data...\n")
 
-# the file Figure 1 plots (fig01_temporal-flux.R): the monthly survey including the recovered
-# untagged and dead-stem trees. Section 1 read the 41-tree file and so described a
-# smaller set than the figure beside it.
-source("code/lib/monthly_cols.R")
-semirigid_tree <- monthly_plain(read.csv("data/processed/flux/semirigid_tree_final_complete_dataset_with_untagged.csv"))
-semirigid_soil <- read.csv("data/processed/flux/semirigid_tree_final_complete_dataset_soil.csv")
-
-# Measurements are excluded only for procedural failure: the chamber screen in
-# 02_qc_c0_screen.R (two soil chambers not at ambient at closure). The r2 >= 0.7 and
-# -100..200 filters that stood here were removed 2026-10-01: an r2 screen is not a
-# detection criterion and inflated the mean stem flux 144% (Methods S4).
-QC_EXCLUDED <- read.csv("outputs/data/qc_excluded_measurements.csv")$UniqueID
+# The monthly survey as Figure 1 plots it (fig01_temporal-flux.R): every monthly stem
+# deployment in data/tables/flux_stem.csv (recovered untagged and dead stems included) and
+# every soil deployment in flux_soil.csv. Measurements are excluded only for procedural
+# failure: the chamber screen in 02_qc_c0_screen.R (two soil chambers not at ambient at
+# closure; flux_soil.qc_pass). The r2 >= 0.7 and -100..200 filters that stood here were
+# removed 2026-10-01: an r2 screen is not a detection criterion and inflated the mean stem
+# flux 144% (Methods S4). Landscape position: collars.csv (soil), trees.csv (stems).
+.collars <- read_table("collars")
+semirigid_soil <- read_table("flux_soil") %>% filter(campaign == "monthly_2020_2021", qc_pass) %>%
+  transmute(UniqueID = measurement_id, Date = date, Plot.Tag = collar_id,
+            Plot.letter = .collars$landscape_position[match(collar_id, .collars$collar_id)],
+            CH4_best.flux = CH4_flux_nmol_m2_s)
+semirigid_tree <- read_table("flux_stem") %>% filter(campaign == "monthly_2020_2021") %>%
+  transmute(UniqueID = measurement_id, Date = date, Plot.Tag = tree_id,
+            Plot.Letter = trees_table()$landscape_position[match(tree_id, trees_table()$tree_id)],
+            CH4_best.flux = CH4_flux_nmol_m2_s)
+stopifnot(!anyNA(semirigid_soil$Plot.letter), !anyNA(semirigid_tree$Plot.Letter))
 source("code/lib/soil_collars.R")
 moisture_data  <- collar_soil_readings()   # data/tables/soil_readings.csv, one row per collar and date
 
-ymf2021 <- read.csv("data/processed/integrated/merged_tree_dataset_final.csv")
-ymf2023 <- read.csv("data/processed/flux/tree_flux_2023_cross_species.csv")
-
-aux      <- read.csv("data/processed/flux/goflux_auxfile.csv")
-ch4_flux <- read.csv("data/processed/flux/CH4_best_flux_lgr_results_2021_multiheight.csv")
+# 2021 survey per tree (genes, gas, cores, soil holes, flux by height; species and DBH from
+# trees.csv) and the 2023 cross-species deployments (species from trees.csv)
+ymf2021 <- survey_2021_trees(soil = TRUE)
+ymf2023 <- flux_stem_campaign("2023_cross_species")
 
 # CANONICAL BUDGET is authoritative for every stand-level number (2026-07-30).
 # This script is named "manuscript statistics" and was quoting the LEGACY
@@ -139,9 +126,7 @@ CANON <- local({
 })
 canon <- function(q) { if (!q %in% names(CANON)) stop("canonical_budget.csv lacks ", q); unname(CANON[[q]]) }
 load("outputs/models/RF_MODELS.RData")
-if (file.exists("outputs/models/TRAINING_DATA.RData")) {
-  load("outputs/models/TRAINING_DATA.RData")  # tree_train_complete, X_tree, X_soil, soil_train_complete
-}
+load("outputs/models/TRAINING_DATA.RData")  # tree_train_complete, X_tree, X_soil, soil_train_complete
 
 cat("  All data loaded.\n")
 
@@ -154,7 +139,7 @@ section_header("SECTION 1: TEMPORAL FLUX PATTERNS (Figure 1)")
 
 # Quality filter (matches 06_soil_tree_timeseries.R)
 soil_qc <- semirigid_soil %>%
-  filter(!is.na(CH4_best.flux), !UniqueID %in% QC_EXCLUDED) %>%
+  filter(!is.na(CH4_best.flux)) %>%
   mutate(Plot_Type = case_when(
     Plot.letter %in% c("WD", "WS") ~ "W",
     Plot.letter == "I" ~ "I",
@@ -243,15 +228,10 @@ for (pos in c("U", "I", "W")) {
               pos_label, mean(d$VWC, na.rm = TRUE), sd(d$VWC, na.rm = TRUE), nrow(d)))
 }
 
-# Soil temperature range
-if ("SoilTemp" %in% names(semirigid_soil) || "Soil.Temp" %in% names(semirigid_soil)) {
-  temp_col <- intersect(c("SoilTemp", "Soil.Temp", "Soil_Temp"), names(semirigid_soil))[1]
-  if (!is.na(temp_col)) {
-    temps <- semirigid_soil[[temp_col]]
-    stat("Soil temperature range", paste(round(min(temps, na.rm = TRUE), 1),
-                                          "to", round(max(temps, na.rm = TRUE), 1)), "deg C")
-  }
-}
+# Soil temperature range: the collar readings (soil_readings.csv), as Figure 1 plots them
+stat("Soil temperature range (collar readings)",
+     paste(round(min(moisture_data$soil_temp_C, na.rm = TRUE), 1), "to",
+           round(max(moisture_data$soil_temp_C, na.rm = TRUE), 1)), "deg C")
 
 
 # ==============================================================================
@@ -260,20 +240,17 @@ if ("SoilTemp" %in% names(semirigid_soil) || "Soil.Temp" %in% names(semirigid_so
 
 section_header("SECTION 2: HEIGHT EFFECTS (Figure 2)")
 
-# Prepare data (matches 01_height_effects.R)
-height_data <- merge(ch4_flux, aux[, c("UniqueID", "measurement_height", "tree_id",
-                                        "species", "plot")],
-                     by = "UniqueID", all.x = TRUE)
-names(height_data)[names(height_data) == "best.flux"] <- "CH4_best.flux"
-
-height_data <- height_data %>%
-  mutate(height_numeric = as.numeric(measurement_height)) %>%
+# Prepare data (matches 01_height_effects.R): 2021 multi-height deployments, species and
+# landscape position (plot) from trees.csv; the root crown has no height_cm
+height_data <- flux_stem_campaign("2021_multiheight") %>%
+  transmute(UniqueID = measurement_id, tree_id, species = species_code,
+            plot = trees_table()$landscape_position[match(tree_id, trees_table()$tree_id)],
+            height_numeric = height_cm, CH4_best.flux = CH4_flux_nmol_m2_s) %>%
   filter(!is.na(CH4_best.flux), !is.na(height_numeric)) %>%
   mutate(
-    species = ifelse(species == "TSLA", "TSCA", species),
     height_m = height_numeric / 100,
     tree_unique = paste(plot, tree_id, sep = "_"),
-    species_latin = species_mapping[species]
+    species_latin = SPECIES_NAMES[species]
   ) %>%
   filter(species != "KALA")
 
@@ -309,7 +286,7 @@ sub_header("Significant species (nmol m-2 s-1 per METER)")
 sig_sp <- height_results %>% filter(p < 0.05)
 for (i in seq_len(nrow(sig_sp))) {
   cat(sprintf("  %s: coef = %.3f, p = %.4f\n",
-              species_mapping[sig_sp$species[i]],
+              SPECIES_NAMES[sig_sp$species[i]],
               sig_sp$coef[i] * 100, sig_sp$p[i]))  # *100 converts /cm to /m
 }
 
@@ -333,14 +310,14 @@ for (sp in c("BEAL", "TSCA", "ACSA")) {
   }
   if (nrow(jk) > 0) {
     prop_sig <- round(100 * sum(jk$p < 0.05) / nrow(jk), 0)
-    cat(sprintf("  %s: %d%% iterations significant\n", species_mapping[sp], prop_sig))
+    cat(sprintf("  %s: %d%% iterations significant\n", SPECIES_NAMES[sp], prop_sig))
   }
   # Within-species: proportion of trees with negative slopes
   tree_slopes <- d %>% group_by(tree_unique) %>% filter(n() >= 2) %>%
     summarise(slope = coef(lm(CH4_best.flux ~ height_numeric))[2], .groups = "drop")
   prop_neg <- round(100 * sum(tree_slopes$slope < 0) / nrow(tree_slopes), 0)
   cat(sprintf("  %s: %d/%d trees with negative slopes (%d%%)\n",
-              species_mapping[sp], sum(tree_slopes$slope < 0), nrow(tree_slopes), prop_neg))
+              SPECIES_NAMES[sp], sum(tree_slopes$slope < 0), nrow(tree_slopes), prop_neg))
 }
 
 # B. alleghaniensis flux at specific heights
@@ -452,10 +429,14 @@ gene_stats(ymf2021$ddpcr_mcra_probe_Organic_loose, "Organic soil")
 source("code/lib/ddpcr_constants.R")
 LOD_CONC <- 3 / 20
 sub_header("mcrA (probe, loose): samples at or above the limit of detection (3 copies per reaction)")
-cg <- read.csv("data/compiled/ddpcr_gene_abundances.csv") %>%
-  filter(analysis_type == "loose", target_gene == "mcra_probe", !is.na(concentration_copies_per_uL))
+# every 2021 probe-mcrA run that passed QC (data/tables/ddpcr.csv; position and mass from samples.csv)
+cg <- read_table("ddpcr") %>% filter(gene == "mcrA", assay == "probe", qc_pass, !is.na(copies_per_uL_rxn)) %>%
+  inner_join(read_table("samples") %>% filter(campaign == "2021_survey") %>%
+               transmute(sample_id, core_type = c(inner = "Inner", outer = "Outer", organic = "Organic",
+                                                  mineral = "Mineral")[position], sample_mass_mg = extraction_mass_mg),
+             by = "sample_id")
 for (ct in c("Inner", "Outer", "Mineral", "Organic")) {
-  v <- cg$concentration_copies_per_uL[cg$core_type == ct]; m <- cg$sample_mass_mg[cg$core_type == ct]
+  v <- cg$copies_per_uL_rxn[cg$core_type == ct]; m <- cg$sample_mass_mg[cg$core_type == ct]
   stat(sprintf("    %s: %% at or above (n = %d)", ct, length(v)), round(100 * mean(v >= LOD_CONC), 1), "%")
   stat(sprintf("    %s: limit in copies/g at median mass %.0f mg", ct, median(m, na.rm = TRUE)),
        round(ddpcr_copies_per_g(LOD_CONC, median(m, na.rm = TRUE), ct)))
@@ -492,8 +473,7 @@ for (loc in c("Inner", "Outer", "Mineral", "Organic")) {
   if (pmoa_col %in% names(ymf2021) && mmox_col %in% names(ymf2021)) {
     p <- ymf2021[[pmoa_col]]
     m <- ymf2021[[mmox_col]]
-    total <- ifelse(!is.na(p) & !is.na(m), p + m,
-                    ifelse(!is.na(p), p, ifelse(!is.na(m), m, NA)))
+    total <- p + m          # both genes measured; NA where either is missing
     pos <- total[!is.na(total) & total > 0]
     label <- c(Inner = "Heartwood", Outer = "Sapwood",
                Mineral = "Mineral soil", Organic = "Organic soil")[loc]
@@ -714,7 +694,7 @@ mt_defs <- load_methanotroph_defs()
 mt_status <- classify_methanotrophs(tax_df, mt_defs)
 known_asvs   <- intersect(rownames(tax_df)[mt_status %in% "Known"], rownames(otu_df))
 putative_only <- intersect(rownames(tax_df)[mt_status %in% "Putative"], rownames(otu_df))
-if (file.exists("outputs/data/methanotroph_tier_totals.csv")) {
+{
   tt <- read.csv("outputs/data/methanotroph_tier_totals.csv")
   cat("  Tier totals over the analysed samples (03_clade-census.R):\n")
   for (r in seq_len(nrow(tt))) cat(sprintf("    %-17s %4d ASVs; heartwood %.3f%%, sapwood %.3f%%, mineral %.3f%%, organic %.3f%%\n",
@@ -834,8 +814,8 @@ for (fn in names(func_means)) {
 
 # PICRUSt pathway verification
 sub_header("PICRUSt pathway associations (VERIFY pathway names)")
-picrust_mcra <- "data/processed/molecular/picrust/pathway_associations_mcra_all.csv"
-if (file.exists(picrust_mcra)) {
+picrust_mcra <- "outputs/data/picrust/pathway_associations_mcra_all.csv"
+{
   pvals_mcra <- read.csv(picrust_mcra)
   sig_mcra <- pvals_mcra %>% filter(FDR < 0.01) %>% arrange(FDR)
   cat(sprintf("  Significant mcrA-associated pathways (FDR < 0.01): %d\n", nrow(sig_mcra)))
@@ -847,8 +827,8 @@ if (file.exists(picrust_mcra)) {
   }
 }
 
-picrust_pmoa <- "data/processed/molecular/picrust/pathway_associations_pmoa.csv"
-if (file.exists(picrust_pmoa)) {
+picrust_pmoa <- "outputs/data/picrust/pathway_associations_pmoa.csv"
+{
   pvals_pmoa <- read.csv(picrust_pmoa)
   sig_pmoa <- pvals_pmoa %>% filter(FDR < 0.01) %>% arrange(FDR)
   cat(sprintf("\n  Significant pmoA-associated pathways (FDR < 0.01): %d\n", nrow(sig_pmoa)))
@@ -872,10 +852,10 @@ section_header("SECTION 6b: PICRUSt PATHWAY-GENE HEATMAP (Figure 6)")
 # methanogen ASV contributions, then tested against mcrA via LMER.
 # FDR threshold 0.001 with mcrA-ASV contribution < 10%.
 
-picrust_no_mcra_file <- "data/processed/molecular/picrust/pathway_associations_mcra_no_mcra_otus.csv"
-picrust_combined_file <- "data/processed/molecular/picrust/pathway_associations_combined.csv"
+picrust_no_mcra_file <- "outputs/data/picrust/pathway_associations_mcra_no_mcra_otus.csv"
+picrust_combined_file <- "outputs/data/picrust/pathway_associations_combined.csv"
 
-if (file.exists(picrust_no_mcra_file)) {
+{
   pvals_no_mcra <- read.csv(picrust_no_mcra_file, stringsAsFactors = FALSE)
   stat("Total pathways tested (no-mcrA-ASV pipeline)", nrow(pvals_no_mcra))
 
@@ -886,11 +866,11 @@ if (file.exists(picrust_no_mcra_file)) {
   stat("Significant at FDR < 0.01", nrow(sig_01))
 
   # Apply mcrA-ASV contribution filter (< 10%)
-  if (file.exists(picrust_combined_file)) {
+  {
     combined_pvals <- read.csv(picrust_combined_file, stringsAsFactors = FALSE)
     contrib_lookup <- setNames(combined_pvals$mean_percent_from_mcra, combined_pvals$pathway)
     sig_001$gene_contrib <- contrib_lookup[sig_001$pathway]
-    sig_001$gene_contrib[is.na(sig_001$gene_contrib)] <- 0
+    stopifnot(!anyNA(sig_001$gene_contrib))   # every tested pathway has a contribution
     sig_filtered <- sig_001 %>% filter(gene_contrib < 0.10)
     stat("After mcrA-ASV contribution < 10% filter", nrow(sig_filtered))
     record("fig6_n_pathways_heatmap", nrow(sig_filtered))
@@ -931,8 +911,6 @@ if (file.exists(picrust_no_mcra_file)) {
       cat(sprintf("  NOT FOUND: '%s'\n", mp))
     }
   }
-} else {
-  cat("  [SKIPPED] No-mcrA-ASV pathway associations file not found.\n")
 }
 
 
@@ -942,79 +920,12 @@ if (file.exists(picrust_no_mcra_file)) {
 
 section_header("SECTION 7: FELLED BLACK OAK PROFILES (Figure 7)")
 
-# Replicates data processing from 09_felled_oak_profiles.R
+# Felled-oak data from the canonical tables: trunk gas (internal_gas.csv, calibrated in
+# code/tables/32_internal_gas.R), mcrA (ddpcr.csv + samples.csv), flux (flux_stem.csv)
 # Three panels: internal CH4, mcrA abundance, CH4 flux along stem height
-
-# --- Load and process GC data ---
-gc_file <- "data/raw/field_data/black_oak/quve_gc_data.csv"
-o2_std_file <- "data/raw/field_data/black_oak/o2_standards.csv"
-ghg_std_file <- "data/raw/field_data/black_oak/ghg_standards.csv"
-mcra_bo_file <- "data/raw/ddpcr/black_oak_mcrA.csv"
-flux_bo_file <- "data/raw/field_data/black_oak/ymf_black_oak_flux_compiled.csv"
-
-if (all(file.exists(gc_file, o2_std_file, ghg_std_file, mcra_bo_file, flux_bo_file))) {
-
-  O2_standards_bo <- read.csv(o2_std_file, fileEncoding = "UTF-8-BOM")
-  GHG_standards_bo <- read.csv(ghg_std_file, fileEncoding = "UTF-8-BOM")
-  GC_data_bo <- read.csv(gc_file, fileEncoding = "UTF-8-BOM")
-
-  colnames(GC_data_bo) <- make.names(colnames(GC_data_bo))
-  colnames(O2_standards_bo) <- make.names(colnames(O2_standards_bo))
-  colnames(GHG_standards_bo) <- make.names(colnames(GHG_standards_bo))
-
-  GC_data_bo$O2.Area[which(GC_data_bo$Sample.Type == "N2")] <- NA
-
-  # O2 calibration
-  O2_data_bo <- O2_standards_bo %>%
-    left_join(GC_data_bo, by = c("Sample" = "Sample.Type"))
-  O2_data_bo$O2.Area <- as.numeric(O2_data_bo$O2.Area)
-  O2_data_bo$O2_ppm <- as.numeric(gsub(",", "", O2_data_bo$X.O2...ppm.))
-
-  low_range_o2_stds <- c("Outdoor Air 2", "Outdoor Air 3", "Outdoor Air 4",
-                          "Oxygen Standard 1", "Oxygen Standard 2",
-                          "Oxygen Standard 3", "Oxygen Standard 4")
-  high_range_o2_stds <- c("Outdoor Air 5", "Outdoor Air 6", "Outdoor Air 7",
-                           "Oxygen Standard 5")
-
-  low_o2 <- O2_data_bo %>% filter(Sample %in% low_range_o2_stds)
-  all_o2 <- bind_rows(low_o2, O2_data_bo %>% filter(Sample %in% high_range_o2_stds))
-
-  O2_low_curve_bo <- lm(O2_ppm ~ O2.Area, data = low_o2)
-  O2_high_curve_bo <- lm(O2_ppm ~ O2.Area, data = all_o2)
-  max_O2_low_area_bo <- max(low_o2$O2.Area, na.rm = TRUE)
-
-  # GHG calibration
-  GHG_data_bo <- GHG_standards_bo %>%
-    left_join(GC_data_bo, by = c("Sample" = "Sample.Type"))
-  GHG_data_bo$CH4.Area <- as.numeric(GHG_data_bo$CH4.Area)
-  GHG_data_bo$CH4_ppm <- as.numeric(gsub(",", "", GHG_data_bo$X.CH4...ppm.))
-  GHG_data_bo <- GHG_data_bo %>%
-    filter(!is.na(CH4.Area) & !is.na(CH4_ppm))
-
-  low_range_ghg_stds <- c("N2", "SB1", "SB2", "SB3")
-  low_ghg <- GHG_data_bo %>% filter(Sample %in% low_range_ghg_stds)
-  CH4_low_curve_bo <- lm(CH4_ppm ~ CH4.Area, data = low_ghg)
-  CH4_high_curve_bo <- lm(CH4_ppm ~ CH4.Area, data = GHG_data_bo)
-  max_CH4_low_area_bo <- 1000
-
-  # Apply calibration
-  GC_data_bo <- GC_data_bo %>%
-    mutate(
-      O2_conc = if_else(
-        O2.Area <= max_O2_low_area_bo,
-        predict(O2_low_curve_bo, newdata = data.frame(O2.Area = O2.Area)),
-        predict(O2_high_curve_bo, newdata = data.frame(O2.Area = O2.Area))
-      ),
-      CH4_conc = if_else(
-        CH4.Area <= max_CH4_low_area_bo,
-        predict(CH4_low_curve_bo, newdata = data.frame(CH4.Area = CH4.Area)),
-        predict(CH4_high_curve_bo, newdata = data.frame(CH4.Area = CH4.Area))
-      )
-    )
-
-  # Internal gas samples
-  int_gas_bo <- GC_data_bo %>% filter(!is.na(Lab.ID), Tree.Tissue == "Trunk Gas")
-  int_gas_bo$Tree.Height <- as.numeric(int_gas_bo$Tree.Height)
+{
+  int_gas_bo <- read_table("internal_gas") %>% filter(campaign == "2022_felled_oak") %>%
+    transmute(Tree.Height = height_m, CH4_conc = CH4_ppm, O2_conc = O2_ppm)
 
   sub_header("Internal CH4 concentrations")
   stat("Number of internal gas measurements", nrow(int_gas_bo))
@@ -1042,11 +953,12 @@ if (all(file.exists(gc_file, o2_std_file, ghg_std_file, mcra_bo_file, flux_bo_fi
 
   # --- mcrA from black oak cores ---
   sub_header("Black oak mcrA abundance")
-  mcra_bo <- readr::read_csv(mcra_bo_file, show_col_types = FALSE)
-  conc_col_bo <- grep("Conc", colnames(mcra_bo), value = TRUE)[1]
-  height_col_bo <- grep("Height", colnames(mcra_bo), value = TRUE)[1]
-  mcra_bo <- mcra_bo %>% rename(Height_cm = !!height_col_bo, Conc = !!conc_col_bo)
-  mcra_wood <- mcra_bo %>% filter(Component %in% c("Heartwood", "Sapwood"))
+  .bo_smp <- read_table("samples") %>% filter(campaign == "2022_felled_oak")
+  mcra_wood <- read_table("ddpcr") %>% filter(gene == "mcrA", qc_pass, sample_id %in% .bo_smp$sample_id) %>%
+    transmute(sample_id, Conc = copies_per_uL_rxn,
+              Height_cm = .bo_smp$height_cm[match(sample_id, .bo_smp$sample_id)],
+              Component = c(heartwood = "Heartwood", sapwood = "Sapwood")[.bo_smp$position[match(sample_id, .bo_smp$sample_id)]]) %>%
+    filter(Component %in% c("Heartwood", "Sapwood"))
 
   stat("Total mcrA measurements (wood)", nrow(mcra_wood))
   stat("Heartwood samples", sum(mcra_wood$Component == "Heartwood"))
@@ -1085,9 +997,9 @@ if (all(file.exists(gc_file, o2_std_file, ghg_std_file, mcra_bo_file, flux_bo_fi
 
   # --- Flux data ---
   sub_header("Black oak CH4 flux")
-  flux_bo <- read.csv(flux_bo_file)
-  flux_bo$Height_m <- suppressWarnings(as.numeric(flux_bo$Height_m))
-  flux_bo <- flux_bo %>% filter(!is.na(Height_m), !is.na(CH4_best.flux))
+  flux_bo <- flux_stem_campaign("2022_felled_oak") %>%
+    transmute(Height_m = height_cm / 100, CH4_best.flux = CH4_flux_nmol_m2_s) %>%
+    filter(!is.na(Height_m))                      # the basal seam has no height
 
   stat("Total flux measurements", nrow(flux_bo))
   stat("Mean flux", round(mean(flux_bo$CH4_best.flux, na.rm = TRUE), 4), "nmol m-2 s-1")
@@ -1127,10 +1039,6 @@ if (all(file.exists(gc_file, o2_std_file, ghg_std_file, mcra_bo_file, flux_bo_fi
     stat("n measurements", sum(!is.na(flux_gas_bo$ch4_internal) & !is.na(flux_gas_bo$CH4_best.flux)))
   }
 
-} else {
-  cat("  [SKIPPED] Black oak data files not found.\n")
-  missing <- c(gc_file, o2_std_file, ghg_std_file, mcra_bo_file, flux_bo_file)
-  cat("  Missing:", paste(missing[!file.exists(missing)], collapse = ", "), "\n")
 }
 
 
@@ -1140,63 +1048,15 @@ if (all(file.exists(gc_file, o2_std_file, ghg_std_file, mcra_bo_file, flux_bo_fi
 
 section_header("SECTION 8: INDIVIDUAL GENE-FLUX RELATIONSHIPS (Figs S7, S10)")
 
-# Prepare area-weighted gene data (matches helper_scale_dependent_gene_patterns.R)
-prepare_long_all_genes <- function(df) {
-  df %>%
-    dplyr::select(tree_id, starts_with("ddpcr_")) %>%
-    dplyr::select(where(~ !all(is.na(.)))) %>%
-    pivot_longer(cols = starts_with("ddpcr_"), names_to = "measurement_type", values_to = "gene_copies") %>%
-    filter(!is.na(gene_copies)) %>%
-    separate(measurement_type, into = c("method", "gene", "part1", "part2", "part3"),
-             sep = "_", extra = "merge", fill = "right") %>%
-    mutate(
-      is_probe = (part1 == "probe"),
-      location = if_else(is_probe, part2, part1),
-      stringency = if_else(is_probe, part3, part2),
-      location = str_remove(location, "probe"),
-      location = case_when(location %in% c("Inner", "inner") ~ "Inner",
-                           location %in% c("Outer", "outer") ~ "Outer", TRUE ~ location),
-      gene = case_when(gene == "mcra" ~ "mcrA", gene == "mmox" ~ "mmoX",
-                       gene == "pmoa" ~ "pmoA", TRUE ~ gene),
-      sample_type = case_when(location == "Inner" ~ "Heartwood",
-                              location == "Outer" ~ "Sapwood", TRUE ~ NA_character_)
-    ) %>%
-    filter(stringency == "loose", !is.na(sample_type), sample_type %in% c("Heartwood", "Sapwood"),
-           gene != "mcrA" | is_probe)  # mcrA: probe assay only (the EvaGreen mcrA columns give false positives in wood; Fig. S4)
-}
-
-long_all <- prepare_long_all_genes(ymf2021)
-
-tree_genes_weighted <- long_all %>%
-  left_join(ymf2021 %>% dplyr::select(tree_id, species_id, dbh), by = "tree_id") %>%
-  filter(is.finite(dbh)) %>%
-  group_by(tree_id, species_id, dbh, gene) %>%
-  summarise(gene_inner = mean(gene_copies[sample_type == "Heartwood"], na.rm = TRUE),
-            gene_outer = mean(gene_copies[sample_type == "Sapwood"], na.rm = TRUE),
-            .groups = "drop") %>%
-  filter(is.finite(gene_inner), is.finite(gene_outer)) %>%
-  mutate(gene_area_weighted = mapply(area_weighted_gene, gene_inner, gene_outer, dbh),
-         species = species_mapping[species_id]) %>%
-  dplyr::select(tree_id, species_id, species, gene, gene_area_weighted) %>%
-  pivot_wider(names_from = gene, values_from = gene_area_weighted) %>%
-  mutate(methanotroph_total = case_when(
-    is.na(pmoA) & !is.na(mmoX) ~ mmoX,
-    !is.na(pmoA) & is.na(mmoX) ~ pmoA,
-    !is.na(pmoA) & !is.na(mmoX) ~ pmoA + mmoX,
-    TRUE ~ NA_real_
-  ))
-
-tree_genes_complete <- tree_genes_weighted %>%
-  filter(!is.na(mcrA), !is.na(pmoA), !is.na(mmoX), !is.na(methanotroph_total))
-
-tree_level <- tree_genes_complete %>%
-  left_join(ymf2021 %>% dplyr::select(tree_id, CH4_flux = CH4_best.flux_125cm), by = "tree_id") %>%
-  filter(!is.na(CH4_flux), !is.nan(CH4_flux)) %>%
-  mutate(
-    log_mcra = log10(mcrA + 1), log_pmoa = log10(pmoA + 1),
-    log_mmox = log10(mmoX + 1), log_methanotroph = log10(methanotroph_total + 1),
-    ratio = (mcrA + 1) / (methanotroph_total + 1), log_ratio = log10((mcrA + 1) / (methanotroph_total + 1))
-  )
+# Area-weighted genes per tree and species-level flux: code/lib/species_gene_data.R,
+# the prep every gene-flux analysis uses (helper_scale_dependent_gene_patterns.R, 17).
+# Sourced into its own environment so this script's ymf2021 (with soil, above) stays.
+SG <- new.env()
+sys.source("code/lib/species_gene_data.R", envir = SG)
+tree_level <- SG$tree_level_complete %>%
+  rename(log_mcra = log_tree_mcra, log_mmox = log_tree_mmox, ratio = ratio_mcra_methanotroph) %>%
+  relocate(log_pmoa, .before = log_mmox)
+flux_by_sp <- SG$flux_by_species %>% dplyr::select(species, species_id, n_flux, median_flux)
 
 stat("Trees with complete genes AND flux", nrow(tree_level))
 
@@ -1224,7 +1084,7 @@ if (conc_available) {
   conc_data_s7 <- ymf2021 %>%
     filter(!is.na(CH4_best.flux_125cm), !is.na(species_id)) %>%
     mutate(
-      species = species_mapping[species_id],
+      species = SPECIES_NAMES[species_id],
       log_hw_mcra = log10(ddpcr_mcra_probe_Inner_loose + 1),
       log_sw_mcra = log10(ddpcr_mcra_probe_Outer_loose + 1),
       log_hw_pmoa = log10(ddpcr_pmoa_Inner_loose + 1),
@@ -1288,19 +1148,6 @@ if (conc_available) {
 # --- Concentration-based species-level models (S8) ---
 sub_header("Concentration-based species-level models (Figure S8)")
 if (conc_available) {
-  # Pre-compute flux_by_sp (also used in Section 9)
-  if (!exists("flux_by_sp")) {
-    flux_all_early <- bind_rows(
-      ymf2023 %>% dplyr::select(species_id = Species.Code, CH4_flux = CH4_best.flux) %>%
-        mutate(species = species_mapping[species_id]),
-      ymf2021 %>% dplyr::select(species_id, CH4_flux = CH4_best.flux_125cm) %>%
-        mutate(species = species_mapping[species_id])
-    ) %>% filter(!is.na(CH4_flux), !is.nan(CH4_flux), !is.na(species))
-    flux_by_sp <- flux_all_early %>%
-      group_by(species, species_id) %>%
-      summarise(n_flux = n(), median_flux = median(CH4_flux), .groups = "drop")
-  }
-
   # Species medians for heartwood mcrA
   sp_hw_mcra <- ymf2021 %>%
     filter(!is.na(species_id), !is.na(ddpcr_mcra_probe_Inner_loose)) %>%
@@ -1329,17 +1176,7 @@ if (conc_available) {
 
 section_header("SECTION 9: SPECIES-LEVEL GENE-FLUX (Fig 8, S8, S9, S10, S13)")
 
-# Flux by species (combined 2021 + 2023)
-flux_all <- bind_rows(
-  ymf2023 %>% dplyr::select(species_id = Species.Code, CH4_flux = CH4_best.flux) %>%
-    mutate(species = species_mapping[species_id]),
-  ymf2021 %>% dplyr::select(species_id, CH4_flux = CH4_best.flux_125cm) %>%
-    mutate(species = species_mapping[species_id])
-) %>% filter(!is.na(CH4_flux), !is.nan(CH4_flux), !is.na(species))
-
-flux_by_sp <- flux_all %>%
-  group_by(species, species_id) %>%
-  summarise(n_flux = n(), median_flux = median(CH4_flux), .groups = "drop")
+# Flux by species (combined 2021 + 2023): flux_by_sp, from code/lib/species_gene_data.R (Section 8)
 
 # Species-level gene summaries
 sp_mcra <- tree_level %>%
@@ -1490,9 +1327,6 @@ record("plot_offset_pct", offset_pct)
 # holds above 2 m) is two cells of 240.
 local({
   f <- "outputs/data/scaling_full_grid.csv"; h <- "outputs/data/scaling_headline.csv"
-  if (!file.exists(f) || !file.exists(h)) {
-    cat("  [scaling grid absent -- run code/06_upscale/07_scaling_full_grid.R]\n"); return(invisible())
-  }
   G <- read.csv(f, stringsAsFactors = FALSE); H <- read.csv(h, stringsAsFactors = FALSE)
   stat("Whole-surface range, all 240 combinations",
        sprintf("%.1f to %.1f", min(G$total_mg), max(G$total_mg)), "mg CH4 m-2 yr-1")
@@ -1516,8 +1350,25 @@ local({
 })
 
 
+# --- Scaling sensitivities (06_upscale/10 and 11) ---
+sub_header("Sensitivity: forests with air temperature (05_model/15_rf_air_temperature_test.R)")
+SA <- read.csv("outputs/data/rf_air_temperature_test.csv", stringsAsFactors = FALSE)
+for (i in which(SA$section == "skill"))
+  cat(sprintf("  %-13s OOB R2 %.3f | grouped CV R2 %.3f (sd %.3f)\n", SA$spec[i], SA$oob_r2[i], SA$grouped_r2[i], SA$grouped_r2_sd[i]))
+for (i in which(SA$section == "budget"))
+  cat(sprintf("  %-28s %-16s soil %8.2f | tree band %.3f mg m-2 yr-1 | tree %.2f%% of soil\n", SA$spec[i], SA$drivers[i],
+              SA$soil_mg_m2_yr[i], SA$tree_band_mg_m2_yr[i], SA$tree_pct_of_soil[i]))
+sub_header("Scaling sensitivity: daily vs monthly drivers (06_upscale/11_sens_daily_drivers.R)")
+SY <- read.csv("outputs/data/sens_daily_drivers.csv", stringsAsFactors = FALSE)
+for (i in seq_len(nrow(SY)))
+  cat(sprintf("  %-46s monthly %.4f | daily %.4f %s | daily/monthly %.3f (%d days)\n", SY$term[i],
+              SY$monthly_drivers[i], SY$daily_drivers[i], SY$units[i], SY$ratio_daily_to_monthly[i], SY$n_days[i]))
+record("sens_daily_soil_ratio", SY$ratio_daily_to_monthly[1]); record("sens_daily_tree_ratio", SY$ratio_daily_to_monthly[2])
+
 # ==============================================================================
 # SECTION 11: ADDITIONAL METHANOTROPH RESULTS (S10, S12)
+
+
 # ==============================================================================
 
 section_header("SECTION 11: ADDITIONAL METHANOTROPH RESULTS (S10, S12)")
@@ -1565,22 +1416,24 @@ for (g in c("log_mcra", "log_pmoa", "log_mmox", "log_methanotroph", "log_ratio")
   cat(sprintf("  Species + %s: delta-R2 = %.4f, p = %.4f %s\n", g, delta_r2, p_gene, sig))
 }
 
-# Soil genes adding no value
+# Soil genes adding no value. Complete cases: trees without the soil gene are left out of
+# both models (until 2026-10-16 a missing soil gene entered as 0 copies).
 sub_header("Soil genes beyond tree mmoX")
 if ("log_mmox" %in% names(tree_level)) {
-  m_base <- lm(CH4_flux ~ species + log_mmox, data = tree_level)
-  r2_base <- summary(m_base)$r.squared
   for (soil_gene in c("ddpcr_mcra_probe_Mineral_loose", "ddpcr_pmoa_Mineral_loose", "ddpcr_mmox_Mineral_loose")) {
     if (soil_gene %in% names(ymf2021)) {
       tree_w_soil <- tree_level %>%
-        left_join(ymf2021 %>% dplyr::select(tree_id, !!soil_gene), by = "tree_id")
+        left_join(ymf2021 %>% dplyr::select(tree_id, !!soil_gene), by = "tree_id") %>%
+        filter(!is.na(.data[[soil_gene]]))
       sg <- tree_w_soil[[soil_gene]]
-      tree_w_soil$soil_gene_log <- log10(ifelse(is.na(sg) | sg <= 0, 1, sg))
+      tree_w_soil$soil_gene_log <- log10(ifelse(sg <= 0, 1, sg))
+      m_base <- lm(CH4_flux ~ species + log_mmox, data = tree_w_soil)
       m_add <- lm(CH4_flux ~ species + log_mmox + soil_gene_log, data = tree_w_soil)
-      delta <- summary(m_add)$r.squared - r2_base
-      p_soil <- tryCatch(summary(m_add)$coefficients["soil_gene_log", "Pr(>|t|)"], error = function(e) NA)
+      delta <- summary(m_add)$r.squared - summary(m_base)$r.squared
+      p_soil <- summary(m_add)$coefficients["soil_gene_log", "Pr(>|t|)"]
       short_name <- sub("ddpcr_", "", sub("_Mineral_loose", "", soil_gene))
-      cat(sprintf("  + soil %s: delta-R2 = %.4f, p = %.4f\n", short_name, delta, ifelse(is.na(p_soil), 1, p_soil)))
+      cat(sprintf("  + soil %s: delta-R2 = %.4f, p = %.4f (n = %d of %d trees)\n", short_name, delta, p_soil,
+                  nrow(tree_w_soil), nrow(tree_level)))
     }
   }
 }
@@ -1621,7 +1474,7 @@ if (exists("ps.filt") && exists("mt_defs")) {
     arrange(desc(mean_mt))
   for (i in 1:min(5, nrow(sp_mt_means))) {
     cat(sprintf("    %s: %.3f%% (n=%d)\n",
-                species_mapping[sp_mt_means$species.x[i]],
+                SPECIES_NAMES[sp_mt_means$species.x[i]],
                 sp_mt_means$mean_mt[i], sp_mt_means$n[i]))
   }
 } else {
@@ -1633,8 +1486,8 @@ sub_header("Figure S3: FAPROTAX (see Section 6 above)")
 
 # --- PICRUSt pathway statistics (supporting Figures S4-S5) ---
 sub_header("PICRUSt pathway statistics (Figures S4-S5)")
-picrust_mcra_all <- "data/processed/molecular/picrust/pathway_associations_mcra_all.csv"
-if (file.exists(picrust_mcra_all)) {
+picrust_mcra_all <- "outputs/data/picrust/pathway_associations_mcra_all.csv"
+{
   pa_all <- read.csv(picrust_mcra_all, stringsAsFactors = FALSE)
   sig_all <- pa_all %>% filter(!is.na(FDR), FDR < 0.01)
   stat("Total pathways tested (all ASVs)", nrow(pa_all))
@@ -1648,26 +1501,19 @@ if (file.exists(picrust_mcra_all)) {
 }
 
 sub_header("Figure S5: pmoA pathway associations")
-picrust_pmoa_no <- "data/processed/molecular/picrust/pathway_associations_pmoa_no_pmoa_otus.csv"
-if (file.exists(picrust_pmoa_no)) {
+picrust_pmoa_no <- "outputs/data/picrust/pathway_associations_pmoa_no_pmoa_otus.csv"
+{
   pa_pmoa <- read.csv(picrust_pmoa_no, stringsAsFactors = FALSE)
   sig_pmoa_no <- pa_pmoa %>% filter(!is.na(FDR), FDR < 0.01)
   stat("Significant pmoA pathways (no-pmoA ASVs, FDR < 0.01)", nrow(sig_pmoa_no))
   pos_pmoa <- sig_pmoa_no %>% filter(t > 0)
   neg_pmoa <- sig_pmoa_no %>% filter(t < 0)
   cat(sprintf("  Positive: %d, Negative: %d\n", nrow(pos_pmoa), nrow(neg_pmoa)))
-} else {
-  pmoa_alt <- "data/processed/molecular/picrust/pathway_associations_pmoa.csv"
-  if (file.exists(pmoa_alt)) {
-    pa_pmoa <- read.csv(pmoa_alt, stringsAsFactors = FALSE)
-    sig_pmoa_full <- pa_pmoa %>% filter(!is.na(FDR), FDR < 0.01)
-    stat("Significant pmoA pathways (FDR < 0.01)", nrow(sig_pmoa_full))
-  }
 }
 
 # --- Figure S4: PICRUSt mcrA no-mcrA-ASV heatmap (expanded version of Fig 6) ---
 sub_header("Figure S4: PICRUSt mcrA (no-mcrA ASVs, full FDR < 0.01) heatmap")
-if (file.exists(picrust_mcra_all)) {
+{
   cat(sprintf("  See pathway counts above. Full FDR<0.01 set: %d pathways\n", nrow(sig_all)))
 }
 
@@ -1679,7 +1525,7 @@ cat("  See pmoA pathway counts above.\n")
 sub_header("Figure S7: Internal gas concentrations by species")
 gas_data <- ymf2021 %>%
   filter(!is.na(CH4_concentration), !is.na(species_id)) %>%
-  mutate(species_latin = species_mapping[species_id]) %>%
+  mutate(species_latin = SPECIES_NAMES[species_id]) %>%
   filter(!is.na(species_latin))
 
 stat("Total trees with internal gas", nrow(gas_data))
@@ -1780,10 +1626,10 @@ for (h_col in c("CH4_best.flux_50cm", "CH4_best.flux_125cm", "CH4_best.flux_200c
 
 # --- Figure S9: δ13CH4 isotope analysis ---
 sub_header("Figure S9: d13CH4 isotope analysis")
-source("code/lib/isotope_samples.R")   # the one sample-selection rule (see that file)
-if (TRUE) {
-  internal_iso <- isotope_whole_tree_samples() %>% dplyr::select(SampleName, species, d13CH4, ch4_ppm)
-  atm_iso      <- isotope_atmosphere_samples() %>% dplyr::mutate(species = "Atmosphere")
+# isotopes.csv: whole-tree set flagged by the rule in code/lib/isotope_samples.R; species from trees.csv
+{
+  internal_iso <- isotope_whole_tree() %>% dplyr::select(SampleName, species, d13CH4, ch4_ppm)
+  atm_iso      <- isotope_atmosphere() %>% dplyr::mutate(species = "Atmosphere")
   iso_s8       <- dplyr::bind_rows(internal_iso, atm_iso)
 
   stat("Total isotope samples", nrow(iso_s8))
@@ -1818,8 +1664,6 @@ if (TRUE) {
     stat("Keeling R2", round(summary(keeling_lm)$r.squared, 3))
     stat("Canonical source estimates", "see outputs/data/ISOTOPES_summary.csv (MM robust Keeling)")
   }
-} else {
-  cat("  [SKIPPED] Picarro isotope files not found.\n")
 }
 
 # --- Figure S15: RF model diagnostics (expanded) ---
@@ -1889,7 +1733,7 @@ sp_mcra_comps <- ymf2021 %>%
     .groups = "drop"
   ) %>%
   filter(n >= 3) %>%
-  mutate(species_latin = species_mapping[species_id],
+  mutate(species_latin = SPECIES_NAMES[species_id],
          inner_outer_ratio = mean_inner / pmax(mean_outer, 1))
 
 stat("Species with >= 3 trees", nrow(sp_mcra_comps))
@@ -1984,8 +1828,8 @@ cat("  - Methylorosula in heartwood, sapwood, leaf litter\n")
 
 # --- Figure S2: Taxonomy x pmoA heatmap ---
 sub_header("Figure S2: Family-level 16S x pmoA associations")
-picrust_pmoa_full <- "data/processed/molecular/picrust/pathway_associations_pmoa.csv"
-if (file.exists(picrust_pmoa_full)) {
+picrust_pmoa_full <- "outputs/data/picrust/pathway_associations_pmoa.csv"
+{
   pa_pmoa_f <- read.csv(picrust_pmoa_full, stringsAsFactors = FALSE)
   sig_pmoa_f <- pa_pmoa_f %>% filter(!is.na(FDR), FDR < 0.01)
   stat("Total pathways tested (pmoA)", nrow(pa_pmoa_f))
@@ -1993,7 +1837,7 @@ if (file.exists(picrust_pmoa_full)) {
 }
 
 # Also check taxonomy heatmap for S6
-taxonomy_mcra_file <- "data/processed/molecular/picrust/pathway_associations_mcra_no_mcra_otus.csv"
+taxonomy_mcra_file <- "outputs/data/picrust/pathway_associations_mcra_no_mcra_otus.csv"
 sub_header("Figure S6: Family-level 16S x mcrA associations")
 if (exists("fam_cors") && nrow(fam_cors) > 0) {
   stat("Families significantly correlated with mcrA (p<0.05)", nrow(fam_cors))

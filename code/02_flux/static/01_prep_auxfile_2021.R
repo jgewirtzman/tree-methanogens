@@ -26,6 +26,8 @@ library(ggplot2)
 source("../../lib/chamber_constants.R")  # ANALYZER_VOLUME_CM3
 
 # Function to assign chamber dimensions by loading data from files
+source("../../lib/weather_time.R")       # read_station_air(), station_air_at()
+
 assign_chamber_dimensions <- function(flux_file, surface_area_file, additional_vol_file, simplified_vol_file = NULL, weather_file = NULL) {
   
   cat("=== Loading Data Files ===\n")
@@ -384,118 +386,20 @@ assign_chamber_dimensions <- function(flux_file, surface_area_file, additional_v
   # Sort data by datetime for temporal operations
   result <- result %>% arrange(datetime)
   
-  # Step 1: Create stem-air temperature regression for predictions
-  cat("Building stem-air temperature regression...\n")
-  
-  # Get data with both stem and air temperatures
-  regression_data <- result %>%
-    filter(!is.na(temp_stem) & !is.na(temp_air))
-  
-  stem_air_model <- NULL
-  if (nrow(regression_data) >= 3) {  # Need at least 3 points for regression
-    stem_air_model <- lm(temp_air ~ temp_stem, data = regression_data)
-    cat("Stem-air regression built with", nrow(regression_data), "observations\n")
-    cat("Model: Air_temp =", round(coef(stem_air_model)[1], 2), "+", 
-        round(coef(stem_air_model)[2], 2), "* Stem_temp\n")
-    cat("R-squared:", round(summary(stem_air_model)$r.squared, 3), "\n")
-  } else {
-    cat("Insufficient data for stem-air regression (need ≥3 paired observations)\n")
-  }
-  
-  # Function to find observations within 1 hour window
-  find_within_hour <- function(target_datetime, all_datetimes, all_values) {
-    if (is.na(target_datetime)) return(NA_real_)
-    
-    time_diffs <- abs(as.numeric(all_datetimes - target_datetime)) / 3600  # Convert to hours
-    within_hour_idx <- which(time_diffs <= 1 & !is.na(all_values))
-    
-    if (length(within_hour_idx) > 0) {
-      return(mean(all_values[within_hour_idx], na.rm = TRUE))
-    } else {
-      return(NA_real_)
-    }
-  }
-  
-  # Function to predict air temp from stem temp using regression
-  predict_air_from_stem <- function(stem_temp, model) {
-    if (is.na(stem_temp) || is.null(model)) return(NA_real_)
-    tryCatch({
-      predict(model, newdata = data.frame(temp_stem = stem_temp))
-    }, error = function(e) NA_real_)
-  }
-  
-  # Apply the decision hierarchy
-  cat("Applying temperature decision hierarchy...\n")
-  
+  # One rule (2026-10-17): the field-recorded chamber air temperature; where the sheet
+  # has none, the tower air temperature of the hour containing the deployment start
+  # (true time; code/lib/weather_time.R, the rule of every other stage-A aux file).
+  # (Removed: the mean field air of other trees within 1 h, a regression on stem
+  # temperature and its 1-h mean, and the nearest logger-clock record within 6 h.)
+  station_air <- read_station_air("../../../data/raw/weather/ymf_clean_sorted.csv")
   result <- result %>%
     mutate(
-      # Step 1: Use field-measured air temp if available
-      air_temp_final = case_when(
-        !is.na(temp_air) ~ temp_air,
-        TRUE ~ NA_real_
-      ),
-      temp_source = case_when(
-        !is.na(temp_air) ~ "field_air",
-        TRUE ~ NA_character_
-      )
+      air_temp_final = ifelse(!is.na(temp_air), temp_air, station_air_at(datetime, station_air)),
+      temp_source = case_when(!is.na(temp_air) ~ "field_air",
+                              !is.na(air_temp_final) ~ "tower_hour",
+                              TRUE ~ NA_character_)
     )
-  
-  # Step 2: For missing values, try mean of field air temps within 1 hour
-  missing_idx <- which(is.na(result$air_temp_final))
-  cat("Step 2: Finding field air temps within 1 hour for", length(missing_idx), "missing values...\n")
-  
-  for (i in missing_idx) {
-    hourly_mean <- find_within_hour(result$datetime[i], result$datetime, result$temp_air)
-    if (!is.na(hourly_mean)) {
-      result$air_temp_final[i] <- hourly_mean
-      result$temp_source[i] <- "field_air_1hr_mean"
-    }
-  }
-  
-  # Step 3: For remaining missing values, use stem temp regression
-  still_missing_idx <- which(is.na(result$air_temp_final))
-  cat("Step 3: Using stem temp regression for", length(still_missing_idx), "remaining missing values...\n")
-  
-  if (!is.null(stem_air_model)) {
-    for (i in still_missing_idx) {
-      if (!is.na(result$temp_stem[i])) {
-        predicted_temp <- predict_air_from_stem(result$temp_stem[i], stem_air_model)
-        if (!is.na(predicted_temp)) {
-          result$air_temp_final[i] <- predicted_temp
-          result$temp_source[i] <- "stem_regression"
-        }
-      }
-    }
-  }
-  
-  # Step 4: For remaining missing values, try mean of stem regression values within 1 hour
-  still_missing_idx <- which(is.na(result$air_temp_final))
-  cat("Step 4: Finding stem regression temps within 1 hour for", length(still_missing_idx), "missing values...\n")
-  
-  if (!is.null(stem_air_model)) {
-    # Calculate all possible stem regression predictions
-    stem_predicted_temps <- map_dbl(result$temp_stem, ~predict_air_from_stem(.x, stem_air_model))
-    
-    for (i in still_missing_idx) {
-      hourly_mean_stem <- find_within_hour(result$datetime[i], result$datetime, stem_predicted_temps)
-      if (!is.na(hourly_mean_stem)) {
-        result$air_temp_final[i] <- hourly_mean_stem
-        result$temp_source[i] <- "stem_regression_1hr_mean"
-      }
-    }
-  }
-  
-  # Step 5: For remaining missing values, use met station air temp
-  final_missing_idx <- which(is.na(result$air_temp_final))
-  cat("Step 5: Using met station air temp for", length(final_missing_idx), "final missing values...\n")
-  
-  for (i in final_missing_idx) {
-    if (!is.na(result$met_air_temp[i])) {
-      result$air_temp_final[i] <- result$met_air_temp[i]
-      result$temp_source[i] <- "met_station"
-    }
-  }
-  
+
   # Final summary of temperature sources
   cat("\n=== Air Temperature Final Summary ===\n")
   source_summary <- table(result$temp_source, useNA = "ifany")
@@ -713,13 +617,11 @@ auxfile_goflux <- result %>%
       TRUE ~ 101.325  # Default atmospheric pressure in kPa
     ),
     
-    # Optional but useful columns
-    obs.length = case_when(
-      !is.na(end_time) & !is.na(start_time) ~ 
-        as.numeric(difftime(end_time, start_time, units = "secs")),
-      TRUE ~ 180  # Default 3 minutes if not available
-    ),
-    
+    # No obs.length column (removed 2026-10-17): it was computed from mismatched time
+    # formats (negative values) and filled with 180 s where missing. The closure windows
+    # are the hand-picked ones (data/raw/flux_windows/), and goFlux obs.win() is given
+    # its search length as an argument (03_goflux_trees_2021.R).
+
     # Additional metadata (optional)
     plot = plot,
     tree_id = tree_id,
@@ -731,8 +633,6 @@ auxfile_goflux <- result %>%
   select(
     # Core goFlux requirements
     UniqueID, start.time, Area, Vtot, Tcham, Pcham,
-    # Optional
-    obs.length,
     # Metadata
     plot, tree_id, species, chamber_id, measurement_height, temp_source
   ) %>%

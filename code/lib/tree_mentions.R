@@ -116,8 +116,6 @@ tree_mentions <- function() {
   sm <- .rd("data/raw/field_data/static_chamber_field/soil_tree_level_means.csv")
   M$sm <- .m(S21, "data/raw/field_data/static_chamber_field/soil_tree_level_means.csv", "Tree_ID",
              unique(sm$Tree_ID), measured = FALSE)
-  mt <- .rd("data/processed/integrated/merged_tree_dataset_final.csv")
-  M$mt <- .m(S21, "data/processed/integrated/merged_tree_dataset_final.csv", "tree_id", unique(mt$tree_id), measured = FALSE)
   g <- .rd("data/processed/internal_gas/sample_data_only.csv")
   M$g <- .m(S21, "data/processed/internal_gas/sample_data_only.csv", "Tree.ID", unique(g$Tree.ID), measured = TRUE)
   c1 <- .rd("data/raw/tree_cores/Tree_Core_Sectioning_Data.csv")
@@ -174,7 +172,7 @@ tree_mentions <- function() {
   }
 
   # ---- felled black oak ---------------------------------------------------------------------
-  M$oak <- .m(OAK, "data/compiled/flux_stem.csv", "tree_tag", "felled black oak", key = FELLED_OAK_ID,
+  M$oak <- .m(OAK, "data/raw/field_data/black_oak/ymf_black_oak_flux_compiled.csv", "(whole file: one tree)", "felled black oak", key = FELLED_OAK_ID,
               kind = "felled", measured = TRUE)
 
   A <- bind_rows(M)

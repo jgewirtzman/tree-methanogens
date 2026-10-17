@@ -19,8 +19,9 @@ source("code/lib/outputs.R")
 # (2024); NA for atmosphere, room air, incubations and standards.
 # run_id: <results file stamp>_<autosampler position>.
 #
-# Checks: 128 runs in the whole-tree set, each with a tree_id; every column equals
-# data/compiled/isotopes.csv.
+# Checks: 128 runs in the whole-tree set, each with a tree_id. (The comparison with the
+# old archive, data/compiled/isotopes.csv, was removed 2026-10-16: the archive is now a
+# copy of data/tables/.)
 #
 # Writes data/tables/isotopes.csv, outputs/audit/isotopes_build.txt
 # ==============================================================================
@@ -73,25 +74,13 @@ stopifnot(!anyDuplicated(ISO$run_id), nrow(ISO) == 408, sum(ISO$in_whole_tree_se
 stopifnot(all(ISO$tree_id[match(keep$SampleName, ISO$sample_name)] ==
                 TT$tree_id[match(keep$tree_id, TT$tag)]))
 
-# ---- check vs the archived table ------------------------------------------------------
-CP <- read.csv("data/compiled/isotopes.csv", stringsAsFactors = FALSE)
-stopifnot(nrow(CP) == nrow(ISO), identical(CP$sample_name, ISO$sample_name))
-same <- function(a, b) {
-  eq <- if (is.numeric(a)) abs(a - b) <= 1e-12 * pmax(1, abs(a)) else a == b
-  (is.na(a) & is.na(b)) | (!is.na(a) & !is.na(b) & eq)
-}
-cols <- c("d13CH4_permil", "CH4_ppm", "d13CO2_permil", "CO2_ppm", "sample_type", "redone", "in_whole_tree_set", "exclusion_reason")
-bad <- sapply(cols, function(v) sum(!same(ISO[[v]], CP[[v]])))
-
 sink(out_path("isotopes_build.txt", "audit")); op <- options(width = 160)
 cat(sprintf("isotopes: %d runs in %d files; whole-tree set %d runs (%d trees)\n", nrow(ISO), n_distinct(ISO$run_file),
             sum(ISO$in_whole_tree_set), n_distinct(ISO$tree_id[ISO$in_whole_tree_set])))
 print(table(ISO$sample_type, ISO$in_whole_tree_set, dnn = c("sample_type", "in_whole_tree_set")))
 cat("\nexclusion reasons:\n"); print(table(ISO$exclusion_reason, useNA = "ifany"))
 cat(sprintf("\nruns with a tree_id: %d (%s)\n", sum(!is.na(ISO$tree_id)), paste(names(table(ISO$campaign)), table(ISO$campaign), collapse = ", ")))
-cat("\nvs data/compiled/isotopes.csv -- values differing:\n"); print(bad)
 options(op); sink()
 cat(readLines(out_path("isotopes_build.txt", "audit")), sep = "\n")
-if (any(bad > 0)) stop("isotopes does not reproduce data/compiled/isotopes.csv")
 
 write_csv(ISO, file.path(OUT, "isotopes.csv"), na = "")

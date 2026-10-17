@@ -9,8 +9,8 @@ source("code/lib/outputs.R")
 # the methanogen:methanotroph balance, and net stem flux.
 #
 # Traits are chosen by rules set before analysis (Methods S5), applied to the
-# species-level table built by code/01_import/10_species_traits.R from archived TRY
-# and GWDD records (outputs/data/species_traits.csv):
+# canonical table data/tables/species_traits.csv (code/tables/07_species_traits.R, from
+# archived TRY and GWDD records; conifer status from species.csv):
 #   R1 data for at least 8 of the 10 species;
 #   R2 at least 5 distinct values, or at least 3 species in the smallest class of a
 #      categorical trait (so that no single species carries a result). Ectomycorrhizal
@@ -49,12 +49,9 @@ source("code/lib/outputs.R")
 suppressPackageStartupMessages({ library(tidyverse); library(vegan); library(pls) })
 set.seed(42)
 
-TRAITS <- "outputs/data/species_traits.csv"
-sp_map <- c(ACRU="Acer rubrum",ACSA="Acer saccharum",BEAL="Betula alleghaniensis",BELE="Betula lenta",
-  BEPA="Betula papyrifera",FAGR="Fagus grandifolia",FRAM="Fraxinus americana",
-  PIST="Pinus strobus",QURU="Quercus rubra",TSCA="Tsuga canadensis")
+TRAITS <- "data/tables/species_traits.csv"
 
-invisible(capture.output(suppressMessages(source("code/lib/prep_species_data.R"))))
+invisible(capture.output(suppressMessages(source("code/lib/species_gene_data.R"))))
 resp <- analysis_ratio %>% transmute(species_id, flux = median_flux, balance = median_log_ratio) %>%
   left_join(analysis_mcra %>% transmute(species_id, mcra = log10(value + 1)), by = "species_id") %>%
   left_join(analysis_meth %>% transmute(species_id, meth = log10(value + 1)), by = "species_id")
@@ -76,12 +73,12 @@ traits <- tribble(~col, ~trait, ~group, ~type,
   "try_fine_root_tissue_density", "Fine-root tissue density", "Roots & symbionts",      "continuous",
   "try_ectomycorrhizal",          "Ectomycorrhizal",          "Roots & symbionts",      "categorical",
   "try_plant_longevity",          "Longevity",                "Life history",           "continuous")
-tr <- read_csv(TRAITS, show_col_types = FALSE)
+tr <- read_csv(TRAITS, show_col_types = FALSE) %>% rename(spcode = species_code)
 tr <- tr[match(sp10, tr$spcode), ]
 niche <- read_csv("outputs/data/tree_species_moisture_niche.csv", show_col_types = FALSE)
-tr$vwc_realized <- niche$vwc_mean[match(sp_map[tr$spcode], niche$species)]
+tr$vwc_realized <- niche$vwc_mean[match(SPECIES_NAMES[tr$spcode], niche$species)]
 tr$try_ectomycorrhizal <- as.numeric(tr$try_ectomycorrhizal >= 0.5)   # EcM 1, AM 0
-g <- tr$gymnosperm
+g <- as.numeric(read_table("species")$gymnosperm[match(tr$spcode, read_table("species")$species_code)])
 X <- as.data.frame(lapply(traits$col, function(c) as.numeric(tr[[c]]))); names(X) <- traits$trait; rownames(X) <- sp10
 
 # R1, R2 on the candidate columns; failures are recorded and left out

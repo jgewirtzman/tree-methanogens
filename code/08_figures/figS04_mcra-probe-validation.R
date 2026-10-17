@@ -8,13 +8,18 @@
 # while agreeing quantitatively where both detect. Compared on copies/uL (direct
 # measurement). Writes BOTH axis orientations for choosing; the canonical
 # figS19_mcra_probe_validation.png = probe-on-x (trusted-assay-as-reference).
+# Reads data/tables/ddpcr.csv and samples.csv.
 # ==============================================================================
 suppressMessages({library(ggplot2); library(scales)}); options(warn=-1, stringsAsFactors=FALSE)
-dd <- read.csv("data/compiled/ddpcr_gene_abundances.csv")
-dd$conc <- suppressWarnings(as.numeric(dd$concentration_copies_per_uL))   # copies/uL (direct)
-AT <- "loose"
-a <- dd[dd$target_gene=="mcra"       & dd$analysis_type==AT, c("sample_id","conc")]
-b <- dd[dd$target_gene=="mcra_probe" & dd$analysis_type==AT & dd$material=="Wood", c("sample_id","conc")]
+# data/tables/ddpcr.csv: QX200 Conc (copies per uL of reaction) at the loose threshold, runs
+# that passed QC, 2021 wood samples; a sample run more than once is its mean
+source("code/lib/tables_read.R")
+dd <- read_table("ddpcr"); smp <- read_table("samples")
+wood <- smp$sample_id[smp$campaign == "2021_survey" & smp$material == "wood"]
+dd <- dd[dd$qc_pass & dd$gene == "mcrA" & dd$sample_id %in% wood & !is.na(dd$copies_per_uL_rxn), ]
+per_sample <- function(assay) { x <- dd[dd$assay == assay, ]
+  data.frame(sample_id = sort(unique(x$sample_id)), conc = as.vector(tapply(x$copies_per_uL_rxn, x$sample_id, mean)[sort(unique(x$sample_id))])) }
+a <- per_sample("EvaGreen"); b <- per_sample("probe")
 names(a)<-c("sample_id","eg"); names(b)<-c("sample_id","pr")
 m <- merge(a,b,by="sample_id"); m <- m[is.finite(m$eg)&is.finite(m$pr),]
 m$cat <- with(m, ifelse(eg>0 & pr>0, "both detect",

@@ -32,7 +32,7 @@ restored <- grepl("^Ash[0-9]+$|^UNTAG_", cand$tree_id)   # 2023 ash and untagged
 design <- function(d, with_dead = FALSE) {
   X <- data.frame(species = factor(d$species_clean), dbh_m = d$dbh_m,
                   soil_moisture_at_tree = d$soil_moisture_at_tree,
-                  soil_temp_C_mean = d$soil_temp_C_mean, air_temp_C_mean = d$air_temp_C_mean,
+                  soil_temp_C = d$soil_temp_C, air_temp_C = d$air_temp_C,
                   height_cm = ifelse(is.na(d$measurement_height_cm), 125, d$measurement_height_cm))
   if (with_dead) X$dead_stem <- as.numeric(d$dead_stem)
   X

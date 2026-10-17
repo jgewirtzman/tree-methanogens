@@ -21,7 +21,7 @@ asf <- function(x) asinh(x / 0.1) / log(10)
 line <- function() cat(strrep("-", 78), "\n")
 
 # ---- assemble area-weighted RF data: tree_level_complete genes + dbh ----------
-y <- read.csv("data/processed/integrated/merged_tree_dataset_final.csv")
+y <- ymf2021   # survey_2021_trees() (data/tables/), sourced with the helper above
 rf <- tree_level_complete %>%
   left_join(y %>% dplyr::select(tree_id, dbh), by = "tree_id") %>%
   dplyr::select(CH4_flux, species, dbh, log_tree_mcra, log_pmoa, log_tree_mmox) %>%
@@ -45,13 +45,13 @@ for (resp in c("RAW", "ARCSINH")) {
 
 # ---- soil-gene additions (linear): species + tree mmoX + soil gene ------------
 cat("\n\n### S1 (soil). Soil-gene additions to species + tree mmoX (linear)\n"); line()
-sd <- read.csv("data/compiled/ddpcr_gene_abundances.csv") %>%
-  filter(analysis_type == "loose", material == "Soil", target_gene %in% c("mcra_probe", "pmoa", "mmox")) %>%
-  mutate(tree = tolower(gsub("[^A-Za-z0-9]", "", sub("\n.*", "", sub("^[A-Z]+_", "", sample_id))))) %>%
-  group_by(tree, target_gene) %>% summarise(conc = mean(concentration_copies_per_uL, na.rm = TRUE), .groups = "drop") %>%
-  pivot_wider(names_from = target_gene, values_from = conc, names_prefix = "soil_")
-base <- tree_level_complete %>% mutate(tree = tolower(gsub("[^A-Za-z0-9]", "", tree_id))) %>%
-  left_join(sd, by = "tree")
+# soil genes at the tree: copies per g (fresh soil; data/tables/ddpcr.csv via survey_2021_trees()),
+# mean of the organic and mineral horizons (NA where neither was measured)
+soil_mean <- function(g) { o <- y[[paste0("ddpcr_", g, "_Organic_loose")]]; m <- y[[paste0("ddpcr_", g, "_Mineral_loose")]]
+  ifelse(is.na(o) & is.na(m), NA_real_, rowMeans(cbind(o, m), na.rm = TRUE)) }
+sd <- tibble(tree_id = y$tree_id, soil_mcra_probe = soil_mean("mcra_probe"), soil_pmoa = soil_mean("pmoa"),
+             soil_mmox = soil_mean("mmox"))
+base <- tree_level_complete %>% left_join(sd, by = "tree_id")
 soil_genes <- c(mcrA = "soil_mcra_probe", pmoA = "soil_pmoa", mmoX = "soil_mmox")
 for (nm in names(soil_genes)) {
   g <- soil_genes[[nm]]; if (!g %in% names(base)) { cat(sprintf("  soil %s: column missing\n", nm)); next }
@@ -67,16 +67,12 @@ for (nm in names(soil_genes)) {
 cat("\n\n### S1 (RF conc). Concentration random forest: species + dbh + hw/sw genes + soil genes\n"); line()
 cat("(tests the 'heartwood mcrA is top predictor' ranking; absolute variance not comparable to paper\n")
 cat(" because environmental predictors from the original pipeline are not included)\n")
-species_mapping <- c("ACRU"="Acer rubrum","ACSA"="Acer saccharum","BEAL"="Betula alleghaniensis","BELE"="Betula lenta",
-  "BEPA"="Betula papyrifera","FAGR"="Fagus grandifolia","FRAM"="Fraxinus americana","PIST"="Pinus strobus",
-  "QURU"="Quercus rubra","TSCA"="Tsuga canadensis","CAOV"="Carya ovata","KALA"="Kalmia latifolia",
-  "PRSE"="Prunus serotina","QUAL"="Quercus alba","QUVE"="Quercus velutina","SAAL"="Sassafras albidum")
 crf <- y %>% filter(!is.na(CH4_best.flux_125cm), !is.na(species_id)) %>%
-  transmute(tree_id, species = factor(species_mapping[species_id]), dbh, CH4_flux = CH4_best.flux_125cm,
+  transmute(tree_id, species = factor(species_name(species_id)), dbh, CH4_flux = CH4_best.flux_125cm,
     hw_mcra=log10(ddpcr_mcra_probe_Inner_loose+1), sw_mcra=log10(ddpcr_mcra_probe_Outer_loose+1),
     hw_pmoa=log10(ddpcr_pmoa_Inner_loose+1), sw_pmoa=log10(ddpcr_pmoa_Outer_loose+1),
     hw_mmox=log10(ddpcr_mmox_Inner_loose+1), sw_mmox=log10(ddpcr_mmox_Outer_loose+1)) %>%
-  mutate(tree = tolower(gsub("[^A-Za-z0-9]", "", tree_id))) %>% left_join(sd, by = "tree") %>%
+  left_join(sd, by = "tree_id") %>%
   mutate(soil_mcra=log10(soil_mcra_probe+1), soil_pmoa=log10(soil_pmoa+1), soil_mmox=log10(soil_mmox+1)) %>%
   dplyr::select(CH4_flux, species, dbh, hw_mcra, sw_mcra, hw_pmoa, sw_pmoa, hw_mmox, sw_mmox, soil_mcra, soil_pmoa, soil_mmox) %>%
   filter(complete.cases(.))

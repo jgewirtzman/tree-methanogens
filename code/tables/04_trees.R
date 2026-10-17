@@ -36,11 +36,32 @@ source("code/lib/outputs.R")
 # code/lib/tag_collision_decisions.csv (hand-editable; every record of every
 # collision must be listed there, or the script stops).
 #
-# DEAD. One definition: a tree is dead if any record says so -- the monthly label
-# (_dead), monthly field notes (dead|snag, any visit), a 2021 name containing
-# "dead", a 2023 condition score of "dead" (bark missing or wounding), or 2023
-# notes (dead|snag). dead_evidence lists which. Compared with code/lib/dead_stems.R
-# in outputs/audit/tree_dead_status.csv.
+# DEAD. One definition, applied here; the per-deployment flag in flux_stem.csv
+# (dead_stem) is read from this table. Dated marks: the monthly label (_dead; every
+# visit of an untagged snag), monthly field notes (dead|snag, per visit), a 2021 name
+# containing "dead" (per deployment), the 2023 condition score "dead" (bark missing or
+# wounding) or 2023 notes (dead|snag). A tree is dead from the first date any source
+# marks it dead, but only if it is marked dead on more than one date, or is not
+# measured again after that date; measurements before that date are of a live stem.
+# A tree marked dead once and measured again later without the mark stays live.
+#   dead          TRUE / FALSE by that rule
+#   dead_from     first date marked dead (dead trees)
+#   dead_evidence every mark with its date; dead_basis: how the rule decided.
+#
+# DBH. One rule for the 2021 survey: the 2021 flux datasheets write a stem diameter
+# for each chamber height (50, 125, 200 cm; decreasing up the stem). DBH is the one
+# written for the 125 cm chamber (nearest breast height; the median of the three);
+# trees without a 125 cm row (Kalmia, 75 cm and root crown) take the median of their
+# rows; trees with no datasheet diameter take the 2021 tree DBH list (Trees_DBH.csv,
+# via the consensus file). Monthly survey: its tree list; 2023: the field sheet;
+# census-only: the census stem. Measured DBH only: a tree with no recorded DBH anywhere
+# has dbh_cm NA and dbh_source "none: no DBH measurement recorded" (nothing is imputed;
+# the trees are listed in the build report).
+#
+# SPECIES. species_source records where species_code comes from: a field record
+# (campaign), the ForestGEO census, the 2021 records (majority of the sources listed)
+# or the tree-name prefix. Trees whose 2021 species disagrees with their name prefix
+# (e.g. RM105, recorded QURU) are listed in tree_species_conflicts.csv.
 #
 # Writes data/tables/{inventory_stems,trees,tree_tags}.csv
 #        outputs/audit/{tag_collisions,tree_species_conflicts,tree_dead_status,
@@ -80,14 +101,20 @@ I$latitude <- ll$lat; I$longitude <- ll$lon
 # 2. MEASURED TREES CARRYING A CENSUS TAG
 # ==============================================================================
 mon <- R$monthly
-dbh21 <- R$datasheets %>% group_by(Tree_ID) %>% summarise(d = median(.num(DBH), na.rm = TRUE), .groups = "drop")
+# 2021 flux datasheets: the diameter written for the 125 cm chamber, else the median
+DS_DBH <- R$datasheets %>% mutate(d = .num(DBH), h = trimws(`Measurement height`)) %>% filter(is.finite(d)) %>%
+  group_by(Tree_ID) %>%
+  summarise(d = if (any(h == "125")) d[h == "125"][1] else median(d),
+            dbh_source = if (any(h == "125")) "2021 flux datasheet: stem diameter at the 125 cm chamber"
+                         else "2021 flux datasheet: median of the diameters at its chamber heights", .groups = "drop")
+dbh21 <- DS_DBH
 MR <- bind_rows(
   mon %>% filter(kind == "census_tag") %>%
     transmute(campaign, tag = key, species_code, dbh_cm, date, landscape_position, gps_latitude, gps_longitude,
               dead_evidence, dbh_date, dbh_source, coord_source),
   R$flux21 %>% filter(.is_tag(tag_recorded)) %>%
     transmute(campaign = F21, tag = tag_recorded, species_code, dbh_cm = dbh21$d[match(tag_recorded, dbh21$Tree_ID)],
-              date, landscape_position, dbh_source = "2021 flux datasheet"),
+              date, landscape_position, dbh_source = dbh21$dbh_source[match(tag_recorded, dbh21$Tree_ID)]),
   R$y2023 %>% filter(.is_tag(tag_recorded)) %>%
     transmute(campaign = C23, tag = tag_recorded, species_code = fix_species_code(species_recorded),
               dbh_cm = dbh_recorded_cm, date, dead_evidence, dbh_date = date, dbh_source = "2023 field sheet") %>%
@@ -229,7 +256,7 @@ cen <- I %>% filter(tree_id %in% MR$tree_id) %>% group_by(tree_id) %>%
   summarise(stem_id = first(stem_id), c_lat = first(latitude), c_lon = first(longitude),
             c_src = first(source), c_sp = first(species_code), c_dbh = first(dbh_cm), .groups = "drop")
 T1 <- MR %>% arrange(match(campaign, c(MON, F21, C23))) %>% group_by(tree_id) %>%
-  summarise(species_code = first_non_na(species_code),
+  summarise(sp_src = campaign[!is.na(species_code)][1], species_code = first_non_na(species_code),
             dbh_date = dbh_date[!is.na(dbh_cm)][1], dbh_source = dbh_source[!is.na(dbh_cm)][1],
             dbh_cm = first_non_na(dbh_cm),
             landscape_position = first_non_na(landscape_position),
@@ -237,7 +264,9 @@ T1 <- MR %>% arrange(match(campaign, c(MON, F21, C23))) %>% group_by(tree_id) %>
             dead_evidence = paste_u(dead_evidence), campaigns_m = paste(unique(campaign), collapse = ";"),
             sp_all = paste(unique(na.omit(species_code)), collapse = "/"), .groups = "drop") %>%
   left_join(cen, by = "tree_id") %>%
-  mutate(species_code = coalesce(species_code, c_sp),
+  mutate(species_source = ifelse(!is.na(species_code), paste("field record:", sp_src),
+                                 ifelse(c_src == "fg19", "ForestGEO census 2019", "ForestGEO by-tag survey 2018")),
+         species_code = coalesce(species_code, c_sp),
          dbh_source = ifelse(is.na(dbh_cm) & !is.na(c_dbh), ifelse(c_src == "fg19", "ForestGEO census 2019", "ForestGEO by-tag survey 2018"), dbh_source),
          dbh_cm = coalesce(dbh_cm, c_dbh),
          latitude = coalesce(c_lat, gps_latitude), longitude = coalesce(c_lon, gps_longitude),
@@ -256,29 +285,31 @@ votes <- bind_rows(
   R$dbh21 %>% transmute(key = ncbi_tree_id(`Tree ID`), sp = fix_species_code(Species), src = "2021 DBH list"),
   R$datasheets %>% transmute(key = ncbi_tree_id(Tree_ID), sp = fix_species_code(Tree_sp), src = "2021 datasheets")) %>%
   filter(!is.na(key), !is.na(sp)) %>% distinct()
-sp21 <- votes %>% count(key, sp) %>% arrange(key, desc(n)) %>% group_by(key) %>%
-  summarise(species_code = first(sp), sp_all = paste(unique(sp), collapse = "/"), .groups = "drop")
+sp21 <- votes %>% group_by(key, sp) %>% summarise(n = n(), srcs = paste(sort(unique(src)), collapse = ", "), .groups = "drop") %>%
+  arrange(key, desc(n)) %>% group_by(key) %>%
+  summarise(species_code = first(sp), species_source = paste0("2021 records: ", first(srcs)),
+            sp_all = paste(unique(sp), collapse = "/"), .groups = "drop")
 plot21 <- bind_rows(R$flux21 %>% transmute(key = ncbi_tree_id(tag_recorded), p = landscape_position, o = 1),
                     R$datasheets %>% transmute(key = ncbi_tree_id(Tree_ID), p = Plot, o = 2),
                     R$consensus %>% transmute(key = ncbi_tree_id(consensus_tree_id), p = Plot, o = 3),
                     R$dbh21 %>% transmute(key = ncbi_tree_id(`Tree ID`), p = Plot, o = 4)) %>%
   filter(!is.na(p), p != "") %>% arrange(key, o) %>% group_by(key) %>% summarise(landscape_position = first(p), .groups = "drop")
 dbhc <- bind_rows(
-  R$consensus %>% transmute(key = ncbi_tree_id(consensus_tree_id), dbh_cm = .num(DBH),
-                            dbh_source = paste0("2021 survey DBH (", source, ")")),
-  R$datasheets %>% group_by(key = ncbi_tree_id(Tree_ID)) %>%
-    summarise(dbh_cm = median(.num(DBH), na.rm = TRUE), .groups = "drop") %>% mutate(dbh_source = "2021 flux datasheet")) %>%
+  DS_DBH %>% transmute(key = ncbi_tree_id(Tree_ID), dbh_cm = d, dbh_source),
+  R$consensus %>% filter(source != "datasheets") %>%
+    transmute(key = ncbi_tree_id(consensus_tree_id), dbh_cm = .num(DBH), dbh_source = paste0("2021 tree DBH list (", source, ")"))) %>%
   filter(is.finite(dbh_cm)) %>% distinct(key, .keep_all = TRUE)
 camp21 <- named %>% filter(measured) %>% group_by(key) %>% summarise(campaigns = paste(sort(unique(campaign)), collapse = ";"), .groups = "drop")
 T2 <- tibble(tree_id = unique(named$key)) %>%
   left_join(sp21, by = c("tree_id" = "key")) %>% left_join(plot21, by = c("tree_id" = "key")) %>%
   left_join(dbhc, by = c("tree_id" = "key")) %>% left_join(camp21, by = c("tree_id" = "key")) %>%
-  mutate(species_code = coalesce(species_code, prefix_species(tree_id)),
+  mutate(species_source = ifelse(is.na(species_code), "tree-name prefix", species_source),
+         species_code = coalesce(species_code, prefix_species(tree_id)),
          dead_evidence = ifelse(tree_id %in% named$key[grepl("dead", named$tag_recorded, ignore.case = TRUE)], "2021 name: dead", NA))
 
 # ---- monthly untagged, 2023 untagged and ash, felled oak -------------------------------------
 T3 <- mon %>% filter(kind == "untag") %>%
-  transmute(tree_id = key, species_code, dbh_cm, dbh_date, dbh_source, landscape_position,
+  transmute(tree_id = key, species_code, species_source = "monthly survey (tree list; untagged: field notes)", dbh_cm, dbh_date, dbh_source, landscape_position,
             latitude = gps_latitude, longitude = gps_longitude, coord_source, dead_evidence, campaigns = MON)
 y <- R$y2023 %>% mutate(species_code = fix_species_code(species_recorded))
 yu <- y %>% filter(grepl("^untagged", tag_recorded, ignore.case = TRUE)) %>% distinct(tag_recorded, species_code, dbh_recorded_cm, .keep_all = TRUE) %>%
@@ -291,9 +322,9 @@ ya <- y %>% filter(grepl("^Ash[0-9]+$", tag_recorded)) %>% mutate(tree_id = tag_
 T4 <- bind_rows(yu, ya) %>% group_by(tree_id) %>%
   summarise(species_code = first(species_code), dbh_cm = first(dbh_recorded_cm), dbh_date = first(date),
             dead_evidence = paste_u(dead_evidence), .groups = "drop") %>%
-  mutate(dbh_source = "2023 field sheet", campaigns = C23)
+  mutate(dbh_source = "2023 field sheet", species_source = "field record: 2023_cross_species", campaigns = C23)
 oak <- read.csv("data/raw/field_data/black_oak/ymf_black_oak_flux_compiled.csv", check.names = FALSE)
-T5 <- tibble(tree_id = FELLED_OAK_ID, species_code = "QUVE",
+T5 <- tibble(tree_id = FELLED_OAK_ID, species_code = "QUVE", species_source = "felled-oak sheet",
              dbh_cm = .num(oak$Stem_Diam_mm[oak$Height_m == "1.25"])[1], dbh_date = as.Date("2022-10-04"),
              dbh_source = "felled-oak sheet, stem diameter at 1.25 m (column labelled mm; values are cm)",
              campaigns = OAK)
@@ -335,7 +366,7 @@ TREES <- bind_rows(
   mutate(campaigns = sapply(strsplit(campaigns, ";"), function(z)
            paste(intersect(c(MON, F21, S21, OAK, C23, G24), z), collapse = ";")),
          dead = !is.na(dead_evidence)) %>%
-  transmute(tree_id, species_code, dbh_cm = round(dbh_cm, 1), dbh_date = as.Date(dbh_date), dbh_source,
+  transmute(tree_id, species_code, species_source, dbh_cm = round(dbh_cm, 1), dbh_date = as.Date(dbh_date), dbh_source,
             landscape_position, latitude = round(latitude, 7), longitude = round(longitude, 7), coord_source,
             dead, dead_evidence, in_inventory, campaigns) %>% arrange(tree_id)
 if (anyDuplicated(TREES$tree_id)) stop("duplicate tree_id: ", paste(unique(TREES$tree_id[duplicated(TREES$tree_id)]), collapse = ", "))
@@ -356,6 +387,73 @@ UNRES <- A %>% filter(is.na(tree_id) | !tree_id %in% TREES$tree_id) %>%
                             kind == "name" & !measured ~ "tree list or soil means only: no flux, gas, core or DNA record",
                             kind == "name" ~ "name not measured", kind == "census_tag" ~ "tag with no measured record in this campaign",
                             TRUE ~ "unresolved"))
+
+# ==============================================================================
+# 5b. DEAD: dated marks and the rule (header)
+# ==============================================================================
+tt_tree <- function(file, column, tag, sp = NA, dbh = NA) {   # spelling -> tree_id (NA if none)
+  t <- TT[TT$source_file == file & TT$source_column == column, ]
+  tag <- trimws(as.character(tag)); sp <- rep_len(sp, length(tag)); dbh <- rep_len(dbh, length(tag))
+  vapply(seq_along(tag), function(i) {
+    c <- t[trimws(t$tag_recorded) %in% tag[i], ]
+    if (nrow(c) > 1) c <- c[c$species_recorded %in% sp[i] & abs(.num(c$dbh_recorded_cm) - .num(dbh[i])) < 0.05, ]
+    if (nrow(c) == 1) c$tree_id else NA_character_ }, character(1))
+}
+F_TF <- "data/raw/field_data/ipad_data/treeflux_total.xlsx"
+tf <- suppressMessages(readxl::read_excel(F_TF, sheet = "Sheet1"))
+tf <- tibble(tag = trimws(as.character(tf$`Plot Tag`)), date = as.Date(tf$Date), notes = as.character(tf$Notes)) %>%
+  filter(.is_tag(tag), !is.na(date)) %>% mutate(tree_id = tt_tree(F_TF, "Plot Tag", tag))
+F_MU <- "data/processed/flux/semirigid_tree_final_complete_dataset_with_untagged.csv"
+mu <- read.csv(F_MU, stringsAsFactors = FALSE) %>% filter(grepl("^UNTAG_", Plot.Tag)) %>%
+  transmute(tree_id = tt_tree(F_MU, "Plot.Tag", Plot.Tag), date = as.Date(substr(Date, 1, 10)))
+F_H <- "data/processed/flux/tree_flux_2021_multiheight.csv"
+hh <- read.csv(F_H, stringsAsFactors = FALSE) %>%
+  transmute(name = tree_id, tree_id = tt_tree(F_H, "tree_id", tree_id), date = as.Date(substr(start.time, 1, 10)))
+F_Y <- "data/raw/field_data/static_chamber_field/Compiled YMF Data 2023 - Sheet1.csv"
+yy <- read.csv(F_Y, check.names = FALSE, stringsAsFactors = FALSE)
+yy <- yy %>% filter(!(is.na(`Flux Start (System) Time`) | trimws(`Flux Start (System) Time`) %in% c("", "NA"))) %>%
+  transmute(tree_id = tt_tree(F_Y, "Tree Tag", `Tree Tag`, `Species Code`, `DBH (cm)`), date = as.Date(Date, "%m/%d/%y"),
+            cond = grepl("^dead$", trimws(`Bark Missing`), ignore.case = TRUE) | grepl("^dead$", trimws(`Wounding/Holes`), ignore.case = TRUE),
+            note = grepl("dead|snag", Notes, ignore.case = TRUE))
+VISITS <- bind_rows(tf %>% select(tree_id, date), mu, hh %>% select(tree_id, date), yy %>% select(tree_id, date)) %>%
+  filter(!is.na(tree_id)) %>% distinct()
+MARKS <- bind_rows(
+  tf %>% filter(grepl("dead|snag", notes, ignore.case = TRUE)) %>% transmute(tree_id, date, what = "monthly field notes"),
+  mu %>% filter(grepl("_dead$", tree_id)) %>% transmute(tree_id, date, what = "monthly label _dead"),
+  hh %>% filter(grepl("dead", name, ignore.case = TRUE)) %>% transmute(tree_id, date, what = "2021 name"),
+  yy %>% filter(cond) %>% transmute(tree_id, date, what = "2023 condition score"),
+  yy %>% filter(note) %>% transmute(tree_id, date, what = "2023 notes")) %>%
+  filter(!is.na(tree_id)) %>% distinct()
+DEAD <- MARKS %>% group_by(tree_id) %>%
+  summarise(first = min(date), n_dates = n_distinct(date), .groups = "drop")
+DEAD$dead_evidence <- sapply(DEAD$tree_id, function(t) {
+  m <- MARKS[MARKS$tree_id == t, ]
+  paste(sapply(split(m$date, m$what), function(d) paste(format(sort(unique(d))), collapse = ", ")) %>%
+          { paste0(names(.), ": dead ", .) }, collapse = "; ") })
+DEAD$n_after <- sapply(seq_len(nrow(DEAD)), function(i) sum(VISITS$tree_id == DEAD$tree_id[i] & VISITS$date > DEAD$first[i]))
+DEAD <- DEAD %>% mutate(
+  dead = n_dates > 1 | n_after == 0,
+  dead_from = as.Date(ifelse(dead, first, NA)),
+  dead_basis = case_when(n_dates > 1 ~ sprintf("marked dead on %d dates; dead from %s", n_dates, first),
+                         n_after == 0 ~ sprintf("marked dead once (%s); not measured after", first),
+                         TRUE ~ sprintf("marked dead once (%s); measured again on %d later date(s) without the mark: live", first, n_after)))
+# every tree the field records call dead has a dated mark
+old_dead <- TREES$tree_id[!is.na(TREES$dead_evidence)]
+if (length(setdiff(old_dead, DEAD$tree_id))) stop("dead evidence without a dated mark: ", paste(setdiff(old_dead, DEAD$tree_id), collapse = ", "))
+TREES <- TREES %>% select(-dead, -dead_evidence) %>% left_join(DEAD %>% select(tree_id, dead, dead_from, dead_evidence, dead_basis), by = "tree_id") %>%
+  mutate(dead = coalesce(dead, FALSE)) %>%
+  relocate(dead, dead_from, dead_evidence, dead_basis, .after = coord_source)
+
+# ==============================================================================
+# 5c. DBH NOT RECORDED: left missing (no imputation), and said so in dbh_source
+# ==============================================================================
+NO_DBH <- "none: no DBH measurement recorded"
+stopifnot(all(is.na(TREES$dbh_source[is.na(TREES$dbh_cm)])), all(!is.na(TREES$dbh_source[!is.na(TREES$dbh_cm)])))
+TREES$dbh_source[is.na(TREES$dbh_cm)] <- NO_DBH
+FLUX_CAMPAIGNS <- c(MON, F21, C23, OAK)
+NODBH <- TREES %>% filter(is.na(dbh_cm)) %>%
+  transmute(tree_id, species_code, campaigns,
+            flux_measured = sapply(strsplit(campaigns, ";"), function(z) any(z %in% FLUX_CAMPAIGNS)))
 
 # ==============================================================================
 # 6. INVENTORY TABLE
@@ -379,18 +477,18 @@ SPC <- bind_rows(
   T1 %>% filter(grepl("/", sp_all) | (!is.na(census_species) & census_species != species_code)) %>%
     transmute(tree_id, species_code, field_species = sp_all, census_species, source = "census tag"),
   T2 %>% filter(grepl("/", sp_all)) %>% transmute(tree_id, species_code, field_species = sp_all, source = "2021 survey"))
+
+# 2021 species vs the tree-name prefix (e.g. RM105: recorded QURU, prefix RM = ACRU)
+PFX <- TREES %>% filter(tree_id %in% T2$tree_id) %>% mutate(prefix = prefix_species(tree_id)) %>%
+  filter(!is.na(prefix), prefix != species_code, !tree_id %in% SPC$tree_id) %>%
+  transmute(tree_id, species_code, field_species = species_code, census_species = NA_character_,
+            source = paste0("2021 survey: name prefix says ", prefix))
+SPC <- bind_rows(SPC, PFX)
 write_csv(SPC, out_path("tree_species_conflicts.csv", "audit"), na = "")
 
-# dead: this definition vs code/lib/dead_stems.R
-source("code/lib/dead_stems.R")
-lib <- dead_stem_flux()
-mon_dead <- unique(mon$key[grepl("_dead$", mon$key)])
-y23 <- read.csv("data/processed/flux/tree_flux_2023_cross_species.csv", check.names = FALSE)
-y23d <- y23 %>% filter(round(CH4_best.flux, 8) %in% round(lib$flux, 8))
-lib_trees <- c(mon_dead, "ROBOWSER",
-               A$tree_id[match(paste(y23d$`Tree Tag`, y23d$`Species Code`), paste(A$tag_recorded, A$species_recorded))])
-DS <- TREES %>% filter(dead | tree_id %in% lib_trees) %>%
-  transmute(tree_id, species_code, campaigns, dead, dead_evidence, in_dead_stems_lib = tree_id %in% lib_trees)
+# dead: every tree with a mark, its evidence and the outcome
+DS <- TREES %>% filter(tree_id %in% DEAD$tree_id) %>%
+  transmute(tree_id, species_code, campaigns, dead, dead_from, dead_basis, dead_evidence)
 write_csv(DS, out_path("tree_dead_status.csv", "audit"), na = "")
 
 sink(out_path("trees_build.txt", "audit")); op <- options(width = 160)
@@ -403,8 +501,13 @@ cat(sprintf("\nTag collisions: %d tags, %d records; %d tags split into >1 tree, 
 cat(sprintf("  decisions file: %d rows (%s); overrides of the proposal: %d; stale rows: %d\n", nrow(DEC),
             paste(names(table(DEC$status)), table(DEC$status), collapse = ", "),
             sum(TA$tree_id != TA$proposed_tree_id), length(stale)))
-cat(sprintf("\nDead trees: %d (this definition) vs %d (code/lib/dead_stems.R)\n", sum(TREES$dead), length(unique(lib_trees))))
-print(as.data.frame(DS), row.names = FALSE)
+cat(sprintf("\nTrees marked dead in some record: %d; dead by the rule: %d\n", nrow(DS), sum(DS$dead)))
+print(as.data.frame(DS %>% select(-campaigns)), row.names = FALSE)
+cat(sprintf("\nNo DBH measurement recorded (dbh_cm NA; not imputed): %d trees, %d of them flux-measured\n",
+            nrow(NODBH), sum(NODBH$flux_measured)))
+if (nrow(NODBH)) print(as.data.frame(NODBH), row.names = FALSE)
+cat("\nDBH sources:\n"); print(as.data.frame(TREES %>% count(dbh_source)), row.names = FALSE)
+cat("\nSpecies sources:\n"); print(as.data.frame(TREES %>% count(species_source)), row.names = FALSE)
 cat(sprintf("\nSpecies disagreements between records: %d trees (outputs/audit/tree_species_conflicts.csv)\n", nrow(SPC)))
 cat(sprintf("\nSpellings not mapped to a measured tree: %d (outputs/audit/tree_tags_unresolved.csv)\n", nrow(UNRES)))
 print(as.data.frame(UNRES %>% count(reason)), row.names = FALSE)

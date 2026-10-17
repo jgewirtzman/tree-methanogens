@@ -27,8 +27,14 @@ LOD_CONC <- 3 / 20   # copies per µL reaction
 read_ul <- REF_DROPLETS * DROPLET_NL / 1000
 conc_at <- function(k) -log(1 - k / REF_DROPLETS) / (DROPLET_NL / 1000)
 
-cg <- read.csv("data/compiled/ddpcr_gene_abundances.csv") %>%
-  filter(analysis_type == "loose", target_gene == "mcra_probe", !is.na(concentration_copies_per_uL))
+# 2021 probe-mcrA wells that passed QC, loose threshold (data/tables/ddpcr.csv; compartment
+# from samples.csv)
+source("code/lib/tables_read.R")
+smp <- read_table("samples") %>% filter(campaign == "2021_survey")
+cg <- read_table("ddpcr") %>%
+  filter(gene == "mcrA", assay == "probe", qc_pass, !is.na(copies_per_uL_rxn), sample_id %in% smp$sample_id) %>%
+  mutate(core_type = c(inner = "Inner", outer = "Outer", organic = "Organic", mineral = "Mineral")[smp$position[match(sample_id, smp$sample_id)]],
+         concentration_copies_per_uL = copies_per_uL_rxn, positives = positive_droplets)
 stopifnot(!any(duplicated(cg$sample_id)))
 
 rows <- data.frame(threshold = c("single droplet", "limit of detection", "", "limit of quantification", ""),

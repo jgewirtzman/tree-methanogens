@@ -33,9 +33,9 @@ source("code/lib/outputs.R")
 # reports 1,000,000 copies/µL; six 16S-bacteria / EvaGreen-mcrA wells).
 #
 # Checks (stop on failure): every analysed row of processed_ddpcr_data.csv is
-# reproduced (Conc, droplets, positives); tree-level means of copies_per_g equal the
-# ddpcr_*_loose/strict columns of merged_tree_dataset_final.csv; compartment medians
-# equal 09_tables_stats/06_copies-per-gram.R's.
+# reproduced (Conc, droplets, positives); compartment medians equal
+# 09_tables_stats/06_copies-per-gram.R's. (The check against the tree-level means of
+# merged_tree_dataset_final.csv was removed 2026-10-16 when that file was retired.)
 # Writes data/tables/ddpcr.csv, outputs/audit/ddpcr_build.txt
 # ==============================================================================
 suppressPackageStartupMessages(library(tidyverse))
@@ -170,32 +170,6 @@ if (any(extraP$qc_pass)) { print(extraP %>% filter(qc_pass)); stop("rows with qc
 massP <- P %>% distinct(sample_id, mass) %>% left_join(S, by = "sample_id")
 stopifnot(all(abs(massP$mass - massP$extraction_mass_mg) < 1e-9 | (is.na(massP$mass) & is.na(massP$extraction_mass_mg))))
 
-# (b) tree-level means in merged_tree_dataset_final.csv (04_harmonize_all_data.R): mean over a
-# tree's samples of copies g-1, by gene/assay x compartment x threshold
-M <- read.csv("data/processed/integrated/merged_tree_dataset_final.csv", check.names = FALSE, stringsAsFactors = FALSE)
-TT <- read.csv(file.path(OUT, "tree_tags.csv"), stringsAsFactors = FALSE) %>%
-  filter(source_file == "data/processed/integrated/merged_tree_dataset_final.csv", source_column == "tree_id")
-M$tid <- TT$tree_id[match(M$tree_id, TT$tag_recorded)]
-mcols <- grep("^ddpcr_", names(M), value = TRUE)
-MT <- M %>% filter(!is.na(tid)) %>% select(tid, all_of(mcols)) %>%
-  pivot_longer(-tid, names_to = "column", values_to = "merged") %>% filter(!is.na(merged))
-TL <- DD %>% filter(campaign == "2021_survey", !is.na(extraction_mass_mg)) %>%
-  mutate(conc_strict = ifelse(rerun, NA, conc_strict)) %>%          # the re-run strict values never reached the import
-  left_join(SAMPLES %>% select(sample_id, tree_id), by = "sample_id") %>%
-  select(tree_id, gene, assay, position, qc_pass, extraction_mass_mg, mat, conc_loose, conc_strict) %>%
-  pivot_longer(c(conc_loose, conc_strict), names_to = "threshold", names_prefix = "conc_", values_to = "conc") %>%
-  filter(qc_pass, !is.na(conc), !is.na(tree_id)) %>%
-  mutate(column = paste("ddpcr", c(mcrA = "mcra", pmoA = "pmoa", mmoX = "mmox", `16S_archaea` = "16s_arc", `16S_bacteria` = "16s_bact")[gene],
-                        sep = "_"),
-         column = ifelse(gene == "mcrA" & assay == "probe", "ddpcr_mcra_probe", column),
-         column = paste(column, str_to_title(position), threshold, sep = "_"),
-         cpg = ddpcr_copies_per_g(conc, extraction_mass_mg, mat)) %>%
-  group_by(tid = tree_id, column) %>% summarise(ours = mean(cpg), n = n(), .groups = "drop")
-cmpM <- full_join(MT, TL, by = c("tid", "column"))
-okM <- with(cmpM, !is.na(merged) & !is.na(ours) & abs(merged - ours) <= 1e-6 * pmax(1, abs(merged)))
-unmatched_merged_trees <- setdiff(M$tree_id[rowSums(!is.na(M[mcols])) > 0 & is.na(M$tid)], NA)
-if (!all(okM)) { print(head(as.data.frame(cmpM[!okM, ]), 20)); stop(sum(!okM), " tree-level means differ from merged_tree_dataset_final.csv") }
-
 # (c) 06_copies-per-gram.R compartment medians (probe mcrA, loose, real mass)
 C6 <- DD %>% filter(gene == "mcrA", assay == "probe", !is.na(conc_loose), campaign == "2021_survey", qc_pass, !is.na(extraction_mass_mg)) %>%
   group_by(position) %>% summarise(n = n(), median_copies_per_g = median(copies_per_g), .groups = "drop")
@@ -225,8 +199,6 @@ cat(sprintf("\nRows with loose values only: %d; strict only: %d\n", sum(!is.na(D
 cat(sprintf("Rows without copies_per_g although qc_pass (no extraction mass): %d\n", sum(DDPCR$qc_pass & !is.na(DDPCR$copies_per_uL_rxn) & is.na(DDPCR$copies_per_g))))
 cat("\nRECONCILIATION\n")
 cat(sprintf("  processed_ddpcr_data.csv: %d of %d rows reproduced exactly (Conc, accepted, positives; masses identical)\n", sum(okP), nrow(P)))
-cat(sprintf("  merged_tree_dataset_final.csv: %d of %d tree x column means reproduced (%d columns); merged trees with ddPCR but no tree_tags match: %d\n",
-            sum(okM), nrow(cmpM), n_distinct(cmpM$column), length(unmatched_merged_trees)))
 cat("  06_copies-per-gram.R medians (probe mcrA, loose):\n"); print(as.data.frame(C6), row.names = FALSE)
 cat(sprintf("  %s\n", if (file.exists(f6)) "match outputs/data/copies_per_g_compartment.csv" else "outputs/data/copies_per_g_compartment.csv not found: not compared"))
 cat("\nbelow_lod (qc_pass rows) by gene x assay x position:\n")

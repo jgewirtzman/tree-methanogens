@@ -11,23 +11,25 @@ wood_cores,moisture_fresh_pct,numeric,%,,0;100,(fresh - dry) / fresh x 100; spec
 wood_cores,moisture_dry_pct,numeric,%,,0;400,(fresh - dry) / dry x 100; species median where filled,02_process_wood_cores.R rule
 wood_cores,filled,logical,,NN,,"TRUE where density and moistures are gap-filled: a section of the seven flagged trees (AB6', H104, HX2, RM1, rms1, WA14, YB15) with dry > fresh mass, moisture_dry > 300 % or density outside 0.1-2 g cm-3, replaced by the species x position median of the unflagged sections",02_process_wood_cores.R
 wood_cores,notes,character,,,,Core notes and section processing notes from the sheet,Tree Core Sectioning Data.csv
-soil_readings,reading_id,character,,PK,,"tree_<tree_id>_<hole> (2021 survey holes) or collar_<collar_id>_<date> (monthly campaign); _<k> where a hole or collar-date has more than one record",05_soil_readings.R
-soil_readings,tree_id,character,,FK:trees.tree_id,,Tree the hole was dug at (exactly one of tree_id and collar_id is set),soil_tree_level_means.csv spellings via tree_tags
+soil_readings,reading_id,character,,PK,,"tree_<tree_id>_<hole> (2021 survey holes), tree_<tree_id>_<date> (2023 field sheet) or collar_<collar_id>_<date> (monthly campaign); _<k> where a hole, tree-date or collar-date has more than one record",05_soil_readings.R
+soil_readings,tree_id,character,,FK:trees.tree_id,,Tree the reading was made at: 2021 survey holes and 2023 field-sheet readings (exactly one of tree_id and collar_id is set),soil_tree_level_means.csv and 2023 field-sheet spellings via tree_tags
 soil_readings,collar_id,character,,FK:collars.collar_id,,Soil collar (exactly one of tree_id and collar_id is set),iPad soil sheets
-soil_readings,date,date,,,2020-06-01;2021-12-31,Date of the reading (NA for the 8 WPBERENICE holes: not recorded),field sheets
-soil_readings,time_local,character,,,,Time the hole was sampled (HH:MM local; trees only; often not recorded),Soils_Data_filled.csv
+soil_readings,date,date,,,2020-06-01;2023-12-31,Date of the reading (2021 holes with no recorded date: the tree's 2021 flux visit; see date_source),field sheets
+soil_readings,date_source,character,,NN,,recorded; or not recorded: date of the tree's 2021 flux visit (40 holes at 9 trees),05_soil_readings.R
+soil_readings,time_local,character,,,,"Time of the reading (HH:MM local; 2021 holes, often not recorded; 2023: the real flux start where written)",Soils_Data_filled.csv
 soil_readings,hole,character,,,,"N, E, S or W of the stem (tree holes)",Soils_Data_filled.csv
 soil_readings,distance_from_stem_cm,numeric,cm,,0;500,Distance of the hole from the stem,Soils_Data_filled.csv
 soil_readings,hole_depth_cm,numeric,cm,,0;100,Total depth of the hole,Soils_Data_filled.csv
 soil_readings,organic_depth_cm,numeric,cm,,0;100,Depth of the organic-horizon sample,Soils_Data_filled.csv
 soil_readings,mineral_depth_cm,numeric,cm,,0;100,"Depth of the mineral-horizon sample; NA where recorded as "">45"" or ""water"" (see notes)",Soils_Data_filled.csv
 soil_readings,soil_temp_C,numeric,degC,,-5;35,Soil temperature (probe),field sheets
-soil_readings,soil_vwc_pct,numeric,%,,0;100,"Volumetric water content. Trees: mean of the probe readings at the hole (up to 3), 60 where the probe read ""saturated"". Collars: the sheet's VWC percent",field sheets
+soil_readings,soil_vwc_pct,numeric,%,,0;100,"Volumetric water content. Trees: mean of the probe readings (2021: VWC1-3; 2023: VWC 1-3), 60 where the probe read saturated. Collars: the sheet's VWC percent (column in vwc_source_column)",field sheets
 soil_readings,vwc_n_probes,integer,count,,0;3,Number of numeric probe readings averaged into soil_vwc_pct (trees; 0 for saturated holes),Soils_Data_filled.csv
 soil_readings,vwc_saturated,logical,,,,TRUE where the probe read saturated and soil_vwc_pct is set to 60 % (the value soil_tree_level_means.csv uses) (trees),Soils_Data_filled.csv
+soil_readings,vwc_source_column,character,,,,Sheet column soil_vwc_pct was read from (iPad sheets carry 'soil moisture' and 'vwc'; per sheet the one holding percentages; 2021-03-30 I collars: the flux sheet's Notes column),05_soil_readings.R
 soil_readings,orp_mV,numeric,mV,,-500;1000,Oxidation-reduction potential (trees),Soils_Data_filled.csv
 soil_readings,shared_with,character,,,,"Other trees the same hole was recorded for (semicolon list; e.g. ""RO8 & RO7"" on the field sheet)",Soils_Data_filled.csv
-soil_readings,source,character,,NN,,Source file of the record,05_soil_readings.R
+soil_readings,source,character,,NN,,Source file of the record (iPad soil sheets; master workbook; 2021-03-30 flux sheet; Soils_Data_filled.csv; 2023 field sheet),05_soil_readings.R
 soil_readings,notes,character,,,,Field notes and parse notes,Soils_Data_filled.csv
 internal_gas,sample_id,character,,PK,,"GC lab ID (2021; the two lab IDs ""BLANK"" as BLANK_<lab no>), sample name (2024: <tree><H|S>, Atm1-3), oak_<lab no> (felled oak)",32_internal_gas.R
 internal_gas,tree_id,character,,FK:trees.tree_id,,Tree sampled (via tree_tags); NA for the three 2024 atmosphere vials,tree_tags.csv
@@ -77,13 +79,13 @@ weather,relative_humidity_pct,numeric,%,NN,0;100,Relative humidity (RH),ymf_clea
 weather,vwc,numeric,m3 m-3,,0;0.6,Station soil water content (VWC); readings of 0 or below (probe failure) set NA (06_weather.R screen),ymf_clean_sorted.csv
 weather,vwc_avg,numeric,m3 m-3,,0;0.6,Hourly mean station soil water content (VWC_Avg); readings of 0 or below set NA (06_weather.R screen),ymf_clean_sorted.csv
 weather,precip_mm,numeric,mm,NN,0;200,Hourly precipitation total (Rain_mm_Tot),ymf_clean_sorted.csv
-weather,wind_speed_avg_ms,numeric,m s-1,,0;40,"Hourly mean wind speed (WindSpeed_ms_Avg); values above 40 and runs of 0 lasting 24 h or more set NA (06_weather.R screen). Implausible even so (unit not recorded); not used",ymf_clean_sorted.csv
-weather,wind_speed_max_ms,numeric,m s-1,,0;60,"Hourly maximum wind speed (WindSpeed_ms_Max); values above 60 and the hours of the 24 h zero runs of the mean set NA (06_weather.R screen); not used",ymf_clean_sorted.csv
+weather,wind_speed_avg_ms,numeric,m s-1,,0;40,Hourly mean wind speed: blank. The logger column (WindSpeed_ms_Avg) is implausible throughout (unit not recorded) and unused (06_weather.R),ymf_clean_sorted.csv
+weather,wind_speed_max_ms,numeric,m s-1,,0;60,"Hourly maximum wind speed: blank, as wind_speed_avg_ms (WindSpeed_ms_Max; 06_weather.R)",ymf_clean_sorted.csv
 weather,wind_dir_deg,numeric,degrees,,0;360,Wind direction (WindDir); runs unchanged for 6 h or more set NA (06_weather.R screen),ymf_clean_sorted.csv
 weather,solar_rad_avg_W_m2,numeric,W m-2,NN,0;1500,Hourly mean solar radiation (logger column Solar_Rad_kW_Avg; the values are W m-2),ymf_clean_sorted.csv
 weather,solar_rad_total_MJ_m2,numeric,MJ m-2,,0;10,Hourly total solar radiation (Solar_Rad_Tot_MJ_Tot),ymf_clean_sorted.csv
 weather,dewpoint_C,numeric,degC,NN,-50;40,Dew point (TdewPointC),ymf_clean_sorted.csv
-weather,ET_ref,numeric,mm,,-0.1;1.5,"Logger reference evapotranspiration per hour (ETos); values outside -0.1 to 1.5 set NA (06_weather.R screen). Computed by the logger from the wind column; not used",ymf_clean_sorted.csv
+weather,ET_ref,numeric,mm,,-0.1;1.5,Logger reference evapotranspiration per hour (ETos); values outside -0.1 to 1.5 set NA (06_weather.R screen). Computed by the logger from the wind column; not used,ymf_clean_sorted.csv
 moisture_survey,point_id,character,,PK,,GPS waypoint label of the flag,soil_moisture_20201216.csv
 moisture_survey,date,date,,NN,2020-12-16;2020-12-16,Survey date,soil_moisture_20201216.csv
 moisture_survey,latitude,numeric,degrees,NN,lat_bbox,WGS84 latitude (handheld GPS),soil_moisture_20201216.csv

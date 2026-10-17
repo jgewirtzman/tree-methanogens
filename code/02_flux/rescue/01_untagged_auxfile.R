@@ -7,27 +7,27 @@
 # chamber geometry lives in the Tree_fluxes_*.xlsx sheets (labelled by site+species).
 # This builds a goFlux auxfile for the 49 untagged measurements so the standard
 # click+goFlux workflow (code/tools/click_untagged_windows.R) can compute their fluxes.
+# Geometry: the rule of code/lib/stem_chamber_geometry.R (the chamber sheet's row for
+# that stem x month x chamber, else the formula on the chamber used that day), as for
+# the tagged stems. (Until 2026-10-16: the sheet's uncorrected Sc/Vc of any row of the
+# same position x species, falling back to another month and an arbitrary row.)
 # Writes data/processed/flux/untagged_rescue/untagged_auxfile.csv
 # ==============================================================================
 suppressMessages({library(readxl);library(dplyr);library(tidyr)}); options(warn=-1)
 num<-function(x) suppressWarnings(as.numeric(x))
-dir<-"data/raw/flux_chamber_corrections/Chamber vol corr"
-mons<-c(june="2020-06",july="2020-07",august="2020-08",september="2020-09",october="2020-10",december="2020-12")
 
-## ---- untagged geometry per tree x month x chamber (from Tree_fluxes sheets) ----
-geo<-bind_rows(lapply(names(mons),function(m){
-  p<-file.path(dir,paste0("Tree_fluxes_",m,".xlsx")); if(!file.exists(p))return(NULL)
-  x<-suppressMessages(read_excel(p)); x$Sample<-as.character(x$Sample)
-  u<-x[grepl("untag|no tag|dead|upland|wetland|intermediate",x$Sample,ignore.case=TRUE),,drop=FALSE]; if(!nrow(u))return(NULL)
-  Dst<-num(u[["D stem (cm)"]]); Dext<-num(u[["D exterior (cm)"]]); H<-num(u[["Chamber height (cm)"]]); K<-num(u[["K"]]); Vw<-num(u[["Two V wedges (cm3)"]])
-  tibble(month=mons[m], Sample=u$Sample, chamber=as.character(u[["Chamber used"]]),
-         Sc_cm2=num(u[["Sc (cm2)"]]), Vc_cm3=coalesce(num(u$Vc), K*(pi/4)*(Dext^2-Dst^2)*H-Vw), Dstem=Dst)
-}))
-geo$site<-case_when(grepl("upland|no tag",geo$Sample,ignore.case=TRUE)~"Upland",
-  grepl("wetland",geo$Sample,ignore.case=TRUE)~"Wetland", grepl("intermediate",geo$Sample,ignore.case=TRUE)~"Intermediate")
-geo$sp<-toupper(sub(".*?(ACRU|BEAL|BELE|FRAM|TSCA|BEPA|QURU).*","\\1",geo$Sample,ignore.case=TRUE))
-geo$sp[grepl("no tag",geo$Sample,ignore.case=TRUE)]<-"BELE"
-geo<-geo %>% filter(chamber!="XXXX",!is.na(site))
+## ---- untagged stems on the chamber sheets (labelled by position + species) ----
+source("code/lib/stem_chamber_geometry.R")
+rows<-semirigid_sheet_rows(".")
+dims<-semirigid_chamber_dims(rows)
+geo<-rows[grepl("untag|no tag|dead|upland|wetland|intermediate",rows$sample,ignore.case=TRUE),]
+geo$site<-case_when(grepl("upland|no tag",geo$sample,ignore.case=TRUE)~"Upland",
+  grepl("wetland",geo$sample,ignore.case=TRUE)~"Wetland", grepl("intermediate",geo$sample,ignore.case=TRUE)~"Intermediate")
+geo$sp<-toupper(sub(".*?(ACRU|BEAL|BELE|FRAM|TSCA|BEPA|QURU).*","\\1",geo$sample,ignore.case=TRUE))
+geo$sp[grepl("no tag",geo$sample,ignore.case=TRUE)]<-"BELE"
+geo<-geo %>% filter(!is.na(site))
+geo$label<-geo$sample; geo$sample<-paste(geo$site,geo$sp)            # one untagged stem per position x species
+stopifnot(all(tapply(geo$D,geo$sample,function(d) diff(range(d))==0)))   # one stem diameter per stem
 
 ## ---- untagged measurements (treeflux_total); species from the field NOTES ----
 d<-suppressMessages(read_excel("data/raw/field_data/ipad_data/treeflux_total.xlsx",sheet="Sheet1"))
@@ -42,35 +42,35 @@ u<-u[!is.na(u$site)&!is.na(u$time),]
 # 2 rows have no species note: Upland ch1 -> BELE; Intermediate -> BELE (TSCA is the noted one that day)
 u$sp[is.na(u$sp) & u$site=="Upland"]<-"BELE"; u$sp[is.na(u$sp) & u$site=="Intermediate"]<-"BELE"
 
-## ---- attach geometry for the (now known) site x species x month x chamber tree ----
-assign_geo<-function(r){
-  cand<-geo[geo$site==r$site & geo$sp==r$sp,]
-  if(!nrow(cand)) return(geo[1,][NA,])
-  c2<-cand[cand$month==r$month,]; if(nrow(c2)) cand<-c2
-  if(!is.na(r$chamber) && any(cand$chamber==r$chamber)) cand<-cand[cand$chamber==r$chamber,]
-  cand[1,]
-}
-rows<-lapply(seq_len(nrow(u)),function(i){a<-assign_geo(u[i,]); cbind(u[i,],a[,c("Sample","Sc_cm2","Vc_cm3","Dstem")])})
-m<-bind_rows(rows)
+## ---- geometry: the chamber used that day (code/lib/stem_chamber_geometry.R) ----
+mc<-split(sub("[.]0$","",as.character(d$CH)), format(as.Date(d$Date),"%Y-%m"))
+m<-cbind(u, semirigid_deployment_geometry(paste(u$site,u$sp), u$month, ifelse(is.na(u$chamber),"na",u$chamber),
+                                          NA_real_, geo, dims, mc))
+stopifnot(!anyNA(m$Sc_cm2))
+m$Sample<-geo$label[match(paste(m$site,m$sp),geo$sample)]; m$Dstem<-m$D_stem_cm
 # dead = marked dead in ANY source (verified); only Upland BELE is never marked dead
 m$dead <- !(m$site=="Upland" & m$sp=="BELE")
 
 ## ---- build goFlux auxfile (mirror 03_prep_tree_auxfile derivations) ----
-wx<-read.csv("data/raw/weather/ymf_clean_sorted.csv"); wx$TS<-as.POSIXct(wx$TIMESTAMP,tz="UTC")
-nearestT<-function(t){ i<-which.min(abs(as.numeric(wx$TS-t))); if(length(i)) num(wx$Tair_Avg[i]) else NA }
+# Tcham: station air temperature of the hour containing the start, in true time
+# (code/lib/weather_time.R, the rule of code/tables/06_weather.R)
+source("code/lib/weather_time.R")
+wx<-read_station_air("data/raw/weather/ymf_clean_sorted.csv")
 hh<-floor(m$time/100); mm<-floor(m$time)%%100
 m$start.time<-as.POSIXct(paste(m$Date,sprintf("%02d:%02d:00",hh,mm)),format="%Y-%m-%d %H:%M:%S",tz="UTC")
 m$Area<-m$Sc_cm2
 source("code/lib/chamber_constants.R")  # ANALYZER_VOLUME_CM3 (was a literal 70)
 m$Vtot<-(m$Vc_cm3 + pi*(1/16)^2*12*12*16.387 + ANALYZER_VOLUME_CM3)/1000
-m$Tcham<-vapply(m$start.time,nearestT,numeric(1)); m$Pcham<-101.325
+m$Tcham<-station_air_at(m$start.time,wx); m$Pcham<-101.325
 m$UniqueID<-paste("UNTAG",m$site,m$sp,format(m$Date,"%Y%m%d"),ifelse(is.na(m$chamber),"na",m$chamber),sep="_")
 m$UniqueID<-ave(m$UniqueID,m$UniqueID,FUN=function(x) if(length(x)==1) x else paste(x,seq_along(x),sep="_"))
 aux<-m %>% filter(!is.na(start.time),!is.na(Area),!is.na(Vtot)) %>%
   transmute(UniqueID, start.time, start.time_formatted=format(start.time,"%Y-%m-%d %H:%M:%S"),
-            Area, Vtot, Tcham, Pcham, site, species=sp, dead, Sample, Dstem, obs.length=600)
+            Area, Vtot, Tcham, Pcham, site, species=sp, dead, Sample, Dstem, obs.length=600,
+            geometry_source, chamber_dims, chamber_volume_cm3=Vc_cm3)
 dir.create("data/processed/flux/untagged_rescue", showWarnings = FALSE, recursive = TRUE)
 write.csv(aux,"data/processed/flux/untagged_rescue/untagged_auxfile.csv",row.names=FALSE)
 cat("untagged measurements:",nrow(u)," -> auxfile rows (with geometry+time):",nrow(aux),"\n")
 cat("trees covered:\n"); print(as.data.frame(aux %>% count(site,species,name="n_meas")))
+cat("geometry by source:\n"); print(as.data.frame(aux %>% count(geometry_source)))
 cat("Sc range (cm2):",paste(round(range(aux$Area,na.rm=TRUE)),collapse="-"),"| wrote data/processed/flux/untagged_rescue/untagged_auxfile.csv\n")

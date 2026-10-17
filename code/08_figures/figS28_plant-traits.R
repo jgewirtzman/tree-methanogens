@@ -7,7 +7,7 @@ source("code/lib/outputs.R")
 #   (b) the three associations named in Results §9, conifers as open symbols.
 # Correlations come from code/09_tables_stats/25_plant-traits.R (traits_correlations.csv),
 # which also documents the trait inclusion and reporting rules; trait values from
-# outputs/data/species_traits.csv (code/01_import/10_species_traits.R). Descriptive,
+# data/tables/species_traits.csv (code/tables/07_species_traits.R); conifer status from species.csv. Descriptive,
 # n = 10 species.
 # (File name kept from the earlier numbering; it draws Figure S25.)
 # Output: outputs/figures/generated/plant_traits.png
@@ -16,16 +16,14 @@ suppressPackageStartupMessages({ library(tidyverse); library(patchwork); library
 
 S <- read_csv("outputs/data/traits_correlations.csv", show_col_types = FALSE)
 inc <- read_csv("outputs/data/traits_included.csv", show_col_types = FALSE) %>% filter(included)
-sp_map <- c(ACRU="Acer rubrum",ACSA="Acer saccharum",BEAL="Betula alleghaniensis",BELE="Betula lenta",
-  BEPA="Betula papyrifera",FAGR="Fagus grandifolia",FRAM="Fraxinus americana",
-  PIST="Pinus strobus",QURU="Quercus rubra",TSCA="Tsuga canadensis")
-invisible(capture.output(suppressMessages(source("code/lib/prep_species_data.R"))))
+invisible(capture.output(suppressMessages(source("code/lib/species_gene_data.R"))))
 resp <- analysis_ratio %>% transmute(species_id, balance = median_log_ratio) %>%
   left_join(analysis_mcra %>% transmute(species_id, mcra = log10(value + 1)), by = "species_id") %>%
   left_join(analysis_meth %>% transmute(species_id, meth = log10(value + 1)), by = "species_id")
-tr <- read_csv("outputs/data/species_traits.csv", show_col_types = FALSE) %>% select(-species)
+tr <- read_csv("data/tables/species_traits.csv", show_col_types = FALSE) %>% rename(spcode = species_code) %>%
+  mutate(gymnosperm = as.numeric(read_table("species")$gymnosperm[match(spcode, read_table("species")$species_code)]))
 niche <- read_csv("outputs/data/tree_species_moisture_niche.csv", show_col_types = FALSE) %>%
-  mutate(spcode = names(sp_map)[match(species, sp_map)]) %>% select(spcode, vwc_realized = vwc_mean)
+  mutate(spcode = names(SPECIES_NAMES)[match(species, SPECIES_NAMES)]) %>% select(spcode, vwc_realized = vwc_mean)
 dat <- resp %>% left_join(tr, by = c("species_id" = "spcode")) %>% left_join(niche, by = c("species_id" = "spcode"))
 
 # ---- (a) twin heatmaps --------------------------------------------------------------
@@ -46,7 +44,7 @@ h1 <- hm(rho, p, "All ten species") + theme(legend.position = "none")
 h2 <- hm(rho_bl, p_bl, "Eight broadleaf species", strip = FALSE) + theme(axis.text.y = element_blank())
 
 # ---- (b) the associations named in the text ----------------------------------------------
-abbr <- function(id) vapply(strsplit(sp_map[id], " "), function(x) paste0(substr(x[1], 1, 1), ". ", x[2]), "")
+abbr <- function(id) vapply(strsplit(SPECIES_NAMES[id], " "), function(x) paste0(substr(x[1], 1, 1), ". ", x[2]), "")
 sel <- tribble(~trait, ~col, ~response, ~xlab,
   "Bark density",        "bark_density_gcm3",   "balance", "Bark density (g cm⁻³)",
   "Soil-moisture niche", "vwc_realized",        "mcra",    "Soil-moisture niche (% VWC)",

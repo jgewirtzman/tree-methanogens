@@ -15,7 +15,7 @@
 #   to recover them. Both now read the inventory and neither writes it.
 #
 # MODEL: the locked TreeRF (species, dbh_m, soil moisture, soil
-#   temperature, air temperature, height).
+#   temperature, height; no air temperature since 2026-10-17).
 #
 # HEIGHT: the band integral is computed EXACTLY, not on a fine grid.
 #   The RF was trained at three heights only (50/125/200 cm, n = 146/143/145), so
@@ -134,13 +134,14 @@ cat(sprintf("monthly stand-mean moisture %.3f-%.3f (climatology, 2019-2022)\n",
 # --- soil temperature: multi-year climatology, not campaign means -------------
 # DRIVERS$soil_temp_C_mean is the mean of whenever somebody was in the field: 27
 # to 624 observations a month from as few as ONE visit, with January and March
-# absent entirely and linearly interpolated. 03_soil_temp_climatology.R replaces
-# it with a damped/lagged air-temperature model (21-day trailing mean, leave-one-
-# date-out CV R2 0.951, RMSE 1.13 C, damping slope 0.683) applied to the full
-# 2018-2023 tower record. Air temperature already came from that record.
+# absent entirely and linearly interpolated. 00_soil_temp_climatology.R replaces
+# it with a damped/lagged air-temperature model (trailing mean, window chosen by
+# leave-one-date-out CV; the fit is reported in that script's log) applied to the full
+# tower record over the climatology years (2019-2022), the record the monthly
+# air temperature comes from too.
 STFILE <- "outputs/tables/soil_temp_climatology_monthly.csv"
 if (!file.exists(STFILE))
-  stop("missing ", STFILE, " -- run code/04_drivers/03_soil_temp_climatology.R first")
+  stop("missing ", STFILE, " -- run code/04_drivers/00_soil_temp_climatology.R first")
 STCLIM <- read.csv(STFILE, stringsAsFactors = FALSE)
 stopifnot(nrow(STCLIM) == 12, all(is.finite(STCLIM$soil_temp_C)))
 DR$soil_temp_C_mean <- STCLIM$soil_temp_C[match(DR$month, STCLIM$mo)]
@@ -150,16 +151,15 @@ DR$soil_temp_C_mean <- STCLIM$soil_temp_C[match(DR$month, STCLIM$mo)]
 # the conditional mean: low-flux species come out high and high-flux species low.
 # Correct for prediction, wrong for a SUM. Tsuga and Pinus strobus are both
 # low-flux and carry 54% of the band area between them, so uncorrected the stand
-# tree term is ~20% high (area-weighted ratio 1.205 under cross-validation).
+# tree term is high (the area-weighted sum ratio under cross-validation is reported by
+# 05_model/12_model_family_comparison.R and 08_rf_calibration_sensitivity.R).
 #
 # The correction is the ratio of observed to OUT-OF-BAG predicted mean, per
 # species level. Using OOB predictions rather than fitted ones is what keeps this
 # from being circular. Under repeated 5-fold CV, where the correction is refitted
-# on each training fold, it takes the area-weighted sum ratio from 1.205 to 0.992
-# while retaining 91% of the forest's skill (R2 0.210 vs 0.230).
-#
-# It also transports: residual bias across diameter quartiles falls to 0.131 from
-# the forest's 0.158, and across moisture quartiles to 0.090 from 0.212. That
+# on each training fold, it brings the area-weighted sum ratio close to 1 while
+# keeping most of the forest's skill, and it reduces the residual bias across
+# diameter and moisture quartiles (current numbers: the logs of those scripts). That
 # matters because the correction is estimated at the covariate distribution of the
 # MEASUREMENTS and applied to inventory stems that are smaller and span all twelve
 # months. Calibrating on the predicted value instead -- linear or isotonic -- does
@@ -191,8 +191,8 @@ pred_at <- function(h, mo, idx = seq_len(nrow(INV)), mult = cmap) predict_specie
   function(nd) predict(TreeRF, nd, num.threads = RF_THREADS)$predictions,
   data.frame(dbh_m = INV$dbh_m[idx],
              soil_moisture_at_tree = MOIST[idx, mo],
-             soil_temp_C_mean = DR$soil_temp_C_mean[mo],
-             air_temp_C_mean = DR$air_temp_C_mean[mo],
+             soil_temp_C = DR$soil_temp_C_mean[mo],       # predictor <- monthly climatology
+             air_temp_C = DR$air_temp_C_mean[mo],         # not a predictor of the locked forest (dropped 2026-10-17); used by the with-air sensitivity
              height_cm = h,
              dead_stem = 0),   # inventory is live stems; ignored unless a variant uses it
   INV$sp[idx], LEVEL_W, mult)
@@ -211,12 +211,6 @@ edges <- c(H_LO, brk, H_HI + 1)          # value is constant on [edges[k], edges
 K <- length(edges) - 1
 cat(sprintf("height steps detected at %s cm -> %d constant intervals\n",
             paste(brk, collapse = ", "), K))
-
-# --- evaluate every stem once per interval, per month -------------------------
-cat(sprintf("predicting %d stems x %d intervals x 12 months (%d calls, not %d)...\n",
-            nrow(INV), K, K*12, length(Hs)*12))
-F <- array(NA_real_, c(nrow(INV), K, 12))
-for (mo in 1:12) for (k in seq_len(K)) F[, k, mo] <- pred_at(edges[k], mo)
 
 # --- exact band integral ------------------------------------------------------
 # Lateral area of a cylinder accumulates uniformly with height (dA/dz = pi*D is
@@ -237,6 +231,16 @@ band_of <- function(F) {
   }
   band
 }
+# ---- END OF SETUP: code/06_upscale/11_sens_daily_drivers.R and 05_model/15_rf_air_temperature_test.R
+# ---- evaluate the lines above (inventory, moisture, calibration, pred_at, edges, band_of)
+# ---- and drive the same forest with other drivers. Nothing above writes a file.
+
+# --- evaluate every stem once per interval, per month -------------------------
+cat(sprintf("predicting %d stems x %d intervals x 12 months (%d calls, not %d)...\n",
+            nrow(INV), K, K*12, length(Hs)*12))
+F <- array(NA_real_, c(nrow(INV), K, 12))
+for (mo in 1:12) for (k in seq_len(K)) F[, k, mo] <- pred_at(edges[k], mo)
+
 band <- band_of(F)
 # the same without calibration, for the report below
 F_uncal <- F

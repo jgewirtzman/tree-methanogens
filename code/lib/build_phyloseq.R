@@ -11,8 +11,7 @@
 # names -- 1 distinct object out of 9. They had not drifted. The point of moving
 # them here is that they cannot start.
 #
-# The column split is positional, so a differently-shaped OTU_table.txt would
-# silently mis-split it. Asserted below rather than assumed.
+# Since 2026-10-16 it is built from the canonical tables (see SOURCES below).
 #
 # Usage:
 #   source("code/lib/build_phyloseq.R")
@@ -29,9 +28,15 @@
 RAREFY_SEED  <- 46814
 RAREFY_DEPTH <- 3500
 
-# OTU_table.txt carries counts and taxonomy in one file, split by position.
-OTU_COUNT_COLS <- 1:589
-OTU_TAX_COLS   <- 590:596
+# Organelle ASVs: SILVA family Mitochondria or order Chloroplast. The one rule for
+# every 16S and PICRUSt2 analysis: these reads are removed before any relative
+# abundance is formed (build_16s_phyloseq(), asv_reads() in tables_read.R, and the
+# PICRUSt2 pathway table, code/01_import/11_picrust_pathways.R). tax: a data.frame
+# (or matrix) with columns Family and Order.
+is_organelle <- function(tax) {
+  tax <- as.data.frame(tax, stringsAsFactors = FALSE)
+  tax$Family %in% "Mitochondria" | tax$Order %in% "Chloroplast"
+}
 
 pop_taxa <- function(physeq, badTaxa) {
   allTaxa <- phyloseq::taxa_names(physeq)
@@ -39,68 +44,69 @@ pop_taxa <- function(physeq, badTaxa) {
   phyloseq::prune_taxa(allTaxa, physeq)
 }
 
+# SOURCES (2026-10-16): the canonical tables only, plus the 16S tree.
+#   asv_counts_16S, asv_taxonomy_16S   counts and SILVA ranks (main run)
+#   samples_16S                        library -> sample_id (main run)
+#   samples, trees                     sample -> tree, position, material; tree -> species
+#   ddpcr                              *_loose / *_strict: mean over the sample's qc_pass
+#                                      runs of copies per uL reaction x DDPCR_WELL_UL
+#                                      (copies per 20 uL well, the unit the old raw
+#                                      metadata columns held)
+#   qpcr                               X16S_per_ul: facility 16S copies per uL extract
+#   data/raw/16s/unrooted_tree.nwk     the ASV phylogeny (no table holds it)
+# sample_data keeps the column names the analysis scripts use: seq_id (the tree_id;
+# "MISC" for libraries with no survey sample), core_type (Inner, Outer, Mineral,
+# Organic), species.x (trees.csv species_code), material (Wood, Soil), the ddPCR
+# columns and X16S_per_ul; plus library_id, sample_id, tree_id, library_type.
+# (Until 2026-10-16 this read the raw ddPCR metadata, core sheet, qPCR sheet, OTU table
+# and mapping file and joined them on seq_id + core_type.)
 build_16s_phyloseq <- function() {
   stopifnot(requireNamespace("phyloseq", quietly = TRUE))
+  source("code/lib/ddpcr_constants.R", local = TRUE)      # DDPCR_WELL_UL
+  rt <- function(t, ...) utils::read.csv(file.path("data/tables", paste0(t, ".csv")), stringsAsFactors = FALSE,
+                                         check.names = FALSE, na.strings = "", ...)
+  cnt <- rt("asv_counts_16S"); tax <- rt("asv_taxonomy_16S")
+  stopifnot(identical(cnt$feature_id, tax$feature_id))
+  counts <- as.matrix(cnt[, -1]); rownames(counts) <- cnt$feature_id
+  taxm <- as.matrix(tax[, -1]); rownames(taxm) <- tax$feature_id
+  colnames(taxm) <- c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species")
 
-  ddpcr    <- read.csv("data/raw/ddpcr/ddPCR_meta_all_data.csv")
-  water    <- read.csv("data/raw/tree_cores/Tree_Core_Sectioning_Data.csv")
-  qpcr_16s <- read.csv("data/raw/16s/16s_w_metadata.csv")
-  qpcr_16s <- subset(qpcr_16s, qpcr_16s$Sample.ID != "None")
-  qpcr_16s <- qpcr_16s[, c(3, 4, 6)]
-
-  water$seq_id <- toupper(water$seq_id)
-  ddpcr <- merge(ddpcr, water,    by = c("core_type", "seq_id"), all.x = TRUE)
-  ddpcr <- merge(ddpcr, qpcr_16s, by = c("core_type", "seq_id"), all.x = TRUE)
-
-  # check.names = FALSE: the default renames the two libraries whose names start with
-  # a digit (202.C02, 206.B01 -> X202..., X206...), so they no longer matched the
-  # mapping file and phyloseq dropped them -- including 206.B01, RO104 heartwood.
-  otu_tab <- read.delim("data/raw/16s/OTU_table.txt", header = TRUE, row.names = 1,
-                        check.names = FALSE)
-  # Positional split -- fail loudly if the table is no longer 596 columns wide.
-  if (ncol(otu_tab) != max(OTU_TAX_COLS))
-    stop(sprintf("OTU_table.txt has %d columns, expected %d; the positional split at %s would mis-assign taxonomy.",
-                 ncol(otu_tab), max(OTU_TAX_COLS), deparse(OTU_TAX_COLS)), call. = FALSE)
-
-  bastard_tax <- otu_tab[, OTU_TAX_COLS]
-  bastard_tax[bastard_tax == ""] <- NA
-  tax_tab_pre <- phyloseq::tax_table(bastard_tax)
-  phyloseq::taxa_names(tax_tab_pre) <- sub("sp", "seq", phyloseq::taxa_names(tax_tab_pre))
-
-  otu_tab_corr  <- otu_tab[, OTU_COUNT_COLS]
-  otu_table_pre <- phyloseq::otu_table(otu_tab_corr, taxa_are_rows = TRUE)
+  L <- rt("samples_16S"); L <- L[L$run == "main", ]
+  stopifnot(setequal(L$library_id, colnames(counts)), !anyDuplicated(L$library_id))
+  L <- L[match(colnames(counts), L$library_id), ]
+  S <- rt("samples"); TR <- rt("trees"); DD <- rt("ddpcr"); Q <- rt("qpcr")
+  sm <- S[match(L$sample_id, S$sample_id), ]
+  POS <- c(inner = "Inner", outer = "Outer", mineral = "Mineral", organic = "Organic")
+  MAT <- c(wood = "Wood", soil = "Soil")
+  sd <- data.frame(library_id = L$library_id, sample_id = L$sample_id, tree_id = sm$tree_id,
+                   library_type = L$library_type,
+                   seq_id = ifelse(is.na(sm$tree_id), "MISC", sm$tree_id),
+                   core_type = unname(POS[sm$position]), species.x = TR$species_code[match(sm$tree_id, TR$tree_id)],
+                   material = unname(MAT[sm$material]), stringsAsFactors = FALSE)
+  DD <- DD[DD$qc_pass %in% TRUE, ]
+  key <- c(mcra_probe = "mcrA|probe", mcra_eva = "mcrA|EvaGreen", pmoa = "pmoA|EvaGreen", mmox = "mmoX|EvaGreen",
+           bact = "16S_bacteria|EvaGreen", arc = "16S_archaea|EvaGreen")
+  mean_na <- function(x) if (all(is.na(x))) NA_real_ else mean(x, na.rm = TRUE)
+  for (k in names(key)) {
+    x <- DD[paste(DD$gene, DD$assay, sep = "|") == key[[k]], ]
+    sd[[paste0(k, "_loose")]]  <- DDPCR_WELL_UL * vapply(sd$sample_id, function(i) mean_na(x$copies_per_uL_rxn[x$sample_id %in% i]), 0)
+    sd[[paste0(k, "_strict")]] <- DDPCR_WELL_UL * vapply(sd$sample_id, function(i) mean_na(x$copies_per_uL_rxn_strict[x$sample_id %in% i]), 0)
+  }
+  q16 <- Q[Q$target == "16S", ]
+  sd$X16S_per_ul <- q16$copies_per_uL_extract[match(sd$sample_id, q16$sample_id)]
+  rownames(sd) <- sd$library_id
 
   phylo_tree <- phyloseq::read_tree("data/raw/16s/unrooted_tree.nwk")
-  samp_data  <- read.delim("data/raw/16s/tree_16s_mapping_dada2_corrected.txt", row.names = 1)
-  samp_data$RowName <- row.names(samp_data)
+  raw_ps <- phyloseq::phyloseq(phyloseq::tax_table(taxm), phyloseq::otu_table(counts, taxa_are_rows = TRUE), phylo_tree,
+                               phyloseq::sample_data(sd))
 
-  # seq_id patches: filesystem-safe substitutions reversed, plus one sample whose
-  # mapping file entry is wrong at source.
-  samp_data$seq_id <- sub("prime", "'", samp_data$seq_id)
-  samp_data$seq_id <- sub("star",  "*", samp_data$seq_id)
-  samp_data$seq_id <- sub("HM",    "H", samp_data$seq_id)
-  samp_data$seq_id[samp_data$ForwardFastqFile == "206_B01_16S_S3_R1_001.fastq"]    <- "RO104"
-  samp_data$core_type[samp_data$ForwardFastqFile == "206_B01_16S_S3_R1_001.fastq"] <- "Inner"
+  tt <- as.data.frame(as(phyloseq::tax_table(raw_ps), "matrix"), stringsAsFactors = FALSE)
+  mitochondria <- rownames(tt)[tt$Family %in% "Mitochondria"]
+  chloroplast  <- rownames(tt)[tt$Order %in% "Chloroplast"]
+  no_mito <- pop_taxa(raw_ps, rownames(tt)[is_organelle(tt)])
 
-  samp_data_merged <- merge(ddpcr, samp_data, by = c("seq_id", "core_type"), all.y = TRUE)
-
-  dups <- which(duplicated(samp_data_merged$RowName))
-  if (length(dups)) samp_data_merged <- samp_data_merged[-dups, ]
-  row.names(samp_data_merged) <- samp_data_merged$RowName
-
-  miss <- setdiff(colnames(otu_tab_corr), row.names(samp_data_merged))
-  if (length(miss)) stop("16S libraries without mapping rows: ", paste(miss, collapse = ", "), call. = FALSE)
-  raw_ps <- phyloseq::phyloseq(tax_tab_pre, otu_table_pre, phylo_tree,
-                               phyloseq::sample_data(samp_data_merged))
-
-  tt <- phyloseq::tax_table(raw_ps)
-  mitochondria <- rownames(tt)[which(tt[, 5] == "Mitochondria")]
-  chloroplast  <- rownames(tt)[which(tt[, 4] == "Chloroplast")]
-  no_mito <- pop_taxa(raw_ps, c(mitochondria, chloroplast))
-
-  list(ps = no_mito, raw = raw_ps, tree = phylo_tree, ddpcr = ddpcr,
-       samp_data = samp_data_merged,
-       n_mitochondria = length(mitochondria), n_chloroplast = length(chloroplast))
+  list(ps = no_mito, raw = raw_ps, tree = phylo_tree, ddpcr = sd[!is.na(sd$sample_id), ],
+       samp_data = sd, n_mitochondria = length(mitochondria), n_chloroplast = length(chloroplast))
 }
 
 # Rarefaction is stochastic: the seed is what makes every figure reproducible and

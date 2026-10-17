@@ -15,7 +15,16 @@ source("code/lib/outputs.R")
 # ==============================================================================
 suppressMessages({library(dplyr);library(ggplot2);library(tidyr);library(patchwork)})
 outdir <- "outputs"
-G <- read.csv(out_path("flux_FINAL.csv"), stringsAsFactors=FALSE)
+# every surveyed deployment with a detection limit: data/tables/flux_stem.csv (the felled
+# oak has none) and flux_soil.csv (the two soil deployments that failed the closure screen
+# have none); fluxes, MDF, sigma and class as 02_flux/03_precision_and_detection.R set them
+source("code/lib/tables_read.R")
+CAMP <- c(`2021_multiheight`="Height+molecular", `2023_cross_species`="Cross-species", monthly_2020_2021="Monthly survey")
+.g <- function(d, type) data.frame(camp=unname(CAMP[d$campaign]), type=type, best.flux=d$CH4_flux_nmol_m2_s,
+  MDF=d$CH4_MDF_nmol_m2_s, sigma=d$analyzer_sigma_ppb, class=d$detection_class, LM.p.val=d$CH4_LM_pval,
+  LM.r2=d$CH4_LM_r2, stringsAsFactors=FALSE)
+G <- rbind(.g(subset(read_table("flux_stem"), campaign %in% names(CAMP)), "stem"),
+           .g(subset(read_table("flux_soil"), qc_pass), "soil"))
 G$camp <- factor(G$camp, levels=c("Height+molecular","Cross-species","Monthly survey"))
 G$class <- factor(G$class, levels=c("uptake","below detection","emission"))
 # sink blue / source red, the convention of Figure 9 and the rest of the paper

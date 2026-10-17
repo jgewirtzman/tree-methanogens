@@ -17,10 +17,6 @@ suppressPackageStartupMessages({ library(tidyverse); has_car <- requireNamespace
 out <- "outputs"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
 sink(out_path("S1S2_arcsinh_report.txt"), split = TRUE)
 asf <- function(x) asinh(x / 0.1) / log(10)
-species_mapping <- c("ACRU"="Acer rubrum","ACSA"="Acer saccharum","BEAL"="Betula alleghaniensis","BELE"="Betula lenta",
-  "BEPA"="Betula papyrifera","FAGR"="Fagus grandifolia","FRAM"="Fraxinus americana","PIST"="Pinus strobus",
-  "QURU"="Quercus rubra","TSCA"="Tsuga canadensis","CAOV"="Carya ovata","KALA"="Kalmia latifolia",
-  "PRSE"="Prunus serotina","QUAL"="Quercus alba","QUVE"="Quercus velutina","SAAL"="Sassafras albidum")
 cr <- function(m, term) { s<-summary(m); c(b=unname(coef(m)[term]), se=s$coef[term,2], p=s$coef[term,4], r2=s$r.squared, adjr2=s$adj.r.squared, aic=AIC(m)) }
 # species-level flux from the COMBINED 2021+2023 dataset (flux_all, sourced), raw + arcsinh
 flux_sp <- flux_all %>% group_by(species, species_id) %>%
@@ -29,9 +25,9 @@ line <- function() cat(strrep("-", 78), "\n")
 
 # ============================ S1a. CONCENTRATION 6-GENE ============================
 cat("\n### S1a. Concentration tissue-specific 6-gene model (species + hw/sw x 3 genes)\n"); line()
-y <- read.csv("data/processed/integrated/merged_tree_dataset_final.csv")
+y <- ymf2021   # survey_2021_trees() (data/tables/), sourced with the helper above
 conc <- y %>% filter(!is.na(CH4_best.flux_125cm), !is.na(species_id)) %>%
-  mutate(species = species_mapping[species_id],
+  mutate(species = species_name(species_id),
     log_hw_mcra=log10(ddpcr_mcra_probe_Inner_loose+1), log_sw_mcra=log10(ddpcr_mcra_probe_Outer_loose+1),
     log_hw_pmoa=log10(ddpcr_pmoa_Inner_loose+1),       log_sw_pmoa=log10(ddpcr_pmoa_Outer_loose+1),
     log_hw_mmox=log10(ddpcr_mmox_Inner_loose+1),       log_sw_mmox=log10(ddpcr_mmox_Outer_loose+1)) %>%

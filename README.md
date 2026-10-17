@@ -28,7 +28,7 @@ Download the zip files and unzip them at the repository root; each unpacks into 
 | `tree-methanogens_compiled.zip` | `data/compiled/` | 14 analysis-ready datasets with documented columns and units, plus the paper's result tables in `results/` — see `README_data.md` |
 | `tree-methanogens_picrust.zip` | `data/raw/picrust/` | PICRUSt2 predictions (about 7.9 GB unzipped) |
 
-The PICRUSt2 download is needed only to rerun the PICRUSt2 analysis: `code/07_molecular/02_picrust_pathway_associations.R` reads the large prediction tables, and `code/08_figures/figS11-13_picrust-heatmaps.R` reads the pathway table and sample metadata in the same folder. Without it, those two steps fail and the rest of the pipeline uses the pathway association tables already in `data/processed/molecular/picrust/`.
+The PICRUSt2 download is needed only to re-derive one input, as the raw analyzer traces are needed only to refit the fluxes: `code/01_import/11_picrust_pathways.R` (stage A, `run_all.R --from raw`) sums the per-ASV pathway contributions into `data/processed/molecular/picrust/picrust_pathways.csv` (MetaCyc pathway abundance per 16S library, organelle ASVs left out, plus versions without the ASVs predicted to carry mcrA or pmoA) and `picrust_pathway_info.csv` (pathway descriptions), which are in the processed archive; `code/tables/24_picrust.R` makes them the canonical tables in `data/tables/`. The association analysis (`code/07_molecular/02_picrust_pathway_associations.R`) and the heatmaps (`code/08_figures/figS11-13_picrust-heatmaps.R`) run every time from those tables.
 
 The 16S rRNA amplicon reads are in the NCBI Sequence Read Archive under BioProject [PRJNA1124946](https://www.ncbi.nlm.nih.gov/bioproject/PRJNA1124946). The pipeline starts from the ASV table in `data/raw/16s/`, so the reads are not needed to reproduce the analysis.
 
@@ -170,7 +170,7 @@ This runs every figure generator (stage E) and then assembles the numbered set: 
 | Fig. S22 | Scale-dependent gene–flux relationships | `08_figures/figS21_scale-dependent-genes.R` |
 | Fig. S23 | Radial sections | `08_figures/figS22_radial-sections.R` |
 | Fig. S24 | *mcrA* vs. methanotroph genes | `07_molecular/helper_scale_dependent_gene_patterns.R` (sourced by `fig04_gene-abundance.R`) |
-| Fig. S25 | Plant traits | `08_figures/figS28_plant-traits.R` (statistics in `09_tables_stats/25_plant-traits.R`; trait table from `01_import/10_species_traits.R`) |
+| Fig. S25 | Plant traits | `08_figures/figS28_plant-traits.R` (statistics in `09_tables_stats/25_plant-traits.R`; trait table `data/tables/species_traits.csv` from `tables/07_species_traits.R`) |
 | Fig. S26 | Random forest model summary | `08_figures/figS24_rf-model-summary.R` |
 | Fig. S27 | Random forest calibration | `08_figures/figS25_rf-calibration.R` |
 | Fig. S28 | Scaling profiles | `08_figures/figS27_scaling-profiles.R` |
@@ -255,7 +255,7 @@ Classification (first match wins):
 ## Notes
 
 - Run everything from the repository root. Some older processing scripts use paths relative to their own folder; their rows in `code/pipeline.csv` have `workdir = script`, and `run_all.R` runs each of them from its folder. To run one of these by hand, start R in that script's folder.
-- The plant trait table for Fig. S25 and `09_tables_stats/25_plant-traits.R` (`outputs/data/species_traits.csv`) is built by `01_import/10_species_traits.R` from the TRY (request 47607) and GWDD v2.2 records for the 16 species archived in `data/raw/external/try/` and `data/raw/external/gwdd/`; `species_trait_sources.csv` lists the contributing datasets and record IDs. Sources, licences and citation requirements are in `data/raw/external/README.md`.
+- The plant trait table for Fig. S25 and `09_tables_stats/25_plant-traits.R` (`data/tables/species_traits.csv`, a canonical table) is built by `tables/07_species_traits.R` from the TRY (request 47607) and GWDD v2.2 records for the 16 species archived in `data/raw/external/try/` and `data/raw/external/gwdd/`; `species_trait_sources.csv` lists the contributing datasets and record IDs. Sources, licences and citation requirements are in `data/raw/external/README.md`.
 
 ## License
 

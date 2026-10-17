@@ -1,189 +1,65 @@
 # ==============================================================================
-# Join Flux Data with Chamber Geometry
+# 02_join_flux_geometry.R -- chamber area and volume for each monthly stem deployment
+# ------------------------------------------------------------------------------
+# Each deployment's geometry comes from the chamber used that day (treeflux_total.xlsx
+# Chamber) and the stem's diameter, by the rule in code/lib/stem_chamber_geometry.R:
+# the chamber sheet's row for that stem x month x chamber where there is one, else the
+# formula on the chamber's dimensions (chambers 7-9: mean of chambers 1-6). The source
+# of each deployment's geometry is written with it (geometry_source, chamber_dims,
+# D_stem_cm) and carried to data/tables/flux_stem.csv.
+#
+# (Until 2026-10-16 this script joined on the stem label only and averaged the
+# geometry over every chamber sheet row the stem had, whatever chamber was used.)
+#
+# Untagged stems (non-numeric Plot Tag) get no geometry here: the rescue
+# (code/02_flux/rescue/01_untagged_auxfile.R) handles them with the same rule.
+#
+# Pipeline stage: A (workdir = script). Run after: 01_calc_chamber_dims.R
+# Inputs:  data/raw/field_data/ipad_data/treeflux_total.xlsx (deployments, chamber used)
+#          data/raw/flux_chamber_corrections/Chamber vol corr/Tree_fluxes_*.xlsx
+#          data/raw/inventory/spatial_data/YM_trees_measured.csv.csv (D_stem of stems on
+#          no chamber sheet)
+# Outputs: data/processed/flux/flux_with_geometry_fixed.csv
+#          outputs/audit/semirigid_chamber_dims.csv (the dimensions used per chamber)
 # ==============================================================================
-# Purpose: Joins flux measurement data with chamber geometry dimensions
-#   (surface area and volume).
-#
-# Pipeline stage: 01 Flux Processing (semirigid)
-# Run after: 01_calc_chamber_dims.R
-#
-# Inputs:
-#   - treeflux_total.xlsx (from data/raw/field_data/ipad_data/)
-#   - Chamber geometry from 01_calc_chamber_dims.R
-#
-# Outputs:
-#   - flux_with_geometry_fixed.csv
-# ==============================================================================
+suppressPackageStartupMessages({ library(readxl); library(dplyr); library(readr) })
+ROOT <- "../../.."
+source(file.path(ROOT, "code/lib/stem_chamber_geometry.R"))
 
-library(readxl)
-library(writexl)
-library(dplyr)
-library(readr)   # write_csv; was available only from an earlier script in the same session
-
-# Read flux data
-flux_data <- read_excel("../../../data/raw/field_data/ipad_data/treeflux_total.xlsx", sheet = "Sheet1")
-
-# Read geometry data
-# Written by 01_calc_chamber_dims.R. (This line used to be followed by
-# `geometry_data <- results`, an object left in memory by that script's session.)
-geometry_data <- read_excel("../../../data/processed/flux/chamber_geometry/combined_corrected_results.xlsx", sheet = "all_data")
-
-# Clean and examine flux identifiers
+flux_data <- read_excel(file.path(ROOT, "data/raw/field_data/ipad_data/treeflux_total.xlsx"), sheet = "Sheet1")
 flux_clean <- flux_data %>%
-  mutate(
-    Sample_ID = as.character(`Plot Tag`),
-    Chamber_ID = as.character(Chamber)
-  ) %>%
+  mutate(Sample_ID = as.character(`Plot Tag`), Chamber_ID = as.character(Chamber)) %>%
   filter(!is.na(Sample_ID) & !is.na(Chamber_ID))
 
-# Clean and examine geometry identifiers  
-geometry_clean <- geometry_data %>%
-  mutate(
-    Sample_ID = as.character(Sample),
-    Chamber_ID = as.character(`Chamber used`)
-  ) %>%
-  filter(!is.na(Sample_ID) & !is.na(Chamber_ID))
+rows <- semirigid_sheet_rows(ROOT)
+dims <- semirigid_chamber_dims(rows)
+dir.create(file.path(ROOT, "outputs/audit"), showWarnings = FALSE, recursive = TRUE)
+write_csv(dims, file.path(ROOT, "outputs/audit/semirigid_chamber_dims.csv"))
+cat("Chamber dimensions used where a deployment has no sheet row:\n"); print(dims, row.names = FALSE)
 
-# Diagnostic analysis
-cat("IDENTIFIER COMPARISON:\n")
-cat("======================\n\n")
+ym <- format(as.Date(flux_clean$Date), "%Y-%m")
+ch <- sub("\\.0$", "", trimws(flux_clean$Chamber_ID))
+month_chambers <- split(ch, ym)
+tagged <- grepl("^[0-9]+(\\.0)?$", trimws(flux_clean$Sample_ID))
+tl <- read.csv(file.path(ROOT, "data/raw/inventory/spatial_data/YM_trees_measured.csv.csv"), stringsAsFactors = FALSE)
+smp <- sub("\\.0$", "", trimws(flux_clean$Sample_ID))
+D_list <- suppressWarnings(as.numeric(tl$D_stem[match(smp, as.character(tl$Sample))]))
 
-cat("FLUX DATA:\n")
-cat("Unique Sample IDs:", n_distinct(flux_clean$Sample_ID), "\n")
-cat("Unique Chamber IDs:", n_distinct(flux_clean$Chamber_ID), "\n")
-cat("Sample ID examples:", paste(head(sort(unique(flux_clean$Sample_ID)), 10), collapse = ", "), "\n")
-cat("Chamber ID examples:", paste(head(sort(unique(flux_clean$Chamber_ID)), 10), collapse = ", "), "\n\n")
+geo <- semirigid_deployment_geometry(smp, ym, ch, D_list, rows, dims, month_chambers)
+geo[!tagged, ] <- NA
+final_joined <- bind_cols(flux_clean, geo) %>%
+  mutate(surface_area_cm2 = Sc_cm2, volume_cm3 = Vc_cm3, has_geometry = !is.na(surface_area_cm2)) %>%
+  select(-Sc_cm2, -Vc_cm3)
 
-cat("GEOMETRY DATA:\n")
-cat("Unique Sample IDs:", n_distinct(geometry_clean$Sample_ID), "\n") 
-cat("Unique Chamber IDs:", n_distinct(geometry_clean$Chamber_ID), "\n")
-cat("Sample ID examples:", paste(head(sort(unique(geometry_clean$Sample_ID)), 10), collapse = ", "), "\n")
-cat("Chamber ID examples:", paste(head(sort(unique(geometry_clean$Chamber_ID)), 10), collapse = ", "), "\n\n")
-
-# Find overlaps
-flux_samples <- unique(flux_clean$Sample_ID)
-geom_samples <- unique(geometry_clean$Sample_ID)
-flux_chambers <- unique(flux_clean$Chamber_ID)
-geom_chambers <- unique(geometry_clean$Chamber_ID)
-
-common_samples <- intersect(flux_samples, geom_samples)
-common_chambers <- intersect(flux_chambers, geom_chambers)
-
-cat("OVERLAP ANALYSIS:\n")
-cat("Common Sample IDs:", length(common_samples), "out of", length(flux_samples), "flux samples\n")
-cat("Common Chamber IDs:", length(common_chambers), "out of", length(flux_chambers), "flux chambers\n")
-cat("Common samples:", paste(head(sort(common_samples), 20), collapse = ", "), "\n")
-cat("Common chambers:", paste(head(sort(common_chambers), 10), collapse = ", "), "\n\n")
-
-# Try different join strategies
-
-# Strategy 1: Sample ID only (ignore chamber mismatch)
-geometry_by_sample <- geometry_clean %>%
-  mutate(
-    surface_area_cm2 = as.numeric(Sc_cm2_corrected),
-    volume_cm3 = as.numeric(Vc_cm3_corrected)
-  ) %>%
-  group_by(Sample_ID) %>%
-  summarise(
-    surface_area_cm2 = mean(surface_area_cm2, na.rm = TRUE),
-    volume_cm3 = mean(volume_cm3, na.rm = TRUE),
-    n_chamber_configs = n_distinct(Chamber_ID),
-    chambers_used = paste(unique(Chamber_ID), collapse = ", "),
-    .groups = 'drop'
-  )
-
-join_sample_only <- flux_clean %>%
-  left_join(geometry_by_sample, by = "Sample_ID") %>%
-  mutate(has_geometry = !is.na(surface_area_cm2))
-
-success_rate_sample <- round(sum(join_sample_only$has_geometry) / nrow(join_sample_only) * 100, 1)
-
-cat("STRATEGY 1 - Sample ID only:\n")
-cat("Success rate:", success_rate_sample, "%\n")
-cat("Records with geometry:", sum(join_sample_only$has_geometry), "out of", nrow(join_sample_only), "\n\n")
-
-# Strategy 2: Fuzzy matching on Sample ID
-# Convert numeric sample IDs and try matching
-flux_clean_numeric <- flux_clean %>%
-  mutate(Sample_ID_numeric = as.numeric(Sample_ID))
-
-geometry_clean_numeric <- geometry_clean %>%
-  mutate(Sample_ID_numeric = as.numeric(Sample_ID))
-
-geometry_numeric <- geometry_clean_numeric %>%
-  filter(!is.na(Sample_ID_numeric)) %>%
-  mutate(
-    surface_area_cm2 = as.numeric(Sc_cm2_corrected),
-    volume_cm3 = as.numeric(Vc_cm3_corrected)
-  ) %>%
-  group_by(Sample_ID_numeric) %>%
-  summarise(
-    surface_area_cm2 = mean(surface_area_cm2, na.rm = TRUE),
-    volume_cm3 = mean(volume_cm3, na.rm = TRUE),
-    .groups = 'drop'
-  )
-
-join_numeric <- flux_clean_numeric %>%
-  filter(!is.na(Sample_ID_numeric)) %>%
-  left_join(geometry_numeric, by = "Sample_ID_numeric") %>%
-  mutate(has_geometry = !is.na(surface_area_cm2))
-
-success_rate_numeric <- round(sum(join_numeric$has_geometry) / nrow(join_numeric) * 100, 1)
-
-cat("STRATEGY 2 - Numeric Sample ID matching:\n")
-cat("Success rate:", success_rate_numeric, "%\n")
-cat("Records with geometry:", sum(join_numeric$has_geometry), "out of", nrow(join_numeric), "\n\n")
-
-# Choose the best strategy
-if (success_rate_sample >= success_rate_numeric) {
-  final_joined <- join_sample_only
-  best_method <- "Sample ID only"
-  best_rate <- success_rate_sample
-} else {
-  final_joined <- join_numeric
-  best_method <- "Numeric Sample ID"
-  best_rate <- success_rate_numeric
-}
-
-cat("BEST STRATEGY:", best_method, "with", best_rate, "% success rate\n\n")
-
-# Show successful joins
-successful_joins <- final_joined %>%
-  filter(has_geometry) %>%
-  select(Date, Sample_ID, Chamber_ID, surface_area_cm2, volume_cm3)
-
-cat("SUCCESSFUL JOINS (first 20):\n")
-print(head(successful_joins, 20))
-
-# Show failed joins for diagnosis
-failed_joins <- final_joined %>%
-  filter(!has_geometry) %>%
-  select(Date, Sample_ID, Chamber_ID) %>%
-  head(10)
-
-cat("\nFAILED JOINS (sample):\n")
-print(failed_joins)
-
-# Export the best result
-write_csv(final_joined, "../../../data/processed/flux/flux_with_geometry_fixed.csv")
-#cat("\nExported fixed join as 'flux_with_geometry_fixed.xlsx'\n")
-
-# Summary of issues and recommendations
-cat("\nDIAGNOSIS AND RECOMMENDATIONS:\n")
-cat("================================\n")
-
-if (best_rate < 50) {
-  cat("⚠️  Low success rate suggests major identifier mismatches.\n")
-  cat("Possible issues:\n")
-  cat("- Sample IDs use different formats between datasets\n")
-  cat("- Chamber IDs recorded inconsistently\n") 
-  cat("- Temporal mismatch (flux data from different time period)\n")
-  cat("- Data entry errors\n\n")
-  cat("Recommendations:\n")
-  cat("- Review sample ID formats in both datasets\n")
-  cat("- Check if Plot Tag in flux data matches Sample in geometry data\n")
-  cat("- Consider manual inspection of identifier patterns\n")
-} else {
-  cat("✅ Good success rate achieved with", best_method, "strategy\n")
-  cat("Dataset ready for flux calculations\n")
-}
+cat("\nGeometry by source (tagged stems):\n")
+print(as.data.frame(final_joined %>% filter(tagged) %>% count(geometry_source)), row.names = FALSE)
+cat("\nBy month and source:\n")
+print(table(ym[tagged], final_joined$geometry_source[tagged], useNA = "ifany"))
+cat("\nTagged deployments with no geometry (stem on no chamber sheet and not in the tree list):\n")
+print(as.data.frame(final_joined %>% filter(tagged, !has_geometry) %>% select(Date, Sample_ID, Chamber_ID)))
+cat(sprintf("\nSheet rows whose chamber differs from the flux sheet's (geometry computed for the flux sheet's chamber): %d\n",
+            sum(tagged & grepl("^computed", final_joined$geometry_source) & ym %in% SEMIRIGID_SHEET_MONTHS &
+                  paste(smp, ym) %in% paste(rows$sample, rows$month))))
+final_joined <- final_joined[tagged, ]          # untagged stems: code/02_flux/rescue/
+write_csv(final_joined, file.path(ROOT, "data/processed/flux/flux_with_geometry_fixed.csv"))
+cat("Wrote data/processed/flux/flux_with_geometry_fixed.csv:", nrow(final_joined), "rows\n")

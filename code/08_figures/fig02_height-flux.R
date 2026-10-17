@@ -7,11 +7,11 @@
 # Pipeline stage: 03 Analysis
 # Run after: 00_harmonization/02_harmonize_all_data.R
 #
-# Inputs:
-#   - goflux_auxfile.csv (from data/processed/flux/) — has measurement_height
-#   - CH4_best_flux_lgr_results_2021_multiheight.csv (from data/processed/flux/) — has CH4_best.flux
-#   - merged_tree_dataset_final.csv (from data/processed/integrated/)
-#   - tree_id_comprehensive_mapping.csv (from data/processed/tree_data/)
+# Inputs (canonical tables, via code/lib/tables_read.R):
+#   - data/tables/flux_stem.csv (2021_multiheight deployments: tree_id, height_cm, flux)
+#   - data/tables/trees.csv (species, landscape position), species.csv (names)
+#   - survey_2021_trees(): per-tree soil (soil_readings; attach_soil() for VWC) and
+#     soil mcrA (ddpcr + samples)
 #
 # Outputs:
 #   - outputs/figures/original/main/fig2_height_dependent_flux.png
@@ -36,34 +36,16 @@ library(gghalves)
 # 1. LOAD DATA
 # ==============================================================================
 
-aux <- read.csv('data/processed/flux/goflux_auxfile.csv')
-ch4_flux <- read.csv('data/processed/flux/CH4_best_flux_lgr_results_2021_multiheight.csv')
-final_dataset <- merge(ch4_flux, aux[, c("UniqueID", "measurement_height", "tree_id",
-                                          "species", "plot")],
-                       by = "UniqueID", all.x = TRUE)
-names(final_dataset)[names(final_dataset) == "best.flux"] <- "CH4_best.flux"
+source("code/lib/tables_read.R")
+# 2021 multi-height deployments; species and landscape position (plot) from trees.csv.
+# The root-crown deployment has no height_cm (it and the 75 cm rows are Kalmia, left out below).
+final_dataset <- flux_stem_campaign("2021_multiheight") %>%
+  transmute(UniqueID = measurement_id, tree_id, species = species_code,
+            plot = trees_table()$landscape_position[match(tree_id, trees_table()$tree_id)],
+            measurement_height = height_cm, CH4_best.flux = CH4_flux_nmol_m2_s)
 
-merged_data <- read.csv('data/processed/integrated/merged_tree_dataset_final.csv')
+merged_data <- survey_2021_trees(soil = TRUE)   # 2021 survey per tree (data/tables/)
 
-# Species name mapping
-species_mapping <- c(
-  "ACRU" = "Acer rubrum",
-  "ACSA" = "Acer saccharum",
-  "BEAL" = "Betula alleghaniensis",
-  "BELE" = "Betula lenta",
-  "BEPA" = "Betula papyrifera",
-  "FAGR" = "Fagus grandifolia",
-  "FRAM" = "Fraxinus americana",
-  "PIST" = "Pinus strobus",
-  "QURU" = "Quercus rubra",
-  "TSCA" = "Tsuga canadensis",
-  "CAOV" = "Carya ovata",
-  "KALA" = "Kalmia latifolia",
-  "PRSE" = "Prunus serotina",
-  "QUAL" = "Quercus alba",
-  "QUVE" = "Quercus velutina",
-  "SAAL" = "Sassafras albidum"
-)
 
 # ==============================================================================
 # 2. PREPARE DATA
@@ -89,13 +71,12 @@ plot_data_top <- final_dataset %>%
   mutate(height_numeric = as.numeric(measurement_height)) %>%
   filter(!is.na(CH4_best.flux) & !is.na(height_numeric)) %>%
   mutate(
-    species = ifelse(species == "TSLA", "TSCA", species),
     height_m = height_numeric / 100
   ) %>%
   filter(species != "KALA") %>%
   mutate(
     tree_unique = paste(plot, tree_id, sep = "_"),
-    species_latin = species_mapping[species]
+    species_latin = species_name(species)
   )
 
 # Calculate tree counts per species
@@ -386,48 +367,16 @@ p_middle <- ggplot(plot_data_middle,
 # 6. PANEL C — Soil conditions heatmap (bottom)
 # ==============================================================================
 
-# Load tree ID mapping for cross-referencing datasets
-mapping <- read.csv("data/processed/tree_data/tree_id_comprehensive_mapping.csv")
-mapping <- mapping %>% mutate(across(everything(), ~ifelse(.x == "NA", NA, .x)))
-
-create_comprehensive_lookup <- function(mapping) {
-  name_columns <- names(mapping)[grepl("^name_in_|^variant_", names(mapping))]
-  name_columns <- c(name_columns, "primary_id")
-
-  lookup_list <- list()
-  for (col in name_columns) {
-    if (col %in% names(mapping)) {
-      temp_lookup <- mapping %>%
-        filter(!is.na(.data[[col]])) %>%
-        dplyr::select(Tree_ID_normalized, original_name = all_of(col)) %>%
-        mutate(original_name = as.character(original_name))
-      lookup_list[[col]] <- temp_lookup
-    }
-  }
-
-  bind_rows(lookup_list) %>%
-    distinct() %>%
-    mutate(
-      original_name_lower = tolower(trimws(original_name)),
-      Tree_ID_normalized = tolower(trimws(Tree_ID_normalized))
-    )
-}
-
-tree_lookup <- create_comprehensive_lookup(mapping)
-
-standardize_tree_id <- function(tree_ids) {
-  clean_ids <- tolower(trimws(as.character(tree_ids)))
-  standardized <- tree_lookup$Tree_ID_normalized[match(clean_ids, tree_lookup$original_name_lower)]
-  ifelse(is.na(standardized), clean_ids, standardized)
-}
-
-# Get tree IDs in the analysis and standardize them
-trees_in_analysis_raw <- unique(plot_data_top$tree_id)
-trees_in_analysis_standardized <- standardize_tree_id(trees_in_analysis_raw)
+# Trees in the analysis: flux_stem and the per-tree table share the canonical tree_id.
+trees_in_analysis <- unique(plot_data_top$tree_id)
+no_soil_row <- setdiff(trees_in_analysis, merged_data$tree_id)
+cat(sprintf("Panel C: %d trees in the height analysis; %d without a row in the per-tree table%s\n",
+            length(trees_in_analysis), length(no_soil_row),
+            if (length(no_soil_row)) paste0(": ", paste(no_soil_row, collapse = ", ")) else ""))
 
 # Calculate species-level soil/mcrA means
 soil_mcra_data <- merged_data %>%
-  filter(tree_id %in% trees_in_analysis_standardized) %>%
+  filter(tree_id %in% trees_in_analysis) %>%
   mutate(
     species = species_id,
     mcra_organic = ddpcr_mcra_probe_Organic_loose,

@@ -1,11 +1,12 @@
 #!/usr/bin/env Rscript
 source("code/lib/outputs.R")
 # ==============================================================================
-# 10_species_traits.R -- species trait table from archived TRY and GWDD records
-# (Methods S5; read by code/09_tables_stats/25_plant-traits.R and Fig S25)
+# 07_species_traits.R -- canonical tables: species traits from archived TRY and GWDD
+# records (Methods S5; read by code/09_tables_stats/25_plant-traits.R and Fig S25)
 # ------------------------------------------------------------------------------
-# Species: code/lib/trait_species.csv (16 YMF species; binomials as in TRY
-# AccSpeciesName and GWDD `species`; gymnosperm flag).
+# Species: the 16 codes of code/lib/trait_species.csv; binomials (as in TRY
+# AccSpeciesName and GWDD `species`) from data/tables/species.csv. Conifer status is
+# species.csv gymnosperm (not repeated here).
 # Inputs (Zenodo drop-in; see data/raw/external/README.md):
 #   data/raw/external/gwdd/gwdd_v2.2_records_16spp.csv    GWDD v2.2 (with bark)
 #   data/raw/external/try/try_request47607_records.csv    TRY request 47607
@@ -30,15 +31,18 @@ source("code/lib/outputs.R")
 # Rooting depth is built and archived but fails R1 in 25_plant-traits.R (6 of 10).
 # No wood pH: no species-level source covers the analysis species.
 #
-# Writes outputs/data/species_traits.csv        (one row per species)
-#        outputs/data/species_trait_sources.csv (one row per column x species x
+# Writes data/tables/species_traits.csv        (one row per species: species_code + traits)
+#        data/tables/species_trait_sources.csv (one row per trait x species x
 #          contributing dataset, with record IDs: TRY ObsDataID, GWDD id)
 #        outputs/audit/species_traits.txt
 # ==============================================================================
 suppressPackageStartupMessages(library(tidyverse))
 
-sp <- read_csv("code/lib/trait_species.csv", show_col_types = FALSE)
-stopifnot(nrow(sp) == 16, !anyDuplicated(sp$species))
+OUT <- "data/tables"
+SPT <- read_csv(file.path(OUT, "species.csv"), show_col_types = FALSE)
+sp <- read_csv("code/lib/trait_species.csv", show_col_types = FALSE) %>% select(spcode) %>%
+  mutate(species = SPT$species[match(spcode, SPT$species_code)])
+stopifnot(nrow(sp) == 16, !anyNA(sp$species), !anyDuplicated(sp$species))
 
 # ---- GWDD -----------------------------------------------------------------------
 gw <- read_csv("data/raw/external/gwdd/gwdd_v2.2_records_16spp.csv", show_col_types = FALSE,
@@ -95,7 +99,7 @@ try_val <- try_src %>% group_by(column, spcode) %>% summarise(value = mean(datas
 # ---- assemble ---------------------------------------------------------------------
 cols <- c("wood_density_gcm3", "bark_density_gcm3", unname(try_cols))
 vals <- bind_rows(gw_val, try_val)
-out <- sp %>% select(spcode, species, gymnosperm)
+out <- sp %>% select(spcode)
 for (cn in cols) out[[cn]] <- with(vals[vals$column == cn, ], value[match(out$spcode, spcode)])
 src <- bind_rows(gw_src, try_src) %>%
   select(column, spcode, source, dataset_id, dataset, reference, n_records, dataset_value, record_ids) %>%
@@ -108,8 +112,8 @@ if (nrow(miss)) stop("values without a source row: ", paste(miss$column, miss$sp
 stopifnot(nrow(anti_join(distinct(src, column, spcode), have, by = c("column", "spcode"))) == 0,
           all(src$n_records > 0))
 
-write_csv(out, out_path("species_traits.csv"))
-write_csv(src, out_path("species_trait_sources.csv"))
+write_csv(out %>% rename(species_code = spcode), file.path(OUT, "species_traits.csv"), na = "")
+write_csv(src %>% rename(trait = column, species_code = spcode), file.path(OUT, "species_trait_sources.csv"), na = "")
 
 sink(out_path("species_traits.txt")); op <- options(width = 160)
 cat(sprintf("Species traits: %d species; GWDD %d records; TRY %d records, %d kept\n\n",
@@ -126,7 +130,7 @@ cat("\nGWDD sources and records per column:\n")
 print(as.data.frame(src %>% filter(source == "GWDD") %>% group_by(column) %>%
   summarise(species = n_distinct(spcode), sources = n_distinct(dataset), records = sum(n_records))), row.names = FALSE)
 cat("\nSpecies values:\n")
-print(as.data.frame(out %>% select(-species) %>% mutate(across(all_of(cols), ~ signif(., 4)))), row.names = FALSE)
+print(as.data.frame(out %>% mutate(across(all_of(cols), ~ signif(., 4)))), row.names = FALSE)
 options(op)
 sink()
 cat(readLines(out_path("species_traits.txt")), sep = "\n")

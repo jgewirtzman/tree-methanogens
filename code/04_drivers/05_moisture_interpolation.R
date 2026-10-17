@@ -32,13 +32,10 @@ suppressPackageStartupMessages({library(dplyr); library(akima); library(fields)
                                 library(mgcv); library(ggplot2); library(patchwork)})
 set.seed(42)
 
-SRC <- "data/raw/inventory/spatial_data/soil_moisture_20201216.csv"
+SRC <- "data/tables/moisture_survey.csv"   # the December 2020 survey (code/tables/35_moisture_survey.R)
 if (!file.exists(SRC)) stop("missing ", SRC)
 D <- read.csv(SRC, stringsAsFactors = FALSE)
-xc <- intersect(c("Longitude","lon","x","X"), names(D))[1]
-yc <- intersect(c("Latitude","lat","y","Y"), names(D))[1]
-D <- D[is.finite(D[[xc]]) & is.finite(D[[yc]]) & is.finite(D$VWC), ]
-D <- data.frame(x = D[[xc]], y = D[[yc]], v = D$VWC)
+D <- data.frame(x = D$longitude, y = D$latitude, v = D$soil_vwc_pct)
 D <- D[!duplicated(round(cbind(D$x, D$y), 8)), ]
 cat(sprintf("survey points: %d | VWC %.1f - %.1f (mean %.1f)\n",
             nrow(D), min(D$v), max(D$v), mean(D$v)))

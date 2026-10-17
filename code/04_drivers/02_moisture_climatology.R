@@ -74,6 +74,8 @@
 #    unbiased in the mean by construction.
 #
 # Output: outputs/tables/moisture_climatology_monthly.csv
+#         outputs/tables/moisture_daily.csv  (daily plot-wide level from the same transfer,
+#           2019-2022; read only by the daily-driver sensitivity, 06_upscale/11)
 #         outputs/audit/moisture_climatology.txt
 # ==============================================================================
 suppressPackageStartupMessages({library(dplyr)})
@@ -141,6 +143,8 @@ print(as.data.frame(OUT %>% mutate(across(where(is.numeric), ~round(.x, 4)))), r
 
 dir.create("outputs/tables", showWarnings = FALSE, recursive = TRUE)
 write.csv(OUT, "outputs/tables/moisture_climatology_monthly.csv", row.names = FALSE)
+write.csv(W %>% filter(yr %in% YEARS) %>% transmute(date, store, moisture = pred),
+          "outputs/tables/moisture_daily.csv", row.names = FALSE)
 dir.create("outputs", showWarnings = FALSE, recursive = TRUE)
 con <- file("outputs/audit/moisture_climatology.txt", "w")
 cat(sprintf("MOISTURE CLIMATOLOGY (02_moisture_climatology.R)\nbuilt %s\n\n",

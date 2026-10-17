@@ -1,9 +1,9 @@
 #!/usr/bin/env Rscript
 # ==============================================================================
 # 02_untagged_fluxes.R
-# Attaches the NOTES-based species + verified live/dead + corrected geometry to
-# the clicked measurements (untagged_manID.rds), re-keying on start.time (stable,
-# species-independent), overwrites the chamber geometry in manID, and recomputes
+# Attaches the NOTES-based species + verified live/dead + corrected geometry (and the
+# auxfile's measurement ID) to the clicked measurements (untagged_manID.rds), re-keying
+# on start.time (stable, species-independent), overwrites the chamber geometry in manID, and recomputes
 # goFlux so fluxes use the correct Sc. Writes:
 #   data/processed/flux/untagged_rescue/untagged_monthly_fluxes.csv   (per measurement, canonical)
 #   data/processed/flux/untagged_rescue/untagged_monthly_trees.csv    (per tree; 7 trees, 6 dead + 1 live)
@@ -15,9 +15,18 @@ aux<-read.csv("data/processed/flux/untagged_rescue/untagged_auxfile.csv",check.n
 aux$key<-aux$start.time_formatted
 stopifnot(!any(duplicated(aux$key)))                      # start.time is a unique measurement key
 manID$key<-format(as.POSIXct(manID$start.time_formatted,tz="UTC"),"%Y-%m-%d %H:%M:%S")
-mp<-aux %>% select(key, Area_c=Area, Vtot_c=Vtot, site, species, dead, Sample, Dstem)
-manID<-manID %>% select(-any_of(c("Area","Vtot","site","species","Sample","Dstem"))) %>%
-  left_join(mp,by="key") %>% rename(Area=Area_c, Vtot=Vtot_c)     # overwrite geometry w/ corrected
+mp<-aux %>% select(key, UniqueID_c=UniqueID, Area_c=Area, Vtot_c=Vtot, Tcham_c=Tcham, site, species, dead, Sample, Dstem)
+# UniqueID too comes from the auxfile: the click step's IDs carry the species label of the
+# time (e.g. UNTAG_Upland_BELE_20200826_1_1 for the dead red maple UNTAG_Upl_ACRU_dead);
+# the auxfile's are built from the corrected site, species, date and chamber, so an ID
+# names its tree's species
+manID<-manID %>% select(-any_of(c("Area","Vtot","Tcham","site","species","Sample","Dstem"))) %>%
+  left_join(mp,by="key") %>% rename(Area=Area_c, Vtot=Vtot_c, Tcham=Tcham_c)   # geometry and chamber temperature from the auxfile
+stopifnot(!anyNA(manID$Tcham), !anyNA(manID$UniqueID_c),
+          all(tapply(manID$UniqueID_c, manID$UniqueID, function(x) length(unique(x)) == 1)),
+          all(tapply(manID$UniqueID, manID$UniqueID_c, function(x) length(unique(x)) == 1)))
+cat("measurement IDs re-labelled to the corrected species:", sum(manID$UniqueID != manID$UniqueID_c & !duplicated(manID$UniqueID)), "\n")
+manID$UniqueID<-manID$UniqueID_c; manID$UniqueID_c<-NULL
 cat("re-keyed", length(unique(manID$key)), "measurements to notes-based species/geometry\n")
 
 ch4<-goFlux(manID,"CH4dry_ppb"); ch4b<-best.flux(ch4); co2b<-best.flux(goFlux(manID,"CO2dry_ppm"))

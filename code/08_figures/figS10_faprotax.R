@@ -101,16 +101,8 @@ perc_species <- t_func_sp$res_spe_func_perc
 # ==============================================================================
 
 # Species code → full species name mapping
-species_names <- c(
-  "ACRU" = "A. rubrum",       "ACSA" = "A. saccharum",
-  "BEAL" = "B. alleghaniensis", "BELE" = "B. lenta",
-  "BEPA" = "B. papyrifera",  "CAOV" = "C. ovata",
-  "FAGR" = "F. grandifolia",  "FRAM" = "F. americana",
-  "KALA" = "K. latifolia",    "PIST" = "P. strobus",
-  "PRSE" = "P. serotina",     "QUAL" = "Q. alba",
-  "QURU" = "Q. rubra",        "QUVE" = "Q. velutina",
-  "SAAL" = "S. albidum",      "TSCA" = "T. canadensis"
-)
+source("code/lib/tables_read.R")
+species_names <- SPECIES_ABBREV   # "A. rubrum", from data/tables/species.csv
 
 # Define the curated set of metabolisms and their categories for panel (a)
 # Includes all methane-cycling pathways

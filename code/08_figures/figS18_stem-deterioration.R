@@ -8,16 +8,16 @@
 # and show the actual fitted curves (+/- 95% CI) over the raw data, with model
 # comparison (AIC, marginal R^2, quadratic-term p). Lets the data adjudicate the
 # shape rather than assuming it. Axis in original flux units (back-transformed).
-# Reads data/; writes outputs/figures/generated/figS20_stem_deterioration.png
+# Reads data/tables/flux_stem.csv (bark_missing, wounding) and trees.csv; writes outputs/figures/generated/figS20_stem_deterioration.png
 # ==============================================================================
 suppressMessages({library(ggplot2);library(patchwork);library(lme4);library(lmerTest)})
 options(warn=-1,stringsAsFactors=FALSE)
 asinh10<-function(x) asinh(x/0.1)/log(10)
 ord<-function(v){v<-tolower(trimws(as.character(v)));x<-suppressWarnings(as.numeric(v));x[v=="dead"]<-4;x}
-y<-read.csv("data/processed/flux/tree_flux_2023_cross_species.csv",check.names=FALSE)
-names(y)<-make.names(names(y)); y<-y[!is.na(y$CH4_best.flux),]
-y$fx<-asinh10(y$CH4_best.flux); y$sp<-as.factor(y$Species)
-y$bark<-ord(y$Bark.Missing); y$wound<-ord(y$Wounding.Holes)
+source("code/lib/tables_read.R")   # 2023 deployments (flux_stem.csv); species from trees.csv
+y<-flux_stem_campaign("2023_cross_species"); y<-y[!is.na(y$CH4_flux_nmol_m2_s),]
+y$fx<-asinh10(y$CH4_flux_nmol_m2_s); y$sp<-as.factor(y$species_code)
+y$bark<-ord(y$bark_missing); y$wound<-ord(y$wounding)
 obrk<-c(-0.2,0,0.05,0.2,1,5); th<-theme_bw(base_size=11)+theme(panel.grid.minor=element_blank())
 R2m<-function(m){ vf<-var(predict(m,re.form=NA)); vr<-sum(as.numeric(VarCorr(m))); ve<-sigma(m)^2; vf/(vf+vr+ve) }
 predci<-function(m,g,quad){ X<-if(quad) model.matrix(~x+I(x^2),g) else model.matrix(~x,g)

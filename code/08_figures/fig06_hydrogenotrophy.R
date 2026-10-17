@@ -87,8 +87,8 @@ pb <- ggplot(fap, aes(lr, fn, fill = lr)) +
 # function (membership independent of the association), drop housekeeping, show
 # representative pathways per mechanistic category. See panel_c_pathway_categories.md
 ABLU <- "#92c5de"  # light blue: sulfur/nitrogen metabolism (negative, aerobic/oxidant-associated)
-p6 <- read.csv("data/processed/molecular/picrust/pathway_associations_mcra_no_mcra_otus.csv")
-cb <- read.csv("data/processed/molecular/picrust/pathway_associations_combined.csv")
+p6 <- read.csv("outputs/data/picrust/pathway_associations_mcra_no_mcra_otus.csv")
+cb <- read.csv("outputs/data/picrust/pathway_associations_combined.csv")
 contrib <- setNames(cb$mean_percent_from_mcra, cb$pathway)
 sig <- p6 %>% filter(!is.na(FDR), FDR < 0.05) %>%
   mutate(gc = ifelse(is.na(contrib[pathway]), 0, contrib[pathway])) %>% filter(gc < 0.10)

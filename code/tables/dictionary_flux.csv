@@ -13,11 +13,12 @@ flux_stem,window_end,character,,,,End of the hand-picked fitting window (end.tim
 flux_stem,closure_s,numeric,s,,0;3600,Length of the fitted window as used for the minimum detectable flux (flux_FINAL t_sec; window_end - window_start + 1 s); NA for the felled oak,outputs/data/flux_FINAL.csv
 flux_stem,chamber_area_cm2,numeric,cm2,,50;10000,Stem surface area enclosed by the chamber (goFlux Area); NA for the felled oak,goFlux input files
 flux_stem,system_volume_L,numeric,L,,0.1;20,Chamber + tubing + analyzer volume (goFlux Vtot); NA for the felled oak,goFlux input files
-flux_stem,chamber_temp_C,numeric,degC,,-20;45,Temperature used in the flux calculation (goFlux Tcham: monthly = met-tower air temperature at the deployment; 2021 and 2023 = field air temperature); NA for the felled oak,goFlux input files
-flux_stem,air_temp_C,numeric,degC,,-20;45,Air temperature as the model reads it (see env_source),05_model/01_load_and_prep_data.R rules
-flux_stem,soil_temp_C,numeric,degC,,-5;45,Soil temperature (10 cm) as the model reads it (see env_source),05_model/01_load_and_prep_data.R rules
-flux_stem,soil_vwc,numeric,m3 m-3,,0;1,Soil volumetric water content as a fraction as the model reads it (see env_source),05_model/01_load_and_prep_data.R rules
-flux_stem,env_source,character,,,,"Where air_temp_C, soil_temp_C and soil_vwc come from for the row",10_flux_stem.R
+flux_stem,geometry_source,character,,,,"Where chamber_area_cm2 and system_volume_L come from. Monthly survey (code/lib/stem_chamber_geometry.R): sheet (the chamber sheet's row for that stem x month x chamber); sheet (chamber not recorded on the flux sheet); computed (chamber sheet dimensions) -- the formula on the stem diameter and the chamber used that day; computed (chamber dimensions not found: mean of chambers 1-6) -- chambers 7-9. 2021 and 2023: rigid chamber, measured area and volume. NA for the felled oak",02_flux/semirigid/02_join_flux_geometry.R; rescue/01_untagged_auxfile.R
+flux_stem,chamber_stem_diameter_cm,numeric,cm,,0;200,Stem diameter the monthly-survey chamber geometry was computed with (the chamber sheet's D stem; NA for rigid chambers),Tree_fluxes_<month>.xlsx
+flux_stem,chamber_temp_C,numeric,degC,,-20;45,Temperature used in the flux calculation (goFlux Tcham); its source in chamber_temp_source; NA for the felled oak,goFlux input files
+flux_stem,chamber_temp_source,character,,,,"Where chamber_temp_C comes from: monthly, station air of the hour containing the start (true time); 2021, field air temperature at the chamber, else station air of the hour containing the start (02_flux/static/01_prep_auxfile_2021.R); 2023, field sheet air temperature, else the stem temperature measured at the deployment (02_prep_auxfile_2023.R)",goFlux input files
+flux_stem,air_temp_C,numeric,degC,,-20;45,Air temperature at the deployment (source in air_temp_source); descriptive (the random forests have no air-temperature predictor since 2026-10-17; 05_model/15 is the with-air sensitivity). Soil temperature and moisture are not in this table: code/lib/soil_fill.R attach_soil() attaches them from soil_readings,05_model/01_load_and_prep_data.R rules
+flux_stem,air_temp_source,character,,,,"Where air_temp_C comes from: monthly, met tower hour of the logged / hand-picked start (true time); 2021, the chamber temperature (field air at the chamber, else the tower hour of the logged start); 2023, field sheet air, else the field sheet stem temperature; felled oak, field sheet",10_flux_stem.R
 flux_stem,CH4_flux_nmol_m2_s,numeric,nmol m-2 s-1,NN,-200;250,CH4 flux per m2 of bark (goFlux best.flux),goFlux output
 flux_stem,CH4_model,character,,NN,,Model chosen by best.flux (LM linear; HM Hutchinson-Mosier),goFlux output
 flux_stem,CH4_LM_flux_nmol_m2_s,numeric,nmol m-2 s-1,,-200;250,Linear-model CH4 flux; NA for the 45 untagged monthly deployments (not kept by the rescue fit),goFlux output
@@ -32,14 +33,14 @@ flux_stem,analyzer_sigma_ppb,numeric,ppb,,0;10,Analyzer CH4 precision for the fi
 flux_stem,detected,logical,,,,|CH4 flux| > MDF; NA for the felled oak,outputs/data/flux_FINAL.csv
 flux_stem,detection_class,character,,,,"emission, uptake or below detection; NA for the felled oak",outputs/data/flux_FINAL.csv
 flux_stem,dbh_recorded_cm,numeric,cm,,0;200,DBH written on the field sheet for the deployment (2023 only; NA otherwise),2023 field sheet
-flux_stem,bark_missing,character,,,,"2023 condition score as recorded (0-3, or dead); NA otherwise",2023 field sheet
+flux_stem,bark_missing,character,,,,"2023 condition score as recorded (1-3, or dead); NA otherwise, and for two cells time-formatted in the sheet (""0:00:00"", score not recoverable; see notes)",2023 field sheet
 flux_stem,wounding,character,,,,"2023 wounding/holes score as recorded (1-3, or dead); NA otherwise",2023 field sheet
 flux_stem,moss_lichen_cover,character,,,,"2023 moss/lichen cover score as recorded (1-3, or dead); NA otherwise",2023 field sheet
-flux_stem,qc_pass,logical,,NN,,Passed the chamber-closure screen (02_qc_c0_screen.R; no stem deployment failed),outputs/data/qc_excluded_measurements.csv
+flux_stem,qc_pass,logical,,NN,,Passed the chamber-closure screen: not in outputs/data/qc_excluded_measurements.csv (02_qc_c0_screen.R),outputs/data/qc_excluded_measurements.csv
 flux_stem,qc_reason,character,,,,Why the closure screen failed (NA when passed),outputs/data/qc_excluded_measurements.csv
-flux_stem,dead_stem,logical,,NN,,"Deployment on a dead stem: monthly dead column / _dead label, 2021 name containing dead, 2023 bark-missing or wounding score dead (code/lib/dead_stems.R rules)",field records
+flux_stem,dead_stem,logical,,NN,,"Deployment on a dead stem: the tree is dead in trees.csv (dead, the one rule in 04_trees.R) and the deployment is on or after its dead_from date",data/tables/trees.csv
 flux_stem,untagged_rescue,logical,,NN,,Untagged monthly stem whose flux was computed from hand-picked windows (code/02_flux/rescue/),10_flux_stem.R
-flux_stem,in_rf_training,logical,,NN,,"In the stem random-forest training set: not dead, not the 2021 root-crown deployment, not the felled oak",outputs/data/flux_measurements_tree.csv (checked)
+flux_stem,in_rf_training,logical,,NN,,"In the stem random-forest training set: passed the closure screen, not dead, not the 2021 root-crown deployment, not the felled oak",10_flux_stem.R
 flux_stem,exclusion_reason,character,,,,Why the deployment is not in training (NA when it is),10_flux_stem.R
 flux_stem,notes,character,,,,Field notes as recorded,field records
 flux_soil,measurement_id,character,,PK,,Chamber deployment: the goFlux UniqueID,goFlux input file
@@ -53,11 +54,9 @@ flux_soil,window_end,character,,NN,,End of the hand-picked fitting window (end.t
 flux_soil,closure_s,numeric,s,,0;3600,Length of the fitted window as used for the minimum detectable flux (flux_FINAL t_sec); NA for the two deployments that failed the closure screen,outputs/data/flux_FINAL.csv
 flux_soil,chamber_area_cm2,numeric,cm2,NN,50;10000,Collar area (goFlux Area),goFlux input file
 flux_soil,system_volume_L,numeric,L,NN,0.1;30,Chamber + collar headspace + tubing + analyzer volume (goFlux Vtot),goFlux input file
-flux_soil,chamber_temp_C,numeric,degC,,-20;45,Temperature used in the flux calculation (goFlux Tcham: met-tower air temperature at the deployment),goFlux input file
-flux_soil,air_temp_C,numeric,degC,,-20;45,Air temperature as the soil model reads it: met-tower record nearest 00:00 of the date (chamber temperature where none within 24 h),05_model/01_load_and_prep_data.R rules
-flux_soil,soil_temp_C,numeric,degC,,-5;45,Soil temperature (10 cm): the collar's reading that date; else the plot-tag mean that date (see env_source),data/processed/environmental/soil_env_by_collar.csv; soilmoisture_total.csv
-flux_soil,soil_vwc,numeric,m3 m-3,,0;1,Soil volumetric water content as a fraction; same rule as soil_temp_C,data/processed/environmental/soil_env_by_collar.csv; soilmoisture_total.csv
-flux_soil,env_source,character,,NN,,"Where soil_temp_C, soil_vwc and air_temp_C come from for the row",11_flux_soil.R
+flux_soil,chamber_temp_C,numeric,degC,,-20;45,"Temperature used in the flux calculation (goFlux Tcham: met-tower hourly mean air temperature of the hour containing the start, true time)",goFlux input file
+flux_soil,air_temp_C,numeric,degC,,-20;45,Air temperature at the deployment (source in air_temp_source). Soil temperature and moisture are not in this table: code/lib/soil_fill.R attach_soil() attaches them from soil_readings,data/tables/weather.csv
+flux_soil,air_temp_source,character,,NN,,"Where air_temp_C comes from: met tower hour of the logged start (true time), else the chamber temperature",11_flux_soil.R
 flux_soil,CH4_flux_nmol_m2_s,numeric,nmol m-2 s-1,NN,-200;250,CH4 flux per m2 of ground (goFlux best.flux),goFlux output
 flux_soil,CH4_model,character,,NN,,Model chosen by best.flux (LM linear; HM Hutchinson-Mosier),goFlux output
 flux_soil,CH4_LM_flux_nmol_m2_s,numeric,nmol m-2 s-1,,-200;250,Linear-model CH4 flux,goFlux output

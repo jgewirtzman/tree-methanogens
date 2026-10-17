@@ -271,18 +271,19 @@ create_ymf2023_auxfile <- function(data_path,
       start.time = datetime_start,
       Area = surface_area_cm2,
       Vtot = total_system_volume_L,
-      Tcham = case_when(
-        !is.na(air_temp_C) ~ air_temp_C,
-        !is.na(stem_temp_C) ~ stem_temp_C,
-        TRUE ~ 20
-      ),
-      Pcham = 101.325,
-      obs.length = case_when(
-        !is.na(obs_length_seconds) & obs_length_seconds > 0 ~ obs_length_seconds,
-        TRUE ~ 600
-      )
+      # chamber temperature: the sheet's air temperature, else the stem temperature
+      # measured at the deployment (no default; every deployment has one or the other)
+      Tcham = ifelse(!is.na(air_temp_C), air_temp_C, stem_temp_C),
+      Tcham_source = ifelse(!is.na(air_temp_C), "field sheet air temperature", "field sheet stem temperature (no air temperature)"),
+      Pcham = 101.325
+      # No obs.length column: the closure windows are the hand-picked ones
+      # (data/raw/flux_windows/), and goFlux obs.win() is given its search length as an
+      # argument (04_goflux_trees_2023.R); obs_length_seconds keeps the sheet's own
+      # closure length (start to end time) as recorded. (Until 2026-10-17 a missing or
+      # zero length was filled with 600 s.)
     ) %>%
     filter(!is.na(datetime_start))  # Keep only valid measurements
+  stopifnot(!anyNA(auxfile$Tcham))
   
   # Validation
   cat("\nValidation:\n")
@@ -294,8 +295,8 @@ create_ymf2023_auxfile <- function(data_path,
   cat("  Complete measurements:", nrow(complete_required), "\n")
   
   # Check for anomalies
-  suspicious_lengths <- auxfile %>%
-    filter(!is.na(obs.length) & (obs.length < 180 | obs.length > 900))
+  suspicious_lengths <- auxfile %>% mutate(obs.length = obs_length_seconds) %>%
+    filter(is.na(obs.length) | obs.length < 180 | obs.length > 900)
   
   if (nrow(suspicious_lengths) > 0) {
     cat("\nWARNING: Found", nrow(suspicious_lengths), "measurements with unusual durations:\n")
@@ -343,5 +344,5 @@ cat("\n=== Auxfile saved to: ymf2023_goflux_auxfile.csv ===\n")
 # Display sample
 cat("\nSample of auxfile (first 3 rows, key columns):\n")
 print(auxfile_2023 %>% 
-        select(UniqueID, start.time, Area, Vtot, Tcham, obs.length, `Chamber ID`, `Tree Tag`) %>%
+        select(UniqueID, start.time, Area, Vtot, Tcham, obs_length_seconds, `Chamber ID`, `Tree Tag`) %>%
         head(3))

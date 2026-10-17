@@ -23,14 +23,13 @@ A,code/02_flux/01_apply_auxfile_vtot.R,root,TRUE,carry the 28 cm3 analyzer volum
 A,code/02_flux/02_qc_c0_screen.R,root,TRUE,procedural screen: chamber not at ambient at closure
 A,code/02_flux/02b_instrument_precision.R,root,TRUE,analyzer CH4 precision (sigma) per field period from the raw records
 A,code/02_flux/03_precision_and_detection.R,root,TRUE,analyzer precision; minimum detectable flux; detection status
-A,code/03_merge/02_compile_soil_env.R,root,TRUE,soil temperature and moisture per collar and date
-A,code/03_merge/04_harmonize_all_data.R,script,TRUE,master per-tree table (flux; genes; gas; wood; soil)
+A,code/01_import/11_picrust_pathways.R,root,TRUE,PICRUSt2 pathway abundances per 16S library (organelle ASVs out; without mcrA/pmoA carriers) -> data/processed/molecular/picrust/ (needs data/raw/picrust/)
 B,code/tables/01_species.R,root,TRUE,canonical table: species (one row per species code)
+B,code/tables/07_species_traits.R,root,TRUE,canonical tables: species traits and their sources from archived TRY and GWDD records (Methods S5)
 B,code/tables/02_site.R,root,TRUE,canonical table: site (stand reference point and geometry)
 B,code/tables/03_collars.R,root,TRUE,canonical table: soil collars
 B,code/01_import/08_inventory_build.R,root,TRUE,stand inventory from the 2018 and 2019 censuses and by-tag survey (species names from data/tables/species.csv)
 B,code/01_import/09_audit_inventory_duplicates.R,root,FALSE,check: no stem counted in both censuses
-B,code/01_import/10_species_traits.R,root,TRUE,species trait table from archived TRY and GWDD records (Methods S5)
 B,code/tables/04_trees.R,root,TRUE,canonical tables: inventory stems; measured trees; tree-name crosswalk (needs the stage-B inventory)
 B,code/tables/05_soil_readings.R,root,TRUE,canonical table: soil readings at trees and collars (read by the flux tables)
 B,code/tables/06_weather.R,root,TRUE,canonical table: hourly weather station record in true time; screened (read by the flux tables)
@@ -40,19 +39,20 @@ B,code/tables/20_samples.R,root,TRUE,canonical table: DNA samples
 B,code/tables/21_ddpcr.R,root,TRUE,canonical table: ddPCR by sample x gene x assay x run
 B,code/tables/22_qpcr.R,root,TRUE,canonical table: facility qPCR (16S and ITS)
 B,code/tables/23_16s.R,root,TRUE,canonical tables: 16S libraries; ASV counts and taxonomy (main and felled-oak runs)
+B,code/tables/24_picrust.R,root,TRUE,canonical tables: PICRUSt2 pathway abundances per 16S library (from stage A 11_picrust_pathways.R)
 B,code/tables/30_wood_cores.R,root,TRUE,canonical table: wood core sections
 B,code/tables/32_internal_gas.R,root,TRUE,canonical table: internal stem gas (incl. felled-oak GC calibration)
 B,code/tables/33_isotopes.R,root,TRUE,canonical table: Picarro isotope runs
 B,code/tables/35_moisture_survey.R,root,TRUE,canonical tables: December 2020 soil-moisture survey; stream-channel flags
 B,code/tables/validate_tables.R,root,TRUE,check data/tables/ against code/tables/dictionary*.csv
+B,code/04_drivers/00_soil_temp_climatology.R,root,TRUE,monthly soil-temperature climatology from soil_readings (the model's soil-temperature driver; reads tables only)
 B,code/05_model/01_load_and_prep_data.R,script,TRUE,random-forest training tables (reads data/tables/ only)
 B,code/05_model/02_rf_models.R,script,TRUE,fit the stem and soil random forests
 B,code/05_model/03_export_canonical_tables.R,root,TRUE,measurement tables with training flags and exclusion reasons
 B,code/05_model/04_rf_grouped_cv.R,root,TRUE,held-out skill with whole trees or collars held out
-B,code/zenodo/01_compile_datasets.R,root,TRUE,archive datasets in data/compiled/ (what every later stage reads)
+B,code/zenodo/01_compile_datasets.R,root,TRUE,copy data/tables/*.csv (and the methanotroph definitions) to data/compiled/ for the archive
 C,code/04_drivers/01_wb_reference_et.R,root,TRUE,reference evapotranspiration for the water balance
 C,code/04_drivers/02_moisture_climatology.R,root,TRUE,monthly plot-wide soil-moisture level
-C,code/04_drivers/03_soil_temp_climatology.R,root,TRUE,monthly soil-temperature climatology
 C,code/04_drivers/04_moisture_surface.R,root,TRUE,relative soil-moisture pattern across the plot
 C,code/04_drivers/05_moisture_interpolation.R,root,FALSE,comparison of interpolation methods for the moisture surface
 C,code/06_upscale/01_predict_tree_flux.R,root,TRUE,per-stem predicted flux over the 0-2 m band
@@ -73,8 +73,10 @@ D,code/05_model/11_rf_species_bias_audit.R,root,FALSE,per-species bias of predic
 D,code/05_model/12_model_family_comparison.R,root,FALSE,random forest against other model families
 D,code/05_model/13_height_form_crossvalidation.R,root,FALSE,leave-one-height-out test of flux forms above 2 m
 D,code/05_model/14_rf_height_extrapolation.R,root,FALSE,model behaviour above its training heights
+D,code/05_model/15_rf_air_temperature_test.R,root,FALSE,sensitivity: both forests with the measured air temperature added (skill; budget under 24-h and daytime air)
+D,code/06_upscale/11_sens_daily_drivers.R,root,FALSE,sensitivity: daily vs monthly drivers (averaging check; soil all cells, 300 sampled stems)
 D,code/07_molecular/01_faprotax_dump_HW_SW.R,root,FALSE,FAPROTAX functions by compartment (Fig 6b)
-D,code/07_molecular/02_picrust_pathway_associations.R,root,FALSE,PICRUSt2 pathway associations with mcrA and pmoA (Fig 6c; Figs S13-S15)
+D,code/07_molecular/02_picrust_pathway_associations.R,root,FALSE,PICRUSt2 pathway associations with mcrA and pmoA from data/tables/picrust_pathways.csv (Fig 6c; Figs S13-S15)
 D,code/07_molecular/03_methanotroph_resolution.R,root,FALSE,Table S4: methanotrophs at several taxonomic resolutions; tree placement (Placed tier); sensitivity
 D,code/09_tables_stats/01_height_effects.R,root,FALSE,height effects by species (Results 2)
 D,code/09_tables_stats/02_campaign_counts.R,root,FALSE,Table 1 and campaign sample sizes
@@ -85,7 +87,6 @@ D,code/09_tables_stats/06_copies-per-gram.R,root,FALSE,gene copies per gram by c
 D,code/09_tables_stats/07_mass-basis-sensitivity.R,root,FALSE,dry vs fresh mass basis sensitivity
 D,code/09_tables_stats/08_dbh_by_species_campaign.R,root,FALSE,Table S6
 D,code/09_tables_stats/09_tree-distribution.R,root,FALSE,species distribution and moisture niche (Fig S7)
-D,code/09_tables_stats/10_tree_flux_merged.R,root,FALSE,merged per-tree flux summary
 D,code/09_tables_stats/11_variance-partition.R,root,FALSE,variance partition (Fig 3)
 D,code/09_tables_stats/12_isotopes-canonical.R,root,FALSE,isotope source estimates and fractionation
 D,code/09_tables_stats/13_faprotax-caveats.R,root,FALSE,FAPROTAX coverage caveats

@@ -14,7 +14,8 @@ source("code/lib/outputs.R")
 #
 # stream_points: the 21 flags along the stream channel (waypoints 762-782 of the same
 # receiver, data/raw/inventory/spatial_data/River.xlsx); no VWC was measured there.
-# The model's December moisture raster sets them to saturation.
+# The model's December moisture raster sets them to saturation (STREAM_VWC in
+# code/05_model/01_load_and_prep_data.R, the one place that assumption is made).
 #
 # Writes data/tables/moisture_survey.csv, data/tables/stream_points.csv
 # ==============================================================================

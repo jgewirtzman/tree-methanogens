@@ -18,7 +18,7 @@
 # recoveries (22% wood, 30% liquid control) reproduce from its Dryad data only with
 # the x10 reaction dilution included; the 30% liquid control is ~250/800.
 #
-# Sourced by: 03_merge/04_harmonize_all_data.R, 08_figures/fig07_decay-methanogenesis.R,
+# Sourced by: 08_figures/fig07_decay-methanogenesis.R,
 #   09_tables_stats/06_copies-per-gram.R, 09_tables_stats/07_mass-basis-sensitivity.R
 # ==============================================================================
 DDPCR_REACTION_UL <- 25     # total reaction volume (µL)

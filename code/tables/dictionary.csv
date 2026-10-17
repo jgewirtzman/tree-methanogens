@@ -1,12 +1,13 @@
 table,column,type,unit,key,range,description,source
 species,species_code,character,,PK,,Four-letter species code (first two letters of genus and of species epithet),01_species.R
-species,species,character,,NN,,"Binomial (""Amelanchier sp."" for the census code AMSP)",analysis-script species vectors; code/lib/trait_species.csv
+species,species,character,,NN,,"Binomial; genus level (""<Genus> sp."") for the census code AMSP and for BEPO and CALA (2023 field codes not in either census; see note)",analysis-script species vectors; code/lib/trait_species.csv
 species,common_name,character,,NN,,Common name (North American usage),01_species.R
 species,genus,character,,NN,,Genus,first word of species
 species,family,character,,NN,,Family (APG IV),model TAXONOMY object; extended for census-only genera
 species,order,character,,NN,,Order (APG IV),model TAXONOMY object; extended for census-only genera
 species,class,character,,NN,,Class (Magnoliopsida or Pinopsida),model TAXONOMY object
 species,gymnosperm,logical,,NN,,TRUE for conifers (class Pinopsida),class
+species,note,character,,,,"Why a code is given at genus level (BEPO, CALA)",01_species.R
 site,site_id,character,,PK,,Site identifier,02_site.R
 site,site_name,character,,NN,,Site name,02_site.R
 site,ref_latitude,numeric,degrees,NN,41;43,WGS84 latitude of the plot origin (PX = PY = 0),model .RData (ref_lat)
@@ -46,15 +47,18 @@ inventory_stems,in_square,logical,,NN,,Located in the nominal 200 x 200 m square
 inventory_stems,in_stand,logical,,NN,,In the censused stand (budget basis); unlocated stems count as in the stand,08_inventory_build.R
 trees,tree_id,character,,PK,,Physical tree: ForestGEO tag (disambiguated <tag>_a ...); 2021/2024 field name in NCBI spelling; UNTAG_ label; Ash<n>; QUVE_felled_2022,04_trees.R
 trees,species_code,character,,FK:species.species_code,,Species from the measurement campaign's field record (census species where no field record); disagreements in outputs/audit/tree_species_conflicts.csv,04_trees.R
-trees,dbh_cm,numeric,cm,,0;200,Diameter at breast height,see dbh_source
+trees,species_source,character,,NN,,"Where species_code comes from: field record: <campaign>; ForestGEO census; 2021 records: <the sources of the majority species>; tree-name prefix; monthly survey; 2023 field sheet; felled-oak sheet. Conflicts in outputs/audit/tree_species_conflicts.csv (incl. RM105: recorded QURU, name prefix ACRU)",04_trees.R
+trees,dbh_cm,numeric,cm,,0;200,Diameter at breast height. 2021 survey: the stem diameter the flux datasheet records for the 125 cm chamber (else the median of its chamber heights; else the 2021 tree DBH list). Measured values only: NA where no DBH was recorded (dbh_source says so; 17 trees including 6 flux-measured 2021 trees); nothing is imputed,see dbh_source
 trees,dbh_date,date,,,2018-01-01;2025-12-31,Date the diameter was measured where recorded,see dbh_source
-trees,dbh_source,character,,,,Record the diameter comes from (monthly survey tree list; 2021 survey DBH; 2023 field sheet; census; felled-oak sheet),04_trees.R
+trees,dbh_source,character,,,,Record the diameter comes from (monthly survey tree list; 2021 flux datasheet: stem diameter at the 125 cm chamber / median of its chamber heights; 2021 tree DBH list; 2023 field sheet; census; felled-oak sheet); none: no DBH measurement recorded (where dbh_cm is NA),04_trees.R
 trees,landscape_position,character,,,,"Monthly survey: U, I, WD, WS; 2021 survey: plot (Ridge, Lowland, Lab); NA otherwise",field records
 trees,latitude,numeric,degrees,,lat_bbox,WGS84 latitude,see coord_source
 trees,longitude,numeric,degrees,,lon_bbox,WGS84 longitude,see coord_source
 trees,coord_source,character,,,,Census PX; PY (2019 census or 2018 by-tag survey) or GPS (monthly survey tree list),04_trees.R
-trees,dead,logical,,NN,,Dead when measured: TRUE if any record says so (see dead_evidence),04_trees.R
-trees,dead_evidence,character,,,,"Records marking the tree dead: monthly label; monthly field notes (visits with dead|snag); 2021 name; 2023 condition score; 2023 notes",field records
+trees,dead,logical,,NN,,"Dead by the one rule (04_trees.R): marked dead by some record, on more than one date or with no measurement after the first mark. A tree marked dead once and measured again later is live (see dead_basis)",04_trees.R
+trees,dead_from,date,,,2020-01-01;2025-12-31,First date the tree is marked dead (dead trees); deployments from this date on are dead_stem in flux_stem,04_trees.R
+trees,dead_evidence,character,,,,Every dated mark: monthly label _dead; monthly field notes (dead|snag); 2021 name; 2023 condition score; 2023 notes -- each with its dates,field records
+trees,dead_basis,character,,,,How the rule decided (marked on n dates; marked once and not measured after; marked once and measured again: live),04_trees.R
 trees,in_inventory,character,,FK:inventory_stems.stem_id,,Largest census stem of the tree (NA if not in the census),04_trees.R
 trees,campaigns,character,,NN,,"Campaigns that measured the tree (semicolon list): monthly_2020_2021, 2021_multiheight (flux), 2021_survey (gas, cores, DNA, isotopes), 2022_felled_oak, 2023_cross_species, 2024_heartwood_sapwood",04_trees.R
 tree_tags,campaign,character,,PK,,Campaign of the record,04_trees.R
@@ -64,3 +68,26 @@ tree_tags,tag_recorded,character,,PK,,Tree name or tag exactly as written in the
 tree_tags,species_recorded,character,,PKopt,,Species as written on the row; filled (with dbh_recorded_cm) only where tag_recorded alone names more than one tree in that file and column,source files
 tree_tags,dbh_recorded_cm,numeric,cm,PKopt,0;200,Diameter as written on the row; filled (with species_recorded) only where tag_recorded alone names more than one tree in that file and column,source files
 tree_tags,tree_id,character,,FK:trees.tree_id,,Tree the spelling refers to,04_trees.R
+species_traits,species_code,character,,PK,,Species (FK species.species_code); the 16 species of code/lib/trait_species.csv; conifer status is species.gymnosperm,07_species_traits.R
+species_traits,wood_density_gcm3,numeric,g cm-3,,0.1;1.5,Wood density: mean wsg of the species' GWDD v2.2 wood records,GWDD v2.2 (Fischer et al. 2026)
+species_traits,bark_density_gcm3,numeric,g cm-3,,0.1;1.5,Bark density: mean wsg of the species' GWDD v2.2 bark records,GWDD v2.2 (Fischer et al. 2026)
+species_traits,try_bark_volume_rel_wood,numeric,percent,,0;100,TRY trait 4079 (bark volume relative to wood); mean over datasets of within-dataset means,TRY request 47607
+species_traits,try_wood_CN_ratio,numeric,g g-1,,0;2000,TRY trait 1260 (wood C:N ratio); as above,TRY request 47607
+species_traits,try_stem_C,numeric,mg g-1,,0;1000,TRY trait 407 (stem carbon content per dry mass; StdValue); as above,TRY request 47607
+species_traits,try_bark_C,numeric,percent,,0;100,TRY trait 617 (bark carbon content); as above,TRY request 47607
+species_traits,try_CWD_stem_decomp_rate_k,numeric,yr-1,,0;5,TRY trait 1158 (coarse woody debris decomposition rate k; single-exponential DataID 3083); as above,TRY request 47607
+species_traits,try_waterlogging_tolerance,numeric,score,,0;5,TRY trait 61 (waterlogging tolerance; 0-5 score); as above,TRY request 47607
+species_traits,try_rooting_depth,numeric,m,,0;50,TRY trait 6 (maximum rooting depth; StdValue); as above,TRY request 47607
+species_traits,try_fine_root_diameter,numeric,mm,,0;5,TRY trait 896 (fine root diameter; StdValue); as above,TRY request 47607
+species_traits,try_fine_root_tissue_density,numeric,g cm-3,,0;2,TRY trait 1781 (fine root tissue density; StdValue); as above,TRY request 47607
+species_traits,try_ectomycorrhizal,numeric,fraction,,0;1,TRY trait 7 (mycorrhiza type): share of datasets recording ectomycorrhiza (EcM 1; AM 0),TRY request 47607
+species_traits,try_plant_longevity,numeric,yr,,0;5000,TRY trait 59 (maximum plant longevity; StdValue); as above,TRY request 47607
+species_trait_sources,trait,character,,PK,,species_traits column the dataset contributes to,07_species_traits.R
+species_trait_sources,species_code,character,,PK,,Species (FK species_traits.species_code),07_species_traits.R
+species_trait_sources,source,character,,PK,,GWDD or TRY,07_species_traits.R
+species_trait_sources,dataset_id,integer,identifier,PKopt,,TRY DatasetID (NA for GWDD),TRY request 47607
+species_trait_sources,dataset,character,,PKopt,,Contributing dataset (TRY Dataset; GWDD source_short),TRY request 47607; GWDD v2.2
+species_trait_sources,reference,character,,,,Reference(s) of the dataset,TRY request 47607; GWDD v2.2
+species_trait_sources,n_records,integer,count,NN,1;10000,Records of that dataset kept for the species and trait,07_species_traits.R
+species_trait_sources,dataset_value,numeric,see species_traits,NN,,Mean of the dataset's kept values (units of the species_traits column),07_species_traits.R
+species_trait_sources,record_ids,character,,NN,,Record IDs (TRY ObsDataID; GWDD id) separated by ;,TRY request 47607; GWDD v2.2

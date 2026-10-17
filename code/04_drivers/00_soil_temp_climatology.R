@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 # ==============================================================================
-# 03_soil_temp_climatology.R  --  multi-year monthly soil temperature
+# 00_soil_temp_climatology.R  --  multi-year monthly soil temperature
 # ------------------------------------------------------------------------------
 # Puts soil temperature on the same footing as moisture and air temperature: a
 # multi-year monthly climatology rather than the mean of whenever we happened to
@@ -21,12 +21,28 @@
 # damped and lagged version of air temperature, so a trailing mean of air
 # temperature is the natural predictor. The relation is fitted on the campaign
 # measurements -- which ARE genuine soil temperature -- and then applied to the
-# full multi-year tower record to produce the climatology.
+# full multi-year air record to produce the climatology.
+#
+# AIR TEMPERATURE: the tower (data/tables/weather.csv). A day is the local day of the
+# true time (an hour belongs to the day of its midpoint) with at least 20 hourly
+# records, its value the 24-h mean -- the definition of 05_model/01_load_and_prep_data.R.
+# A trailing window is a run of consecutive CALENDAR days: the record is laid on the
+# full calendar, and a window that spans a day with no value has no value; gaps are
+# never closed up. The climatology is the mean over the climatology years
+# (CLIM_YEARS, the years of the moisture climatology, 02_moisture_climatology.R).
+#
+# THE OBSERVATIONS are data/tables/soil_readings.csv: every soil temperature read at a
+# collar (monthly campaign 2020-21), a tree hole (2021 survey) or a tree (2023 field
+# sheet). (Until 2026-10-16 they were the model's training rows, whose soil
+# temperature had itself been gap-filled from a monthly mean: circular.) The script
+# reads tables only, so it runs in stage B before the model: 05_model/01 uses its
+# monthly values as the soil-temperature driver, for training rows without a reading
+# and for the stand predictions alike.
 #
 # TWO THINGS THAT KEEP THIS HONEST.
 #
-#   (1) Fitted on DATE MEANS, not individual observations. The 1,325 campaign
-#       measurements come from only 50 distinct dates, so observation-level
+#   (1) Fitted on DATE MEANS, not individual observations. The readings come from
+#       a few dozen distinct dates, so observation-level
 #       fitting is pseudoreplicated: it would weight a date by how many collars
 #       were read that day and report an R2 inflated by within-date replication.
 #
@@ -36,28 +52,32 @@
 #       elsewhere.
 #
 # Output: outputs/tables/soil_temp_climatology_monthly.csv
+#         outputs/tables/soil_temp_daily.csv  (daily air, trailing air and fitted soil
+#           temperature, CLIM_YEARS; read only by the daily-driver sensitivity, 06_upscale/11)
 # ==============================================================================
 suppressMessages({library(dplyr)})
 outdir <- "outputs/tables"
-load("outputs/models/TRAINING_DATA.RData")
 
-# ---- daily air temperature from the tower ------------------------------------
-# data/tables/weather.csv: local calendar days of the true time
+CLIM_YEARS <- 2019:2022
+MIN_HOURS <- 20
+
+# ---- daily air temperature from the tower, on the full calendar ---------------
 w <- read.csv("data/tables/weather.csv", stringsAsFactors = FALSE)
-w$date <- as.Date(substr(w$timestamp, 1, 10))
-w$ta   <- suppressWarnings(as.numeric(w$air_temp_avg_C))
-AIR <- w %>% filter(is.finite(ta), !is.na(date)) %>%
-  group_by(date) %>% summarise(ta = mean(ta), .groups = "drop") %>% arrange(date)
-cat(sprintf("tower air temperature: %d days, %s to %s\n",
-            nrow(AIR), min(AIR$date), max(AIR$date)))
+w$t  <- as.POSIXct(substr(sub("T", " ", w$timestamp), 1, 19), tz = "UTC")   # local wall-clock digits
+w$ta <- suppressWarnings(as.numeric(w$air_temp_avg_C))
+dd <- w %>% filter(is.finite(ta), !is.na(t)) %>% mutate(date = as.Date(t - 1800)) %>%
+  group_by(date) %>% summarise(ta = mean(ta), n = dplyr::n(), .groups = "drop") %>% filter(n >= MIN_HOURS)
+AIR <- data.frame(date = seq(min(dd$date), max(dd$date), by = "day"))
+AIR$ta <- dd$ta[match(AIR$date, dd$date)]
+cat(sprintf("tower air temperature: %d complete days (>= %d h), %s to %s; %d calendar days without a value\n",
+            sum(is.finite(AIR$ta)), MIN_HOURS, min(AIR$date), max(AIR$date), sum(!is.finite(AIR$ta))))
 
 # ---- campaign soil temperature, collapsed to one value per date --------------
-OBS <- bind_rows(
-    tree_train_complete %>% transmute(date = as.Date(Date), st = soil_temp_C_mean),
-    soil_train_complete %>% transmute(date = as.Date(Date), st = soil_temp_C_mean)) %>%
+OBS <- read.csv("data/tables/soil_readings.csv", stringsAsFactors = FALSE) %>%
+  transmute(date = as.Date(date), st = suppressWarnings(as.numeric(soil_temp_C))) %>%
   filter(is.finite(st), !is.na(date)) %>%
   group_by(date) %>% summarise(st = mean(st), n_obs = dplyr::n(), .groups = "drop")
-cat(sprintf("campaign soil temperature: %d dates (%d measurements), %s to %s\n",
+cat(sprintf("soil_readings soil temperature: %d dates (%d readings), %s to %s\n",
             nrow(OBS), sum(OBS$n_obs), min(OBS$date), max(OBS$date)))
 cat("months represented by DATES (not measurements):\n")
 print(table(as.integer(format(OBS$date, "%m"))))
@@ -89,9 +109,9 @@ cat(sprintf("\nselected window %d days | CV R2 %.3f, RMSE %.2f C on %d dates\n",
 cat(sprintf("  soil_temp = %.3f * air_%dd %+.3f\n", coef(FIT)[2], BEST, coef(FIT)[1]))
 cat(sprintf("  slope < 1 is the damping a buried sensor must show (tower Tsoil gives 1.03)\n"))
 
-# ---- climatology over the whole tower record ---------------------------------
+# ---- climatology over the climatology years ------------------------------------
 AIR$st_hat <- as.numeric(predict(FIT, AIR))
-CLIM <- AIR %>% filter(is.finite(st_hat)) %>%
+CLIM <- AIR %>% filter(is.finite(st_hat), as.integer(format(date, "%Y")) %in% CLIM_YEARS) %>%
   mutate(mo = as.integer(format(date, "%m")),
          yr = as.integer(format(date, "%Y"))) %>%
   group_by(mo) %>%
@@ -116,4 +136,7 @@ cat(sprintf("months the campaign series cannot supply at all: %s\n",
 
 stopifnot(nrow(CLIM) == 12, all(is.finite(CLIM$soil_temp_C)))
 write.csv(CLIM, file.path(outdir, "soil_temp_climatology_monthly.csv"), row.names = FALSE)
+write.csv(AIR %>% filter(as.integer(format(date, "%Y")) %in% CLIM_YEARS) %>%
+            transmute(date, air_C = ta, air_trailing_C = sm, window_days = BEST, soil_temp_C = st_hat),
+          file.path(outdir, "soil_temp_daily.csv"), row.names = FALSE)
 cat(sprintf("\nwritten: %s/soil_temp_climatology_monthly.csv\n", outdir))

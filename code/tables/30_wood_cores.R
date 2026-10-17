@@ -16,11 +16,11 @@ source("code/lib/outputs.R")
 #   - two fresh masses differ, both typos corrected in the wide sheet only
 #     (WAX1 outer 0.3349 -> 0.8349 g; AB6' outer 6.3458 -> 0.6346 g; the long
 #     sheet's Percent_Change matches its own typo).
-#   It is read by code/lib/build_phyloseq.R, merged on core_type.
+#   (code/lib/build_phyloseq.R used to read it, merged on core_type; it now reads the tables.)
 #
 # CORES. Three trees were cored twice (WA14, WA102, YB9: two rows each in the
-# sheet). core_id = <tree_id>-<n>, n = 1, 2 in sheet order; key core_id + position. The analysis averages a tree's cores
-# (03_merge/04_harmonize_all_data.R, mean with na.rm).
+# sheet). core_id = <tree_id>-<n>, n = 1, 2 in sheet order; key core_id + position. Analyses average a tree's cores
+# (mean with na.rm; code/lib/tables_read.R survey_2021_trees()).
 #
 # VALUES as in 02_process_wood_cores.R:
 #   section volume = pi * (0.515 cm / 2)^2 * length (5.15 mm corer); middle
@@ -37,8 +37,8 @@ source("code/lib/outputs.R")
 #     sections excluded. Masses and length stay as recorded.
 # Rows: every section with any recorded length, mass or derived value.
 #
-# Checks: the mean over each tree's cores reproduces outer/middle/inner
-# density_final and moisture_*_percent in merged_tree_dataset_final.csv.
+# (The check against merged_tree_dataset_final.csv was removed 2026-10-16 when that
+# file was retired.)
 #
 # Writes data/tables/wood_cores.csv, outputs/audit/wood_cores_build.txt
 # ==============================================================================
@@ -105,39 +105,13 @@ WC <- S %>%
   arrange(tree_id, core_id, match(position, c("outer", "middle", "inner")))
 stopifnot(!anyDuplicated(WC[c("core_id", "position")]))
 
-# ---- check: tree means reproduce merged_tree_dataset_final.csv ----------------------
-MT <- read.csv("data/processed/integrated/merged_tree_dataset_final.csv", check.names = FALSE, stringsAsFactors = FALSE)
-TM <- read.csv(file.path(OUT, "tree_tags.csv"), colClasses = "character", na.strings = "") %>%
-  filter(source_file == "data/processed/integrated/merged_tree_dataset_final.csv", source_column == "tree_id")
-MT$tid <- TM$tree_id[match(MT$tree_id, TM$tag_recorded)]
-mean_na <- function(x) { m <- mean(x, na.rm = TRUE); ifelse(is.nan(m), NA_real_, m) }
-mine <- WC %>% group_by(tree_id, position) %>%
-  summarise(density = mean_na(density_g_cm3), mf = mean_na(moisture_fresh_pct), md = mean_na(moisture_dry_pct), .groups = "drop")
-# merged_tree_dataset_final.csv splits some trees over two rows (e.g. wp6 / wp06): one
-# value per tree from whichever row holds it (the rows never disagree -- checked)
-one <- function(x) { x <- unique(x[!is.na(x)]); if (length(x) > 1) stop("merged rows disagree"); if (length(x)) x else NA_real_ }
-cmp <- bind_rows(lapply(c("outer", "middle", "inner"), function(p) {
-  m <- MT %>% filter(!is.na(tid)) %>%
-    transmute(tree_id = tid, position = p, density_t = .data[[paste0(p, "_density_final")]],
-              mf_t = .data[[paste0(p, "_moisture_fresh_percent")]], md_t = .data[[paste0(p, "_moisture_dry_percent")]]) %>%
-    group_by(tree_id, position) %>% summarise(across(everything(), one), .groups = "drop")
-  full_join(m, mine %>% filter(position == p), by = c("tree_id", "position"))
-})) %>% filter(!(is.na(density_t) & is.na(mf_t) & is.na(md_t) & is.na(density) & is.na(mf) & is.na(md)))
-same <- function(a, b) (is.na(a) & is.na(b)) | (!is.na(a) & !is.na(b) & abs(a - b) <= 1e-9 * pmax(1, abs(a)))
-bad <- cmp %>% filter(!(same(density_t, density) & same(mf_t, mf) & same(md_t, md)))
-dup_merged <- MT$tid[duplicated(MT$tid) & !is.na(MT$tid)]
-
 sink(out_path("wood_cores_build.txt", "audit")); op <- options(width = 160)
 cat(sprintf("wood_cores: %d sections from %d cores of %d trees (%s)\n", nrow(WC), n_distinct(WC$core_id),
             n_distinct(WC$tree_id), paste(names(table(WC$position)), table(WC$position), collapse = ", ")))
 cat(sprintf("trees cored twice: %s\n", paste(unique(WC$tree_id[grepl("-2$", WC$core_id)]), collapse = ", ")))
 cat(sprintf("filled sections: %d\n", sum(WC$filled)))
 print(as.data.frame(WC %>% filter(filled) %>% select(core_id, position, density_g_cm3, moisture_fresh_pct, moisture_dry_pct)), row.names = FALSE)
-cat(sprintf("\nCheck vs merged_tree_dataset_final.csv: %d tree x position means compared, %d differ\n", nrow(cmp), nrow(bad)))
-cat(sprintf("  (trees split over more than one row of that file: %s)\n", paste(sort(unique(dup_merged)), collapse = ", ")))
-if (nrow(bad)) print(as.data.frame(bad), row.names = FALSE)
 options(op); sink()
 cat(readLines(out_path("wood_cores_build.txt", "audit")), sep = "\n")
-if (nrow(bad)) stop("wood_cores does not reproduce the tree-level core means (outputs/audit/wood_cores_build.txt)")
 
 write_csv(WC, file.path(OUT, "wood_cores.csv"), na = "")

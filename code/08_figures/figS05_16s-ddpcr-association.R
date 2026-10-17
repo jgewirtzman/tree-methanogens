@@ -18,7 +18,11 @@ source("code/lib/outputs.R")
 #
 # Groups follow the capacity rule set: a taxon counts if it
 # carries methane monooxygenase genes; tiers Known / Putative / listed-not-counted, classified by code/lib/load_methanotroph_definitions.R.
-# Join of 16S and ddPCR samples as in code/09_tables_stats/05_table_ddpcr-16s-concordance.R.
+# Reads data/tables/ via code/lib/tables_read.R: asv_table("main") (ASV counts + taxonomy)
+# and dna_samples("2021_survey") (16S library -> sample and compartment; ddPCR copies per uL
+# extract; facility 16S qPCR copies per uL extract). 16S and ddPCR are joined by library_id.
+# Samples: 2021 DNA samples whose 16S library has at least RAREFY_DEPTH (3500) non-organelle
+# reads, the libraries the main 16S analysis keeps (code/lib/build_phyloseq.R).
 #
 # Outputs: figSI_16s_ddpcr_association.png, 16s_ddpcr_association.csv
 # ==============================================================================
@@ -27,14 +31,13 @@ options(warn = -1)
 # rho and dagger glyphs need a UTF-8 character locale; under the C locale (non-interactive
 # shells) they are silently dropped from the PNG.
 invisible(Sys.setlocale("LC_CTYPE", "en_US.UTF-8"))
-num <- function(x) suppressWarnings(as.numeric(x))
+source("code/lib/tables_read.R"); source("code/lib/build_phyloseq.R")   # RAREFY_DEPTH
 
 # ---- 16S: relative abundance of each group, per sample -----------------------
-otu  <- read.delim("data/raw/16s/OTU_table.txt", header = TRUE, row.names = 1, check.names = FALSE)
-taxc <- intersect(c("Kingdom","Phylum","Class","Order","Family","Genus","Species"), names(otu))
-tax  <- otu[, taxc]
-cnt  <- as.matrix(sapply(otu[, setdiff(names(otu), taxc), drop = FALSE], num))
-rownames(cnt) <- rownames(otu); tot <- colSums(cnt, na.rm = TRUE)
+# denominator: the library's non-organelle reads (asv_reads(): mitochondria and
+# chloroplast ASVs removed, as in the main 16S analysis)
+A    <- asv_reads("main"); cnt <- A$cnt; tax <- A$tax; tot <- A$tot
+deep <- names(tot)[tot >= RAREFY_DEPTH]
 
 source("code/lib/load_methanotroph_definitions.R")
 st  <- classify_methanotrophs(tax, load_methanotroph_defs())
@@ -58,14 +61,14 @@ G <- list(
   list("Ammonia-oxidizing archaea (Nitrososphaeraceae)", "Control",         fam("Nitrososphaeraceae"),                  c("pmoA","mmoX","mcrA")))
 ab <- sapply(G, function(g) 100 * colSums(cnt[g[[3]], , drop = FALSE], na.rm = TRUE) / tot)
 colnames(ab) <- sapply(G, `[[`, 1)
-s16 <- data.frame(key = sub("[.]16S[.]S[0-9]*$", "", colnames(cnt)), ab, check.names = FALSE)
+s16 <- data.frame(library_id = colnames(cnt), ab, check.names = FALSE)
 
 # ---- ddPCR: gene copies per bacterial 16S copy --------------------------------
-o <- read.csv("data/raw/external/tree-microbiome/tree_data_methanogen_group.csv", check.names = FALSE)
-o <- o[, names(o) != ""]
-o$pmoA <- num(o$pmoa_loose); o$mmoX <- num(o$mmox_loose); o$mcrA <- num(o$mcra_probe_loose)
-o$b16  <- num(o$X16S_per_ul); o$key <- paste0(o$seq_id, o$core_type)
-m <- merge(o[, c("key","core_type","pmoA","mmoX","mcrA","b16")], s16, by = "key")
+# both per uL of the same extract (ddPCR copies per uL extract; facility 16S qPCR)
+ds <- dna_samples("2021_survey")
+o  <- data.frame(library_id = ds$library_id, core_type = ds$core_type, pmoA = ds$pmoa_ul,
+                 mmoX = ds$mmox_ul, mcrA = ds$mcra_probe_ul, b16 = ds$X16S_per_ul)
+m <- merge(o[o$library_id %in% deep, ], s16, by = "library_id")
 COMPS <- c(Inner = "Heartwood", Outer = "Sapwood", Mineral = "Mineral soil", Organic = "Organic soil")
 m$comp <- COMPS[m$core_type]
 

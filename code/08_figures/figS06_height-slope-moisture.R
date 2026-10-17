@@ -16,13 +16,11 @@ source("code/lib/outputs.R")
 suppressPackageStartupMessages({ library(tidyverse); library(patchwork) })
 out_dir <- "outputs"; dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
 
-sp_map <- c(ACRU="Acer rubrum",ACSA="Acer saccharum",BEAL="Betula alleghaniensis",
-  BELE="Betula lenta",BEPA="Betula papyrifera",CAOV="Carya ovata",FAGR="Fagus grandifolia",
-  FRAM="Fraxinus americana",KALA="Kalmia latifolia",PIST="Pinus strobus",PRSE="Prunus serotina",
-  QUAL="Quercus alba",QURU="Quercus rubra",QUVE="Quercus velutina",SAAL="Sassafras albidum",
-  TSCA="Tsuga canadensis")
 
-tp <- read_csv("data/compiled/tree_properties.csv", show_col_types = FALSE)
+source("code/lib/tables_read.R")
+# 2021 survey per tree: flux by height (flux_stem.csv), species (trees.csv), landscape
+# position, soil VWC at the tree (attach_soil(), code/lib/soil_fill.R)
+tp <- survey_2021_trees(soil = TRUE) %>% mutate(landscape_position = plot)
 
 # long form: height (cm) -> flux; RootCrown treated as 0 cm
 hmap <- c(CH4_best.flux_RootCrowncm = 0, CH4_best.flux_50cm = 50,
@@ -36,7 +34,7 @@ slopes <- long %>% group_by(tree_id, species_id, VWC_mean, landscape_position) %
   filter(n_distinct(height_cm) >= 3) %>%
   summarise(height_slope = 100 * coef(lm(flux ~ height_cm))[2],   # per m, as Fig. 2b
             flux_base = flux[which.min(height_cm)][1], .groups = "drop") %>%
-  mutate(species = sp_map[species_id]) %>% filter(!is.na(VWC_mean))
+  mutate(species = species_name(species_id)) %>% filter(!is.na(VWC_mean))
 
 # ---- Correlations: per-tree slope vs VWC -------------------------------------
 ct_all  <- cor.test(slopes$height_slope, slopes$VWC_mean, method = "pearson")

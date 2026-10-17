@@ -26,6 +26,9 @@ source("code/lib/outputs.R")
 # since verified methanotrophy is restricted to thermoacidophilic geothermal members;
 # temperate-forest (mesophilic) Methylacidiphilaceae are not known to oxidize CH4.
 #
+# Reads:   asv_reads("main", samples_only = TRUE) (data/tables/asv_counts_16S.csv +
+#          asv_taxonomy_16S.csv, via code/lib/tables_read.R): the sample libraries of the main
+#          16S run (no mock, no "other" libraries); organelle ASVs removed
 # Outputs: outputs/data/known_putative_taxa_table.csv, kp_counts.txt
 # ==============================================================================
 
@@ -40,13 +43,17 @@ defs_rev  <- load_methanotroph_defs()                                     # revi
 # and so made the comparison report "moves 0 ASVs".
 defs_orig <- defs_rev
 defs_orig$Include_known[defs_orig$Taxon_rank == "Family" & defs_orig$Taxon == "Methylacidiphilaceae"] <- "YES"
-tax  <- read_csv("data/compiled/taxonomy_key_16S.csv", show_col_types = FALSE)
-otu  <- read_csv("data/compiled/otu_table_16S.csv", show_col_types = FALSE)
-otu_mat <- otu %>% column_to_rownames(names(otu)[1])
-otu_mat <- otu_mat[, sapply(otu_mat, is.numeric), drop = FALSE]   # keep numeric sample cols only
-# per-ASV total relative abundance (summed over samples, as % of grand total)
-asv_relabund <- (rowSums(otu_mat, na.rm = TRUE) / sum(otu_mat, na.rm = TRUE)) * 100
-tax <- tax %>% mutate(relabund = asv_relabund[feature_id])
+source("code/lib/tables_read.R")
+# real samples only (samples_16S library_type "sample": no Zymo mock, no "other"
+# libraries) and organelle ASVs out of the denominator (asv_reads()); ASVs with no read
+# in those libraries are not detected and are left out
+A <- asv_reads("main", samples_only = TRUE)
+otu_mat <- A$cnt[rowSums(A$cnt, na.rm = TRUE) > 0, , drop = FALSE]
+# per-ASV total relative abundance (summed over samples, as % of all their non-organelle reads)
+asv_relabund <- (rowSums(otu_mat, na.rm = TRUE) / sum(A$tot)) * 100
+tx <- A$tax[rownames(otu_mat), ]
+tax <- tibble(feature_id = rownames(otu_mat), phylum = tx$Phylum, family = tx$Family, genus = tx$Genus,
+              relabund = asv_relabund[feature_id])
 
 source("code/lib/methanogen_families.R")
 methanogen_families <- METHANOGEN_FAMILIES
@@ -62,7 +69,7 @@ tax$class_rev  <- label(classify_methanotrophs(tdf, defs_rev))
 
 # ---- per-taxon supplementary table (detected taxa) ---------------------------
 tab <- tax %>% filter(!is.na(class_rev)) %>%
-  mutate(genus_res = na_if(na_if(genus, ""), "none"),          # "none" = unresolved
+  mutate(genus_res = genus,                                       # NA = unresolved
          display_taxon = coalesce(genus_res, family),
          level = if_else(!is.na(genus_res), "Genus", "Family")) %>%
   group_by(classification = class_rev, family, display_taxon, level) %>%

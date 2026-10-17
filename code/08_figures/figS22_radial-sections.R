@@ -7,8 +7,8 @@
 # Pipeline stage: 4 — Publication Figures
 #
 # Inputs:
-#   - merged_tree_dataset_final.csv (from data/processed/integrated/)
-#   - flux data (from data/processed/flux/)
+#   - data/tables/ via code/lib/tables_read.R: ddpcr + samples (mcrA probe, heartwood
+#     and sapwood), trees (species, DBH), species (names)
 #
 # Outputs:
 #   - tree_mcra_cross_sections_compressed.pdf (to outputs/figures/)
@@ -23,98 +23,21 @@ suppressPackageStartupMessages({
   library(patchwork)
 })
 
-# ---- Load data ----
-# Update these paths as needed
-ymf2023 <- read.csv("data/processed/flux/tree_flux_2023_cross_species.csv")
-ymf2021 <- read.csv("data/processed/integrated/merged_tree_dataset_final.csv")
-
-merged_final <- ymf2021  # Adjust if ddPCR data is elsewhere
-
-# ---- Species mapping for labels ----
-species_mapping <- c(
-  "ACRU" = "Acer rubrum",
-  "ACSA" = "Acer saccharum", 
-  "BEAL" = "Betula alleghaniensis",
-  "BELE" = "Betula lenta",
-  "BEPA" = "Betula papyrifera",
-  "FAGR" = "Fagus grandifolia",
-  "FRAM" = "Fraxinus americana",
-  "PIST" = "Pinus strobus",
-  "QURU" = "Quercus rubra",
-  "TSCA" = "Tsuga canadensis",
-  "CAOV" = "Carya ovata",
-  "KALA" = "Kalmia latifolia",
-  "PRSE" = "Prunus serotina",
-  "QUAL" = "Quercus alba",
-  "QUVE" = "Quercus velutina",
-  "SAAL" = "Sassafras albidum"
-)
+# ---- Load data (canonical tables) ----
+# 2021 survey per tree (species and DBH from trees.csv), its wood genes long (loose
+# threshold; mcrA probe assay only) and the area weighting: code/lib/species_gene_data.R
+source("code/lib/species_gene_data.R")
+merged_final <- ymf2021
 
 # ============================================================
-# 1) Parse ddPCR data into long format
+# 1) mcrA (probe assay), heartwood and sapwood
 # ============================================================
-prepare_long_mcra <- function(df) {
-  df %>%
-    dplyr::select(tree_id, starts_with("ddpcr_")) %>%
-    dplyr::select(where(~ !all(is.na(.)))) %>%
-    pivot_longer(
-      cols = starts_with("ddpcr_"),
-      names_to = "measurement_type",
-      values_to = "gene_copies"
-    ) %>%
-    filter(!is.na(gene_copies)) %>%
-    separate(
-      measurement_type,
-      into = c("method", "gene", "part1", "part2", "part3"),
-      sep = "_", extra = "merge", fill = "right"
-    ) %>%
-    mutate(
-      is_probe = (part1 == "probe"),
-      location = if_else(is_probe, part2, part1),
-      stringency = if_else(is_probe, part3, part2),
-      location = str_remove(location, "probe"),
-      location = case_when(
-        location %in% c("Inner","inner") ~ "Inner",
-        location %in% c("Outer","outer") ~ "Outer",
-        location %in% c("Mineral","mineral") ~ "Mineral",
-        location %in% c("Organic","organic") ~ "Organic",
-        TRUE ~ location
-      ),
-      gene = case_when(
-        gene == "mcra" ~ "mcrA",
-        gene == "mmox" ~ "mmoX",
-        gene == "pmoa" ~ "pmoA",
-        TRUE ~ gene
-      ),
-      sample_type = case_when(
-        location == "Inner" ~ "Heartwood",
-        location == "Outer" ~ "Sapwood",
-        location == "Mineral" ~ "Mineral",
-        location == "Organic" ~ "Organic",
-        TRUE ~ NA_character_
-      )
-    ) %>%
-    filter(stringency == "loose", !is.na(sample_type)) %>%
-    filter(gene == "mcrA", is_probe) %>%
-    filter(sample_type %in% c("Heartwood", "Sapwood"))
-}
-
-long_data <- prepare_long_mcra(merged_final)
+long_data <- long_all %>% filter(gene == "mcrA")
 
 # ============================================================
-# 2) Area-weighted function (closed-form, no density)
+# 2) Area weighting: area_weighted_gene() (closed-form, no density)
 # ============================================================
-area_weighted_mcra <- function(mcra_inner, mcra_outer, dbh_cm) {
-  R <- dbh_cm / 2
-  if (!is.finite(R) || R <= 0) return(NA_real_)
-  r1 <- min(5, R)
-  r2 <- max(R - 5, r1)
-  S <- r1^2 + r1*r2 + r2^2
-  mcra_outer + (mcra_inner - mcra_outer) * (S / (3 * R^2))
-}
-
-# Vectorized version for use in mutate
-area_weighted_mcra_vec <- Vectorize(area_weighted_mcra)
+area_weighted_mcra_vec <- Vectorize(area_weighted_gene)
 
 # ============================================================
 # 3) Calculate per-tree metrics
@@ -124,7 +47,7 @@ mcra_with_species <- long_data %>%
     merged_final %>% dplyr::select(tree_id, species_id),
     by = "tree_id"
   ) %>%
-  mutate(species = unname(species_mapping[species_id])) %>%
+  mutate(species = species_name(species_id)) %>%
   left_join(
     ymf2021 %>% dplyr::select(tree_id, dbh),
     by = "tree_id"

@@ -2,37 +2,30 @@
 # PICRUSt2 MetaCyc Pathway–Gene Abundance Associations
 # ==============================================================================
 # Purpose: Tests associations between MetaCyc pathway abundances and functional
-#   gene abundances (mcrA, pmoA, mmoX) using LMER mixed-effects models.
-#   Filters plastid OTUs (mitochondria, chloroplasts) from pathway predictions
-#   and optionally removes mcrA- or pmoA-carrying OTU contributions.
+#   gene abundances (mcrA, pmoA, mmoX) using LMER mixed-effects models, with the
+#   pathway abundances from all non-organelle ASVs and, for mcrA and pmoA, without
+#   the ASVs predicted to carry the gene.
 #
-# Pipeline stage: 3 — Analysis
+# Pipeline stage: D (runs every time, from data/tables/)
+#
+# Inputs (data/tables/, via code/lib/tables_read.R):
+#   - picrust_pathways.csv      per library x pathway: summed PICRUSt2 contributions of
+#                               the non-organelle ASVs (abundance), and without the
+#                               mcrA- (K00399) or pmoA- (K10944) carrying ASVs; built in
+#                               stage A by code/01_import/11_picrust_pathways.R from the
+#                               PICRUSt2 predictions (data/raw/picrust/)
+#   - picrust_pathway_info.csv  pathway descriptions
+#   - sample metadata: survey_16s_meta() (samples, samples_16S, ddpcr, qpcr, trees)
 #
 # Approach:
-#   1. Load pathway contribution table (per-OTU contributions to each pathway)
-#   2. Identify and remove plastid OTUs (mitochondria + chloroplasts)
-#   3. Identify mcrA-carrying OTUs via KO_predicted.tsv (K00399) and
-#      pmoA-carrying OTUs (K10944)
-#   4. Reconstruct pathway abundances: (a) all non-plastid OTUs, (b) excluding
-#      mcrA OTUs, (c) excluding pmoA OTUs
-#   5. Run LMER for each pathway against mcrA (both versions), pmoA, and mmoX
-#   6. Save association results and pre-computed abundance matrices
+#   1. Sample sets: wood samples, 16S >= 100 copies per uL, non-NA gene abundance
+#   2. Abundance matrices: (a) all non-organelle ASVs, (b) without mcrA ASVs,
+#      (c) without pmoA ASVs
+#   3. Relative abundance; depth > 10,000; pathways present in > 20 samples
+#   4. LMER for each pathway against mcrA (both versions), pmoA (both), mmoX
+#   5. Share of each pathway's abundance from the gene-carrying ASVs
 #
-# Filtering (consistent with all 16S/PICRUSt scripts):
-#   - Remove mitochondria (Family == "Mitochondria") and chloroplasts
-#     (Order == "Chloroplast") from pathway contributions
-#   - Wood samples only, non-NA gene abundance, 16S >= 100
-#   - Pathway depth > 10,000
-#   - Prevalence filter: pathways present in > 20 samples
-#
-# Inputs:
-#   - data/raw/picrust/path_abun_contrib.tsv       (per-OTU pathway contributions)
-#   - data/raw/picrust/path_abun_unstrat_descrip.tsv (pathway descriptions)
-#   - data/raw/picrust/KO_predicted.tsv              (KEGG orthologs per OTU)
-#   - data/raw/picrust/16S_tree_sample_table_with_meta.csv (metadata)
-#   - data/raw/16s/taxonomy_table.txt                (OTU taxonomy for plastid ID)
-#
-# Outputs (data/processed/molecular/picrust/):
+# Outputs (outputs/data/picrust/):
 #   - pathway_associations_mcra_all.csv
 #   - pathway_associations_mcra_no_mcra_otus.csv
 #   - pathway_associations_pmoa.csv
@@ -41,19 +34,18 @@
 #   - pathway_associations_combined.csv       (merged mcrA all + no-mcrA results)
 #   - pathway_associations_pmoa_combined.csv  (merged pmoA all + no-pmoA results)
 #
-# Required packages: tidyverse, lme4, data.table
+# Required packages: tidyverse, lme4
 # ==============================================================================
 
 library(tidyverse)
 library(lme4)
-library(data.table)   # for fast reading of the 6 GB contrib file
 
 # ==============================================================================
 # STEP 1: Load metadata and identify sample sets for each gene
 # ==============================================================================
 
-meta <- read.csv("data/raw/picrust/16S_tree_sample_table_with_meta.csv",
-                  row.names = 1)
+source("code/lib/tables_read.R")
+meta <- survey_16s_meta()   # per sequenced 2021 sample (data/tables/: samples, samples_16S, ddpcr, qpcr, trees)
 meta$log16S <- log10(1 + meta$X16S_per_ul)
 
 # Base wood filter (material + 16S threshold)
@@ -73,89 +65,21 @@ cat("  with pmoA:", nrow(wood_pmoa), "\n")
 cat("  with mmoX:", nrow(wood_mmox), "\n")
 
 # ==============================================================================
-# STEP 2: Identify plastid OTUs from taxonomy
+# STEP 2: Pathway abundances per library (data/tables/picrust_pathways.csv)
 # ==============================================================================
+# Organelle ASVs are already out (code/01_import/11_picrust_pathways.R).
+PW <- read_table("picrust_pathways")
+descriptions <- with(read_table("picrust_pathway_info"), setNames(description, pathway))
 
-taxonomy <- read.table("data/raw/16s/taxonomy_table.txt",
-                        sep = "\t", header = TRUE, row.names = 1,
-                        quote = "", stringsAsFactors = FALSE)
-
-tax_split <- str_split(taxonomy$Taxon, "; ", simplify = TRUE)
-rownames(tax_split) <- rownames(taxonomy)
-
-# Mitochondria at Family level (column 5), Chloroplast at Order level (column 4)
-mito_otus <- rownames(tax_split)[which(trimws(tax_split[, 5]) == "Mitochondria")]
-chloro_otus <- rownames(tax_split)[which(trimws(tax_split[, 4]) == "Chloroplast")]
-plastid_otus <- unique(c(mito_otus, chloro_otus))
-
-cat("\n=== Plastid OTUs ===\n")
-cat("Mitochondria:", length(mito_otus), "\n")
-cat("Chloroplast:", length(chloro_otus), "\n")
-cat("Total plastid OTUs:", length(plastid_otus), "\n")
-
-# ==============================================================================
-# STEP 3: Identify mcrA- and pmoA-carrying OTUs from KO predictions
-# ==============================================================================
-
-KO <- fread("data/raw/picrust/KO_predicted.tsv", header = TRUE)
-KO_df <- as.data.frame(KO)
-rownames(KO_df) <- KO_df[[1]]
-KO_df <- KO_df[, -1]
-
-mcra_ko <- "K00399"
-if (mcra_ko %in% colnames(KO_df)) {
-  mcra_otus <- rownames(KO_df)[KO_df[, mcra_ko] > 0]
-  cat("mcrA-carrying OTUs (K00399):", length(mcra_otus), "\n")
-} else {
-  stop("K00399 (mcrA) not found in KO_predicted.tsv")
-}
-
-pmoa_ko <- "K10944"
-if (pmoa_ko %in% colnames(KO_df)) {
-  pmoa_otus <- rownames(KO_df)[KO_df[, pmoa_ko] > 0]
-  cat("pmoA-carrying OTUs (K10944):", length(pmoa_otus), "\n")
-} else {
-  stop("K10944 (pmoA) not found in KO_predicted.tsv")
-}
-
-# ==============================================================================
-# STEP 4: Load pathway contributions and filter plastids
-# ==============================================================================
-
-cat("\nLoading pathway contributions (this may take a few minutes)...\n")
-contrib <- fread("data/raw/picrust/path_abun_contrib.tsv", header = TRUE)
-cat("Loaded", nrow(contrib), "rows\n")
-
-# Load pathway descriptions for later use
-pathways_raw <- read.table("data/raw/picrust/path_abun_unstrat_descrip.tsv",
-                            sep = "\t", header = TRUE, quote = "")
-descriptions <- setNames(pathways_raw$description, pathways_raw$pathway)
-
-# --- Remove plastid OTU contributions ---
-n_before <- nrow(contrib)
-contrib <- contrib[!(contrib$taxon %in% plastid_otus), ]
-n_after <- nrow(contrib)
-cat("Removed", n_before - n_after, "plastid contribution rows (",
-    round(100 * (n_before - n_after) / n_before, 1), "%)\n")
-
-# ==============================================================================
-# STEP 5: Reconstruct pathway abundances (plastid-filtered)
-# ==============================================================================
-
-## Helper function: rebuild abundance matrix from contrib table
-rebuild_abundance <- function(contrib_dt, sample_names) {
-  # Filter to relevant samples first to reduce memory
-  sub <- contrib_dt[contrib_dt$sample %in% sample_names, ]
-
+## Helper: library x pathway matrix of one abundance version (pathways with a
+## non-zero abundance in the libraries; 0 where a library has none)
+rebuild_abundance <- function(col, sample_names) {
+  sub <- PW[PW$library_id %in% sample_names & PW[[col]] > 0, c("library_id", "pathway", col)]
   agg <- sub %>%
-    group_by(sample, `function`) %>%
-    summarize(abundance = sum(taxon_function_abun), .groups = "drop") %>%
-    pivot_wider(names_from = `function`, values_from = abundance, values_fill = 0) %>%
+    pivot_wider(names_from = pathway, values_from = all_of(col), values_fill = 0) %>%
     as.data.frame()
-
-  rownames(agg) <- agg$sample
-  agg <- agg[, -1, drop = FALSE]
-  return(agg)
+  rownames(agg) <- agg$library_id
+  agg[, -1, drop = FALSE]
 }
 
 ## Helper: normalize to relative abundance with prevalence filter
@@ -167,29 +91,21 @@ normalize_and_filter <- function(abun_mat, min_depth = 10000, min_prevalence = 2
 }
 
 # --- Build abundance matrices for each gene's sample set ---
-cat("\n=== Rebuilding pathway abundances (plastid-filtered) ===\n")
+cat("\n=== Pathway abundance matrices (non-organelle ASVs) ===\n")
 
-# All non-plastid OTUs (for mcrA-all, pmoA, mmoX)
+# All non-organelle ASVs (for mcrA-all, pmoA, mmoX)
 all_gene_samples <- unique(c(rownames(wood_mcra), rownames(wood_pmoa), rownames(wood_mmox)))
-abun_all <- rebuild_abundance(contrib, all_gene_samples)
-cat("All-OTU matrix:", nrow(abun_all), "samples x", ncol(abun_all), "pathways\n")
+abun_all <- rebuild_abundance("abundance", all_gene_samples)
+cat("All-ASV matrix:", nrow(abun_all), "samples x", ncol(abun_all), "pathways\n")
 
-# No-mcrA OTUs (for mcrA no-mcrA analysis)
-contrib_no_mcra <- contrib[!(contrib$taxon %in% mcra_otus), ]
-cat("Contribution rows after removing mcrA OTUs:", nrow(contrib_no_mcra), "\n")
-abun_no_mcra <- rebuild_abundance(contrib_no_mcra, rownames(wood_mcra))
-cat("No-mcrA-OTU matrix:", nrow(abun_no_mcra), "samples x", ncol(abun_no_mcra), "pathways\n")
-rm(contrib_no_mcra)
+# Without the mcrA-carrying ASVs (for mcrA no-mcrA analysis)
+abun_no_mcra <- rebuild_abundance("abundance_no_mcra_asvs", rownames(wood_mcra))
+cat("No-mcrA-ASV matrix:", nrow(abun_no_mcra), "samples x", ncol(abun_no_mcra), "pathways\n")
 
-# No-pmoA OTUs (for pmoA no-pmoA analysis)
-contrib_no_pmoa <- contrib[!(contrib$taxon %in% pmoa_otus), ]
-cat("Contribution rows after removing pmoA OTUs:", nrow(contrib_no_pmoa), "\n")
-abun_no_pmoa <- rebuild_abundance(contrib_no_pmoa, rownames(wood_pmoa))
-cat("No-pmoA-OTU matrix:", nrow(abun_no_pmoa), "samples x", ncol(abun_no_pmoa), "pathways\n")
-
-# Free memory
-rm(contrib, contrib_no_pmoa)
-gc()
+# Without the pmoA-carrying ASVs (for pmoA no-pmoA analysis)
+abun_no_pmoa <- rebuild_abundance("abundance_no_pmoa_asvs", rownames(wood_pmoa))
+cat("No-pmoA-ASV matrix:", nrow(abun_no_pmoa), "samples x", ncol(abun_no_pmoa), "pathways\n")
+rm(PW)
 
 # ==============================================================================
 # STEP 6: Match samples and normalize
@@ -341,7 +257,7 @@ pvals_pmoa_combined$mean_percent_from_pmoa[is.na(pvals_pmoa_combined$mean_percen
 # STEP 10: Save all results
 # ==============================================================================
 
-out_dir <- "data/processed/molecular/picrust"
+out_dir <- "outputs/data/picrust"
 dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
 
 write.csv(arrange(pvals_mcra_all, p),

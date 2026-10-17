@@ -170,8 +170,12 @@ cat("
   them -- any apparent ranking is an artefact. The forms are therefore not competing
   hypotheses to be selected among; they are BOUNDING SCENARIOS.
 ")
-bo <- read.csv("data/compiled/black_oak_experiment.csv", stringsAsFactors=FALSE)
-bo$h_m <- suppressWarnings(as.numeric(bo$height_m))
+# felled black oak: data/tables/flux_stem.csv (campaign 2022_felled_oak); the seam
+# deployment has no height and the 4 m repeat (after the analyzer battery died) is left
+# out, as before
+bo <- read.csv("data/tables/flux_stem.csv", stringsAsFactors=FALSE)
+bo <- bo[bo$campaign == "2022_felled_oak" & !grepl("^repeat of", ifelse(is.na(bo$notes), "", bo$notes)), ]
+bo$h_m <- bo$height_cm / 100; bo$CH4_best_flux_nmol_m2_s <- bo$CH4_flux_nmol_m2_s
 bo <- bo[is.finite(bo$h_m)&is.finite(bo$CH4_best_flux_nmol_m2_s),]
 oak_hi <- bo[bo$h_m>2,]; at2 <- bo$CH4_best_flux_nmol_m2_s[abs(bo$h_m-2)<.01][1]
 b_log <- coef(lm(log(pmax(fb,1e-9))~hq))[2]; b_lin <- coef(lm(fb~hq))
@@ -206,15 +210,15 @@ rule("PART 4  DOES THE RF NEED EXPLICIT INTERACTIONS?")
 # ==============================================================================
 d <- tree_train_complete; y <- d$stem_flux_corrected; k <- is.finite(y); d <- d[k,]; y <- y[k]
 base <- data.frame(species=factor(d$species_clean), dbh_m=d$dbh_m,
-  soil_moisture_at_tree=d$soil_moisture_at_tree, soil_temp_C_mean=d$soil_temp_C_mean,
-  air_temp_C_mean=d$air_temp_C_mean,
+  soil_moisture_at_tree=d$soil_moisture_at_tree, soil_temp_C=d$soil_temp_C,
+  air_temp_C=d$air_temp_C,
   height_cm=ifelse(is.na(d$measurement_height_cm),125,d$measurement_height_cm))
 variants <- list(
   `base (current, 7 predictors)` = base,
   `+ moisture x height`     = transform(base, mh = soil_moisture_at_tree*height_cm),
   `+ moisture x height, deeper (node 2)` = transform(base, mh = soil_moisture_at_tree*height_cm),
   `+ mois x ht, + soilT x ht` = transform(base, mh = soil_moisture_at_tree*height_cm,
-                                                th = soil_temp_C_mean*height_cm))
+                                                th = soil_temp_C*height_cm))
 cat(sprintf("\n  %-38s %10s %10s %10s\n","variant","OOB R2","mtry","min.node"))
 for (i in seq_along(variants)) {
   nm <- names(variants)[i]

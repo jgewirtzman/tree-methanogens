@@ -62,10 +62,10 @@ Xs <- as.data.frame(X_soil); ys <- soil_train_complete$y_asinh[seq_len(nrow(Xs))
 GROUPS <- list(
   TreeRF = list(species = "species", diameter = "dbh_m",
                 `soil moisture` = "soil_moisture_at_tree",
-                temperature = c("soil_temp_C_mean", "air_temp_C_mean"),
+                temperature = "soil_temp_C",   # air temperature dropped from both forests 2026-10-17
                 `measurement height` = "height_cm"),
   SoilRF = list(`soil moisture` = "soil_moisture_at_site",
-                temperature = c("soil_temp_C_mean", "air_temp_C_mean"),
+                temperature = "soil_temp_C",   # air temperature dropped from both forests 2026-10-17
                 month = "month"))
 
 # 50 random 70/30 splits, not 10: with 10 the stem shares moved by up to 7 points between
@@ -181,8 +181,8 @@ pdp <- function(m, dat, xv, n = 40) {
 }
 PD_LAB <- c(soil_moisture_at_tree = "Soil moisture (m\u00b3/m\u00b3)",
             soil_moisture_at_site = "Soil moisture (m\u00b3/m\u00b3)",
-            soil_temp_C_mean = "Soil temperature (\u00b0C)",
-            air_temp_C_mean  = "Air temperature (\u00b0C)",
+            soil_temp_C = "Soil temperature (\u00b0C)",
+            air_temp_C  = "Air temperature (\u00b0C)",
             dbh_m = "DBH (m)",                       # was mislabelled a z-score
             height_cm = "Measurement height (cm)",
             month = "Month")
@@ -218,10 +218,9 @@ pd_grid <- function(m, X, vars, ttl, col) {
           plot.title = element_text(face = "bold", size = 13))
 }
 pe_ <- pd_grid(TreeRF, Xt, c("soil_moisture_at_tree", "dbh_m",
-                             "height_cm", "soil_temp_C_mean"),
+                             "height_cm", "soil_temp_C"),
                "(e)", TREE_COL)
-pf_ <- pd_grid(SoilRF, Xs, c("soil_moisture_at_site", "soil_temp_C_mean",
-                             "air_temp_C_mean", "month"),
+pf_ <- pd_grid(SoilRF, Xs, c("soil_moisture_at_site", "soil_temp_C", "month"),
                "(f)", SOIL_COL)
 
 fig <- (pa_ | pc_ | pe_) / (pb_ | pd_ | pf_) +

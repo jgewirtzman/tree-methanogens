@@ -16,14 +16,19 @@
 #           methanotroph genus (Methylocapsa, Methylocella, Methyloferula), within
 #           PLACE_MAX_DIST substitutions per site
 #
+# Survey samples: 2021 DNA samples whose 16S library has at least RAREFY_DEPTH (3500)
+# non-organelle reads, the libraries the main 16S analysis keeps (code/lib/build_phyloseq.R).
 # For each grouping and compartment it reports the mean share of the community,
 # prevalence, and Spearman correlations with ddPCR pmoA and mmoX in the same
 # extracts (all samples, zeros included). The felled black oak is summarised by
 # tissue at the order, family and genus levels (its ASVs are not on the tree).
 #
-# Reads:  data/raw/16s/OTU_table.txt, unrooted_tree.nwk,
-#         data/raw/external/tree-microbiome/tree_data_methanogen_group.csv,
-#         data/raw/16s/black_oak/OTU_table.txt, code/lib/methanotroph_definitions.csv
+# Reads:  data/tables/ via code/lib/tables_read.R: asv_table("main") and
+#           asv_table("felled_oak") (ASV counts + taxonomy), dna_samples("2021_survey")
+#           (16S library -> sample, compartment, ddPCR pmoA/mmoX copies per uL extract),
+#           dna_samples("2022_felled_oak") (library -> felled-oak tissue)
+#         data/raw/16s/unrooted_tree.nwk (the ASV tree; no table holds it),
+#         code/lib/methanotroph_definitions.csv
 # Writes: outputs/data/methanotroph_resolution.csv (survey, by compartment)
 #         outputs/data/methanotroph_resolution_placement.csv (unresolved ASVs)
 #         outputs/data/methanotroph_placed_asvs.csv (tree-placed ASV ids, read by
@@ -33,21 +38,16 @@
 # ==============================================================================
 suppressMessages({ library(ape); library(dplyr) })
 source("code/lib/outputs.R"); source("code/lib/load_methanotroph_definitions.R")
-num <- function(x) suppressWarnings(as.numeric(x))
+source("code/lib/tables_read.R"); source("code/lib/build_phyloseq.R")   # RAREFY_DEPTH
 PLACE_MAX_DIST <- 0.03          # ~97% identity over V4
 MT_GENERA <- c("Methylocapsa", "Methylocella", "Methyloferula")
 NONMT_GENERA <- c("Methylobacterium-Methylorubrum", "1174-901-12", "Roseiarcus", "Bosea", "Microvirga")
 unres <- function(g) is.na(g) | g == "" | tolower(g) %in% c("none", "unclassified", "uncultured")
 
 # ---- survey 16S -------------------------------------------------------------
-otu <- read.delim("data/raw/16s/OTU_table.txt", header = TRUE, row.names = 1, check.names = FALSE)
-taxc <- intersect(c("Kingdom","Phylum","Class","Order","Family","Genus","Species"), names(otu))
-tax <- otu[, taxc]; for (k in taxc) tax[[k]] <- trimws(tax[[k]])
-cnt <- as.matrix(sapply(otu[, setdiff(names(otu), taxc), drop = FALSE], num)); rownames(cnt) <- rownames(otu)
-# organelle reads out of the denominator, as in the main analysis (build_16s_phyloseq)
-org <- tax$Family %in% "Mitochondria" | tax$Order %in% "Chloroplast"
-cnt <- cnt[!org, , drop = FALSE]; tax <- tax[!org, , drop = FALSE]
-tot <- colSums(cnt, na.rm = TRUE)
+# organelle reads out of the denominator, as in the main analysis (asv_reads(); the
+# rule build_16s_phyloseq() applies)
+A <- asv_reads("main"); cnt <- A$cnt; tax <- A$tax; tot <- A$tot
 keep_s <- tot >= 1000; cnt <- cnt[, keep_s]; tot <- tot[keep_s]
 rel <- sweep(cnt, 2, tot, "/") * 100
 defs <- load_methanotroph_defs()
@@ -85,14 +85,12 @@ GROUPS <- list(
   "Placed: Known + tree-placed Putative"                     = union(rownames(tax)[tax$mt == "Known"], placed_mt))
 
 # ---- pair with ddPCR ----------------------------------------------------------
-key <- sub("[.]16S[.]S[0-9]*$", "", colnames(rel))
-o <- read.csv("data/raw/external/tree-microbiome/tree_data_methanogen_group.csv", check.names = FALSE); o <- o[, names(o) != ""]
-o$key <- paste0(o$seq_id, o$core_type)
+# 16S library -> DNA sample (samples_16S.csv); ddPCR copies per uL extract (ddpcr.csv)
+ds <- dna_samples("2021_survey")
 COMP <- c(Inner = "Heartwood", Outer = "Sapwood", Mineral = "Mineral soil", Organic = "Organic soil")
-o$comp <- COMP[o$core_type]
-idx <- match(key, o$key)
-smp <- data.frame(col = colnames(rel), comp = o$comp[idx], pmoa = num(o$pmoa_loose[idx]), mmox = num(o$mmox_loose[idx]))
-smp <- smp[!is.na(smp$comp), ]
+idx <- match(colnames(rel), ds$library_id)
+smp <- data.frame(col = colnames(rel), comp = unname(COMP[ds$core_type[idx]]), pmoa = ds$pmoa_ul[idx], mmox = ds$mmox_ul[idx])
+smp <- smp[!is.na(smp$comp) & tot[smp$col] >= RAREFY_DEPTH, ]
 
 R <- do.call(rbind, lapply(names(GROUPS), function(g) {
   a <- intersect(GROUPS[[g]], rownames(rel))
@@ -127,15 +125,20 @@ SENS <- do.call(rbind, lapply(c(0.02, 0.03, 0.04), function(thr) {
 write.csv(SENS, out_path("methanotroph_placement_sensitivity.csv"), row.names = FALSE)
 
 # ---- black oak, by tissue -------------------------------------------------------
-bo <- read.table("data/raw/16s/black_oak/OTU_table.txt", header = TRUE, sep = "\t", stringsAsFactors = FALSE)
-bo <- bo[!(trimws(bo$Family) %in% "Mitochondria" | trimws(bo$Order) %in% "Chloroplast"), ]   # organelles out, as above
-bnum <- names(bo)[sapply(bo, is.numeric)]; btot <- colSums(bo[bnum], na.rm = TRUE); bnum <- bnum[btot >= 1000]
-brel <- sweep(as.matrix(bo[bnum]), 2, btot[bnum], "/") * 100
-for (k in c("Order", "Family", "Genus")) bo[[k]] <- trimws(bo[[k]])
+BA <- asv_reads("felled_oak"); bo <- BA$tax                                   # organelles out, as above
+bnum <- colnames(BA$cnt)[BA$tot >= 1000]
+brel <- sweep(BA$cnt[, bnum, drop = FALSE], 2, BA$tot[bnum], "/") * 100
 bo$mt <- classify_methanotrophs(data.frame(Family = bo$Family, Genus = bo$Genus, stringsAsFactors = FALSE), defs, include_conditional = FALSE)
-tissue <- function(s) dplyr::case_when(grepl("HEART", s) ~ "Heartwood", grepl("SAP", s) ~ "Sapwood", grepl("BARK", s) ~ "Bark",
-  grepl("FOLIAGE", s) ~ "Foliage", grepl("BRANCH", s) ~ "Branch", grepl("LITTER", s) ~ "Litter", grepl("MINERAL", s) ~ "Mineral soil",
-  grepl("ORGANIC", s) ~ "Organic soil", grepl("ROT", s) ~ "Rot", grepl("COARSE", s) ~ "Coarse root", grepl("FINE", s) ~ "Fine root", TRUE ~ NA_character_)
+# tissue of each library: the sample's position in samples.csv (via samples_16S.csv), grouped
+# as before: branch bark with Bark, branch interior with Branch, root epidermis/interior with
+# Coarse root
+TISSUE <- c(Heartwood = "Heartwood", Sapwood = "Sapwood", Bark = "Bark", Branch = "Branch",
+            `Branch bark` = "Bark", `Branch interior` = "Branch", Foliage = "Foliage", Litter = "Litter",
+            Mineral = "Mineral soil", Organic = "Organic soil", `Heart rot` = "Rot", `Coarse root` = "Coarse root",
+            `Coarse root epidermis` = "Coarse root", `Coarse root interior` = "Coarse root", `Fine root` = "Fine root")
+bds <- dna_samples("2022_felled_oak")
+tissue <- function(lib) unname(TISSUE[bds$core_type[match(lib, bds$library_id)]])
+stopifnot(!anyNA(tissue(bnum)))
 BG <- list("Order: Methylococcales" = bo$Order %in% "Methylococcales",
            "Order: Methylacidiphilales" = bo$Order %in% "Methylacidiphilales",
            "Family: Beijerinckiaceae (all)" = bo$Family %in% "Beijerinckiaceae",

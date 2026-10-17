@@ -17,9 +17,14 @@
 # trees.csv's: tree_id, species_code and dbh_cm, and the position of the tree's
 # census stem (or its GPS point), so one physical tree has one id, species, DBH and
 # position across campaigns.
-# Environmental covariates are the per-deployment values of flux_stem / flux_soil
-# (air_temp_C, soil_temp_C, soil_vwc; their env_source column says where each came
-# from). Run from code/05_model/ (pipeline workdir = script).
+# Training on the conditions at the measurement (2026-10-17). Air temperature
+# (flux_stem / flux_soil air_temp_C, the value measured at the deployment) is carried
+# but is not a predictor of the locked forests (dropped 2026-10-17; the with-air
+# forests are the sensitivity 05_model/15_rf_air_temperature_test.R). The monthly 24-h
+# tower climatologies (section 11) drive the stand predictions only. Soil temperature and VWC: attached
+# from data/tables/soil_readings.csv by code/lib/soil_fill.R attach_soil() -- the one
+# soil rule -- with soil_match recording how each was found ("none": no reading
+# within 3 days; the value stays NA here). Run from code/05_model/ (workdir = script).
 #
 # "# KNOWN:" marks current behaviour that is a candidate for revision.
 #
@@ -40,6 +45,7 @@ cat("Started at:", format(Sys.time()), "\n\n")
 TAB <- "../../data/tables"
 source("../lib/geometry.R")         # geodetic_transform(), geodetic_inverse()
 source("../lib/species_levels.R")   # MODEL_SPECIES
+source("../lib/soil_fill.R")        # attach_soil(): soil temperature and VWC from soil_readings
 
 # Every column as text. Numbers: the tables hold write_csv's round-trip decimal
 # text, which a correctly rounded parser (jsonlite, i.e. C strtod) reads back to the
@@ -119,9 +125,12 @@ stopifnot(!anyDuplicated(TREE_ATTR$tree_id),
           all(is.na(TREE_ATTR$x) == is.na(TREES$longitude)))
 # DBH of a deployment: the diameter recorded at that measurement where there is one
 # (2023: the field sheet, flux_stem dbh_recorded_cm; monthly survey: the survey's tree
-# list; 2021: the 2021 survey consensus -- for those two, trees.dbh_cm is that record
-# when its dbh_source says so), else the tree's trees.dbh_cm.
-DBH_RECORD <- c(monthly_2020_2021 = "^monthly survey tree list", `2021_multiheight` = "^2021 survey DBH")
+# list; 2021: the 2021 datasheets or tree DBH list -- for those two, trees.dbh_cm is that
+# record when its dbh_source says so), else the tree's trees.dbh_cm. Measured DBH only:
+# trees with no recorded DBH (six 2021 trees; trees.csv dbh_cm NA) keep dbh_m NA, and
+# the random forest takes the missing value natively (ranger 0.17), so their
+# deployments stay in training. dbh_source is carried per row.
+DBH_RECORD <- c(monthly_2020_2021 = "^monthly survey tree list", `2021_multiheight` = "^2021 (flux datasheet|tree DBH list)")
 deployment_dbh_m <- function(flux) {
   i <- match(flux$tree_id, TREES$tree_id)
   own <- ifelse(flux$campaign %in% names(DBH_RECORD) &
@@ -130,7 +139,21 @@ deployment_dbh_m <- function(flux) {
   rec <- coalesce(num(flux$dbh_recorded_cm), own)
   cat(sprintf("  DBH: %d of %d deployments at the diameter recorded with them; %d from trees.csv; %d none\n",
               sum(!is.na(rec)), nrow(flux), sum(is.na(rec) & !is.na(TREES$dbh_cm[i])), sum(is.na(rec) & is.na(TREES$dbh_cm[i]))))
-  coalesce(rec, num(TREES$dbh_cm[i])) / 100
+  out <- coalesce(rec, num(TREES$dbh_cm[i])) / 100
+  # a missing DBH must be one trees.csv records as never measured
+  stopifnot(all(TREES$dbh_source[i][is.na(out)] %in% "none: no DBH measurement recorded"))
+  if (anyNA(out)) cat(sprintf("  DBH not measured (dbh_m NA, kept): %s\n", paste(unique(flux$tree_id[is.na(out)]), collapse = ", ")))
+  out
+}
+deployment_dbh_source <- function(flux) {
+  i <- match(flux$tree_id, TREES$tree_id)
+  ifelse(!is.na(num(flux$dbh_recorded_cm)), "flux_stem dbh_recorded_cm (2023 field sheet)", paste("trees.csv:", TREES$dbh_source[i]))
+}
+# soil temperature and VWC (fraction) at a deployment: code/lib/soil_fill.R
+soil_at <- function(flux, unit) {
+  a <- attach_soil(flux[, c(if (unit == "tree") "tree_id" else "collar_id", "start_time")],
+                   if (unit == "tree") "tree_id" else "collar_id", "start_time", unit)
+  data.frame(soil_temp_C = a$soil_temp_C, soil_moisture_abs = a$soil_vwc_pct / 100, soil_match = a$soil_match)
 }
 tree_attr <- function(tree_id) {
   a <- TREE_ATTR[match(tree_id, TREE_ATTR$tree_id), ]
@@ -141,10 +164,11 @@ tree_attr <- function(tree_id) {
 PLOT_AREA <- num(SITE$plot_side_m)^2
 
 # =============================================================================
-# 4. WEATHER (monthly air-temperature drivers)
+# 4. TOWER RECORD (the monthly 24-h air-temperature climatology, section 11)
 # =============================================================================
 # Hourly records by local true time (weather.csv timestamp: the end of the hour; the
-# local wall-clock digits, as wall()).
+# local wall-clock digits, as wall()). Training rows take the air temperature measured
+# at the deployment (flux_stem / flux_soil air_temp_C), not a value from this record.
 weather_clean <- data.frame(TIMESTAMP = wall(WEATHER$timestamp),
                             air_temp_C = num(WEATHER$air_temp_avg_C)) %>%
   filter(!is.na(air_temp_C)) %>%
@@ -158,9 +182,8 @@ cat("Weather:", nrow(weather_clean), "records,", format(min(weather_clean$TIMEST
 # One row per deployment, dated at its own logged start. Kalmia is read at 75 cm,
 # else at the root crown: a root-crown deployment on a tree that also has a 75 cm
 # one is left out.
-# Soil temperature and VWC: flux_stem's (the tree mean of the 2021 survey soil
-# readings; for WP6 and WP8, filed under a second spelling of the tree, the mean of
-# the tree's soil_readings by tree_id -- 10_flux_stem.R).
+# Soil temperature and VWC: attach_soil(unit = "tree") -- the tree's 2021 survey holes
+# read within 3 days of the deployment.
 # KNOWN: 75 cm and root-crown deployments carry no measurement height
 #   (02_rf_models.R reads a missing height as 125 cm).
 h21 <- FLUX %>% filter(campaign == "2021_multiheight")
@@ -168,15 +191,16 @@ rc <- h21$height_label %in% "root crown"
 stopifnot(all(rc | num(h21$height_cm) %in% c(50, 75, 125, 200)))
 h21 <- h21[!(rc & h21$tree_id %in% h21$tree_id[num(h21$height_cm) %in% 75]), ]
 a21 <- tree_attr(h21$tree_id)
+s21 <- soil_at(h21, "tree")
 TREE_JULY_2021 <- h21 %>%
   transmute(
-    measurement_id, tree_id,
+    measurement_id, tree_id, in_rf_training = in_rf_training == "TRUE",
     species = a21$species, species_code = a21$species_code,
     Date = wall(start_time), month = month(Date), year = year(Date),
     stem_flux_umol_m2_s = num(CH4_flux_nmol_m2_s),
     air_temp_C = num(air_temp_C),
-    soil_temp_C = num(soil_temp_C), soil_moisture_abs = num(soil_vwc),
-    dbh_m = deployment_dbh_m(h21), chamber_type = "rigid",
+    soil_temp_C = s21$soil_temp_C, soil_moisture_abs = s21$soil_moisture_abs, soil_match = s21$soil_match,
+    dbh_m = deployment_dbh_m(h21), dbh_source = deployment_dbh_source(h21), chamber_type = "rigid",
     measurement_height_cm = ifelse(num(height_cm) %in% c(50, 125, 200), num(height_cm), NA_real_),
     x = a21$x, y = a21$y) %>%
   filter(!is.na(stem_flux_umol_m2_s))
@@ -193,17 +217,16 @@ cat(sprintf("  dates %s to %s, %d field days\n", format(min(TREE_JULY_2021$Date)
 # =============================================================================
 y23 <- FLUX %>% filter(campaign == "2023_cross_species")
 a23 <- tree_attr(y23$tree_id)
+s23 <- soil_at(y23, "tree")      # the 2023 field-sheet readings (soil_readings), same date
 TREE_JULY_2023 <- y23 %>%
   transmute(
-    measurement_id, tree_id,
+    measurement_id, tree_id, in_rf_training = in_rf_training == "TRUE",
     species = a23$species, species_code = a23$species_code,
     Date = as.POSIXct(date, tz = "UTC"), month = month(Date), year = year(Date),
     stem_flux_umol_m2_s = num(CH4_flux_nmol_m2_s),
-    # where the sheet has no air temperature (none at present), flux_stem air_temp_C
-    # is the tower reading at the corrected start.
     air_temp_C = num(air_temp_C),
-    soil_temp_C = num(soil_temp_C), soil_moisture_abs = num(soil_vwc),
-    dbh_m = deployment_dbh_m(y23), chamber_type = "rigid", x = a23$x, y = a23$y) %>%
+    soil_temp_C = s23$soil_temp_C, soil_moisture_abs = s23$soil_moisture_abs, soil_match = s23$soil_match,
+    dbh_m = deployment_dbh_m(y23), dbh_source = deployment_dbh_source(y23), chamber_type = "rigid", x = a23$x, y = a23$y) %>%
   filter(!is.na(stem_flux_umol_m2_s))
 cat(sprintf("2023 campaign: %d deployments on %d trees (%d without a position)\n", nrow(TREE_JULY_2023),
             n_distinct(TREE_JULY_2023$tree_id), sum(is.na(TREE_JULY_2023$x))))
@@ -221,21 +244,22 @@ cat(sprintf("TREE_JULY: %d rows from %d trees (2021 %d, 2023 %d); with coordinat
 # 8. TREE_YEAR: monthly survey 2020-21 (semi-rigid chambers, 125 cm)
 # =============================================================================
 # KNOWN: the 45 rescued untagged deployments are dated at 12:00 of their date, the
-#   others at the logged start (flux_stem air_temp_C is the tower reading at the
-#   start for both).
-# KNOWN: soil temperature and VWC are flux_stem's: the collar readings averaged by
-#   date and landscape position, nearest date within 3 days.
+#   others at the logged start.
+# Soil temperature and VWC: attach_soil(unit = "tree") -- the collar readings averaged
+#   over the tree's landscape position (trees.csv), that date or within 3 days.
 mon <- FLUX %>% filter(campaign == "monthly_2020_2021")
 am <- tree_attr(mon$tree_id)
+smo <- soil_at(mon, "tree")
 TREE_YEAR <- mon %>%
   transmute(
-    measurement_id, tree_id,
+    measurement_id, tree_id, in_rf_training = in_rf_training == "TRUE",
     species = am$species, species_code = am$species_code,
     Date = if_else(untagged_rescue == "TRUE", as.POSIXct(paste(date, "12:00:00"), tz = "UTC"), wall(start_time)),
     month = month(Date), year = year(Date),
     stem_flux_umol_m2_s = num(CH4_flux_nmol_m2_s),
-    air_temp_C = num(air_temp_C), soil_temp_C = num(soil_temp_C), soil_moisture_abs = num(soil_vwc),
-    chamber_type = "semirigid", dbh_m = deployment_dbh_m(mon), x = am$x, y = am$y) %>%
+    air_temp_C = num(air_temp_C),
+    soil_temp_C = smo$soil_temp_C, soil_moisture_abs = smo$soil_moisture_abs, soil_match = smo$soil_match,
+    chamber_type = "semirigid", dbh_m = deployment_dbh_m(mon), dbh_source = deployment_dbh_source(mon), x = am$x, y = am$y) %>%
   filter(!is.na(stem_flux_umol_m2_s))
 stopifnot(!anyDuplicated(c(TREE_JULY$measurement_id, TREE_YEAR$measurement_id)))
 cat(sprintf("TREE_YEAR: %d deployments from %d trees; soil moisture for %d; %d without a position\n\n",
@@ -247,12 +271,12 @@ cat(sprintf("TREE_YEAR: %d deployments from %d trees; soil moisture for %d; %d w
 # =============================================================================
 # Deployments that failed the closure screen (flux_soil qc_pass) and the two collars
 # outside the stand (collars in_stand: WS_1-1, WS_1-2) are left out.
-# Air temperature is flux_soil's: the tower reading at the logged start (true time).
-# KNOWN: soil temperature and VWC are flux_soil's: the collar's own reading that
-#   date, else the plot-tag mean that date (soilmoisture_total.csv).
+# Air temperature: flux_soil air_temp_C, the tower hour containing the logged start.
+# Soil temperature and VWC: attach_soil(unit = "collar") (soil_match says which step).
 in_stand_collar <- COLLARS$collar_id[COLLARS$in_stand == "TRUE"]
+FLUX_S <- FLUX_S %>% filter(qc_pass == "TRUE")
+ssy <- soil_at(FLUX_S, "collar")
 SOIL_YEAR <- FLUX_S %>%
-  filter(qc_pass == "TRUE") %>%
   transmute(
     site_id = collar_id,
     Date = as.POSIXct(as.Date(date), tz = "UTC"),
@@ -260,8 +284,8 @@ SOIL_YEAR <- FLUX_S %>%
     year = year(Date),
     soil_flux_umol_m2_s = num(CH4_flux_nmol_m2_s),
     air_temp_C = num(air_temp_C),
-    soil_temp_C = num(soil_temp_C),
-    soil_moisture_abs = num(soil_vwc)) %>%
+    soil_temp_C = ssy$soil_temp_C,
+    soil_moisture_abs = ssy$soil_moisture_abs, soil_match = ssy$soil_match) %>%
   filter(!is.na(soil_flux_umol_m2_s))
 n_before_stand <- nrow(SOIL_YEAR)
 SOIL_YEAR <- SOIL_YEAR %>% filter(site_id %in% in_stand_collar)
@@ -269,7 +293,7 @@ SOIL_YEAR <- SOIL_YEAR %>%
   mutate(x = num(COLLARS$longitude[match(site_id, COLLARS$collar_id)]),
          y = num(COLLARS$latitude[match(site_id, COLLARS$collar_id)])) %>%
   select(site_id, Date, month, year, soil_flux_umol_m2_s, air_temp_C,
-         soil_temp_C, soil_moisture_abs, x, y)
+         soil_temp_C, soil_moisture_abs, soil_match, x, y)
 stopifnot(!anyNA(SOIL_YEAR$x), !anyNA(SOIL_YEAR$y))
 cat(sprintf("SOIL_YEAR: %d deployments on %d collars (%d on out-of-stand collars dropped)\n\n",
             nrow(SOIL_YEAR), length(unique(SOIL_YEAR$site_id)), n_before_stand - nrow(SOIL_YEAR)))
@@ -277,11 +301,15 @@ cat(sprintf("SOIL_YEAR: %d deployments on %d collars (%d on out-of-stand collars
 # =============================================================================
 # 10. DECEMBER 2020 MOISTURE RASTER
 # =============================================================================
-# Survey points plus the stream-channel flags at saturation (VWC = 1), interpolated
-# (akima, linear) onto a 100 x 100 lon/lat grid.
+# Survey points plus the stream-channel flags, interpolated (akima, linear) onto a
+# 100 x 100 lon/lat grid. STREAM_VWC: no VWC was measured at the stream flags
+# (stream_points.csv); they are set to saturation, VWC = 1. This is the one place that
+# assumption is made. (The thin-plate moisture surface that drives the predictions,
+# 04_drivers/04_moisture_surface.R, uses the survey points only.)
+STREAM_VWC <- 1.0
 combined_moisture <- rbind(
   data.frame(Longitude = num(MOIST$longitude), Latitude = num(MOIST$latitude), VWC = num(MOIST$soil_vwc_pct) / 100),
-  data.frame(Longitude = num(STREAM$longitude), Latitude = num(STREAM$latitude), VWC = 1.0))
+  data.frame(Longitude = num(STREAM$longitude), Latitude = num(STREAM$latitude), VWC = STREAM_VWC))
 lon_range <- range(combined_moisture$Longitude)
 lat_range <- range(combined_moisture$Latitude)
 MOISTURE_DEC_RASTER <- interp(
@@ -312,39 +340,34 @@ cat("December moisture raster:", length(MOISTURE_DEC_RASTER$x), "x", length(MOIS
 # =============================================================================
 # 11. MONTHLY DRIVERS
 # =============================================================================
-# KNOWN: air by calendar month of the local true time, all years pooled; soil
-#   temperature by month from the training rows themselves (TREE_JULY, TREE_YEAR,
-#   SOIL_YEAR).
+# The stand-prediction drivers (not training inputs): 24-h climatologies over the
+# climatology years (CLIM_YEARS; the years of the moisture climatology,
+# 04_drivers/02_moisture_climatology.R).
+# Air: the mean of the tower's hourly air temperature by calendar month of the local
+#   true time, CLIM_YEARS.
+# Soil temperature: the monthly climatology of code/04_drivers/00_soil_temp_climatology.R
+#   (soil_readings date means regressed on trailing tower air, applied to CLIM_YEARS).
+CLIM_YEARS <- 2019:2022
 air_monthly <- weather_clean %>%
+  filter(year(TIMESTAMP) %in% CLIM_YEARS) %>%
   mutate(month = month(TIMESTAMP)) %>%
   group_by(month) %>%
   summarise(
-    air_temp_C_mean = mean(air_temp_C, na.rm = TRUE),
-    air_temp_C_sd = sd(air_temp_C, na.rm = TRUE),
+    air_temp_C_mean = mean(air_temp_C),
+    air_temp_C_sd = sd(air_temp_C),
     .groups = "drop"
   )
-soil_monthly <- bind_rows(
-  TREE_JULY %>% select(month, soil_temp_C),
-  TREE_YEAR %>% select(month, soil_temp_C),
-  SOIL_YEAR %>% select(month, soil_temp_C)
-) %>%
-  filter(!is.na(soil_temp_C)) %>%
-  group_by(month) %>%
-  summarise(
-    soil_temp_C_mean = mean(soil_temp_C, na.rm = TRUE),
-    soil_temp_C_sd = sd(soil_temp_C, na.rm = TRUE),
-    n_obs = n(),
-    .groups = "drop"
-  ) %>%
-  mutate(
-    soil_temp_C_mean = ifelse(is.nan(soil_temp_C_mean), NA_real_, soil_temp_C_mean),
-    soil_temp_C_sd = ifelse(is.nan(soil_temp_C_sd), NA_real_, soil_temp_C_sd)
-  )
+STCLIM <- read.csv("../../outputs/tables/soil_temp_climatology_monthly.csv")
+soil_monthly <- data.frame(month = STCLIM$mo, soil_temp_C_mean = STCLIM$soil_temp_C)
+stopifnot(setequal(soil_monthly$month, 1:12), !anyNA(soil_monthly$soil_temp_C_mean))
 DRIVERS <- tibble(month = 1:12) %>%
   left_join(air_monthly, by = "month") %>%
   left_join(soil_monthly, by = "month")
 cat("Monthly drivers: air", sum(!is.na(DRIVERS$air_temp_C_mean)), "months, soil",
-    sum(!is.na(DRIVERS$soil_temp_C_mean)), "months\n")
+    sum(!is.na(DRIVERS$soil_temp_C_mean)), "months (soil_temp_climatology_monthly.csv)\n")
+cat("Soil readings attached (soil_match):\n")
+print(table(table = rep(c("TREE_JULY", "TREE_YEAR", "SOIL_YEAR"), c(nrow(TREE_JULY), nrow(TREE_YEAR), nrow(SOIL_YEAR))),
+            soil_match = c(TREE_JULY$soil_match, TREE_YEAR$soil_match, SOIL_YEAR$soil_match)))
 
 # =============================================================================
 # 12. CHECKS AND SAVE

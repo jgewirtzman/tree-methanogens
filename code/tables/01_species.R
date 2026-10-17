@@ -5,8 +5,8 @@ source("code/lib/outputs.R")
 # ------------------------------------------------------------------------------
 # Codes come from the stand census, the four flux campaigns, internal gas, ddPCR
 # and the trait table. Binomials are those of the species_mapping vectors in the
-# analysis scripts (all agree code by code; 08_dbh_by_species_campaign.R reports
-# BEPO and CALA at genus level as uncertain field identifications) and of
+# analysis scripts (all agree code by code; BEPO and CALA are given at genus level,
+# see GENUS LEVEL below) and of
 # code/lib/trait_species.csv; family/order/class are those the model's TAXONOMY used,
 # extended to the census-only genera. The model takes its TAXONOMY from this table
 # (codes MODEL_SPECIES, code/lib/species_levels.R). "TSLA" (2021 aux file)
@@ -20,6 +20,14 @@ suppressPackageStartupMessages(library(tidyverse))
 source("code/lib/tree_ids.R"); source("code/lib/geometry.R"); source("code/lib/species_levels.R")
 OUT <- "data/tables"; dir.create(OUT, showWarnings = FALSE, recursive = TRUE)
 
+# GENUS LEVEL. BEPO (gray birch, Betula populifolia) and CALA (shellbark hickory, Carya
+# laciniosa) were written only on the 2023 in-plot sheet (2 and 1 trees) and occur in
+# neither census of the stand; they are uncertain field identifications and are
+# reported at genus level (decided earlier; 08_dbh_by_species_campaign.R did this by
+# hand). species and common_name say so here, so no analysis needs a special case.
+GENUS_LEVEL <- tibble(species_code = c("BEPO", "CALA"),
+  note = c("2023 field code for gray birch (Betula populifolia); not in either census: reported at genus level",
+           "2023 field code for shellbark hickory (Carya laciniosa); not in either census: reported at genus level"))
 SP <- tribble(
   ~species_code, ~species,                  ~common_name,              ~family,          ~order,         ~class,
   "ACPE",        "Acer pensylvanicum",      "striped maple",           "Sapindaceae",    "Sapindales",   "Magnoliopsida",
@@ -29,8 +37,8 @@ SP <- tribble(
   "BEAL",        "Betula alleghaniensis",   "yellow birch",            "Betulaceae",     "Fagales",      "Magnoliopsida",
   "BELE",        "Betula lenta",            "black birch",             "Betulaceae",     "Fagales",      "Magnoliopsida",
   "BEPA",        "Betula papyrifera",       "paper birch",             "Betulaceae",     "Fagales",      "Magnoliopsida",
-  "BEPO",        "Betula populifolia",      "gray birch",              "Betulaceae",     "Fagales",      "Magnoliopsida",
-  "CALA",        "Carya laciniosa",         "shellbark hickory",       "Juglandaceae",   "Fagales",      "Magnoliopsida",
+  "BEPO",        "Betula sp.",              "birch",                   "Betulaceae",     "Fagales",      "Magnoliopsida",
+  "CALA",        "Carya sp.",               "hickory",                 "Juglandaceae",   "Fagales",      "Magnoliopsida",
   "CAOV",        "Carya ovata",             "shagbark hickory",        "Juglandaceae",   "Fagales",      "Magnoliopsida",
   "FAGR",        "Fagus grandifolia",       "American beech",          "Fagaceae",       "Fagales",      "Magnoliopsida",
   "FRAM",        "Fraxinus americana",      "white ash",               "Oleaceae",       "Lamiales",     "Magnoliopsida",
@@ -47,7 +55,8 @@ SP <- tribble(
   "TSCA",        "Tsuga canadensis",        "eastern hemlock",         "Pinaceae",       "Pinales",      "Pinopsida",
   "VACO",        "Vaccinium corymbosum",    "highbush blueberry",      "Ericaceae",      "Ericales",     "Magnoliopsida") %>%
   mutate(genus = sub(" .*", "", species), gymnosperm = class == "Pinopsida") %>%
-  select(species_code, species, common_name, genus, family, order, class, gymnosperm)
+  left_join(GENUS_LEVEL, by = "species_code") %>%
+  select(species_code, species, common_name, genus, family, order, class, gymnosperm, note)
 stopifnot(!anyDuplicated(SP$species_code), !anyDuplicated(SP$species))
 
 # ---- every code in use has a row ---------------------------------------------------

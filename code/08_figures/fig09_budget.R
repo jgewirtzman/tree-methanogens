@@ -156,9 +156,7 @@ pb <- ggplot(tree_pts %>% arrange(flux_nmol_m2_s), aes(PX, PY, color = flux_nmol
 # ---- north arrow, rotated by the plot's own rotation ------------------------
 # The axes are metres, so no scale bar is needed. The plot is rotated from north,
 # so the needle is drawn at that angle rather than pointing up the page.
-.rot <- local({ e <- new.env()
-  load("data/processed/integrated/rf_workflow_input_data_with_2023.RData", envir = e)
-  e$rf_workflow_data$rotation_angle })
+.rot <- read.csv("data/tables/site.csv")$rotation_rad   # plot-axis rotation from grid north
 # Placed in the BOTTOM-RIGHT, inside the uncensused quadrat staircase (PX 140-200,
 # PY 0-60), which carries no stems and no soil cells -- genuinely empty space rather
 # than somewhere the marker has to compete with data.

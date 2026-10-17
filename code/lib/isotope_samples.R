@@ -1,9 +1,10 @@
 # ==============================================================================
 # isotope_samples.R -- the one definition of the whole-tree delta13C sample set
 # ------------------------------------------------------------------------------
-# Used by 12_isotopes-canonical.R, figS17_isotope-sources.R,
-# 11a_isotope_d13ch4_single.R and 20_manuscript_statistics.R. Until 2026-10-01 each
-# selected samples its own way, and the paper quoted two sets that disagreed
+# Applied once, by code/tables/33_isotopes.R, which reads the raw Picarro runs and flags
+# the set in data/tables/isotopes.csv (in_whole_tree_set; tree_id via tree_tags,
+# species via trees.csv). Analyses read that table (code/lib/tables_read.R), never this
+# file. Until 2026-10-01 each analysis selected samples its own way, and the paper quoted two sets that disagreed
 # (n = 125, median -63.7 vs n = 130, median -63.0):
 #   - three scripts kept only samples whose name matched a species in the ddPCR
 #     metadata, dropping three real hemlocks (H6, H7, H304) and both redo runs;
@@ -18,8 +19,10 @@
 # by robust (MM) regression in the source estimate, medians and rank statistics
 # elsewhere, with a Tukey 3 x IQR exclusion reported as a sensitivity check
 # (12_isotopes-canonical.R). Where a "_Redo" exists, the redo replaces the original -- the same
-# rule 03_process_internal_gas.R applies to the GC data. Species comes from the
-# ddPCR metadata, else from the internal-gas table (same tree IDs).
+# rule 03_process_internal_gas.R applies to the GC data. (Species is not attached here:
+# since 2026-10-16 it comes from trees.csv through the table, not from the raw ddPCR
+# metadata or the processed gas table. The atmosphere-vial selector, which nothing
+# called, is removed; tables_read.R reads the atmosphere vials from isotopes.csv.)
 # ==============================================================================
 suppressPackageStartupMessages({ library(dplyr); library(readr); library(purrr); library(stringr) })
 
@@ -44,17 +47,6 @@ isotope_whole_tree_samples <- function(raw = picarro_runs()) {
     mutate(tree_id = sub("_Redo$", "", SampleName)) %>%
     filter(!is.na(d13CH4), ch4_ppm >= ISO_CH4_FLOOR)
   stopifnot(!anyDuplicated(d$tree_id))
-  sp_dd <- read.csv("data/raw/ddpcr/ddPCR_meta_all_data.csv", stringsAsFactors = FALSE) %>%
-    distinct(seq_id, species) %>% filter(!duplicated(seq_id))
-  sp_gc <- read.csv("data/processed/internal_gas/sample_data_only.csv", stringsAsFactors = FALSE) %>%
-    distinct(Tree.ID, Species.ID) %>% filter(!duplicated(Tree.ID))
-  d %>% left_join(sp_dd, by = c("tree_id" = "seq_id")) %>%
-    left_join(sp_gc, by = c("tree_id" = "Tree.ID")) %>%
-    mutate(species = coalesce(species, Species.ID)) %>% select(-Species.ID)
+  d
 }
 
-# Atmosphere vials (for reference lines): "Amb..." with CH4 <= 5 ppm (higher = contaminated)
-isotope_atmosphere_samples <- function(raw = picarro_runs()) {
-  raw %>% transmute(SampleName, d13CH4 = HR_Delta_iCH4_Raw_mean, ch4_ppm = HR_12CH4_dry_mean) %>%
-    filter(str_detect(SampleName, "^Amb"), !is.na(d13CH4), ch4_ppm >= ISO_CH4_FLOOR, ch4_ppm <= 5)
-}

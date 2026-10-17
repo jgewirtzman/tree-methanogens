@@ -68,24 +68,8 @@ library(lme4)
 library(lmerTest)
 
 # Species name mapping
-species_mapping <- c(
-  "ACRU" = "Acer rubrum",
-  "ACSA" = "Acer saccharum", 
-  "BEAL" = "Betula alleghaniensis",
-  "BELE" = "Betula lenta",
-  "BEPA" = "Betula papyrifera",
-  "FAGR" = "Fagus grandifolia",
-  "FRAM" = "Fraxinus americana",
-  "PIST" = "Pinus strobus",
-  "QURU" = "Quercus rubra",
-  "TSCA" = "Tsuga canadensis",
-  "CAOV" = "Carya ovata",
-  "KALA" = "Kalmia latifolia",
-  "PRSE" = "Prunus serotina",
-  "QUAL" = "Quercus alba",
-  "QUVE" = "Quercus velutina",
-  "SAAL" = "Sassafras albidum"
-)
+source("code/lib/tables_read.R")
+species_mapping <- SPECIES_NAMES   # data/tables/species.csv
 
 # ---- one measurement-level table, all three campaigns -----------------------
 # ASINH_SIGMA matches the axis transform panel (a) already uses, so the analysis
@@ -136,7 +120,7 @@ combined_data <- flux_all %>%
     tree_id,
     Species.Code = species_code,
     DBH      = dbh_m * 100,                  # m -> cm, as the old wide table held it
-    Air_temp = air_temp_C,
+    Air_temp = air_temp_C,                   # measured at the deployment (flux_stem air_temp_C), as the models
     Soil_temp = soil_temp_C,
     VWC      = soil_moisture_abs * 100,      # m3 m-3 -> %, as panel (a) labels it
     CH4_flux = stem_flux_nmol_m2_s,
@@ -145,7 +129,7 @@ combined_data <- flux_all %>%
   ) %>%
   mutate(Species_Latin = species_mapping[Species.Code]) %>%
   filter(!is.na(Species_Latin)) %>%
-  .step("species in the 16-species set") %>%
+  .step("species identified (species.csv)") %>%
   drop_na(CH4_flux, DBH, Air_temp, Soil_temp, VWC, Chamber) %>% .step("complete covariates") %>%
   filter(is.finite(CH4_flux)) %>%
   mutate(CH4_asinh = asinh_t(CH4_flux))

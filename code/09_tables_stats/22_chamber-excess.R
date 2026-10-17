@@ -14,11 +14,15 @@
 # first 10 enclosed readings minus local ambient. Diagnostic only: nothing is removed.
 #
 # Rebuilt 2026-10-02 from an earlier exploratory script (July 2026), which
-# used the pre-28 cm3 flux table and its own detection limit; fluxes and detection classes
-# now come from outputs/data/flux_FINAL.csv (02_flux/03_precision_and_detection.R).
+# used the pre-28 cm3 flux table and its own detection limit; fluxes, minimum detectable
+# fluxes and detection classes come from data/tables/flux_stem.csv (2023_cross_species).
 #
-# Reads:  data/processed/flux/ymf2023_goflux_auxfile.csv, data/raw/lgr/static_2023/,
-#         outputs/data/flux_FINAL.csv
+# Reads:  data/tables/flux_stem.csv; data/raw/lgr/static_2023/ (the analyser traces);
+#         data/processed/flux/ymf2023_goflux_auxfile.csv for the enclosure start and length
+#         on the ANALYSER clock (start.time, obs.length). The canonical table holds the
+#         closure in corrected local time and the fitted window, not the enclosure length on
+#         the analyser clock, which is what aligns the raw traces; this is the one
+#         stage-A input this script still reads.
 # Writes: outputs/data/chamber_excess.csv (per measurement),
 #         outputs/data/chamber_excess_summary.csv (the statistics SI Methods S2 quotes)
 # ==============================================================================
@@ -77,8 +81,11 @@ for (dy in sort(unique(a$day))) {
 }
 L <- bind_rows(res); L$excess <- L$C0_obs - L$local_ambient
 
-F <- read.csv(out_path("flux_FINAL.csv"), stringsAsFactors = FALSE)
-F <- F[F$camp == "Cross-species" & F$type == "stem", c("UniqueID", "best.flux", "MDF", "class")]
+source("code/lib/tables_read.R")
+F <- read_table("flux_stem")
+F <- F[F$campaign == "2023_cross_species", ]
+F <- data.frame(UniqueID = F$measurement_id, best.flux = F$CH4_flux_nmol_m2_s, MDF = F$CH4_MDF_nmol_m2_s,
+                class = F$detection_class, stringsAsFactors = FALSE)
 L <- inner_join(L, F, by = "UniqueID") %>% filter(is.finite(best.flux))
 write.csv(L, out_path("chamber_excess.csv"), row.names = FALSE)
 cat(sprintf("2023 cross-species: %d of %d stem measurements matched to raw traces\n\n", nrow(L), nrow(F)))

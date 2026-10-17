@@ -175,8 +175,8 @@ qs <- quantile(d$soil_moisture_at_tree, c(.1,.5,.9), na.rm=TRUE)
 g <- expand.grid(species = levels(factor(d$species_clean)), height_cm = c(50,125,200),
                  soil_moisture_at_tree = qs, stringsAsFactors = FALSE)
 g$dbh_m <- median(d$dbh_m,na.rm=TRUE)
-g$soil_temp_C_mean <- mean(jm$soil_temp_C_mean,na.rm=TRUE)
-g$air_temp_C_mean  <- mean(jm$air_temp_C_mean, na.rm=TRUE)
+g$soil_temp_C <- mean(jm$soil_temp_C,na.rm=TRUE)
+g$air_temp_C  <- mean(jm$air_temp_C, na.rm=TRUE)
 g$species <- factor(g$species, levels=levels(factor(d$species_clean)))
 g$pred <- predict(TreeRF, g, num.threads=RF_THREADS)$predictions
 mo <- g %>% group_by(soil_moisture_at_tree, height_cm) %>%

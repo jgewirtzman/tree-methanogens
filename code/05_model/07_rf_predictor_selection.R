@@ -50,11 +50,11 @@ stopifnot(identical(colnames(X0), TreeRF$forest$independent.variable.names))
 
 # Candidate specifications. "base" is what is currently locked.
 # Variants are built by DROPPING from / ADDING to whatever the locked model actually
-# has. air_temp_C_mean was removed from the specification on 2026-07-30,
-# so any variant defined as setdiff(X0, "air_temp_C_mean") is now a silent no-op --
+# has. air temperature (air_temp_C) was removed from the specification on 2026-07-30,
+# so any variant defined as setdiff(X0, "air_temp_C") is now a silent no-op --
 # it would duplicate `base` and be reported as a distinct comparison. Guard against
 # that by constructing readmissions explicitly and asserting every variant is unique.
-ADDABLE <- list(air_temp_C_mean = tree_train_complete$air_temp_C_mean,
+ADDABLE <- list(air_temp_C = tree_train_complete$air_temp_C,
                 month           = mo)
 VARIANTS <- c(
   list(base = colnames(X0)),
@@ -64,8 +64,8 @@ VARIANTS <- c(
            paste0("add_", names(ADDABLE))),
   list(add_both = c(colnames(X0), names(ADDABLE)))
 )
-if ("soil_temp_C_mean" %in% colnames(X0))
-  VARIANTS$drop_temp_add_air <- c(setdiff(colnames(X0), "soil_temp_C_mean"), "air_temp_C_mean")
+if ("soil_temp_C" %in% colnames(X0))
+  VARIANTS$drop_temp_add_air <- c(setdiff(colnames(X0), "soil_temp_C"), "air_temp_C")
 stopifnot(!any(duplicated(lapply(VARIANTS, sort))))
 
 score <- function(cols) {

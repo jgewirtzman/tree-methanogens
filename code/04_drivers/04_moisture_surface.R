@@ -38,13 +38,10 @@ source("code/lib/geometry.R")
 
 CELL_M <- 2      # metres; 100 x 100 cells over the plot, matching the survey's limits
 
-SRC <- "data/raw/inventory/spatial_data/soil_moisture_20201216.csv"
+SRC <- "data/tables/moisture_survey.csv"   # the December 2020 survey (code/tables/35_moisture_survey.R)
 if (!file.exists(SRC)) stop("missing ", SRC)
 D <- read.csv(SRC, stringsAsFactors = FALSE)
-xc <- intersect(c("Longitude","lon","x","X"), names(D))[1]
-yc <- intersect(c("Latitude","lat","y","Y"), names(D))[1]
-D <- D[is.finite(D[[xc]]) & is.finite(D[[yc]]) & is.finite(D$VWC), ]
-D <- data.frame(lon = D[[xc]], lat = D[[yc]], vwc = D$VWC)
+D <- data.frame(lon = D$longitude, lat = D$latitude, vwc = D$soil_vwc_pct)
 D <- D[!duplicated(round(cbind(D$lon, D$lat), 8)), ]
 
 tr <- geo_transforms()

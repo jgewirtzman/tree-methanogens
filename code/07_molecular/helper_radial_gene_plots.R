@@ -7,7 +7,7 @@
 # Pipeline stage: 4 — Visualization
 #
 # Inputs:
-#   - merged_tree_dataset_final.csv (from data/processed/integrated/)
+#   - data/tables/ (trees, ddpcr + samples, species) via code/lib/tables_read.R
 #
 # Outputs:
 #   - radial plot PDFs (to outputs/figures/)
@@ -24,73 +24,19 @@ library(ggnewscale)
 # LOAD DATA
 # ============================================================
 
-ymf2021 <- read.csv('data/processed/integrated/merged_tree_dataset_final.csv')
-
-species_mapping <- c(
-  "ACRU" = "Acer rubrum",
-  "ACSA" = "Acer saccharum", 
-  "BEAL" = "Betula alleghaniensis",
-  "BELE" = "Betula lenta",
-  "BEPA" = "Betula papyrifera",
-  "FAGR" = "Fagus grandifolia",
-  "FRAM" = "Fraxinus americana",
-  "PIST" = "Pinus strobus",
-  "QURU" = "Quercus rubra",
-  "TSCA" = "Tsuga canadensis",
-  "CAOV" = "Carya ovata",
-  "KALA" = "Kalmia latifolia",
-  "PRSE" = "Prunus serotina",
-  "QUAL" = "Quercus alba",
-  "QUVE" = "Quercus velutina",
-  "SAAL" = "Sassafras albidum"
-)
+# 2021 survey per tree (species and DBH from trees.csv) and its wood genes, long
+# (loose threshold; mcrA probe assay only): code/lib/species_gene_data.R, sourced into
+# its own environment so the species-level objects of
+# helper_scale_dependent_gene_patterns.R (sourced alongside in fig08) are not replaced.
+.sg <- new.env()
+sys.source("code/lib/species_gene_data.R", envir = .sg)
+ymf2021 <- .sg$ymf2021
 
 # ============================================================
-# PARSE ALL GENE DATA
+# GENE DATA: mcrA, pmoA, mmoX
 # ============================================================
 
-prepare_long_genes <- function(df) {
-  df %>%
-    dplyr::select(tree_id, starts_with("ddpcr_")) %>%
-    dplyr::select(where(~ !all(is.na(.)))) %>%
-    tidyr::pivot_longer(
-      cols = starts_with("ddpcr_"),
-      names_to = "measurement_type",
-      values_to = "gene_copies"
-    ) %>%
-    dplyr::filter(!is.na(gene_copies)) %>%
-    tidyr::separate(
-      measurement_type,
-      into = c("method", "gene", "part1", "part2", "part3"),
-      sep = "_", extra = "merge", fill = "right"
-    ) %>%
-    dplyr::mutate(
-      is_probe = (part1 == "probe"),
-      location = dplyr::if_else(is_probe, part2, part1),
-      stringency = dplyr::if_else(is_probe, part3, part2),
-      location = stringr::str_remove(location, "probe"),
-      location = dplyr::case_when(
-        location %in% c("Inner","inner") ~ "Inner",
-        location %in% c("Outer","outer") ~ "Outer",
-        TRUE ~ location
-      ),
-      gene = dplyr::case_when(
-        gene == "mcra" ~ "mcrA",
-        gene == "mmox" ~ "mmoX",
-        gene == "pmoa" ~ "pmoA",
-        TRUE ~ gene
-      ),
-      sample_type = dplyr::case_when(
-        location == "Inner" ~ "Heartwood",
-        location == "Outer" ~ "Sapwood",
-        TRUE ~ NA_character_
-      )
-    ) %>%
-    dplyr::filter(stringency == "loose", !is.na(sample_type)) %>%
-    dplyr::filter(gene %in% c("mcrA", "pmoA", "mmoX"), gene != "mcrA" | is_probe)  # mcrA: probe assay only (the EvaGreen mcrA columns give false positives in wood; Fig. S4)
-}
-
-tree_genes <- prepare_long_genes(ymf2021)
+tree_genes <- .sg$long_all %>% dplyr::filter(gene %in% c("mcrA", "pmoA", "mmoX"))
 
 cat(sprintf("Total measurements: %d\n", nrow(tree_genes)))
 print(table(tree_genes$gene))
@@ -141,7 +87,7 @@ create_gene_species_plot <- function(gene_data, gene_name, color_option = "plasm
   
   species_data <- gene_data %>%
     dplyr::filter(gene == gene_name) %>%
-    dplyr::mutate(species = species_mapping[species_id]) %>%
+    dplyr::mutate(species = species_name(species_id)) %>%
     dplyr::filter(is.finite(dbh)) %>%
     dplyr::group_by(tree_id, species_id, species, dbh, sample_type) %>%
     dplyr::summarise(gene_copies = mean(gene_copies, na.rm = TRUE), .groups = "drop") %>%
@@ -275,7 +221,10 @@ if(all(c("pmoA", "mmoX") %in% tree_genes$gene)) {
     dplyr::left_join(tree_species, by = "tree_id") %>%
     dplyr::filter(is.finite(dbh)) %>%
     dplyr::group_by(tree_id, species_id, dbh, sample_type) %>%
-    dplyr::summarise(gene_copies = sum(gene_copies, na.rm = TRUE), .groups = "drop") %>%
+    # pmoA + mmoX only where both genes were measured in that compartment (one missing -> NA)
+    dplyr::summarise(gene_copies = if (dplyr::n_distinct(gene) == 2) sum(gene_copies) else NA_real_,
+                     .groups = "drop") %>%
+    dplyr::filter(!is.na(gene_copies)) %>%
     dplyr::mutate(gene = "pmoA+mmoX")
   
   p_sum_result <- create_gene_species_plot(sum_data, "pmoA+mmoX", "mako")
@@ -318,7 +267,10 @@ if(all(c("mcrA", "pmoA", "mmoX") %in% tree_genes$gene)) {
     dplyr::filter(gene %in% c("pmoA", "mmoX")) %>%
     dplyr::left_join(ymf2021 %>% dplyr::select(tree_id, species_id, dbh), by = "tree_id") %>%
     dplyr::group_by(tree_id, species_id, dbh, sample_type) %>%
-    dplyr::summarise(gene_copies = sum(gene_copies, na.rm = TRUE), .groups = "drop") %>%
+    # pmoA + mmoX only where both genes were measured in that compartment (one missing -> NA)
+    dplyr::summarise(gene_copies = if (dplyr::n_distinct(gene) == 2) sum(gene_copies) else NA_real_,
+                     .groups = "drop") %>%
+    dplyr::filter(!is.na(gene_copies)) %>%
     tidyr::pivot_wider(names_from = sample_type, values_from = gene_copies) %>%
     dplyr::group_by(species_id) %>%
     dplyr::summarise(
@@ -332,7 +284,7 @@ if(all(c("mcrA", "pmoA", "mmoX") %in% tree_genes$gene)) {
   # Merge species with both genes
   overlay_species <- mcra_species %>%
     dplyr::inner_join(methan_species, by = "species_id", suffix = c("_mcra", "_methan")) %>%
-    dplyr::mutate(species = species_mapping[species_id])
+    dplyr::mutate(species = species_name(species_id))
   
   overlay_species$species_label <- ifelse(is.na(overlay_species$species) | overlay_species$species == "",
                                           overlay_species$species_id, overlay_species$species)

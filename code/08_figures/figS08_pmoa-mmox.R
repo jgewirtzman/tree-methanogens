@@ -27,7 +27,7 @@ source("code/lib/outputs.R")
 #   Composition panels need both genes detected (ratio undefined at a zero) -> complete-case.
 # NOTE size axis = geometric-mean center (the 1/2 is the Bland-Altman mean); NOT the
 #   arithmetic-sum "total abundance" used elsewhere.
-# Copies g-1 from code/lib/ddpcr_constants.R (as the harmonized data); ratios/slopes are unit-free.
+# Copies g-1 from data/tables/ddpcr.csv (code/lib/ddpcr_constants.R); ratios/slopes are unit-free.
 # Original S10 generator untouched. Output: outputs/figures/generated/figS10_final.png
 # ==============================================================================
 suppressPackageStartupMessages({ library(tidyverse); library(patchwork) })
@@ -36,30 +36,25 @@ source("code/lib/ddpcr_constants.R")
 COMP4 <- c(Heartwood = "#a6611a", Sapwood = "#dfc27d", Organic = "#018571", Mineral = "#80cdc1")
 WOODC <- c("Heartwood", "Sapwood"); SOILC <- c("Organic", "Mineral")
 
-d0 <- read.csv("data/compiled/ddpcr_gene_abundances.csv") %>%
-  filter(analysis_type == "loose", target_gene %in% c("pmoa", "mmox"))
-meta <- d0 %>% group_by(sample_id) %>%
-  summarise(material = first(material), core_type = first(core_type), mass = first(sample_mass_mg), .groups = "drop")
-W <- d0 %>% select(sample_id, target_gene, conc = concentration_copies_per_uL, pos = positives) %>%
-  pivot_wider(names_from = target_gene, values_from = c(conc, pos)) %>%
-  left_join(meta, by = "sample_id") %>%
-  filter(material %in% c("Wood", "Soil"), !is.na(mass), mass > 0) %>%
-  mutate(comp = factor(recode(core_type, Inner = "Heartwood", Outer = "Sapwood"), levels = names(COMP4)),
-         cg = ddpcr_copies_per_g(1, mass, material)) %>%
+# per DNA sample (data/tables/ddpcr.csv + samples.csv via dna_samples()): copies per g,
+# mean over a sample's runs that passed QC. Both genes must have been measured (a sample
+# with one gene missing is left out; until 2026-10-16 a missing gene was entered as 0).
+source("code/lib/tables_read.R")
+W <- dna_samples("2021_survey") %>%
+  filter(!is.na(pmoa_g), !is.na(mmox_g)) %>%
+  mutate(comp = factor(recode(core_type, Inner = "Heartwood", Outer = "Sapwood"), levels = names(COMP4))) %>%
   filter(!is.na(comp))
 
-# ---- decoupling data: keep nondetects, +1, copies/g --------------------------
-dec <- W %>% mutate(pmoa_g = ifelse(is.na(conc_pmoa), 0, conc_pmoa) * cg,
-                    mmox_g = ifelse(is.na(conc_mmox), 0, conc_mmox) * cg,
-                    lp1 = log10(pmoa_g + 1), lm1 = log10(mmox_g + 1))
+# ---- decoupling data: keep nondetects (0 copies), +1, copies/g ----------------
+dec <- W %>% mutate(lp1 = log10(pmoa_g + 1), lm1 = log10(mmox_g + 1))
 lim <- range(c(dec$lp1, dec$lm1))
 decstat <- dec %>% group_by(comp) %>%
   summarise(slope = coef(lm(lm1 ~ lp1))[2], r2 = cor(lp1, lm1)^2,
             p = summary(lm(lm1 ~ lp1))$coef[2, 4], n = n(), .groups = "drop")
 
 # ---- composition data: complete-case (both detected), copies/g ---------------
-cc <- W %>% filter(pos_pmoa > 0, pos_mmox > 0, !is.na(conc_pmoa), !is.na(conc_mmox)) %>%
-  mutate(lp = log10(conc_pmoa * cg), lmm = log10(conc_mmox * cg), size = 0.5*(lp + lmm), bal = lp - lmm)
+cc <- W %>% filter(pmoa_g > 0, mmox_g > 0) %>%
+  mutate(lp = log10(pmoa_g), lmm = log10(mmox_g), size = 0.5*(lp + lmm), bal = lp - lmm)
 set.seed(1)
 compstat <- lapply(names(COMP4), function(k) {
   s <- cc %>% filter(comp == k); m0 <- stats::lm(bal ~ size, s); o <- unname(coef(m0)[2])

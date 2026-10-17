@@ -28,8 +28,8 @@ suppressPackageStartupMessages({ library(tidyverse); library(gridExtra) })
 out <- "outputs"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
 
 # ---- 1. LOAD + QC ------------------------------------------------------------
-source("code/lib/isotope_samples.R")   # the one sample-selection rule (see that file)
-d <- isotope_whole_tree_samples()
+source("code/lib/tables_read.R")   # isotopes.csv: whole-tree set flagged by the rule in code/lib/isotope_samples.R
+d <- isotope_whole_tree()   # species from trees.csv
 wt <- d %>% filter(!is.na(d13CO2), co2_ppm > 0) %>%
   mutate(alpha_C = (d13CO2 + 1000)/(d13CH4 + 1000), eps_C = (alpha_C - 1)*1000,
          invCH4 = 1/ch4_ppm)
@@ -74,7 +74,7 @@ eps_src_atm  <- eps_from(atm_src,  bulk_co2)
 cpl_all <- cor.test(wt$d13CH4, wt$d13CO2, method = "spearman", exact = FALSE)
 hi <- wt %>% filter(ch4_ppm >= 10); cpl_hi <- cor.test(hi$d13CH4, hi$d13CO2, method = "spearman", exact = FALSE)
 # among-species homogeneity (is one pooled estimate ok?) at reliable conc
-hi_join <- hi   # species already attached by isotope_whole_tree_samples()
+hi_join <- hi   # species already attached by isotope_whole_tree()
 kw_matched <- sum(!is.na(hi_join$species)); kw_total <- nrow(hi)   # join-count check
 sp10 <- hi_join %>% filter(!is.na(species)) %>% group_by(species) %>% filter(n() >= 4) %>% ungroup()
 kw_ngrp <- n_distinct(sp10$species); kw_n <- nrow(sp10)

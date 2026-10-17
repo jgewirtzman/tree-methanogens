@@ -70,14 +70,8 @@ samp_meta <- data.frame(sample_data(ps.filt))
 # STEP 2: Species mapping (shared)
 # ==============================================================================
 
-species_mapping <- c(
-  "ACRU" = "A. rubrum", "ACSA" = "A. saccharum",
-  "BEAL" = "B. alleghaniensis", "BELE" = "B. lenta", "BEPA" = "B. papyrifera",
-  "FAGR" = "F. grandifolia", "FRAM" = "F. americana",
-  "PIST" = "P. strobus", "QURU" = "Q. rubra", "TSCA" = "T. canadensis",
-  "CAOV" = "C. ovata", "KALA" = "K. latifolia", "PRSE" = "P. serotina",
-  "QUAL" = "Q. alba", "QUVE" = "Q. velutina", "SAAL" = "S. albidum"
-)
+source("code/lib/tables_read.R")
+species_mapping <- SPECIES_ABBREV   # "A. rubrum", from data/tables/species.csv
 
 compartment_colors <- c("Heartwood" = "#a6611a", "Sapwood" = "#dfc27d",
                           "Mineral Soil" = "#80cdc1", "Organic Soil" = "#018571")

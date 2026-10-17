@@ -65,3 +65,10 @@ asv_taxonomy_16S_felled_oak,order,character,,,,order as assigned in the felled-o
 asv_taxonomy_16S_felled_oak,family,character,,,,family as assigned in the felled-oak run (SILVA ranks),black_oak/OTU_table.txt
 asv_taxonomy_16S_felled_oak,genus,character,,,,genus as assigned in the felled-oak run (SILVA ranks),black_oak/OTU_table.txt
 asv_taxonomy_16S_felled_oak,species,character,,,,species as assigned in the felled-oak run (SILVA ranks),black_oak/OTU_table.txt
+picrust_pathways,library_id,character,,PK,,16S library (samples_16S.library_id; main run; every library in the PICRUSt2 output),PICRUSt2 path_abun_contrib.tsv sample
+picrust_pathways,pathway,character,,PK,,MetaCyc pathway (picrust_pathway_info.pathway); a row for each library x pathway with a non-zero abundance in any of the three columns,PICRUSt2 path_abun_contrib.tsv function
+picrust_pathways,abundance,numeric,count,NN,0;1e9,Predicted pathway abundance: sum of the per-ASV contributions (taxon_function_abun) over the library's ASVs; organelle ASVs (Mitochondria; Chloroplast) left out,11_picrust_pathways.R
+picrust_pathways,abundance_no_mcra_asvs,numeric,count,NN,0;1e9,As abundance; also leaving out the ASVs PICRUSt2 predicts to carry mcrA (KEGG K00399 > 0 in KO_predicted.tsv),11_picrust_pathways.R
+picrust_pathways,abundance_no_pmoa_asvs,numeric,count,NN,0;1e9,As abundance; also leaving out the ASVs PICRUSt2 predicts to carry pmoA (KEGG K10944 > 0 in KO_predicted.tsv),11_picrust_pathways.R
+picrust_pathway_info,pathway,character,,PK,,MetaCyc pathway ID,PICRUSt2 path_abun_unstrat_descrip.tsv
+picrust_pathway_info,description,character,,NN,,MetaCyc pathway name (HTML entities as in the PICRUSt2 output),PICRUSt2 path_abun_unstrat_descrip.tsv

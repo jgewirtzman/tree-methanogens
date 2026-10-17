@@ -5,8 +5,10 @@
 #
 # Pipeline stage: 4 — Publication Figures
 #
-# Inputs:
-#   - semirigid flux datasets (from data/processed/flux/)
+# Inputs (canonical tables):
+#   - data/tables/flux_soil.csv, flux_stem.csv (monthly_2020_2021 deployments; soil rows
+#     that failed the chamber-closure screen, qc_pass FALSE, left out)
+#   - data/tables/collars.csv, trees.csv (landscape position of each collar and stem)
 #   - data/tables/soil_readings.csv (collar readings, one value per collar-date;
 #     code/lib/soil_collars.R collar_soil_readings())
 #
@@ -21,16 +23,22 @@ library(lubridate)
 library(cowplot)
 library(scales)
 
-# Read the datasets
-soil_dataset <- read.csv('data/processed/flux/semirigid_tree_final_complete_dataset_soil.csv')
-source('code/lib/monthly_cols.R')
-tree_dataset <- monthly_plain(read.csv('data/processed/flux/semirigid_tree_final_complete_dataset_with_untagged.csv'))  # includes recovered untagged/dead-snag monthly trees
-
-# Measurements are excluded only for procedural failure: the chamber screen in
-# 02_qc_c0_screen.R (two soil chambers not at ambient at closure). The r2 >= 0.7 and
-# -100..200 filters that stood here were removed 2026-10-01: an r2 screen is not a
-# detection criterion and inflated the mean stem flux 144% (Methods S4).
-QC_EXCLUDED <- read.csv("outputs/data/qc_excluded_measurements.csv")$UniqueID
+# Read the canonical tables. Measurements are excluded only for procedural failure: the
+# chamber screen in 02_qc_c0_screen.R (two soil chambers not at ambient at closure;
+# flux_soil.qc_pass). The r2 >= 0.7 and -100..200 filters that stood here were removed
+# 2026-10-01: an r2 screen is not a detection criterion and inflated the mean stem flux
+# 144% (Methods S4). Stems: every monthly deployment (untagged and dead stems included).
+source("code/lib/tables_read.R")
+collars <- read_table("collars"); trees <- trees_table()
+soil_dataset <- read_table("flux_soil") %>% filter(campaign == "monthly_2020_2021", qc_pass) %>%
+  transmute(UniqueID = measurement_id, Date = date, Plot.Tag = collar_id,
+            Plot.letter = collars$landscape_position[match(collar_id, collars$collar_id)],
+            CH4_best.flux = CH4_flux_nmol_m2_s)
+tree_dataset <- read_table("flux_stem") %>% filter(campaign == "monthly_2020_2021") %>%
+  transmute(UniqueID = measurement_id, Date = date, Plot.Tag = tree_id,
+            Plot.Letter = trees$landscape_position[match(tree_id, trees$tree_id)],
+            CH4_best.flux = CH4_flux_nmol_m2_s)
+stopifnot(!anyNA(soil_dataset$Plot.letter), !anyNA(tree_dataset$Plot.Letter))
 source('code/lib/soil_collars.R')
 moisture_data <- collar_soil_readings()   # one row per collar and date
 
@@ -42,7 +50,7 @@ tree_dataset$Date <- as.Date(tree_dataset$Date)
 
 # Prepare soil data
 soil_plot_data <- soil_dataset %>%
-  filter(!is.na(CH4_best.flux), !UniqueID %in% QC_EXCLUDED) %>%
+  filter(!is.na(CH4_best.flux)) %>%
   mutate(
     Plot_Type = case_when(
       Plot.letter %in% c("WD", "WS") ~ "W",
@@ -105,7 +113,7 @@ combined_facet_data <- bind_rows(soil_plot_data, tree_plot_data) %>%
 
 # Prepare raw data for jittering
 soil_raw_data <- soil_dataset %>%
-  filter(!is.na(CH4_best.flux), !UniqueID %in% QC_EXCLUDED) %>%
+  filter(!is.na(CH4_best.flux)) %>%
   mutate(
     Plot_Type = case_when(
       Plot.letter %in% c("WD", "WS") ~ "W",
@@ -323,7 +331,7 @@ cat("\n===== OVERALL STATISTICS =====\n")
 cat("Total tree flux measurements:", nrow(tree_dataset %>%
                                             filter(!is.na(CH4_best.flux))), "\n")
 cat("Total soil flux measurements:", nrow(soil_dataset %>%
-                                            filter(!is.na(CH4_best.flux), !UniqueID %in% QC_EXCLUDED)), "\n")
+                                            filter(!is.na(CH4_best.flux))), "\n")
 cat("Date range:", format(min(combined_facet_data$Date_interval, na.rm = TRUE), "%B %Y"),
     "to", format(max(combined_facet_data$Date_interval, na.rm = TRUE), "%B %Y"), "\n")
 

@@ -1,38 +1,35 @@
 # ==============================================================================
-# HELPER — shared species/gene/flux data prep (sourced)
+# species_gene_data.R -- shared species/gene/flux data prep (sourced)
 # ==============================================================================
-# Reproduces the prep chain from
-# code/07_molecular/helper_scale_dependent_gene_patterns.R (lines 50-302),
-# VERBATIM logic, so numbers match the main species-level analysis
-# (ratio R2 = 0.513, r = 0.717). Builds, in the calling environment:
-#   tree_level_complete  - per-tree area-weighted genes + 125cm flux + log_ratio
-#   flux_all             - individual chamber CH4 fluxes (pooled 2021+2023) + species
-#   flux_by_species      - species median flux (+ n_flux)
+# The ONE copy of the tree- and species-level gene/flux prep, reading the canonical
+# tables through code/lib/tables_read.R. Sourced by
+# code/07_molecular/helper_scale_dependent_gene_patterns.R (and through it 14-16, 18,
+# 19, Figs 4, 8, S21), code/07_molecular/helper_radial_gene_plots.R (the parser
+# only), 09_tables_stats/17, 20 and 25, and Fig. S28. Builds, in the calling
+# environment:
+#   area_weighted_gene(), prepare_long_all_genes()
+#   ymf2021, ymf2023     - survey_2021_trees() and the 2023 cross-species deployments
+#   long_all             - wood genes, long (loose threshold; mcrA probe assay only)
+#   tree_genes_weighted  - per-tree area-weighted genes (trees with a measured DBH)
+#   tree_genes_complete  - ... with mcrA, pmoA and mmoX all present
+#   tree_level_complete  - ... + 125 cm flux, log10(x + 1) genes and log_ratio
+#   flux_all             - individual chamber CH4 fluxes (pooled 2021 125 cm + 2023) + species
+#   flux_by_species      - species n_flux, median, quartiles of flux
 #   analysis_ratio       - species-level: median_log_ratio, median_flux (n_trees>=5, n_flux>=5)
 #   analysis_mcra        - species-level area-weighted mcrA (col 'value')
 #   analysis_meth        - species-level methanotroph_total (col 'value')
-# Side-effect free (no writes, no plots). Sourced by the species-level analysis scripts.
+# Side-effect free (no writes, no plots). Area weighting needs the tree's DBH: trees
+# without a measured DBH (trees.csv dbh_cm NA) have no area-weighted value.
 #
-# Inputs:
-#   data/processed/flux/tree_flux_2023_cross_species.csv
-#   data/processed/integrated/merged_tree_dataset_final.csv
+# Inputs (data/tables/): trees, species, flux_stem (2021_multiheight at 125 cm;
+#   2023_cross_species), ddpcr + samples
 # ==============================================================================
 
 suppressPackageStartupMessages(library(tidyverse))
+source("code/lib/tables_read.R")
 
-ymf2023 <- read.csv("data/processed/flux/tree_flux_2023_cross_species.csv")
-ymf2021 <- read.csv("data/processed/integrated/merged_tree_dataset_final.csv")
-
-species_mapping <- c(
-  "ACRU" = "Acer rubrum", "ACSA" = "Acer saccharum",
-  "BEAL" = "Betula alleghaniensis", "BELE" = "Betula lenta",
-  "BEPA" = "Betula papyrifera", "FAGR" = "Fagus grandifolia",
-  "FRAM" = "Fraxinus americana", "PIST" = "Pinus strobus",
-  "QURU" = "Quercus rubra", "TSCA" = "Tsuga canadensis",
-  "CAOV" = "Carya ovata", "KALA" = "Kalmia latifolia",
-  "PRSE" = "Prunus serotina", "QUAL" = "Quercus alba",
-  "QUVE" = "Quercus velutina", "SAAL" = "Sassafras albidum"
-)
+ymf2021 <- survey_2021_trees()
+ymf2023 <- flux_stem_campaign("2023_cross_species")
 
 area_weighted_gene <- function(gene_inner, gene_outer, dbh_cm) {
   R <- dbh_cm / 2
@@ -82,37 +79,37 @@ tree_genes_weighted <- long_all %>%
             .groups = "drop") %>%
   filter(is.finite(gene_inner), is.finite(gene_outer)) %>%
   mutate(gene_area_weighted = mapply(area_weighted_gene, gene_inner, gene_outer, dbh),
-         species = species_mapping[species_id]) %>%
+         species = species_name(species_id)) %>%
   dplyr::select(tree_id, species_id, species, gene, gene_area_weighted) %>%
   pivot_wider(names_from = gene, values_from = gene_area_weighted) %>%
-  mutate(methanotroph_total = case_when(
-    is.na(pmoA) & !is.na(mmoX) ~ mmoX,
-    !is.na(pmoA) & is.na(mmoX) ~ pmoA,
-    !is.na(pmoA) & !is.na(mmoX) ~ pmoA + mmoX,
-    TRUE ~ NA_real_))
+  mutate(methanotroph_total = pmoA + mmoX)   # NA where either gene is missing
 
 tree_genes_complete <- tree_genes_weighted %>%
   filter(!is.na(mcrA), !is.na(pmoA), !is.na(mmoX), !is.na(methanotroph_total))
 
 flux_all <- bind_rows(
-  ymf2023 %>% dplyr::select(species_id = Species.Code, CH4_flux = CH4_best.flux) %>%
-    mutate(species = species_mapping[species_id]),
+  ymf2023 %>% dplyr::select(species_id = species_code, CH4_flux = CH4_flux_nmol_m2_s) %>%
+    mutate(species = species_name(species_id)),
   ymf2021 %>% dplyr::select(species_id, CH4_flux = CH4_best.flux_125cm) %>%
-    mutate(species = species_mapping[species_id])
+    mutate(species = species_name(species_id))
 ) %>% filter(!is.na(CH4_flux), !is.nan(CH4_flux), !is.na(species))
 
 flux_by_species <- flux_all %>%
   group_by(species, species_id) %>%
-  summarise(n_flux = n(), median_flux = median(CH4_flux, na.rm = TRUE), .groups = "drop")
+  summarise(n_flux = n(), median_flux = median(CH4_flux, na.rm = TRUE),
+            q25_flux = quantile(CH4_flux, 0.25, na.rm = TRUE),
+            q75_flux = quantile(CH4_flux, 0.75, na.rm = TRUE), .groups = "drop")
 
 tree_level_complete <- tree_genes_complete %>%
   left_join(ymf2021 %>% dplyr::select(tree_id, CH4_flux = CH4_best.flux_125cm),
             by = "tree_id") %>%
   filter(!is.na(CH4_flux), !is.nan(CH4_flux)) %>%
-  mutate(ratio_mcra_methanotroph = (mcrA + 1) / (methanotroph_total + 1),
-         log_ratio = log10(ratio_mcra_methanotroph),
-         log_mcra = log10(mcrA + 1),
-         log_meth = log10(methanotroph_total + 1))
+  mutate(log_tree_mcra = log10(mcrA + 1),
+         log_tree_mmox = log10(mmoX + 1),
+         log_pmoa = log10(pmoA + 1),
+         log_methanotroph = log10(methanotroph_total + 1),
+         ratio_mcra_methanotroph = (mcrA + 1) / (methanotroph_total + 1),
+         log_ratio = log10(ratio_mcra_methanotroph))
 
 .species_agg <- function(col) {
   tree_level_complete %>%

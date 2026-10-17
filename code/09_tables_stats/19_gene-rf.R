@@ -20,9 +20,8 @@ suppressWarnings(suppressMessages(source("code/07_molecular/helper_scale_depende
 suppressPackageStartupMessages({ library(dplyr); library(ranger) })
 
 asf <- function(x) asinh(x / 0.1) / log(10)
-env <- read.csv("data/processed/integrated/merged_tree_dataset_final.csv") %>%
-  transmute(tree_id, dbh = as.numeric(dbh), vwc = as.numeric(VWC_mean)) %>%
-  distinct(tree_id, .keep_all = TRUE)
+# DBH (trees.csv) and soil VWC at the tree (code/lib/soil_fill.R attach_soil(), unit "tree")
+env <- survey_2021_trees(soil = TRUE) %>% transmute(tree_id, dbh, vwc = VWC_mean)
 D <- tree_level_complete %>%
   transmute(tree_id, species = factor(species), y = asf(CH4_flux),
             lmcra = log10(mcrA + 1), lpmoa = log10(pmoA + 1), lmmox = log10(mmoX + 1)) %>%

@@ -131,6 +131,10 @@ WIN <- window_path("lgr_manual_identification_2021_multiheight_final.csv")
 # (or with FLUX_REPICK=1, interactively). See code/lib/flux_windows.R.
 if (use_saved_windows(WIN)) {
   manID.lgr3 <- load_windows(WIN)
+  # chamber temperature from the current auxfile, not the value saved with the windows
+  # (a raw correction to the field sheet must reach the fit)
+  manID.lgr3$Tcham <- lgr3_auxfile$Tcham[match(manID.lgr3$UniqueID, lgr3_auxfile$UniqueID)]
+  stopifnot(!anyNA(manID.lgr3$Tcham))
 } else {
 
 # Process in batches of 20

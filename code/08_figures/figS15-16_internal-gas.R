@@ -7,32 +7,15 @@
 # Pipeline stage: 4 — Publication Figures
 #
 # Inputs:
-#   - merged_tree_dataset_final.csv (from data/processed/integrated/)
+#   - data/tables/ via code/lib/tables_read.R: internal_gas (2021 whole-stem samples),
+#     flux_stem (2021 heights), ddpcr + samples, trees (species), species (names)
 # ==============================================================================
 
 library(tidyverse)
 
-tree_all<-read.csv('data/processed/integrated/merged_tree_dataset_final.csv')
+source("code/lib/tables_read.R")
+tree_all <- survey_2021_trees()   # 2021 survey per tree; species from trees.csv
 
-# Species name mapping
-species_mapping <- c(
-  "ACRU" = "Acer rubrum",
-  "ACSA" = "Acer saccharum", 
-  "BEAL" = "Betula alleghaniensis",
-  "BELE" = "Betula lenta",
-  "BEPA" = "Betula papyrifera",
-  "FAGR" = "Fagus grandifolia",
-  "FRAM" = "Fraxinus americana",
-  "PIST" = "Pinus strobus",
-  "QURU" = "Quercus rubra",
-  "TSCA" = "Tsuga canadensis",
-  "CAOV" = "Carya ovata",
-  "KALA" = "Kalmia latifolia",
-  "PRSE" = "Prunus serotina",
-  "QUAL" = "Quercus alba",
-  "QUVE" = "Quercus velutina",
-  "SAAL" = "Sassafras albidum"
-)
 
 library(ggplot2)
 library(ggridges)
@@ -48,7 +31,7 @@ library(viridis)
 # Prepare data - filter for valid CH4 and O2 concentrations
 ridge_data <- tree_all %>%
   filter(!is.na(CH4_concentration) & !is.na(O2_concentration) & !is.na(species_id)) %>%
-  mutate(Species_Latin = species_mapping[species_id]) %>%
+  mutate(Species_Latin = species_name(species_id)) %>%
   filter(!is.na(Species_Latin)) %>%
   group_by(Species_Latin) %>%
   #filter(n() > 2) %>%  # Only keep species with >2 observations
@@ -294,20 +277,20 @@ library(RColorBrewer)
 # Prepare data for CH4 conc vs CO2 conc
 conc_data <- tree_all %>%
   filter(!is.na(CH4_concentration) & !is.na(CO2_concentration) & !is.na(species_id)) %>%
-  mutate(Species_Latin = species_mapping[species_id]) %>%
+  mutate(Species_Latin = species_name(species_id)) %>%
   filter(!is.na(Species_Latin))
 
 # Prepare data for CH4 conc vs O2 conc
 o2_data <- tree_all %>%
   filter(!is.na(CH4_concentration) & !is.na(O2_concentration) & !is.na(species_id)) %>%
-  mutate(Species_Latin = species_mapping[species_id]) %>%
+  mutate(Species_Latin = species_name(species_id)) %>%
   filter(!is.na(Species_Latin))
 
 # Prepare data for heartwood mcrA vs CH4 conc
 mcra_data <- tree_all %>%
   filter(!is.na(CH4_concentration) & !is.na(ddpcr_mcra_probe_Inner_loose) & !is.na(species_id)) %>%
   mutate(
-    Species_Latin = species_mapping[species_id],
+    Species_Latin = species_name(species_id),
     mcra_copies = ddpcr_mcra_probe_Inner_loose + 1
   ) %>%
   filter(!is.na(Species_Latin))
@@ -315,7 +298,7 @@ mcra_data <- tree_all %>%
 # Prepare data for CH4 flux vs CH4 conc
 flux_conc_data <- tree_all %>%
   filter(!is.na(CH4_concentration) & !is.na(species_id)) %>%
-  mutate(Species_Latin = species_mapping[species_id]) %>%
+  mutate(Species_Latin = species_name(species_id)) %>%
   filter(!is.na(Species_Latin)) %>%
   pivot_longer(
     cols = c(CH4_best.flux_50cm, CH4_best.flux_125cm, CH4_best.flux_200cm),

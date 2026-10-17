@@ -13,7 +13,8 @@
 #   key FK:<table>.<column>: every non-missing value is present in that column;
 #   range "min;max" for numbers and dates; lat_bbox / lon_bbox: within the
 #     plot's bounding box (site.csv, plot corners) plus 100 m.
-# Also: a tree's in_inventory stem belongs to that tree (inventory_stems.tree_id).
+# Also: a tree's in_inventory stem belongs to that tree (inventory_stems.tree_id);
+# picrust_pathways libraries and pathways exist in samples_16S and picrust_pathway_info.
 # Reads only; stops with a list of failures.
 #   Rscript code/tables/validate_tables.R
 # ==============================================================================
@@ -110,6 +111,16 @@ if (!is.null(X$trees) && !is.null(X$inventory_stems)) {
   bad <- which(!is.na(own) & own != tr$tree_id)
   if (length(bad)) fail("trees.in_inventory: %d stems belong to another tree_id (e.g. %s -> %s)", length(bad),
                         tr$tree_id[bad[1]], own[bad[1]])
+}
+
+# PICRUSt2 pathways (two-column key, so the references are checked here): libraries
+# of the main 16S run; pathways described in picrust_pathway_info
+if (!is.null(X$picrust_pathways)) {
+  pp <- X$picrust_pathways
+  L <- X$samples_16S$library_id[X$samples_16S$run %in% "main"]
+  if (any(!pp$library_id %in% L)) fail("picrust_pathways.library_id: %d values not a main-run samples_16S.library_id",
+                                       sum(!unique(pp$library_id) %in% L))
+  if (any(!pp$pathway %in% X$picrust_pathway_info$pathway)) fail("picrust_pathways.pathway: not in picrust_pathway_info")
 }
 
 cat(sprintf("validate_tables: %d tables, %d columns checked\n", length(X), sum(D$table %in% names(X))))

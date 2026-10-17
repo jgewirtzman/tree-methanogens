@@ -18,8 +18,9 @@
 #   soil_monthly_predictions.RData dates from 2025-09 and predates the model
 #   lock, and code/06_upscale/06_predict_soil_flux.R still builds the old feature
 #   set (moisture x temperature interactions, month_sin/month_cos) that the
-#   locked SoilRF does not use. Its four predictors are soil_moisture_at_site,
-#   soil_temp_C_mean, air_temp_C_mean and month.
+#   locked SoilRF does not use. Its predictors are soil_moisture_at_site,
+#   soil_temp_C and month (air_temp_C dropped 2026-10-17; it is still passed, for the
+#   with-air sensitivity 05_model/15, and ignored by the locked forest).
 #
 # CLIPPING IS NOT RENORMALISATION. The soil term is the spatial MEAN of a
 #   predicted surface, so restricting the domain does not rescale it the way the
@@ -61,19 +62,20 @@ cat(sprintf("moisture grid: %d cells on censused ground (%.2f ha)\n",
             nrow(S), nrow(S)*4/1e4))
 
 # ---- monthly drivers ---------------------------------------------------------
-fl <- function(v, mo) approx(mo[is.finite(v)], v[is.finite(v)], xout = mo, rule = 2)$y
-DR <- DR %>% arrange(month) %>%
-  mutate(air_temp_C_mean = fl(air_temp_C_mean, month))
+# air temperature: the tower's 24-h calendar-month means, 2019-2022 (01_load_and_prep_data.R), all 12
+DR <- DR %>% arrange(month)
+stopifnot(nrow(DR) == 12, all(DR$month == 1:12), all(is.finite(DR$air_temp_C_mean)))
 # --- soil temperature: multi-year climatology, not campaign means -------------
 # DRIVERS$soil_temp_C_mean is the mean of whenever somebody was in the field: 27
 # to 624 observations a month from as few as ONE visit, with January and March
-# absent entirely and linearly interpolated. 03_soil_temp_climatology.R replaces
-# it with a damped/lagged air-temperature model (21-day trailing mean, leave-one-
-# date-out CV R2 0.951, RMSE 1.13 C, damping slope 0.683) applied to the full
-# 2018-2023 tower record. Air temperature already came from that record.
+# absent entirely and linearly interpolated. 00_soil_temp_climatology.R replaces
+# it with a damped/lagged air-temperature model (trailing mean, window chosen by
+# leave-one-date-out CV; the fit is reported in that script's log) applied to the full
+# tower record over the climatology years (2019-2022), the record the monthly
+# air temperature comes from too.
 STFILE <- "outputs/tables/soil_temp_climatology_monthly.csv"
 if (!file.exists(STFILE))
-  stop("missing ", STFILE, " -- run code/04_drivers/03_soil_temp_climatology.R first")
+  stop("missing ", STFILE, " -- run code/04_drivers/00_soil_temp_climatology.R first")
 STCLIM <- read.csv(STFILE, stringsAsFactors = FALSE)
 stopifnot(nrow(STCLIM) == 12, all(is.finite(STCLIM$soil_temp_C)))
 DR$soil_temp_C_mean <- STCLIM$soil_temp_C[match(DR$month, STCLIM$mo)]
@@ -106,19 +108,24 @@ shape <- S$vwc_rel                                    # already mean 1 over the 
 cat(sprintf("moisture: fixed pattern (rel. range %.2f-%.2f) x monthly level %.3f-%.3f\n",
             min(shape), max(shape), min(CLIM$moisture), max(CLIM$moisture)))
 
+soil_predict <- function(moist, soil_temp, air_temp, month)    # one month (or day) of drivers
+  predict(SoilRF, data.frame(soil_moisture_at_site = moist, soil_temp_C = soil_temp,
+                             air_temp_C = air_temp, month = month), num.threads = RF_THREADS)$predictions
+
+# ---- END OF SETUP: code/06_upscale/11_sens_daily_drivers.R and 05_model/15_rf_air_temperature_test.R
+# ---- evaluate the lines above (grid, moisture pattern and level, drivers, soil_predict)
+# ---- and drive the same forest with other drivers. Nothing above writes a file.
+
 # ---- predict per cell per month ---------------------------------------------
 NMOL_TO_MG <- 16e-6; SEC_YR <- 86400 * 365.25
 out <- vector("list", 12)
 for (m in 1:12) {
   moist <- shape * CLIM$moisture[CLIM$mo == m]      # pattern x this month's level
-  nd <- data.frame(soil_moisture_at_site = moist,
-                   soil_temp_C_mean = DR$soil_temp_C_mean[DR$month == m][1],
-                   air_temp_C_mean  = DR$air_temp_C_mean[DR$month == m][1],
-                   month = m)
   out[[m]] <- data.frame(cell = seq_len(nrow(S)), PX = S$PX, PY = S$PY,
                          x = S$x, y = S$y, month = m,
                          soil_moisture_at_site = moist,
-                         flux_nmol_m2_s = predict(SoilRF, nd, num.threads = RF_THREADS)$predictions)
+                         flux_nmol_m2_s = soil_predict(moist, DR$soil_temp_C_mean[DR$month == m][1],
+                                                       DR$air_temp_C_mean[DR$month == m][1], m))
 }
 M <- bind_rows(out)
 A <- M %>% group_by(cell, PX, PY, x, y) %>%

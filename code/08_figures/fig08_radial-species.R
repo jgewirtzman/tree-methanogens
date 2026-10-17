@@ -6,7 +6,7 @@
 # Pipeline stage: 3 — Analysis
 #
 # Inputs:
-#   - merged_tree_dataset_final.csv (from data/processed/integrated/)
+#   - data/tables/ via code/lib/tables_read.R (through the two helpers below)
 #
 # UPSTREAM DEPENDENCIES (must be run first, or objects must exist in env):
 #   - helper_radial_gene_plots.R  -> p_mcra_result, p_sum_result, p_overlay

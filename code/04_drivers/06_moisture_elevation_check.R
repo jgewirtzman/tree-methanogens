@@ -39,11 +39,8 @@ source("code/lib/geometry.R")
 
 E <- read.csv("outputs/tables/combined_elevation_data.csv", stringsAsFactors = FALSE)
 E <- E[is.finite(E$Longitude) & is.finite(E$Latitude) & is.finite(E$Elevation), ]
-M <- read.csv("data/raw/inventory/spatial_data/soil_moisture_20201216.csv", stringsAsFactors = FALSE)
-xc <- intersect(c("Longitude","lon","x","X"), names(M))[1]
-yc <- intersect(c("Latitude","lat","y","Y"), names(M))[1]
-M <- M[is.finite(M[[xc]]) & is.finite(M[[yc]]) & is.finite(M$VWC), ]
-M <- data.frame(lon = M[[xc]], lat = M[[yc]], vwc = M$VWC)
+M <- read.csv("data/tables/moisture_survey.csv", stringsAsFactors = FALSE)   # December 2020 survey
+M <- data.frame(lon = M$longitude, lat = M$latitude, vwc = M$soil_vwc_pct)
 
 cat(sprintf("elevation points %d (sources: %s)\n", nrow(E),
             paste(names(sort(table(E$Source), decreasing = TRUE)), collapse = ", ")))

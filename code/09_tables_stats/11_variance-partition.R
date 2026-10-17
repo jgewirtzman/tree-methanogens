@@ -31,7 +31,8 @@ GROWING_SEASON <- 5:9
 # Every stem deployment, not only the model's training rows (see in_rf_training).
 D <- read.csv("outputs/data/flux_measurements_tree.csv") %>%   # the pipeline product, not the archive copy
   filter(species_code %in% SP) %>%
-  transmute(tree_id, sp = species_code, DBH = dbh_m * 100, Air = air_temp_C,
+  transmute(tree_id, sp = species_code, DBH = dbh_m * 100,
+            Air = air_temp_C,   # measured at the deployment (flux_stem air_temp_C), as the models
             SoilT = soil_temp_C, VWC = soil_moisture_abs * 100,
             CH4 = stem_flux_nmol_m2_s, chamber = chamber_type,
             month, H = measurement_height_cm) %>%

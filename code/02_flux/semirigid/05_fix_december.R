@@ -134,7 +134,11 @@ source("../../lib/chamber_constants.R")   # SOIL_VTOT_L, SOIL_COLLAR_AREA_CM2
 SAVED_WINDOWS <- use_saved_windows(WIN)
 if (SAVED_WINDOWS) {
   # the saved December windows still carry the pre-correction collar volume
-  manID.lgr3.december <- load_windows(WIN) %>% mutate(Vtot = SOIL_VTOT_L, Area = SOIL_COLLAR_AREA_CM2)
+  # (and the chamber temperature saved at picking; take the current auxfile's)
+  manID.lgr3.december <- load_windows(WIN) %>%
+    mutate(Vtot = SOIL_VTOT_L, Area = SOIL_COLLAR_AREA_CM2,
+           Tcham = lgr3_auxfile_full$Tcham[match(UniqueID, lgr3_auxfile_full$UniqueID)])
+  stopifnot(!anyNA(manID.lgr3.december$Tcham))
 } else {
 
 # Process in batches of 20

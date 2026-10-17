@@ -29,8 +29,8 @@ RESULTS <- c(
   "tableS5_ddpcr_16s_concordance.csv" = "outputs/data/tbl_ddpcr_16s_concordance.csv",
   "tableS6_dbh_by_species_campaign.csv" = "outputs/data/dbh_by_species_campaign.csv",
   # PICRUSt2 pathway associations (Fig 6c, Figs S13-S15)
-  "picrust_pathway_associations.csv" = "data/processed/molecular/picrust/pathway_associations_combined.csv",
-  "picrust_pathway_associations_pmoa.csv" = "data/processed/molecular/picrust/pathway_associations_pmoa.csv")
+  "picrust_pathway_associations.csv" = "outputs/data/picrust/pathway_associations_combined.csv",
+  "picrust_pathway_associations_pmoa.csv" = "outputs/data/picrust/pathway_associations_pmoa.csv")
 miss <- RESULTS[!file.exists(RESULTS)]
 if (length(miss)) stop("missing result file(s) -- run the pipeline first:\n  ", paste(miss, collapse = "\n  "), call. = FALSE)
 for (nm in names(RESULTS)) file.copy(RESULTS[[nm]], file.path(out, nm), overwrite = TRUE)

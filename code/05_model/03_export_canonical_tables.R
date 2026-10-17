@@ -67,6 +67,7 @@ names(soil_out)[names(soil_out) == "soil_flux_umol_m2_s"] <- "soil_flux_nmol_m2_
 #   Refit the model:            filter(in_rf_training)
 #   Describe the measurements:  all rows (covariates are NA where none were measured)
 suppressMessages(library(dplyr))
+source("code/lib/soil_fill.R")      # soil values of the excluded deployments: attach_soil()
 rdt <- function(t) read.csv(file.path("data/tables", paste0(t, ".csv")), colClasses = "character", na.strings = "")
 FS <- rdt("flux_stem") %>% filter(campaign != "2022_felled_oak")
 TR <- rdt("trees"); SP <- rdt("species")
@@ -76,6 +77,7 @@ i <- match(tree_out$measurement_id, FS$measurement_id)
 stopifnot(!anyNA(i), !anyDuplicated(tree_out$measurement_id), all(FS$in_rf_training[i] == "TRUE"),
           identical(tree_out$tree_id, FS$tree_id[i]))
 tree_out$campaign         <- FS$campaign[i]
+stopifnot(isTRUE(all.equal(tree_out$air_temp_C, num(FS$air_temp_C[i]))))   # the measured air the model used
 tree_out$in_rf_training   <- TRUE
 tree_out$exclusion_reason <- NA_character_
 
@@ -84,11 +86,12 @@ stopifnot(all(ex$in_rf_training == "FALSE"), !anyNA(ex$exclusion_reason),
           nrow(tree_out) + nrow(ex) == nrow(FS))
 t <- match(ex$tree_id, TR$tree_id)
 d <- as.Date(ex$date)
+exs <- attach_soil(ex[, c("tree_id", "start_time")], "tree_id", "start_time", "tree")
 extra <- data.frame(measurement_id = ex$measurement_id, tree_id = ex$tree_id,
                     species = SP$species[match(TR$species_code[t], SP$species_code)], species_code = TR$species_code[t],
                     Date = as.character(d), month = as.integer(format(d, "%m")), year = as.integer(format(d, "%Y")),
                     stem_flux_nmol_m2_s = num(ex$CH4_flux_nmol_m2_s), air_temp_C = num(ex$air_temp_C),
-                    soil_temp_C = num(ex$soil_temp_C), soil_moisture_abs = num(ex$soil_vwc),
+                    soil_temp_C = exs$soil_temp_C, soil_moisture_abs = exs$soil_vwc_pct / 100, soil_match = exs$soil_match,
                     dbh_m = coalesce(num(ex$dbh_recorded_cm), num(TR$dbh_cm[t])) / 100, chamber_type = ex$chamber_type,
                     measurement_height_cm = num(ex$height_cm), campaign = ex$campaign, in_rf_training = FALSE,
                     dead_stem = ex$dead_stem == "TRUE", exclusion_reason = ex$exclusion_reason,

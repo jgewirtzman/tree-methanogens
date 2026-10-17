@@ -43,7 +43,7 @@ rule("PART 1  THE RF IS FLAT ABOVE ITS TRAINING RANGE (demonstration)")
 # ==============================================================================
 probe <- data.frame(species=factor("Acer rubrum", levels=trained),
   dbh_m=0.3, soil_moisture_at_tree=0.25,
-  soil_temp_C_mean=17, air_temp_C_mean=22,
+  soil_temp_C=17, air_temp_C=22,
   height_cm=c(50,125,200,250,500,1000,2500,10000))
 probe$pred <- predict(TreeRF, probe, num.threads=1)$predictions
 cat(sprintf("\n  training heights are 50 / 125 / 200 cm only\n\n  %10s %12s\n","height_cm","prediction"))
@@ -81,7 +81,7 @@ P <- array(NA_real_, c(nrow(INV), length(HG), 12))
 for (mo in 1:12) for (j in seq_along(HG)) {
   nd <- data.frame(dbh_m=INV$dbh,
     soil_moisture_at_tree=DR$m[mo],
-    soil_temp_C_mean=DR$soil_temp_C_mean[mo], air_temp_C_mean=DR$air_temp_C_mean[mo],
+    soil_temp_C=DR$soil_temp_C_mean[mo], air_temp_C=DR$air_temp_C_mean[mo],
     height_cm=HG[j])
   P[,j,mo] <- predict_species_marginal(function(x) predict(TreeRF, x, num.threads=1)$predictions,
                                        nd, INV$sp, LEVEL_W)

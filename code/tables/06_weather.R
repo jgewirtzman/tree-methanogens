@@ -18,8 +18,9 @@ source("code/lib/outputs.R")
 #     unbroken (02:00 present each March, no repeated 01:00 each November).
 #   - The clock was reset once, on 2021-08-03: the logger stopped between RECORD
 #     27251 (stamped 07:00) and 27252 (stamped 12:00).
-#   - Rule: the logger kept UTC-7 before the reset and UTC-4 (daylight time, all
-#     year) after it. timestamp = timestamp_logger + 7 h before the reset, + 4 h
+#   - Rule (code/lib/weather_time.R, also used by the stage-A goFlux aux files for
+#     chamber temperature): the logger kept UTC-7 before the reset and UTC-4
+#     (daylight time, all year) after it. timestamp = timestamp_logger + 7 h before the reset, + 4 h
 #     after, written as local time with the America/New_York offset of that
 #     instant (as flux_stem.start_time). Evidence: the centroid of each day's
 #     shortwave radiation (the clearer half of the days of each month) against
@@ -36,31 +37,35 @@ source("code/lib/outputs.R")
 #           humidity 0-100 %; precipitation 0-100 mm per hour; solar 0-1361 W m-2
 #           (an hourly mean cannot exceed the solar constant) and 0-4.9 MJ m-2;
 #           station VWC above 0 and at most 0.6 (zero and negative readings are the
-#           probe failure of Jun-Sep 2020); wind speed hourly mean 0-40 m s-1 and
-#           maximum 0-60 m s-1; ET_ref (logger ETos) -0.1 to 1.5 mm per hour.
-#   stuck   wind speed exactly 0 for 24 h or more (both wind speed columns);
-#           wind direction unchanged for 6 h or more. No temperature, dew point,
+#           probe failure of Jun-Sep 2020); ET_ref (logger ETos) -0.1 to 1.5 mm
+#           per hour.
+#   stuck   wind direction unchanged for 6 h or more. No temperature, dew point,
 #           humidity or solar series holds a value long enough to be stuck.
+#   WIND SPEED (wind_speed_avg_ms, wind_speed_max_ms) is blanked: implausible
+#           throughout (hourly means above 40 m s-1 in over 17,000 hours; a median near
+#           7 m s-1 under forest without those; unit not recorded) and unused
+#           (04_drivers/01_wb_reference_et.R takes the FAO-56 default of 2 m s-1).
 #   Not screened: soil_temp_avg_C (it tracks air temperature, so the probe is not
-#   in the soil; 04_drivers/03_soil_temp_climatology.R). The wind columns stay
-#   implausible after screening (median hourly mean 7 m s-1 under forest; unit
-#   not recorded) and the logger computed ET_ref from them; neither is used.
+#   in the soil; 04_drivers/00_soil_temp_climatology.R). The logger computed ET_ref
+#   from the wind speed; it is not used.
 # USED BY: air_temp_avg_C -- flux lookups (code/lib/flux_times.R tower_air),
 #   monthly air drivers (05_model/01_load_and_prep_data.R), daily air
-#   (04_drivers/01_wb_reference_et.R, 03_soil_temp_climatology.R); air max/min,
+#   (04_drivers/01_wb_reference_et.R, 00_soil_temp_climatology.R); air max/min,
 #   relative humidity, solar total, precipitation and VWC -- reference ET and
 #   water balance (04_drivers/01_wb_reference_et.R, which sets wind to the
 #   FAO-56 default).
 #
-# Check: values before screening equal data/compiled/environmental_timeseries.csv.
+# (The check against the old archive, data/compiled/environmental_timeseries.csv, was
+# removed 2026-10-16: the archive is now a copy of data/tables/.)
 # Writes data/tables/weather.csv, outputs/audit/weather_build.txt,
 #   outputs/audit/weather_screened.csv
 # ==============================================================================
 suppressPackageStartupMessages(library(tidyverse))
+source("code/lib/weather_time.R")
 OUT <- "data/tables"
 SRC <- "data/raw/weather/ymf_clean_sorted.csv"
-RESET_RECORD <- 27252                                # first record stamped after the reset
-LOGGER_UTC_H <- c(before = -7, after = -4)           # logger clock = UTC + this
+RESET_RECORD <- WEATHER_RESET_RECORD                 # first record stamped after the reset
+LOGGER_UTC_H <- WEATHER_LOGGER_UTC_H                 # logger clock = UTC + this
 TZ <- "America/New_York"
 
 w <- read_csv(SRC, show_col_types = FALSE, name_repair = "unique_quiet")
@@ -70,7 +75,7 @@ gap <- c(NA, diff(as.numeric(ts)) / 3600); rgap <- c(NA, diff(w$RECORD))
 i_reset <- which(w$RECORD == RESET_RECORD)
 stopifnot(length(i_reset) == 1, gap[i_reset] == 5, rgap[i_reset] == 1)
 before <- seq_len(nrow(w)) < i_reset
-utc <- ts - ifelse(before, LOGGER_UTC_H[["before"]], LOGGER_UTC_H[["after"]]) * 3600   # true instant
+utc <- weather_logger_to_utc(ts, w$RECORD)                                             # true instant
 stopifnot(!is.unsorted(utc, strictly = TRUE))
 iso_tz <- function(t) paste0(format(t, "%Y-%m-%dT%H:%M:%S", tz = TZ),
                              sub("(\\d{2})(\\d{2})$", "\\1:\\2", format(t, "%z", tz = TZ)))
@@ -110,30 +115,17 @@ rd <- W %>% mutate(utc = utc) %>% filter(substr(timestamp, 1, 10) == "2021-08-03
 sun_reset <- c(first = rd$timestamp[1], last = rd$timestamp[nrow(rd)],
                first_logger = rd$timestamp_logger[1], last_logger = rd$timestamp_logger[nrow(rd)])
 
-# ---- check vs the archived table (values before screening) -------------------------------------
-CP <- read_csv("data/compiled/environmental_timeseries.csv", show_col_types = FALSE)
-stopifnot(nrow(CP) == nrow(W), all(format(CP$timestamp, "%Y-%m-%dT%H:%M:%S", tz = "UTC") == W$timestamp_logger))
-names(CP)[names(CP) == "solar_rad_avg_kW"] <- "solar_rad_avg_W_m2"           # renamed: the values are W m-2
-names(CP)[names(CP) == "solar_rad_total_MJ"] <- "solar_rad_total_MJ_m2"
-vals <- setdiff(names(CP), "timestamp")
-bad <- sapply(vals, function(v) sum(!((is.na(CP[[v]]) & is.na(W[[v]])) |
-  (!is.na(CP[[v]]) & !is.na(W[[v]]) & abs(CP[[v]] - W[[v]]) <= 1e-12 * pmax(1, abs(W[[v]]))))))   # floating point
-
 # ---- screening ---------------------------------------------------------------------------------
 BOUNDS <- tribble(~var, ~lo, ~hi,
   "air_temp_C", -40, 45, "air_temp_avg_C", -40, 45, "air_temp_max_C", -40, 45, "air_temp_min_C", -40, 45,
   "dewpoint_C", -50, 35, "relative_humidity_pct", 0, 100, "precip_mm", 0, 100,
   "solar_rad_avg_W_m2", 0, 1361, "solar_rad_total_MJ_m2", 0, 4.9,
-  "vwc", 1e-9, 0.6, "vwc_avg", 1e-9, 0.6,
-  "wind_speed_avg_ms", 0, 40, "wind_speed_max_ms", 0, 60, "ET_ref", -0.1, 1.5)
+  "vwc", 1e-9, 0.6, "vwc_avg", 1e-9, 0.6, "ET_ref", -0.1, 1.5)
 run_len <- function(x) { r <- rle(x); rep(r$lengths, r$lengths) }    # length of the run each value sits in
 flag <- list()
 for (k in seq_len(nrow(BOUNDS))) { v <- BOUNDS$var[k]; x <- W[[v]]
   i <- which(!is.na(x) & (x < BOUNDS$lo[k] | x > BOUNDS$hi[k]))
   flag[[length(flag) + 1]] <- tibble(i, variable = v, rule = sprintf("outside %g to %g", BOUNDS$lo[k], BOUNDS$hi[k])) }
-calm <- which(W$wind_speed_avg_ms %in% 0 & run_len(W$wind_speed_avg_ms) >= 24)
-flag[[length(flag) + 1]] <- tibble(i = c(calm, calm), variable = rep(c("wind_speed_avg_ms", "wind_speed_max_ms"), each = length(calm)),
-                                   rule = "wind speed 0 for 24 h or more")
 vane <- which(!is.na(W$wind_dir_deg) & run_len(W$wind_dir_deg) >= 6)
 flag[[length(flag) + 1]] <- tibble(i = vane, variable = "wind_dir_deg", rule = "wind direction unchanged for 6 h or more")
 for (v in c("air_temp_C", "air_temp_avg_C", "air_temp_max_C", "air_temp_min_C", "dewpoint_C"))   # nothing stuck here
@@ -142,6 +134,8 @@ FL <- bind_rows(flag) %>% mutate(value = mapply(function(r, v) W[[v]][r], i, var
   filter(!is.na(value)) %>% distinct(i, variable, .keep_all = TRUE) %>% arrange(variable, i) %>%
   mutate(timestamp = W$timestamp[i], record = W$record[i]) %>% select(timestamp, record, variable, value, rule)
 for (v in unique(FL$variable)) W[[v]][match(FL$record[FL$variable == v], W$record)] <- NA
+n_wind <- c(avg = sum(!is.na(W$wind_speed_avg_ms)), max = sum(!is.na(W$wind_speed_max_ms)))
+W$wind_speed_avg_ms <- NA_real_; W$wind_speed_max_ms <- NA_real_          # blanked (see header)
 write_csv(FL, out_path("weather_screened.csv", "audit"))
 
 sink(out_path("weather_build.txt", "audit")); op <- options(width = 160)
@@ -162,12 +156,10 @@ cat(sprintf("  by year: %s\n", paste(CEN %>% group_by(y = paste0(substr(m, 1, 4)
 cat(sprintf("  rule applied: UTC%+d before, UTC%+d after (* = after the reset)\n", LOGGER_UTC_H[["before"]], LOGGER_UTC_H[["after"]]))
 cat(sprintf("2021-08-03, radiation > 20 W m-2: first hour ending %s (logger %s, before the stop), last ending %s (logger %s, after it)\n",
             sun_reset[["first"]], sun_reset[["first_logger"]], sun_reset[["last"]], sun_reset[["last_logger"]]))
-cat("\nvs data/compiled/environmental_timeseries.csv (before screening) -- values differing:\n"); print(bad)
 cat(sprintf("\nscreened (set NA): %d values; by variable and rule:\n", nrow(FL)))
 print(as.data.frame(FL %>% count(variable, rule)), row.names = FALSE)
-cat("\nafter screening: wind_speed_avg_ms median", median(W$wind_speed_avg_ms, na.rm = TRUE), "m s-1 (not used)\n")
+cat(sprintf("\nwind speed blanked: %d hourly means and %d maxima set NA (not screened; unused)\n", n_wind[["avg"]], n_wind[["max"]]))
 options(op); sink()
 cat(readLines(out_path("weather_build.txt", "audit")), sep = "\n")
-if (any(bad > 0)) stop("weather does not reproduce environmental_timeseries.csv")
 
 write_csv(W, file.path(OUT, "weather.csv"), na = "")

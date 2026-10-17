@@ -162,7 +162,11 @@ WIN <- window_path("lgr_manual_identification_results_soil.csv")
 # Saved hand-picked windows are the record; the picker below runs only without them
 # (or with FLUX_REPICK=1, interactively). See code/lib/flux_windows.R.
 if (use_saved_windows(WIN)) {
-  manID.lgr3 <- load_windows(WIN) %>% mutate(Vtot = CORRECT_VTOT_L, Area = CORRECT_CHAMBER_SURFACE_AREA_CM2)
+  # chamber temperature from the current auxfile (station air in true time), not the
+  # value saved with the windows
+  manID.lgr3 <- load_windows(WIN) %>% mutate(Vtot = CORRECT_VTOT_L, Area = CORRECT_CHAMBER_SURFACE_AREA_CM2,
+                                             Tcham = lgr3_auxfile$Tcham[match(UniqueID, lgr3_auxfile$UniqueID)])
+  stopifnot(!anyNA(manID.lgr3$Tcham))
   stopifnot(isTRUE(all.equal(CORRECT_VTOT_L, SOIL_VTOT_L)), CORRECT_CHAMBER_SURFACE_AREA_CM2 == SOIL_COLLAR_AREA_CM2)
 } else {
 

@@ -12,14 +12,14 @@ out <- "outputs"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
 RED <- "#b2182b"; BLU <- "#2166ac"
 
 # ---- data (verbatim from ISOTOPES_final.R) -----------------------------------
-source("code/lib/isotope_samples.R")   # the one sample-selection rule (see that file)
+source("code/lib/tables_read.R")   # isotopes.csv: whole-tree set flagged by the rule in code/lib/isotope_samples.R
 # reference values READ from 12_isotopes-canonical.R; panels (c) and (d) typed -70 and
 # 54-64 by hand, and the band outlived the reconciliation that moved eps_C to ~51-53
 .IS <- with(read.csv("outputs/data/ISOTOPES_summary.csv"), setNames(value, quantity))
 ATM_SRC <- .IS[["atm_corrected_source"]]
 EPS_LO <- min(.IS[["eps_C_source_atm"]], .IS[["eps_C_source_keeling"]])
 EPS_HI <- max(.IS[["eps_C_source_atm"]], .IS[["eps_C_source_keeling"]])
-d <- isotope_whole_tree_samples()
+d <- isotope_whole_tree()   # species from trees.csv
 wt <- d %>% filter(!is.na(d13CO2), co2_ppm > 0) %>%
   mutate(eps_C = ((d13CO2 + 1000)/(d13CH4 + 1000) - 1)*1000)
 

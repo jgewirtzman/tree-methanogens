@@ -7,18 +7,19 @@ source("code/lib/outputs.R")
 #   (b) mcrA against pmoA + mmoX for every sample, with a 1:1 line
 # Also writes the all-species version with pmoA and mmoX separate (SI figure).
 #
-# UNITS: the ddpcr_*_loose columns are ALREADY copies g^-1, converted once in
-# code/03_merge/04_harmonize_all_data.R with code/lib/ddpcr_constants.R
-# (Conc x (25/2.5) x elution (75 wood, 100 soil) x (800/250) / mass). Basis: DRY for wood
-# (freeze-dried cores); soil uses fresh sample mass.
+# UNITS: the ddpcr_*_loose columns are copies g^-1 from data/tables/ddpcr.csv (copies_per_g,
+# converted once in code/tables/21_ddpcr.R with code/lib/ddpcr_constants.R:
+# Conc x (25/2.5) x elution (75 wood, 100 soil) x (800/250) / mass). Basis: DRY for wood
+# (freeze-dried cores); soil uses fresh sample mass (ddpcr.mass_basis).
+# pmoA + mmoX is the sum where both genes were measured; NA where either is missing.
 # Points in (a) are means of log10 among positive samples (as in the text) +- SE;
 # hollow points mark compartments where fewer than half of samples were positive.
 # Outputs: outputs/figures/generated/fig4_final.png, figS_gene-abundance-species.png
 # ==============================================================================
 suppressPackageStartupMessages({ library(tidyverse); library(cowplot); library(patchwork); library(ggside) })
 
-mf <- read_csv("data/processed/integrated/merged_tree_dataset_final.csv", show_col_types = FALSE)
-source("code/08_figures/helper_species_barplots.R")   # species_mapping
+source("code/lib/tables_read.R")
+mf <- survey_2021_trees()                                 # 2021 survey per tree (data/tables/)
 invisible(capture.output(suppressMessages(source("code/07_molecular/helper_scale_dependent_gene_patterns.R"))))
 flux_species <- analysis_mcra$species                     # the gene-flux species set
 
@@ -26,9 +27,9 @@ comp <- c(Inner = "Heartwood", Outer = "Sapwood", Mineral = "Mineral soil", Orga
 cols <- c(Heartwood = "#a6611a", Sapwood = "#dfc27d", `Mineral soil` = "#80cdc1", `Organic soil` = "#018571")
 wide <- map_dfr(names(comp), function(l) {
   p <- mf[[paste0("ddpcr_pmoa_", l, "_loose")]]; m <- mf[[paste0("ddpcr_mmox_", l, "_loose")]]
-  tibble(tree_id = mf$tree_id, species = unname(species_mapping[mf$species_id]), compartment = comp[[l]],
+  tibble(tree_id = mf$tree_id, species = species_name(mf$species_id), compartment = comp[[l]],
          mcrA = mf[[paste0("ddpcr_mcra_probe_", l, "_loose")]], pmoA = p, mmoX = m,
-         mt = ifelse(is.na(p) & is.na(m), NA, coalesce(p, 0) + coalesce(m, 0)))
+         mt = p + m)
 }) %>% filter(!is.na(species)) %>% mutate(compartment = factor(compartment, levels = names(cols)))
 
 gene_labels <- c(mcrA = "italic(mcrA)", mt = "italic(pmoA)+italic(mmoX)", pmoA = "italic(pmoA)", mmoX = "italic(mmoX)")

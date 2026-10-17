@@ -7,9 +7,10 @@ source("code/lib/outputs.R")
 # does the choice of a common basis change the results?
 #
 #   wood dry -> fresh: exact, from each core's measured water content
-#                      (tree_properties: *_moisture_fresh_percent, per tree)
+#                      (data/tables/wood_cores.csv moisture_fresh_pct, per tree and position)
 #   soil fresh -> dry: estimated only, from the black-oak soils' gravimetric water
-#                      content (no per-sample soil GWC exists)
+#                      content (no per-sample soil GWC exists; that sheet is not in
+#                      data/tables/ and is read raw)
 #
 # Tests: heartwood:soil mcrA ratio under each basis; heartwood species ranking,
 # dry vs fresh; paired heartwood:sapwood contrast. Ratios of two genes from one
@@ -22,27 +23,25 @@ source("code/lib/outputs.R")
 # Output: outputs/audit/mass_basis_sensitivity.txt
 # ==============================================================================
 suppressMessages(library(dplyr))
-norm <- function(x) toupper(gsub("[^A-Za-z0-9]", "", x))
 L    <- function(x) log10(x + 1)
+source("code/lib/tables_read.R")
 
-tp <- read.csv("data/compiled/tree_properties.csv", check.names = FALSE) %>%
-  transmute(key = norm(tree_id), mc_in = inner_moisture_fresh_percent / 100,
-            mc_out = outer_moisture_fresh_percent / 100) %>%
-  group_by(key) %>% summarise(mc_in = mean(mc_in, na.rm = TRUE), mc_out = mean(mc_out, na.rm = TRUE), .groups = "drop")
+# per-tree core water content by radial position (wood_cores.csv, mean over the tree's cores)
+tp <- survey_2021_trees() %>%
+  transmute(tree_id, mc_in = inner_moisture_fresh_percent / 100, mc_out = outer_moisture_fresh_percent / 100)
 
-source("code/lib/ddpcr_constants.R")
-d <- read.csv("data/compiled/ddpcr_gene_abundances.csv") %>%
-  filter(analysis_type == "loose", sample_mass_mg > 0, target_gene %in% c("mcra_probe", "mcra")) %>%
-  group_by(sample_id) %>% filter(if (any(target_gene == "mcra_probe")) target_gene == "mcra_probe" else TRUE) %>% ungroup() %>%
-  mutate(id = trimws(sub("\n.*", "", sample_id)), key = norm(sub("^[A-Z]{4}_", "", id)), sp = substr(id, 1, 4),
-         cpg = ddpcr_copies_per_g(concentration_copies_per_uL, sample_mass_mg, material),   # as 04_harmonize_all_data.R
+# mcrA, probe assay, copies per g per DNA sample (ddpcr.csv + samples.csv; dna_samples());
+# species from trees.csv
+d <- dna_samples("2021_survey") %>%
+  filter(!is.na(mcra_probe_g)) %>%
+  mutate(cpg = mcra_probe_g, sp = species_code,
          comp = case_when(material == "Wood" & core_type == "Inner" ~ "Heartwood",
                           material == "Wood" & core_type == "Outer" ~ "Sapwood",
                           material == "Soil" ~ paste0("Soil_", core_type)))
 
-w <- d %>% filter(comp %in% c("Heartwood", "Sapwood")) %>% left_join(tp, by = "key") %>%
+w <- d %>% filter(comp %in% c("Heartwood", "Sapwood")) %>% left_join(tp, by = "tree_id") %>%
   mutate(mc = ifelse(comp == "Heartwood", mc_in, mc_out)) %>% filter(is.finite(mc)) %>%
-  mutate(fresh = cpg * (1 - mc))
+  mutate(fresh = cpg * (1 - mc), key = tree_id)
 
 # soil GWC from the black-oak soils, as in 06_copies-per-gram.R
 bo  <- read.csv("data/raw/field_data/black_oak/bo_soil_moisture.csv", check.names = FALSE)

@@ -8,11 +8,17 @@
 # Run after: 02_join_flux_geometry.R
 #
 # Inputs:
-#   - flux_with_geometry_fixed.csv (from 02_join_flux_geometry.R)
-#   - ymf_clean_sorted.csv (from data/raw/weather/)
+#   - flux_with_geometry_fixed.csv (from 02_join_flux_geometry.R; geometry per
+#     deployment and its source, code/lib/stem_chamber_geometry.R, carried through)
+#   - ymf_clean_sorted.csv (from data/raw/weather/; logger clock, see Tcham below)
 #
 # Outputs:
 #   - auxfile_goFlux_with_weather.csv
+#
+# Tcham: station hourly mean air temperature of the hour containing the start, in true
+#   time (logger clock converted by code/lib/weather_time.R, the rule of
+#   code/tables/06_weather.R), within 24 h; every deployment must have one (the build
+#   stops otherwise; no default). Pcham: 101.325 kPa.
 # ==============================================================================
 
 library(dplyr)
@@ -20,31 +26,14 @@ library(readr)
 library(lubridate)
 
 source("../../lib/chamber_constants.R")  # ANALYZER_VOLUME_CM3
+source("../../lib/weather_time.R")       # read_station_air(), station_air_at()
 
 # Read the CSV file
 flux_data <- read_csv("../../../data/processed/flux/flux_with_geometry_fixed.csv")
 
-# Read the weather data
-ymf_met <- read.csv("../../../data/raw/weather/ymf_clean_sorted.csv")
-
-# Prepare weather data
-cat("=== PREPARING WEATHER DATA ===\n")
-weather_clean <- ymf_met %>%
-  mutate(
-    # Convert timestamp to POSIXct
-    TIMESTAMP = as.POSIXct(TIMESTAMP, tz = "UTC"),
-    # Convert temperature from Celsius to match goFlux expectations
-    Tcham_weather = Tair_Avg,  # Using average air temperature
-    # Convert pressure - note: need to check if SVPWPa is atmospheric pressure
-    # SVPWPa appears to be saturation vapor pressure, not atmospheric pressure
-    # We'll calculate atmospheric pressure from other variables or use a default
-    Pcham_weather = 101.325  # Default for now - may need site-specific correction
-  ) %>%
-  select(TIMESTAMP, Tcham_weather, Pcham_weather) %>%
-  arrange(TIMESTAMP)
-
-cat("Weather data range:", as.character(range(weather_clean$TIMESTAMP)), "\n")
-cat("Temperature range:", round(range(weather_clean$Tcham_weather, na.rm = TRUE), 1), "°C\n")
+# Station air temperature, keyed by true time
+station_air <- read_station_air("../../../data/raw/weather/ymf_clean_sorted.csv")
+cat("Station air temperature:", nrow(station_air), "hourly records\n")
 
 # Check for problematic time values first
 cat("\n=== INVESTIGATING TIME FORMAT ISSUES ===\n")
@@ -140,63 +129,16 @@ auxfile <- flux_data %>%
   ) %>%
   # Remove rows with missing critical data before merging
   filter(!is.na(start.time), !is.na(Area), !is.na(Vtot)) %>%
-  # Merge with weather data using nearest timestamp
-  # This finds the closest weather measurement to each flux measurement
-  left_join(
-    weather_clean,
-    by = c("start.time" = "TIMESTAMP")
-  ) %>%
-  # If no exact match, find nearest weather data
-  mutate(
-    # For unmatched rows, we'll use a rolling join approach
-    Tcham = case_when(
-      !is.na(Tcham_weather) ~ Tcham_weather,
-      TRUE ~ NA_real_
-    ),
-    Pcham = case_when(
-      !is.na(Pcham_weather) ~ Pcham_weather,
-      TRUE ~ NA_real_
-    )
-  )
+  # Station air temperature of the hour containing the start (true time)
+  mutate(Tcham = station_air_at(start.time, station_air), Pcham = 101.325)
+stopifnot(!anyNA(auxfile$Tcham))   # station air temperature within 24 h for every deployment; no default
 
-# For rows without weather matches, find nearest weather data
-unmatched_rows <- which(is.na(auxfile$Tcham))
-
-if(length(unmatched_rows) > 0) {
-  cat("Finding nearest weather data for", length(unmatched_rows), "unmatched measurements...\n")
-  
-  for(i in unmatched_rows) {
-    measurement_time <- auxfile$start.time[i]
-    
-    # Find closest weather observation
-    time_diffs <- abs(as.numeric(weather_clean$TIMESTAMP - measurement_time))
-    closest_idx <- which.min(time_diffs)
-    closest_time_diff <- min(time_diffs) / 3600  # Convert to hours
-    
-    # Only use weather data if it's within 24 hours
-    if(closest_time_diff <= 24) {
-      auxfile$Tcham[i] <- weather_clean$Tcham_weather[closest_idx]
-      auxfile$Pcham[i] <- weather_clean$Pcham_weather[closest_idx]
-    }
-  }
-}
-
-# Final processing - NO DEFAULTS for missing times
+# Final processing - no defaults
 auxfile <- auxfile %>%
-  # Add defaults only for temperature and pressure, not time
-  mutate(
-    Tcham = case_when(
-      !is.na(Tcham) ~ Tcham,
-      TRUE ~ 15.0  # Default if no weather data within 24 hours
-    ),
-    Pcham = case_when(
-      !is.na(Pcham) ~ Pcham,
-      TRUE ~ 101.325  # Default if no weather data within 24 hours
-    )
-  ) %>%
   # Select columns needed for goFlux auxfile plus original columns to preserve
   select(UniqueID, start.time, Area, Vtot, Tcham, Pcham, 
-         Date, `Plot Tag`, `Plot Letter`, Chamber_ID, `File name`, Notes) %>%
+         Date, `Plot Tag`, `Plot Letter`, Chamber_ID, `File name`, Notes,
+         geometry_source, chamber_dims, D_stem_cm, chamber_volume_cm3 = volume_cm3) %>%
   # Arrange by start time to maintain chronological order
   arrange(start.time)
 
@@ -269,12 +211,10 @@ cat("Measurements by hour of day:\n")
 print(time_summary)
 
 # Weather data usage summary
-weather_matched <- sum(!is.na(auxfile$Tcham) & auxfile$Tcham != 15.0)
-default_temp <- sum(auxfile$Tcham == 15.0)
+weather_matched <- sum(!is.na(auxfile$Tcham))
 
 cat("\n=== WEATHER DATA USAGE ===\n")
 cat("Measurements with weather data:", weather_matched, "\n")
-cat("Measurements using default temp (15°C):", default_temp, "\n")
 cat("Weather data coverage:", round(100 * weather_matched / nrow(auxfile), 1), "%\n")
 
 # Show which rows were removed and why (if any)

@@ -80,5 +80,5 @@ pipeline itself; those are being wired so the counts are produced, not typed.
 
 | # | rule | action | applied in | rows affected | why |
 |---|---|---|---|---|---|
-| E1 | Soil environment archive is the union of the per-date sheets and the 2020 summary | corrected | 03_merge/02_compile_soil_env.R | 291 records, 22 dates | earlier builds read one source and lost dates |
+| E1 | Soil environment archive is the union of the per-date sheets and the 2020 summary | corrected | tables/05_soil_readings.R (03_merge/02_compile_soil_env.R retired 2026-10-17) | 291 records, 22 dates | earlier builds read one source and lost dates |
 | E2 | Stream points in the December moisture survey set to 100% VWC | defined | 04_drivers/04_moisture_surface.R | stream boundary points | an assumption, not a measurement; anchors the wet end |

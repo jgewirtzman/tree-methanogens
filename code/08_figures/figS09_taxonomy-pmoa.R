@@ -62,8 +62,8 @@ cat("After rarefaction:", nsamples(ps.ra), "samples,", ntaxa(ps.ra), "taxa\n")
 ps.wood <- subset_samples(ps.ra, material == "Wood")
 
 # Load PICRUSt metadata for pmoA + 16S qPCR values used in LMER
-meta <- read.csv("data/raw/picrust/16S_tree_sample_table_with_meta.csv",
-                  row.names = 1)
+source("code/lib/tables_read.R")
+meta <- survey_16s_meta()   # per sequenced 2021 sample (data/tables/: samples, samples_16S, ddpcr, qpcr, trees)
 meta$log16S <- log10(1 + meta$X16S_per_ul)
 
 wood <- meta %>%

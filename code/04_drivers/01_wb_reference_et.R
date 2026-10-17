@@ -19,6 +19,12 @@
 # Input: data/tables/weather.csv (true time; screened by code/tables/06_weather.R).
 # Days are local calendar days of the true time.
 #
+# GAPS, one rule. A day is used when it has at least 20 hourly records; its rain is
+# the sum of its hourly precipitation, and an hour with no precipitation value would
+# count as 0 (the build reports how many; none at present). A day with fewer records
+# is missing: the bucket and the API step over it with no rain and no ET (the store
+# carries unchanged). The build reports the missing days (2 single days at present).
+#
 # WHAT THIS IS FOR. The soil campaign ran one year (2020-06 to 2021-05), and that
 # year had the second-driest Jun-Sep in the record (210 mm against 437 mm in
 # 2021). The RF learned a moisture x temperature interaction, so driving the
@@ -32,10 +38,7 @@
 # ==============================================================================
 suppressPackageStartupMessages({library(dplyr)})
 
-LAT_DEG <- 41.9899      # plot centre
-ELEV_M  <- 215          # Yale-Myers, approximate
-ALBEDO  <- 0.23         # FAO-56 reference grass
-SIGMA   <- 4.903e-9     # Stefan-Boltzmann, MJ K-4 m-2 day-1
+source("code/lib/fao56.R")      # et0_fao56(): the one FAO-56 Penman-Monteith (u2 = FAO56_U2)
 
 w <- read.csv("data/tables/weather.csv", stringsAsFactors = FALSE)
 w$date <- as.Date(substr(w$timestamp, 1, 10))
@@ -46,10 +49,9 @@ w$rh <- NUM("relative_humidity_pct")
 # 289 despite the name; those are not m s-1 and the true unit is not recorded (after
 # the table's screen the median is still 7). Fed into the Penman-Monteith
 # aerodynamic term it inflated ET0 to 959 mm yr-1. FAO-56 section on missing data
-# prescribes a 2 m s-1 default in exactly this case, which is what is used; the
-# column is retained only for the record.
-U2_DEFAULT <- 2.0
-w$wind_raw <- NUM("wind_speed_avg_ms")
+# prescribes a 2 m s-1 default in exactly this case, which is what is used
+# (FAO56_U2, code/lib/fao56.R). The
+# weather table now leaves wind speed blank (06_weather.R).
 # Solar: the logger column named Solar_Rad_kW_Avg is W m-2 (solar_rad_avg_W_m2), and
 # solar_rad_total_MJ_m2 is a direct hourly MJ m-2 total. Summed per day the two
 # agree at 12.1 MJ m-2 d-1, so the MJ column is used and the other is the check.
@@ -62,37 +64,23 @@ D <- w %>% group_by(date) %>% summarise(
   RH    = mean(rh,   na.rm = TRUE),
   Rs      = sum(srad_mj, na.rm = TRUE),                    # MJ m-2 day-1, direct
   Rs_chk  = mean(srad_w, na.rm = TRUE) * 86400 / 1e6,      # from W m-2, as a check
-  u_raw = mean(wind_raw, na.rm = TRUE),
   rain_mm = sum(rain, na.rm = TRUE),
   vwc   = mean(ifelse(vwc > 0 & vwc < 0.6, vwc, NA), na.rm = TRUE),
   nobs  = dplyr::n(), .groups = "drop") %>%
   mutate(across(c(Tmean, Tmax, Tmin, RH, Rs, Rs_chk, vwc), ~ifelse(is.finite(.x), .x, NA))) %>%
   filter(nobs >= 20)                                   # complete days only
+rain_na <- sum(tapply(is.na(w$rain), w$date, sum)[as.character(D$date)])
+cal <- seq(min(w$date, na.rm = TRUE), max(w$date, na.rm = TRUE), by = "day")
+gap_days <- cal[!cal %in% D$date]
+cat(sprintf("days used %d of %d; missing days (fewer than 20 hourly records; the store carries over them): %d (%s)\n",
+            nrow(D), length(cal), length(gap_days), paste(gap_days, collapse = ", ")))
+cat(sprintf("hours with no precipitation value on days used (counted as 0): %d\n", rain_na))
 
-# --- FAO-56 Penman-Monteith ---------------------------------------------------
-doy <- as.integer(format(D$date, "%j"))
-phi <- LAT_DEG * pi/180
-dr  <- 1 + 0.033*cos(2*pi*doy/365)
-dec <- 0.409*sin(2*pi*doy/365 - 1.39)
-ws  <- acos(pmin(pmax(-tan(phi)*tan(dec), -1), 1))
-Ra  <- (24*60/pi) * 0.0820 * dr * (ws*sin(phi)*sin(dec) + cos(phi)*cos(dec)*sin(ws))
-Rso <- (0.75 + 2e-5*ELEV_M) * Ra
+# --- FAO-56 Penman-Monteith (code/lib/fao56.R); Hargreaves-Samani as a check ----
 esat <- function(t) 0.6108*exp(17.27*t/(t + 237.3))
-es <- (esat(D$Tmax) + esat(D$Tmin))/2
-ea <- es * D$RH/100
-delta <- 4098*esat(D$Tmean)/(D$Tmean + 237.3)^2
-P <- 101.3*((293 - 0.0065*ELEV_M)/293)^5.26
-gamma <- 0.665e-3 * P
-Rns <- (1 - ALBEDO) * D$Rs
-frac <- pmin(pmax(D$Rs/Rso, 0.25), 1.0)
-Rnl <- SIGMA * (((D$Tmax + 273.16)^4 + (D$Tmin + 273.16)^4)/2) *
-       (0.34 - 0.14*sqrt(pmax(ea, 0))) * (1.35*frac - 0.35)
-Rn <- Rns - Rnl
-u2 <- rep(U2_DEFAULT, nrow(D))    # see the wind note above
-D$ET0_pm <- pmax((0.408*delta*Rn + gamma*900/(D$Tmean + 273)*u2*(es - ea)) /
-                 (delta + gamma*(1 + 0.34*u2)), 0)
-# --- Hargreaves-Samani, as an independent check --------------------------------
-D$ET0_hs <- pmax(0.0023 * (Ra/2.45) * (D$Tmean + 17.8) * sqrt(pmax(D$Tmax - D$Tmin, 0)), 0)
+ea <- (esat(D$Tmax) + esat(D$Tmin))/2 * D$RH/100
+E <- et0_fao56(D$date, D$Tmax, D$Tmin, D$Tmean, D$Rs, ea)
+D$ET0_pm <- E$ET0_pm; D$ET0_hs <- E$ET0_hs
 
 cat(sprintf("solar cross-check: MJ column %.2f vs W-derived %.2f MJ m-2 d-1 (r = %.4f)\n",
             mean(D$Rs, na.rm=TRUE), mean(D$Rs_chk, na.rm=TRUE),
@@ -102,8 +90,7 @@ for (v in c("ET0_pm", "ET0_hs")) cat(sprintf("  %-8s median %.2f  q95 %.2f  max 
   v, median(D[[v]], na.rm=TRUE), quantile(D[[v]], .95, na.rm=TRUE),
   max(D[[v]], na.rm=TRUE), sum(D[[v]], na.rm=TRUE)/(nrow(D)/365.25)))
 cat(sprintf("  PM vs HS correlation: %+.3f\n", cor(D$ET0_pm, D$ET0_hs, use="complete.obs")))
-cat(sprintf("  wind column unusable (median %.1f, max %.1f); u2 fixed at %.1f m s-1 per FAO-56\n",
-            median(D$u_raw, na.rm=TRUE), max(D$u_raw, na.rm=TRUE), U2_DEFAULT))
+cat(sprintf("  wind speed not recorded usably; u2 fixed at %.1f m s-1 per FAO-56\n", FAO56_U2))
 cat("  (FAO-56 reference ET for this region should sit near 600-750 mm yr-1)\n")
 
 # --- water balance ------------------------------------------------------------

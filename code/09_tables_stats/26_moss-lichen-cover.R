@@ -6,8 +6,8 @@ source("code/lib/outputs.R")
 # ------------------------------------------------------------------------------
 # The 2023 cross-species datasheet scored moss/lichen cover within each chamber
 # footprint visually on a 1-3 scale of relative cover (1 = least); taxa and
-# functional groups were not identified. Scores join to fluxes by deployment
-# (measurement_id = the window file's UniqueID).
+# functional groups were not identified. The score is a column of the deployment
+# (flux_stem.moss_lichen_cover).
 # Tests: Spearman and Kruskal-Wallis across species; within species, a linear
 # model of asinh(flux x 100) on species plus score; Spearman within each species
 # with at least 10 scored trees.
@@ -15,14 +15,14 @@ source("code/lib/outputs.R")
 # ==============================================================================
 suppressPackageStartupMessages(library(tidyverse))
 
-f <- read_csv("outputs/data/flux_measurements_tree.csv", show_col_types = FALSE) %>%
-  filter(campaign == "2023_cross_species", !dead_stem)
-r <- read_csv("data/raw/flux_windows/lgr_manual_identification_2023_cross_species.csv",
-              show_col_types = FALSE) %>%
-  distinct(UniqueID, .keep_all = TRUE) %>%
-  transmute(measurement_id = UniqueID, moss = `Moss/Lichen Cover`)
+# 2023 deployments on live stems (data/tables/flux_stem.csv: flux, dead_stem and the
+# datasheet's moss_lichen_cover score); species from trees.csv
+source("code/lib/tables_read.R")
+f <- flux_stem_campaign("2023_cross_species") %>% filter(!dead_stem) %>%
+  transmute(measurement_id, species_clean = species, stem_flux_nmol_m2_s = CH4_flux_nmol_m2_s,
+            moss = moss_lichen_cover)
 
-j <- f %>% left_join(r, by = "measurement_id") %>%
+j <- f %>%
   filter(moss %in% c("1", "2", "3")) %>%
   mutate(moss = as.integer(moss), y = asinh(stem_flux_nmol_m2_s * 100))
 

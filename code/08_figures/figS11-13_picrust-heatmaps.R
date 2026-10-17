@@ -19,14 +19,14 @@
 #   - pmoA: particulate methane monooxygenase
 #   - mmoX: soluble methane monooxygenase
 #
-# Inputs (pre-computed by 02_picrust_pathway_associations.R):
-#   - data/processed/molecular/picrust/pathway_associations_mcra_all.csv
-#   - data/processed/molecular/picrust/pathway_associations_mcra_no_mcra_otus.csv
-#   - data/processed/molecular/picrust/pathway_associations_pmoa.csv
-#   - data/processed/molecular/picrust/pathway_associations_mmox.csv
-#   - data/processed/molecular/picrust/pathway_associations_combined.csv
-#   - data/raw/picrust/path_abun_unstrat_descrip.tsv  (pathway abundances)
-#   - data/raw/picrust/16S_tree_sample_table_with_meta.csv (metadata)
+# Inputs (02_picrust_pathway_associations.R, run earlier in the pipeline):
+#   - outputs/data/picrust/pathway_associations_mcra_all.csv
+#   - outputs/data/picrust/pathway_associations_mcra_no_mcra_otus.csv
+#   - outputs/data/picrust/pathway_associations_pmoa.csv
+#   - outputs/data/picrust/pathway_associations_mmox.csv
+#   - outputs/data/picrust/pathway_associations_combined.csv
+#   - data/tables/picrust_pathways.csv  (pathway abundances, non-organelle ASVs; display)
+#   - sample metadata from data/tables/ (survey_16s_meta(), code/lib/tables_read.R)
 #
 # Outputs:
 #   - outputs/figures/original/main/fig6_picrust_mcra_no_mcra_heatmap.png
@@ -43,19 +43,19 @@ library(pheatmap)
 # STEP 1: Load metadata and pathway abundances
 # ==============================================================================
 
-meta <- read.csv("data/raw/picrust/16S_tree_sample_table_with_meta.csv",
-                  row.names = 1)
+source("code/lib/tables_read.R")
+meta <- survey_16s_meta()   # per sequenced 2021 sample (data/tables/: samples, samples_16S, ddpcr, qpcr, trees)
 meta$log16S <- log10(1 + meta$X16S_per_ul)
 
-# Load pathway abundances (used for display matrix in heatmaps)
-pathways_raw <- read.table("data/raw/picrust/path_abun_unstrat_descrip.tsv",
-                            sep = "\t", header = TRUE, quote = "")
+# Pathway abundances for the display matrix: data/tables/picrust_pathways.csv, the
+# summed PICRUSt2 contributions of the non-organelle ASVs per library (the abundances
+# the associations are tested on; until 2026-10-17 the display read PICRUSt2's
+# unstratified table, which includes the organelle ASVs)
 HTML_ENT <- c("&alpha;" = "\u03b1", "&beta;" = "\u03b2", "&gamma;" = "\u03b3", "&delta;" = "\u03b4", "&omega;" = "\u03c9", "&amp;" = "&")
-descriptions <- setNames(pathways_raw$description, pathways_raw$pathway)
-
-abundance <- pathways_raw[, 3:ncol(pathways_raw)]
-rownames(abundance) <- pathways_raw$pathway
-abundance <- t(abundance)
+abundance <- read_table("picrust_pathways") %>%
+  dplyr::select(library_id, pathway, abundance) %>%
+  pivot_wider(names_from = pathway, values_from = abundance, values_fill = 0) %>%
+  column_to_rownames("library_id") %>% as.matrix()
 abundance <- abundance[rowSums(abundance) > 10000, ]
 
 ## Relative abundance with prevalence filter
@@ -132,7 +132,7 @@ make_pathway_heatmap <- function(pvals_file, meta_df, gene_col, gene_label,
   ## Optionally filter by gene-ASV contribution fraction
   if (!is.null(max_gene_contrib) && !is.null(contrib_lookup)) {
     sig$gene_contrib <- contrib_lookup[sig$pathway]
-    sig$gene_contrib[is.na(sig$gene_contrib)] <- 0
+    stopifnot(!anyNA(sig$gene_contrib))   # every tested pathway has a contribution
     n_before <- nrow(sig)
     sig <- sig %>% filter(gene_contrib < max_gene_contrib)
     cat("Filtered by", contrib_col, "<", max_gene_contrib, ":",
@@ -241,7 +241,7 @@ make_pathway_heatmap <- function(pvals_file, meta_df, gene_col, gene_label,
 # STEP 4: Generate all heatmaps
 # ==============================================================================
 
-results_dir <- "data/processed/molecular/picrust"
+results_dir <- "outputs/data/picrust"
 
 ## --- Figure 6: mcrA (no-mcrA ASVs) — MAIN TEXT ---
 ## FDR < 0.001 with mcrA-ASV contribution < 10% (~45 pathways).

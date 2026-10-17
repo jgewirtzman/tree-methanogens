@@ -16,7 +16,7 @@ source("code/lib/outputs.R")
 #
 # Library -> sample (main run): data/raw/16s/tree_16s_mapping_dada2_corrected.txt
 # (589 libraries = the 589 count columns), with the seq_id patches of
-# code/lib/build_phyloseq.R: prime -> ', star -> *, HM -> H, and library
+# the old raw build in code/lib/build_phyloseq.R (applied here only since 2026-10-16): prime -> ', star -> *, HM -> H, and library
 # 206.B01.16S.S (fastq 206_B01_16S_S3) is RO104 Inner. A library carrying a lab ID
 # is matched to the sample with that lab ID; otherwise by tree (NCBI spelling) +
 # compartment (+ lab-ID suffix, e.g. YB9Inner44c). library_type: mock (Zymo),
@@ -47,7 +47,7 @@ to_sample_id <- function(x) {   # tree spelling + compartment [+ lab ID] -> samp
 # 1. MAIN RUN
 # ==============================================================================
 M <- read.delim("data/raw/16s/tree_16s_mapping_dada2_corrected.txt", check.names = FALSE, colClasses = "character")
-# seq_id patches (code/lib/build_phyloseq.R)
+# seq_id patches (formerly in code/lib/build_phyloseq.R; now only here)
 M$seq_id <- sub("prime", "'", M$seq_id); M$seq_id <- sub("star", "*", M$seq_id); M$seq_id <- sub("HM", "H", M$seq_id)
 fix <- M$ForwardFastqFile == "206_B01_16S_S3_R1_001.fastq"
 stopifnot(sum(fix) == 1); M$seq_id[fix] <- "RO104"; M$core_type[fix] <- "Inner"

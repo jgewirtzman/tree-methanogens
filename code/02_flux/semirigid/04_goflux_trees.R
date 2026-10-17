@@ -133,6 +133,14 @@ WIN <- window_path("lgr_manual_identification_semirigid_tree.csv")
 # (or with FLUX_REPICK=1, interactively). See code/lib/flux_windows.R.
 if (use_saved_windows(WIN)) {
   manID.lgr3 <- load_windows(WIN)
+  # chamber temperature from the current auxfile (station air in true time), not the
+  # value saved with the windows
+  # and chamber geometry (Area, Vtot) from the current auxfile: the chamber used that
+  # day (code/lib/stem_chamber_geometry.R), not the geometry saved with the windows
+  ai <- match(manID.lgr3$UniqueID, lgr3_auxfile$UniqueID)
+  manID.lgr3$Tcham <- lgr3_auxfile$Tcham[ai]
+  manID.lgr3$Area <- lgr3_auxfile$Area[ai]; manID.lgr3$Vtot <- lgr3_auxfile$Vtot[ai]
+  stopifnot(!anyNA(manID.lgr3$Tcham), !anyNA(manID.lgr3$Area), !anyNA(manID.lgr3$Vtot))
 } else {
 
 # Process in batches of 20

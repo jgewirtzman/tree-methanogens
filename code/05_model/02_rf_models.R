@@ -120,50 +120,6 @@ stopifnot(!anyNA(TREE_JULY$species), !anyNA(TREE_YEAR$species))
 cat("\n✓ Data loaded successfully\n\n")
 
 # =============================================================================
-# SMART IMPUTATION FUNCTION
-# =============================================================================
-
-smart_impute <- function(df, feature_cols) {
-  df_imputed <- df
-  
-  for(col in feature_cols) {
-    if(col %in% names(df) && sum(is.na(df[[col]])) > 0) {
-      if(col %in% c("air_temp_C", "soil_temp_C", "soil_moisture_abs")) {
-        if("month" %in% names(df)) {
-          monthly_medians <- df %>%
-            group_by(month) %>%
-            summarise(med_val = median(!!sym(col), na.rm = TRUE), .groups = "drop")
-          
-          # NOTE: month can be NA for recovered deployments whose date
-          # could not be resolved; `df$month == m` then yields NA and any() errors.
-          for(m in unique(df$month[!is.na(df$month)])) {
-            month_idx <- !is.na(df$month) & df$month == m & is.na(df[[col]])
-            if(any(month_idx)) {
-              # NOTE: guard against duplicate/NA month keys returning a
-              # vector here, which made the if() condition length > 1.
-              month_med <- monthly_medians$med_val[which(monthly_medians$month == m)][1]
-              if(length(month_med) == 1 && !is.na(month_med)) {
-                df_imputed[[col]][month_idx] <- month_med
-              }
-            }
-          }
-        }
-      }
-      
-      remaining_na <- is.na(df_imputed[[col]])
-      if(any(remaining_na)) {
-        overall_median <- median(df[[col]], na.rm = TRUE)
-        if(!is.na(overall_median)) {
-          df_imputed[[col]][remaining_na] <- overall_median
-        }
-      }
-    }
-  }
-  
-  return(df_imputed)
-}
-
-# =============================================================================
 # MONTHLY MOISTURE CALIBRATION
 # =============================================================================
 
@@ -214,44 +170,9 @@ MOISTURE_AFFINE_TABLE <- map_df(1:12, function(m) {
   )
 })
 
-make_Mhat <- function(affine_table, moisture_lookup_fn) {
-  function(month_vec, x_vec, y_vec) {
-    if(length(month_vec) == 0) return(numeric(0))
-    
-    moisture_pred <- numeric(length(month_vec))
-    
-    months_with_calib <- affine_table %>% 
-      filter(!is.na(alpha_t)) %>% 
-      pull(month)
-    
-    if(length(months_with_calib) > 0) {
-      fallback_moisture <- mean(affine_table$alpha_t[!is.na(affine_table$alpha_t)])
-    } else {
-      fallback_moisture <- 0.15
-    }
-    
-    unique_months <- unique(month_vec)
-    for(m in unique_months) {
-      idx <- which(month_vec == m)
-      params <- affine_table %>% filter(month == m)
-      
-      if(nrow(params) == 0 || is.na(params$alpha_t)) {
-        moisture_pred[idx] <- fallback_moisture
-      } else {
-        moisture_dec <- moisture_lookup_fn(x_vec[idx], y_vec[idx])
-        pred <- params$alpha_t + params$beta_t * moisture_dec
-        pred[pred < 0] <- 0
-        pred[pred > 0.6] <- 0.75
-        pred[is.na(pred)] <- fallback_moisture
-        moisture_pred[idx] <- pred
-      }
-    }
-    
-    return(moisture_pred)
-  }
-}
-
-Mhat <- make_Mhat(MOISTURE_AFFINE_TABLE, moisture_lookup_xy)
+# (make_Mhat(), which filled training rows' missing moisture from this surface, was
+# removed 2026-10-16: missing moisture stays NA and ranger handles it. The affine table
+# is kept for the stand predictions below.)
 cat("✓ Monthly moisture calibration complete\n\n")
 
 # =============================================================================
@@ -266,32 +187,19 @@ tree_combined <- bind_rows(
 ) %>%
   filter(!is.na(stem_flux_umol_m2_s))
 
-tree_combined <- tree_combined %>%
-  mutate(
-    dbh_original = dbh_m,
-    dbh_corrected = case_when(
-      dbh_m > 3 ~ dbh_m / 100,
-      dbh_m >= 0.5 & dbh_m <= 3 ~ dbh_m,
-      TRUE ~ dbh_m
-    ),
-    dbh_final = case_when(
-      species == "Kalmia latifolia" & (dbh_corrected * 100) > 100 ~ dbh_corrected / 100,
-      species == "Kalmia latifolia" & (dbh_corrected * 100) > 10 ~ dbh_corrected / 10,
-      grepl("Betula", species) & (dbh_corrected * 100) > 200 ~ dbh_corrected / 10,
-      species == "Pinus strobus" & (dbh_corrected * 100) > 230 ~ dbh_corrected / 10,
-      TRUE ~ dbh_corrected
-    ),
-    dbh_m = dbh_final
-  ) %>%
-  dplyr::select(-dbh_original, -dbh_corrected, -dbh_final)
+# DBH: as measured (01_load_and_prep_data.R from trees.csv). Trees with no DBH
+# measurement (six 2021 trees) have dbh_m NA; ranger (0.17) handles the missing value
+# natively, so their deployments stay in training like rows with a missing covariate.
+# Nothing is imputed or rescaled here. (Removed 2026-10-16: the all-species median fill
+# smart_impute() applied to 18 deployments, and unit-guess rescaling rules for Kalmia,
+# Betula and Pinus DBH that matched no row; 2026-10-17: the species-median DBH that
+# trees.csv carried for the six trees.)
+stopifnot(all(tree_combined$dbh_m > 0 & tree_combined$dbh_m < 2, na.rm = TRUE))
+cat(sprintf("  DBH missing (not measured; kept, ranger handles NA): %d deployments on %d trees\n",
+            sum(is.na(tree_combined$dbh_m)), n_distinct(tree_combined$tree_id[is.na(tree_combined$dbh_m)])))
 
-# NOTE: environmental covariates are no longer median-imputed.
-# smart_impute() substituted a monthly (then overall) median, which fabricates exactly
-# the temp/moisture signal the model is trying to learn -- and it was operating on 26%
-# of tree rows. ranger splits on observed values only, so passing NA through is both
-# honest and better-performing. DBH is still imputed: it is a stable tree property, not
-# an environmental driver, and a missing DBH would otherwise drop the row entirely.
-tree_combined <- smart_impute(tree_combined, c("dbh_m"))
+# Environmental covariates are not imputed: ranger (0.17) handles missing values
+# natively, so a row with a missing covariate stays in training (REVISION_PLAN D0).
 
 # NOTE: the 1st/99th-percentile trim on asinh(flux) has been REMOVED.
 # It deleted the largest stem emissions -- the hotspots this study documents -- and cost
@@ -312,9 +220,15 @@ cat("  Tree flux outlier trimming disabled (chamber-integrity screen applied ups
 # bias to estimate. With that collision fixed, both chamber types are present and
 # the harmonisation the spec calls for is estimated and applied here.
 #
-# Model (asinh scale):  z ~ I_semirigid + airT + soilT + moisture + species
+# Model (asinh scale): z ~ I_semirigid + the stem forest's predictors (species, DBH,
+# soil moisture, soil temperature, measurement height; 2026-10-17).
 # beta1 is the systematic offset of the monthly (semirigid) chamber relative to the
 # July (rigid) reference. Only semirigid rows are corrected: z_corr = z - beta1.
+# Air temperature is not in it, as it is not in the forests: it is not needed to
+# separate chamber type from conditions (beta1 -0.0348 with it, -0.0294 without, on the
+# same rows; 05_model/15_rf_air_temperature_test.R). Height missing (75 cm and root
+# crown) is 125 cm, as in the forest; rows missing DBH or soil values are left out of
+# this regression only (lm complete cases). The log also reports the two alternatives.
 # =============================================================================
 
 CHAMBER_CALIB <- list(beta1 = 0, se = NA_real_, ci = c(NA_real_, NA_real_),
@@ -323,7 +237,8 @@ CHAMBER_CALIB <- list(beta1 = 0, se = NA_real_, ci = c(NA_real_, NA_real_),
 cal_df <- tree_combined %>%
   filter(!is.na(stem_flux_umol_m2_s), !is.na(chamber_type)) %>%
   mutate(z = asinh(stem_flux_umol_m2_s),
-         I_semirigid = as.numeric(chamber_type == "semirigid"))
+         I_semirigid = as.numeric(chamber_type == "semirigid"),
+         height_cm = ifelse(is.na(measurement_height_cm), 125, measurement_height_cm))
 
 CHAMBER_CALIB$n_rigid     <- sum(cal_df$I_semirigid == 0)
 CHAMBER_CALIB$n_semirigid <- sum(cal_df$I_semirigid == 1)
@@ -334,9 +249,15 @@ if (CHAMBER_CALIB$n_rigid >= 10 && CHAMBER_CALIB$n_semirigid >= 10) {
   cal_df$species_ctl <- ifelse(cal_df$species %in% sp_ok, cal_df$species, "OTHER")
 
   chamber_fit <- lm(
-    z ~ I_semirigid + air_temp_C + soil_temp_C + soil_moisture_abs + species_ctl,
+    z ~ I_semirigid + species_ctl + dbh_m + soil_moisture_abs + soil_temp_C + height_cm,
     data = cal_df
   )
+  for (alt in list(c("with air temperature", "z ~ I_semirigid + air_temp_C + soil_temp_C + soil_moisture_abs + species_ctl"),
+                   c("conditions only", "z ~ I_semirigid + soil_temp_C + soil_moisture_abs + species_ctl"))) {
+    fa <- lm(as.formula(alt[2]), data = cal_df); ca <- summary(fa)$coefficients
+    cat(sprintf("  (alternative, not used) %s: beta1 = %.4f (SE %.4f), n = %d\n", alt[1],
+                ca["I_semirigid", 1], ca["I_semirigid", 2], nobs(fa)))
+  }
   cf <- summary(chamber_fit)$coefficients
   if ("I_semirigid" %in% rownames(cf)) {
     CHAMBER_CALIB$beta1  <- unname(cf["I_semirigid", "Estimate"])
@@ -345,9 +266,9 @@ if (CHAMBER_CALIB$n_rigid >= 10 && CHAMBER_CALIB$n_semirigid >= 10) {
     CHAMBER_CALIB$r2     <- summary(chamber_fit)$r.squared
     CHAMBER_CALIB$fitted <- TRUE
   }
-  cat(sprintf("  Chamber bias beta1 = %.4f (SE %.4f, 95%% CI %.4f to %.4f), model R2 = %.3f\n",
+  cat(sprintf("  Chamber bias beta1 = %.4f (SE %.4f, 95%% CI %.4f to %.4f), model R2 = %.3f, n = %d\n",
               CHAMBER_CALIB$beta1, CHAMBER_CALIB$se,
-              CHAMBER_CALIB$ci[1], CHAMBER_CALIB$ci[2], CHAMBER_CALIB$r2))
+              CHAMBER_CALIB$ci[1], CHAMBER_CALIB$ci[2], CHAMBER_CALIB$r2, nobs(chamber_fit)))
   cat(sprintf("  n rigid = %d, n semirigid = %d\n",
               CHAMBER_CALIB$n_rigid, CHAMBER_CALIB$n_semirigid))
 } else {
@@ -585,77 +506,32 @@ lookup_taxon_prior <- function(species_vec, taxonomy, taxon_priors) {
   as.numeric(ifelse(is.na(out), 0, out))
 }
 
-build_features_tree <- function(df, drivers, Mhat_fn, SI_table, taxonomy, taxon_priors) {
-  df <- df %>%
-    left_join(drivers %>% dplyr::select(month, air_temp_C_mean, soil_temp_C_mean),
-              by = "month")
-  
+build_features_tree <- function(df, drivers, SI_table, taxonomy, taxon_priors) {
   si_tree <- SI_table %>% filter(group == "tree") %>% dplyr::select(month, SI)
   df <- df %>%
     left_join(si_tree, by = "month")
-  
-  # PAIRED PER-MEASUREMENT TEMPERATURES.
-  #
-  # These were the monthly plot-level means ONLY, so soil and air temperature each took
-  # exactly one value per month across every tree: 10 and 11 distinct values over 1,130
-  # rows, with no within-month variation at all. Both were therefore deterministic step
-  # functions of month, which means the tree model could not identify a temperature
-  # response separately from a seasonal one, and any importance attributed to
-  # "temperature" was importance attributed to month under another name.
-  #
-  # The campaign measured temperature at the tree. On a single field day soil
-  # temperature spans ~5 C across the plot, so there is real signal being discarded --
-  # the same argument that justifies using per-stem moisture rather than a plot scalar.
-  # build_features_soil() has always coalesced its observed values (see below); the tree
-  # side never did. Prefer the observed reading, fall back to the monthly mean.
-  #
-  # Known limitation, stated rather than engineered around: at PREDICTION time only the
-  # monthly climatology exists, so inventory stems receive a stand-wide monthly value.
-  # The soil model already has this property. Air temperature is the weaker of the two
-  # here -- its within-day spread is largely time-of-day rather than location -- so its
-  # response should not be read as spatial.
-  temp_ok <- function(x, lo, hi, what) {
-    x <- suppressWarnings(as.numeric(x))
-    bad <- is.finite(x) & (x < lo | x > hi)
-    if (any(bad)) {
-      cat(sprintf("  screened %d implausible %s reading(s) outside [%g, %g]: %s\n",
-                  sum(bad), what, lo, hi,
-                  paste(sprintf("%.1f", x[bad]), collapse = ", ")))
-      x[bad] <- NA_real_
-    }
-    x
-  }
-  # Two known bad values, both traced to source: a 44.6 C soil reading (tree 748,
-  # 2023-07-07; that day's 99th percentile is 21.1) and a -8.5 C air reading on
-  # 2023-06-30, which is a Celsius value entered in the Fahrenheit column -- every other
-  # reading that day is 72-82 F. Screened on physical plausibility, not on the flux.
-  # Switchable so the effect of this change can be attributed rather than assumed:
-  # options(rf.tree_paired_temps = FALSE) reproduces the monthly-mean specification.
-  # "none" | "soil" | "both". Soil and air are NOT equivalent here. Across-collar soil
-  # temperature varies by only 0.36 C within a field day against a 5.17 C seasonal SD,
-  # so a per-measurement soil reading is essentially a DAILY value and the monthly
-  # climatology is a fair aggregate of it. Air temperature is different: it swings
-  # diurnally and the measurements were made in the warm part of the day, so
-  # measurement-time air temperature is biased warm relative to any monthly mean
-  # (training median 22.1 C against a monthly-mean median of 9.9 C). Training on it and
-  # predicting from monthly means is a genuine mismatch, so the two are switched apart.
-  .pt <- getOption("rf.tree_paired_temps", "soil")
-  if (isTRUE(.pt)) .pt <- "both"; if (isFALSE(.pt)) .pt <- "none"
-  if (.pt %in% c("soil","both")) {
-    obs_soil_t <- if ("soil_temp_C" %in% names(df)) temp_ok(df$soil_temp_C, -5, 30, "soil temperature") else NA_real_
-    df$soil_temp_C_mean <- dplyr::coalesce(obs_soil_t, as.numeric(df$soil_temp_C_mean))
-  }
-  if (.pt == "both") {
-    obs_air_t <- if ("air_temp_C" %in% names(df)) temp_ok(df$air_temp_C, -25, 45, "air temperature") else NA_real_
-    df$air_temp_C_mean <- dplyr::coalesce(obs_air_t, as.numeric(df$air_temp_C_mean))
-  }
-  cat(sprintf("  rf.tree_paired_temps = '%s'\n", .pt))
-  cat(sprintf("  tree temperatures: %d distinct soil, %d distinct air (was 10 and 11, i.e. month)\n",
-              length(unique(df$soil_temp_C_mean[!is.na(df$soil_temp_C_mean)])),
-              length(unique(df$air_temp_C_mean[!is.na(df$air_temp_C_mean)]))))
 
-  df$air_temp_C_mean <- as.numeric(df$air_temp_C_mean)
-  df$soil_temp_C_mean <- as.numeric(df$soil_temp_C_mean)
+  # TEMPERATURES AT THE MEASUREMENT (2026-10-17). The model is trained on the
+  # conditions under which each flux was measured: the predictors air_temp_C and
+  # soil_temp_C are the air temperature measured at the deployment (flux_stem
+  # air_temp_C: the tower hour containing the start for the monthly campaign, the
+  # field chamber air for 2021 and 2023) and the soil temperature read at the tree
+  # (soil_readings via attach_soil(); NA where there is none within 3 days -- ranger
+  # handles it). At prediction the same predictors take the monthly 24-h
+  # climatologies (DRIVERS air_temp_C_mean, soil_temp_C_mean; 01_load_and_prep_data.R
+  # section 11). No monthly or day-mean value is used in training. (Until 2026-10-17
+  # the predictors were named air_temp_C_mean / soil_temp_C_mean.) (Until 2026-10-17: the calendar-month mean air temperature
+  # and the soil reading else the monthly soil climatology.)
+  # Physical range: a value outside it stops the build (corrections belong in the raw
+  # files, data/raw/CORRECTIONS.md).
+  df$air_temp_C  <- suppressWarnings(as.numeric(df$air_temp_C))
+  df$soil_temp_C <- suppressWarnings(as.numeric(df$soil_temp_C))
+  stopifnot(all(df$air_temp_C >= -25 & df$air_temp_C <= 45, na.rm = TRUE),
+            all(df$soil_temp_C >= -5 & df$soil_temp_C <= 35, na.rm = TRUE))
+  cat(sprintf("  tree temperatures at the measurement: air %d of %d rows (%d distinct), soil %d (%d distinct)\n",
+              sum(!is.na(df$air_temp_C)), nrow(df), length(unique(na.omit(df$air_temp_C))),
+              sum(!is.na(df$soil_temp_C)), length(unique(na.omit(df$soil_temp_C)))))
+
   df$SI <- as.numeric(df$SI)
   df$dbh_m <- as.numeric(df$dbh_m)
   
@@ -668,18 +544,8 @@ build_features_tree <- function(df, drivers, Mhat_fn, SI_table, taxonomy, taxon_
     df$soil_moisture_at_tree <- NA_real_
   }
   
-  # NOTE: the interpolated December-anchored moisture surface is no
-  # longer used to FILL training rows. With the per-collar env archive compiled,
-  # measured moisture now covers ~87% of monthly, 90% of 2021-height and 100% of 2023
-  # measurements, and filling the remainder from a surface that was itself fitted to
-  # these same observations is both circular and less accurate than leaving the value
-  # missing (ranger splits on observed values only). The surface is still used at
-  # PREDICTION time, where there is no alternative.
-  if (isTRUE(getOption("rf.fill_training_moisture", FALSE)) &&
-      any(is.na(df$soil_moisture_at_tree)) && !is.null(Mhat_fn)) {
-    mm <- is.na(df$soil_moisture_at_tree)
-    df$soil_moisture_at_tree[mm] <- Mhat_fn(df$month[mm], df$x[mm], df$y[mm])
-  }
+  # Missing moisture stays NA (ranger handles it); nothing is filled from the moisture
+  # surface, which is used at PREDICTION time only.
   df$soil_moisture_at_tree <- as.numeric(df$soil_moisture_at_tree)
   
   if("chamber_type" %in% names(df)) {
@@ -809,24 +675,21 @@ build_features_tree <- function(df, drivers, Mhat_fn, SI_table, taxonomy, taxon_
   return(df)
 }
 
-build_features_soil <- function(df, drivers, Mhat_fn, SI_table) {
-  df <- df %>%
-    left_join(drivers %>% dplyr::select(month, air_temp_C_mean, soil_temp_C_mean),
-              by = "month")
-  
+build_features_soil <- function(df, drivers, SI_table) {
   si_soil <- SI_table %>% filter(group == "soil") %>% dplyr::select(month, SI)
   df <- df %>%
     left_join(si_soil, by = "month")
-  
-  # NOTE: previously these took the MONTHLY PLOT-LEVEL means only, so
-  # soil temperature had exactly ONE value per month across all collars -- it carried no
-  # spatial information whatsoever and could only encode season. The campaign's own
-  # per-collar readings (104 of 266 measurements) were discarded. Prefer the observed
-  # value and fall back to the monthly mean.
-  obs_soil_t <- if ("soil_temp_C" %in% names(df)) suppressWarnings(as.numeric(df$soil_temp_C)) else NA_real_
-  obs_air_t  <- if ("air_temp_C"  %in% names(df)) suppressWarnings(as.numeric(df$air_temp_C))  else NA_real_
-  df$soil_temp_C_mean <- dplyr::coalesce(obs_soil_t, as.numeric(df$soil_temp_C_mean))
-  df$air_temp_C_mean  <- dplyr::coalesce(obs_air_t,  as.numeric(df$air_temp_C_mean))
+
+  # TEMPERATURES AT THE MEASUREMENT (2026-10-17): soil temperature read at the collar
+  # (soil_readings via attach_soil(); NA where there is none within 3 days) and air
+  # temperature measured at the deployment (flux_soil air_temp_C: the tower hour
+  # containing the logged start). No monthly or day-mean value is used in training;
+  # the monthly 24-h climatologies drive the stand predictions only. (Until 2026-10-17:
+  # the reading else the monthly soil climatology, and the deployment-day mean air.)
+  df$soil_temp_C <- suppressWarnings(as.numeric(df$soil_temp_C))
+  df$air_temp_C  <- suppressWarnings(as.numeric(df$air_temp_C))
+  stopifnot(all(df$air_temp_C >= -25 & df$air_temp_C <= 45, na.rm = TRUE),
+            all(df$soil_temp_C >= -5 & df$soil_temp_C <= 35, na.rm = TRUE))
   df$SI <- as.numeric(df$SI)
 
   df$month_sin <- sin(2 * pi * df$month / 12)
@@ -838,15 +701,12 @@ build_features_soil <- function(df, drivers, Mhat_fn, SI_table) {
     df$soil_moisture_at_site <- NA_real_
   }
   
-  missing_moisture <- is.na(df$soil_moisture_at_site)
-  if(any(missing_moisture) && !is.null(Mhat_fn)) {
-    df$soil_moisture_at_site[missing_moisture] <- 
-      Mhat_fn(df$month[missing_moisture], df$x[missing_moisture], df$y[missing_moisture])
-  }
+  # Missing moisture stays NA (ranger handles it). (Removed 2026-10-16: the fill from
+  # the moisture surface, Mhat, of rows with no reading.)
   df$soil_moisture_at_site <- as.numeric(df$soil_moisture_at_site)
   
-  df$moisture_x_soilT <- as.numeric(df$soil_moisture_at_site) * as.numeric(df$soil_temp_C_mean)
-  df$moisture_x_airT <- as.numeric(df$soil_moisture_at_site) * as.numeric(df$air_temp_C_mean)
+  df$moisture_x_soilT <- as.numeric(df$soil_moisture_at_site) * as.numeric(df$soil_temp_C)
+  df$moisture_x_airT <- as.numeric(df$soil_moisture_at_site) * as.numeric(df$air_temp_C)
   
   if("soil_flux_umol_m2_s" %in% names(df)) {
     df$y_asinh <- as.numeric(df$soil_flux_umol_m2_s)   # raw scale, see note above
@@ -855,9 +715,9 @@ build_features_soil <- function(df, drivers, Mhat_fn, SI_table) {
   return(df)
 }
 
-tree_train <- build_features_tree(tree_combined, DRIVERS, Mhat, SI_TABLES, 
+tree_train <- build_features_tree(tree_combined, DRIVERS, SI_TABLES, 
                                   TAXONOMY, TAXONOMY_PRIORS)
-soil_train <- build_features_soil(SOIL_YEAR, DRIVERS, Mhat, SI_TABLES)
+soil_train <- build_features_soil(SOIL_YEAR, DRIVERS, SI_TABLES)
 
 # One fixed row order. A seeded random forest still depends on the order of its rows,
 # and the order here followed how upstream files happened to be appended (a run from
@@ -886,14 +746,18 @@ cat("Training Species-First Random Forest models...\n")
 complete_rows <- !is.na(tree_train$y_asinh) &
   !is.na(tree_train$species_factor)
 
-# LIVE STEMS ONLY (2026-09-30). The inventory the model is applied to has no dead
-# stems, so dead ones are kept out of training (see code/lib/dead_stems.R for the
-# definition and the evidence). They remain in every descriptive analysis.
+# TRAINING SET = flux_stem.in_rf_training (code/tables/10_flux_stem.R, carried through
+# 01_load_and_prep_data.R): passed the closure screen, not a dead stem (the inventory
+# the model is applied to is live stems only; code/lib/dead_stems.R), not the 2021
+# root-crown deployment, not the felled oak. Excluded rows remain in every descriptive
+# analysis.
 source("../lib/dead_stems.R")
-stopifnot(!anyNA(tree_train$measurement_id))
+stopifnot(!anyNA(tree_train$measurement_id), !anyNA(tree_train$in_rf_training))
 tree_train$dead_stem <- tree_train$measurement_id %in% dead_stem_ids()
-cat("  Dead-stem deployments excluded from training:", sum(tree_train$dead_stem), "\n")
-complete_rows <- complete_rows & !tree_train$dead_stem
+stopifnot(!any(tree_train$dead_stem & tree_train$in_rf_training))
+cat("  Deployments outside the training set (flux_stem.in_rf_training FALSE):", sum(!tree_train$in_rf_training),
+    "of which dead stems", sum(tree_train$dead_stem), "\n")
+complete_rows <- complete_rows & tree_train$in_rf_training
 # Every trainable row, dead stems included and flagged, for
 # code/05_model/05_audit_training_population.R (live vs all vs a live/dead predictor).
 tree_train_candidates <- tree_train[!is.na(tree_train$y_asinh) & !is.na(tree_train$species_factor), ]
@@ -919,9 +783,11 @@ cat("  Species×moisture:", nrow(species_moisture_full), "rows,", ncol(species_m
 # =============================================================================
 # TREE FEATURE MATRIX -- final specification
 # -----------------------------------------------------------------------------
-# Six predictors, chosen by testing each against a single random reference column
-# over 20 fits (a predictor is kept only if its permutation importance beats pure
-# noise). Mean importance and the fraction of runs beating the random column:
+# Five predictors since 2026-10-17 (species, dbh_m, soil moisture, soil temperature,
+# height_cm; air temperature dropped, see below). They were chosen by testing each
+# against a single random reference column over 20 fits (a predictor is kept only if
+# its permutation importance beats pure noise). Mean importance and the fraction of
+# runs beating the random column, as recorded then (monthly-mean temperatures):
 #
 #   dbh_m         0.0749  100%      absolute size -> drives stem area
 #   species       0.0310  100%      as a NATIVE FACTOR -- ranger splits on levels
@@ -973,24 +839,13 @@ X_tree_species_first <- data.frame(
   species       = factor(tree_train_complete$species_clean),
   dbh_m         = tree_train_complete$dbh_m,
   soil_moisture_at_tree = tree_train_complete$soil_moisture_at_tree,
-  soil_temp_C_mean = tree_train_complete$soil_temp_C_mean,
-  # air_temp_C_mean RESTORED 2026-07-30. An earlier specification dropped it; three
-  # independent lines of evidence reversed that:
-  #   1. at 30 CV repeats (the 5-repeat SE was understated ~4x) re-adding it is a
-  #      significant skill gain, 0.1199 +/- 0.0053 against 0.1067 +/- 0.0055;
-  #   2. it carries about HALF the tree term's seasonal amplitude -- without it the
-  #      monthly cycle flattens from max/min 1.58 to 1.27 on a common design, and to
-  #      1.13 at stand level, because soil moisture and soil temperature alone barely
-  #      move the prediction (January 0.00882 vs August 0.00900 nmol m-2 s-1);
-  #   3. the coverage argument that justified dropping it applied to the
-  #      MEASUREMENT-RESOLUTION coding, where 10 of 12 months had almost no training
-  #      support near the monthly value. As a monthly mean, training and prediction use
-  #      the same 12 values, so that objection does not apply.
-  # Neither of the criteria used to drop it (grouped CV R2, the stand sum) is sensitive
-  # to seasonal SHAPE, which is why the cost went unmeasured. It remains a seasonal
-  # proxy -- 11 distinct values, constant within a month -- so no temperature effect is
-  # identifiable separately from season, and the text must say so.
-  air_temp_C_mean  = tree_train_complete$air_temp_C_mean,
+  soil_temp_C   = tree_train_complete$soil_temp_C,
+  # AIR TEMPERATURE DROPPED (2026-10-17; both forests). Trained on the measured value
+  # it carried skill out of sample (grouped CV 0.130 -> 0.105 without it) but made the
+  # stand totals depend on whether 24-h or daytime air drives the scaling; without it the
+  # totals do not depend on that choice. It was restored on 2026-07-30 as a calendar-
+  # month seasonal proxy. The with-air forests are the sensitivity
+  # 05_model/15_rf_air_temperature_test.R.
   # Measurement height. The 2021 campaign measured 50/125/200 cm on the same trees;
   # without this the three rows are identical in every predictor and differ only in the
   # response, so the model averages them and the height signal is lost. Flux roughly
@@ -1043,7 +898,9 @@ cat("  OOB RMSE (asinh):", round(sqrt(TreeRF$prediction.error), 4), "\n")
 # =============================================================================
 # SOIL FEATURE SET -- final specification
 # -----------------------------------------------------------------------------
-# Four predictors. All beat a random reference column in 100% of 20 fits:
+# Three predictors since 2026-10-17: moisture, soil temperature, month (air temperature
+# dropped; see the stem matrix). As recorded when chosen, all beat a random reference
+# column in 100% of 20 fits:
 #   moisture   1.121   soil CH4 uptake is diffusion-limited, so this dominates
 #   air_temp   0.597
 #   soil_temp  0.466
@@ -1064,8 +921,7 @@ cat("  OOB RMSE (asinh):", round(sqrt(TreeRF$prediction.error), 4), "\n")
 # interaction terms (RF finds interactions itself), and month_sin/month_cos in favour
 # of plain month.
 # =============================================================================
-soil_features <- c("soil_moisture_at_site", "soil_temp_C_mean",
-                   "air_temp_C_mean", "month")
+soil_features <- c("soil_moisture_at_site", "soil_temp_C", "month")   # air temperature dropped 2026-10-17 (see the stem matrix)
 
 X_soil <- soil_train[, soil_features, drop = FALSE]
 
@@ -1196,7 +1052,8 @@ INVENTORY <- INVENTORY %>%
   )
 
 training_ranges <- list(
-  air_temp = quantile(c(tree_combined$air_temp_C, SOIL_YEAR$air_temp_C), 
+  # air: the values the models were trained on (daily means, monthly fallback)
+  air_temp = quantile(c(tree_train$air_temp_C, soil_train$air_temp_C),
                       probs = c(0.01, 0.99), na.rm = TRUE),
   soil_temp = quantile(c(tree_combined$soil_temp_C, SOIL_YEAR$soil_temp_C), 
                        probs = c(0.01, 0.99), na.rm = TRUE),
@@ -1243,6 +1100,9 @@ bt_factor <- function(rf, y_raw) {
 }
 BT_TREE <- 1  # raw scale: no back-transformation correction required
 BT_SOIL <- 1
+cat(sprintf("\nPrediction clip range, air temperature: %.2f to %.2f C (monthly drivers %.2f to %.2f C)\n",
+            training_ranges$air_temp[1], training_ranges$air_temp[2],
+            min(DRIVERS$air_temp_C_mean, na.rm = TRUE), max(DRIVERS$air_temp_C_mean, na.rm = TRUE)))
 cat(sprintf("\nBack-transformation correction: tree x%.4f, soil x%.4f\n", BT_TREE, BT_SOIL))
 
 for (t in 1:12) {
@@ -1289,8 +1149,8 @@ for (t in 1:12) {
                            levels = levels(tree_train_complete_species_levels)),
     dbh_m         = inv_predictions$dbh_m,
     soil_moisture_at_tree = inv_predictions$soil_moisture_abs,
-    soil_temp_C_mean = inv_predictions$soil_temp_C,
-    air_temp_C_mean  = inv_predictions$air_temp_C,
+    soil_temp_C   = inv_predictions$soil_temp_C,
+    air_temp_C    = inv_predictions$air_temp_C,
     height_cm     = 125
   )
 
@@ -1386,14 +1246,14 @@ for (t in 1:12) {
   # NOTE: these columns are renamed to match the names SoilRF was
   # TRAINED on. Previously they were passed as soil_temp_C / air_temp_C /
   # soil_moisture_abs / SI_soil, none of which matched the model's
-  # soil_temp_C_mean / air_temp_C_mean / soil_moisture_at_site / SI. The alignment loop
+  # soil temperature / air temperature / soil_moisture_at_site / SI. The alignment loop
   # below then zero-filled all four, so half of SoilRF's inputs were exactly 0 at every
   # prediction -- biasing mean soil uptake ~1.9x too strong and collapsing its variance.
   X_pred_soil <- grid_predictions %>%
     dplyr::transmute(
       soil_moisture_at_site = soil_moisture_abs,
-      soil_temp_C_mean      = soil_temp_C,
-      air_temp_C_mean       = air_temp_C,
+      soil_temp_C           = soil_temp_C,
+      air_temp_C            = air_temp_C,
       month                 = t
     ) %>%
     as.matrix()

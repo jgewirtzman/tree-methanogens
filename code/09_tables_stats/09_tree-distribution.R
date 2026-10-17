@@ -5,8 +5,10 @@ source("code/lib/outputs.R")
 # Table of #trees/species + DBH mean+/-sd by location, species distribution across
 # the transect, and species niche preferences (e.g. yellow birch in wetter soils).
 #
-# Inputs: data/compiled/tree_properties.csv (measured trees: species, dbh, VWC,
-#         landscape_position), data/compiled/forest_inventory_stems.csv (full census).
+# Inputs (canonical tables, code/lib/tables_read.R): the 2021 survey trees
+#         (survey_2021_trees(): species and DBH from trees.csv, landscape position, soil VWC
+#         at the tree via attach_soil()), species.csv (names, gymnosperm), and
+#         inventory_stems.csv (full census).
 # Outputs (outputs/):
 #   tree_dbh_landscape_table.csv     species x landscape x DBH table
 #   tree_species_moisture_niche.csv  median VWC per species (niche summary)
@@ -16,19 +18,14 @@ source("code/lib/outputs.R")
 suppressPackageStartupMessages({ library(tidyverse) })
 out_dir <- "outputs"; dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
 
-sp_map <- c(ACRU="Acer rubrum",ACSA="Acer saccharum",BEAL="Betula alleghaniensis",
-  BELE="Betula lenta",BEPA="Betula papyrifera",CAOV="Carya ovata",FAGR="Fagus grandifolia",
-  FRAM="Fraxinus americana",KALA="Kalmia latifolia",PIST="Pinus strobus",PRSE="Prunus serotina",
-  QUAL="Quercus alba",QURU="Quercus rubra",QUVE="Quercus velutina",SAAL="Sassafras albidum",
-  TSCA="Tsuga canadensis")
-gymno <- c("Pinus strobus","Tsuga canadensis")
+source("code/lib/tables_read.R")
+.sp <- read_table("species")
+gymno <- .sp$species[.sp$gymnosperm]
 
-tp <- read_csv("data/compiled/tree_properties.csv", show_col_types = FALSE) %>%
+tp <- survey_2021_trees(soil = TRUE) %>%
   filter(!is.na(species_id)) %>%
-  mutate(species = sp_map[species_id],
-         group = if_else(species %in% gymno, "Gymnosperm", "Angiosperm"),
-         landscape_position = na_if(landscape_position, "Lab")) %>%
-  filter(!is.na(species))
+  mutate(group = if_else(species %in% gymno, "Gymnosperm", "Angiosperm"),
+         landscape_position = na_if(plot, "Lab"))
 
 # ---- species x landscape count + DBH mean+/-sd --------------------------------
 dbh_tab <- tp %>% filter(!is.na(landscape_position)) %>%
@@ -96,10 +93,10 @@ ggsave(out_path("tree_species_moisture_niche.png"),
        p_niche + labs(title = NULL, subtitle = NULL), width = 6.8, height = 6.2, dpi = 200)
 
 # ---- Forest-inventory context (full census) ----------------------------------
-# forest_inventory.csv was renamed forest_inventory_stems.csv in the archive (both census
-# sources merged); its diameter is in cm, so dbh_mm is derived.
-fi <- read_csv("data/compiled/forest_inventory_stems.csv", show_col_types = FALSE) %>% mutate(dbh_mm = dbh_cm * 10)
-fi_summary <- fi %>% mutate(species = sp_map[species_code]) %>%
+# data/tables/inventory_stems.csv (both census sources merged); its diameter is in cm,
+# so dbh_mm is derived.
+fi <- read_table("inventory_stems") %>% mutate(dbh_mm = dbh_cm * 10)
+fi_summary <- fi %>% mutate(species = species_name(species_code)) %>%
   group_by(species_code) %>%
   summarise(n_stems = n(), dbh_mean_mm = mean(dbh_mm, na.rm = TRUE), .groups = "drop") %>%
   arrange(desc(n_stems))

@@ -10,12 +10,16 @@
 #   Methanogens/gas/flux peak at 4-6 m — the leading edge of the ~4 m decay cone
 #   (cavity <1 m, staining 1-2 m, clean >6 m) = intermediate/early decay, matching
 #   the two population humps.
-# Matches rev_fig07 felled-oak aesthetics. Felled-oak ITS load = local
-# data/raw/external/tree-microbiome/bo_its_load.csv (QUVE subset of the ITS metadata).
+# Matches rev_fig07 felled-oak aesthetics. Data: canonical tables (code/lib/tables_read.R):
+#   felled oak  internal_gas.csv (calibrated trunk gas by height), ddpcr.csv + samples.csv
+#               (mcrA copies/g), qpcr.csv (ITS copies per uL extract, converted with each
+#               sample's own extraction mass), flux_stem.csv (2022_felled_oak)
+#   2023 survey flux_stem.csv (2023_cross_species; bark-loss score; species from trees.csv)
+#   2021 survey ddpcr.csv + qpcr.csv + samples.csv per DNA sample (dna_samples())
 # Writes outputs/figures/generated/fig7_decay_methanogenesis.png
 # ==============================================================================
 suppressMessages({library(tidyverse);library(patchwork);library(lme4);library(lmerTest)})
-source("code/lib/ddpcr_constants.R")
+source("code/lib/ddpcr_constants.R"); source("code/lib/tables_read.R")
 options(warn=-1)
 asinh10<-function(x) asinh(x/0.1)/log(10)
 # marginal R2 for a mixed model (fixed-effects variance / total)
@@ -30,44 +34,21 @@ shared_theme <- theme_classic(base_size=12)+theme(axis.title=element_text(size=1
   legend.margin=margin(0,0,0,0),legend.box.margin=margin(-5,0,0,0),plot.margin=margin(5,7,5,5))
 
 ## ===================== BOTTOM ROW: felled-oak vertical profiles =====================
-O2s<-read.csv("data/raw/field_data/black_oak/o2_standards.csv",fileEncoding="UTF-8-BOM")
-GHGs<-read.csv("data/raw/field_data/black_oak/ghg_standards.csv",fileEncoding="UTF-8-BOM")
-GC<-read.csv("data/raw/field_data/black_oak/quve_gc_data.csv",fileEncoding="UTF-8-BOM")
-colnames(GC)<-make.names(colnames(GC));colnames(O2s)<-make.names(colnames(O2s));colnames(GHGs)<-make.names(colnames(GHGs))
-GC$O2.Area[GC$Sample.Type=="N2"]<-NA
-O2d<-O2s%>%left_join(GC,by=c("Sample"="Sample.Type"));O2d$O2.Area<-as.numeric(O2d$O2.Area);O2d$O2_ppm<-as.numeric(gsub(",","",O2d$X.O2...ppm.))
-lo<-c("Outdoor Air 2","Outdoor Air 3","Outdoor Air 4","Oxygen Standard 1","Oxygen Standard 2","Oxygen Standard 3","Oxygen Standard 4")
-hi<-c("Outdoor Air 5","Outdoor Air 6","Outdoor Air 7","Oxygen Standard 5")
-lod<-O2d%>%filter(Sample%in%lo);hid<-bind_rows(lod,O2d%>%filter(Sample%in%hi))
-O2lo<-lm(O2_ppm~O2.Area,lod);O2hi<-lm(O2_ppm~O2.Area,hid);mxO2<-max(lod$O2.Area,na.rm=TRUE)
-GHGd<-GHGs%>%left_join(GC,by=c("Sample"="Sample.Type"))
-for(g in c("N2O","CH4","CO2")){GHGd[[paste0(g,".Area")]]<-as.numeric(GHGd[[paste0(g,".Area")]]);GHGd[[paste0(g,"_ppm")]]<-as.numeric(gsub(",","",GHGd[[paste0("X.",g,"...ppm.")]]))}
-GHGd<-GHGd%>%filter(!is.na(CH4.Area)&!is.na(CH4_ppm))
-lord<-GHGd%>%filter(Sample%in%c("N2","SB1","SB2","SB3"))
-CH4lo<-lm(CH4_ppm~CH4.Area,lord);CH4hi<-lm(CH4_ppm~CH4.Area,GHGd)
-GC<-GC%>%mutate(O2_concentration=if_else(O2.Area<=mxO2,predict(O2lo,data.frame(O2.Area=O2.Area)),predict(O2hi,data.frame(O2.Area=O2.Area))),
-  CH4_concentration=if_else(CH4.Area<=1000,predict(CH4lo,data.frame(CH4.Area=CH4.Area)),predict(CH4hi,data.frame(CH4.Area=CH4.Area))))
-int_gas<-GC%>%filter(!is.na(Lab.ID),Tree.Tissue=="Trunk Gas");int_gas$Tree.Height<-as.numeric(int_gas$Tree.Height)
+# felled-oak trunk gas (internal_gas.csv; GC calibration in code/tables/32_internal_gas.R)
+int_gas<-read_table("internal_gas")%>%filter(campaign=="2022_felled_oak")%>%
+  transmute(Tree.Height=height_m,CH4_concentration=CH4_ppm,O2_concentration=O2_ppm)
 hb<-sort(unique(int_gas$Tree.Height))
-mcra<-readr::read_csv("data/raw/ddpcr/black_oak_mcrA.csv",show_col_types=FALSE)
-cc<-grep("Conc",colnames(mcra),value=TRUE)[1];hc<-grep("Height",colnames(mcra),value=TRUE)[1]
-mcra<-mcra%>%rename(Height_cm=!!hc,Conc=!!cc)
-bm<-readr::read_csv("data/raw/field_data/black_oak/bo_extraction_mass.csv",show_col_types=FALSE)
-mcra<-mcra%>%left_join(bm%>%transmute(`Sample ID`,mass_mg=`Sample Mass Added to Tube (mg)`),by="Sample ID")%>%
-  mutate(mcrA_g=ddpcr_copies_per_g(Conc,mass_mg,"Wood"))%>%filter(Component%in%c("Heartwood","Sapwood"))
-flux<-read.csv("data/raw/field_data/black_oak/ymf_black_oak_flux_compiled.csv")
-flux$Height_m<-suppressWarnings(as.numeric(flux$Height_m))
+# felled-oak DNA samples: mcrA copies/g (dry wood) and ITS per uL extract, with height and tissue
+bo<-dna_samples("2022_felled_oak")
+mcra<-bo%>%filter(core_type%in%c("Heartwood","Sapwood"),!is.na(mcra_probe_g))%>%
+  transmute(`Sample ID`=sample_id,Height_cm=height_cm,Component=core_type,mcrA_g=mcra_probe_g)
+flux<-flux_stem_campaign("2022_felled_oak")%>%transmute(Height_m=height_cm/100,CH4_best.flux=CH4_flux_nmol_m2_s)
 fdf<-flux%>%filter(!is.na(Height_m))%>%select(height=Height_m,flux=CH4_best.flux)%>%
   left_join(int_gas%>%group_by(Tree.Height)%>%summarize(ch4=mean(CH4_concentration,na.rm=TRUE),.groups="drop"),by=c("height"="Tree.Height"))
-# felled-oak ITS load (heartwood), by height -> copies/g dry (same basis as mcrA panel d)
-its<-read.csv("data/raw/external/tree-microbiome/bo_its_load.csv",check.names=FALSE);its$ITS<-suppressWarnings(as.numeric(its$ITS_per_ul))
-iid<-toupper(its[[1]]);itw<-its[grepl("^QUVE[0-9]+HEART",iid)&!is.na(its$ITS),]
-itw$height<-as.numeric(sub("^QUVE([0-9]+).*","\\1",toupper(itw[[1]])))/100;itw$tissue<-"Heartwood"
-# heartwood extraction masses (mean per height) from bo_extraction_mass -> copies/g
-bm2<-bm%>%filter(Component=="Heartwood",!is.na(`Sample Mass Added to Tube (mg)`))%>%
-  group_by(h_cm=`Height (cm)`)%>%summarize(mass_mg=mean(`Sample Mass Added to Tube (mg)`),.groups="drop")
-itw$h_cm<-round(itw$height*100);itw<-itw%>%left_join(bm2,by="h_cm")
-itw$ITS_g<-extract_copies_per_g(itw$ITS,itw$mass_mg,"Wood")
+# felled-oak ITS load (heartwood), by height -> copies/g dry (same basis as mcrA panel d),
+# each sample with its own extraction mass
+itw<-bo%>%filter(core_type=="Heartwood",!is.na(ITS_per_ul))%>%
+  transmute(height=height_cm/100,tissue="Heartwood",ITS_g=extract_copies_per_g(ITS_per_ul,extraction_mass_mg,"Wood"))
 
 col_ht<-c(Heartwood="#a6611a",Sapwood="#dfc27d")          # Fig 4 heartwood / sapwood
 col_ht_line<-c(Heartwood="#a6611a",Sapwood="#c49a3e")     # sapwood line a shade darker so it reads on white
@@ -94,8 +75,8 @@ pf<-ggplot(itw,aes(height,ITS_g))+geom_smooth(se=FALSE,color="black",span=1)+
 
 ## ===================== TOP ROW: population humps =====================
 ord<-function(v){v<-tolower(trimws(as.character(v)));x<-suppressWarnings(as.numeric(v));x[v=="dead"]<-4;x}
-y<-read.csv("data/processed/flux/tree_flux_2023_cross_species.csv",check.names=FALSE);names(y)<-make.names(names(y))
-y<-y[!is.na(y$CH4_best.flux),];y$fx<-asinh10(y$CH4_best.flux);y$sp<-as.factor(y$Species);y$x<-ord(y$Bark.Missing);y<-y[!is.na(y$x),]
+y<-flux_stem_campaign("2023_cross_species")
+y<-y[!is.na(y$CH4_flux_nmol_m2_s),];y$fx<-asinh10(y$CH4_flux_nmol_m2_s);y$sp<-as.factor(y$species_code);y$x<-ord(y$bark_missing);y<-y[!is.na(y$x),]
 mq<-lmer(fx~x+I(x^2)+(1|sp),data=y);co<-summary(mq)$coefficients;pqa<-co["I(x^2)","Pr(>|t|)"]
 # AIC compares fixed effects, so from ML refits (REML AICs are not comparable)
 mla<-lmer(fx~x+(1|sp),data=y);dAICa<-as.numeric(AIC(update(mla,REML=FALSE))-AIC(update(mq,REML=FALSE)));R2a<-r2m(mq)
@@ -110,14 +91,12 @@ pa<-ggplot(y,aes(x,fx))+geom_hline(yintercept=0,linetype=3,colour="grey70")+
   scale_x_continuous(breaks=1:4,labels=c("healthy","moderate","severe","dead"))+scale_y_continuous(breaks=asinh10(obrk),labels=obrk)+
   coord_cartesian(ylim=asinh10(c(-0.3,1)))+shared_theme+labs(x="bark loss (decay)",y=expression(CH[4]~flux~(nmol~m^-2~s^-1)))
 
-o<-read.csv("data/raw/external/tree-microbiome/tree_data_methanogen_group.csv",check.names=FALSE);o<-o[,names(o)!=""]
-o$mass<-suppressWarnings(as.numeric(o$`Sample.Mass.Added.to.Tube..mg..x`))
-# mcrA: this table holds ddPCR copies per 20 uL well -> copies/g (lib/ddpcr_constants.R);
-# ITS: facility qPCR copies per uL of extract x elution / mass. Wood and soil rows only.
-ws<-o$material%in%c("Wood","Soil");o$mcra_g<-o$ITS_g<-NA_real_
-o$mcra_g[ws]<-ddpcr_copies_per_g_from_well(suppressWarnings(as.numeric(o$mcra_probe_loose[ws])),o$mass[ws],o$material[ws])
-o$ITS_g[ws]<-extract_copies_per_g(suppressWarnings(as.numeric(o$ITS_per_ul[ws])),o$mass[ws],o$material[ws])
-d<-o[is.finite(o$mcra_g)&is.finite(o$ITS_g)&o$mcra_g>0&o$ITS_g>0&o$material%in%c("Wood","Soil"),];d$sp<-as.factor(o$species.x[as.integer(rownames(d))])
+# 2021 survey, per DNA sample: mcrA copies/g (ddpcr.csv, probe assay, loose threshold);
+# ITS: facility qPCR copies per uL of extract x elution / mass (extract_copies_per_g)
+o<-dna_samples("2021_survey")
+o$mcra_g<-o$mcra_probe_g
+o$ITS_g<-extract_copies_per_g(o$ITS_per_ul,o$extraction_mass_mg,o$material)
+d<-o[is.finite(o$mcra_g)&is.finite(o$ITS_g)&o$mcra_g>0&o$ITS_g>0,];d$sp<-as.factor(d$species_code)
 d$X<-log10(d$ITS_g);d$Y<-log10(d$mcra_g)
 fm<-function(mat,q){s<-d[d$material==mat,];s$xc<-s$X-mean(s$X);mm<-if(q)lmer(Y~xc+I(xc^2)+(1|sp),s) else lmer(Y~X+(1|sp),s)
   g<-data.frame(X=seq(min(s$X),max(s$X),length=60));g$xc<-g$X-mean(s$X);Xm<-if(q)model.matrix(~xc+I(xc^2),g) else model.matrix(~X,g)
