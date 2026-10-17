@@ -41,9 +41,7 @@ st  <- classify_methanotrophs(tax, load_methanotroph_defs())
 unr <- function(g) is.na(g) | g == "" | tolower(g) %in% c("none", "unclassified")
 fam <- function(f) !is.na(tax$Family) & tax$Family == f
 gen <- function(g) !is.na(tax$Genus)  & tax$Genus  == g
-MG  <- c("Methanobacteriaceae","Methanomassiliicoccaceae","Methanoregulaceae","Methanocellaceae",
-         "Methanosaetaceae","Methanomicrobiaceae","Methanosarcinaceae","Methanomethyliaceae",
-         "Methanocorpusculaceae")
+source("code/lib/methanogen_families.R"); MG <- METHANOGEN_FAMILIES
 
 # group, tier, the ASVs it covers, and which gene(s) it is tested against
 G <- list(

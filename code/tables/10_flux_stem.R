@@ -12,6 +12,7 @@ source("code/lib/outputs.R")
 #   data/raw/field_data/black_oak/ymf_black_oak_flux_compiled.csv; closure windows in
 #   data/raw/flux_windows/ (untagged: untagged/untagged_manID.rds); detection
 #   (MDF, sigma, closure length, class) from outputs/data/flux_FINAL.csv.
+#   Stage-B tables read: tree_tags, weather, soil_readings (built before this script).
 # tree_id: tree_tags.csv (source file + column + spelling; species and DBH where
 #   one spelling names two trees).
 # Untagged monthly stems: the merged file has no start time for them. Start time and
@@ -38,14 +39,17 @@ source("code/lib/outputs.R")
 # the hand-picked fitting window (start.time_corr / end.time_corr).
 #
 # ENVIRONMENT (the values the model trains on, read by 05_model/01_load_and_prep_data.R; env_source per row):
-#   monthly   air: met-tower Tair_Avg nearest the logged start (within 24 h; noon of
-#             the date where the merged file has no start time), else chamber temp.
+#   monthly   air: met-tower hourly mean (weather.csv, true time) of the hour containing
+#             the logged start (untagged stems: their hand-picked start), else chamber temp.
 #             soil: per-collar readings (data/processed/environmental/soil_env_by_collar.csv)
 #             averaged by date and landscape position; nearest date within 3 days.
 #   2021      air at the chamber height and tree-mean soil temperature / VWC from
-#             data/processed/integrated/merged_tree_dataset_final.csv.
-#   2023      field sheet (air temp, soil temp, mean of the VWC probes); tower at
-#             00:00 of the date where air temp is missing.
+#             data/processed/integrated/merged_tree_dataset_final.csv; where that has
+#             none, the mean of the tree's soil_readings by tree_id, which adds the
+#             readings filed under a second spelling of the same tree (WP6, WP8).
+#   2023      field sheet (air temp, soil temp, mean of the VWC probes); tower at the
+#             corrected start where air temp is missing (the station record ends
+#             2023-05-12, so the one such deployment has no air temperature).
 #   felled oak  field sheet air temperature.
 #
 # FLAGS, by deployment key (no flux-value matching):
@@ -110,7 +114,7 @@ M <- mon %>% left_join(w_mon, by = "UniqueID") %>% left_join(man, by = "UniqueID
 stopifnot(sum(M$untagged) == 45, all(!is.na(M$st)), all(!is.na(M$win_start)))
 
 # environment as the model builds it
-M$t_model <- coalesce(wall_clock(M$start.time), as.POSIXct(paste(as.Date(M$Date), "12:00:00"), tz = "UTC"))
+stopifnot(all(as.Date(M$st) == as.Date(M$Date)))
 SE <- read.csv("data/processed/environmental/soil_env_by_collar.csv", stringsAsFactors = FALSE) %>%
   mutate(Date = as.Date(Date), vwc = num(soil_moisture_pct) / 100) %>% filter(!is.na(Date), !is.na(plot_letter))
 SE_pos <- SE %>% group_by(Date, plot_letter) %>%
@@ -122,9 +126,9 @@ pos_env <- function(d, pos) {                      # nearest date (earliest on t
   dd <- abs(as.numeric(d - c$Date)); j <- order(dd)[1]
   if (dd[j] <= 3) c(c$st[j], c$sv[j]) else c(NA, NA)
 }
-pe <- t(mapply(pos_env, as.Date(M$t_model), toupper(trimws(M$Plot.Letter))))
+pe <- t(mapply(pos_env, as.Date(M$st), toupper(trimws(M$Plot.Letter))))
 tcham_mon <- ifelse(M$untagged, M$r_tcham, num(M$Tcham))
-M$air <- coalesce(tower_air(M$t_model), num(M$Tcham))
+M$air <- coalesce(tower_air(M$st), num(M$Tcham))
 M$soilT <- pe[, 1]; M$soilV <- pe[, 2]
 
 mon_out <- M %>% transmute(
@@ -136,7 +140,7 @@ mon_out <- M %>% transmute(
   st, win_start, win_end,
   chamber_area_cm2 = coalesce(num(Area), r_area), system_volume_L = coalesce(num(Vtot), r_vtot),
   chamber_temp_C = tcham_mon, air_temp_C = air, soil_temp_C = soilT, soil_vwc = soilV,
-  env_source = paste0("air: met tower nearest the ", ifelse(is.na(start.time), "date at 12:00", "logged start"),
+  env_source = paste0("air: met tower, hour of the ", ifelse(untagged, "hand-picked", "logged"), " start",
                       " (chamber temp if none within 24 h); soil: collar readings, mean by landscape position, nearest date within 3 days"),
   CH4_flux_nmol_m2_s = CH4_best.flux, CH4_model = coalesce(CH4_model, r_model),
   CH4_LM_flux_nmol_m2_s = num(CH4_LM.flux), CH4_LM_r2 = num(CH4_LM.r2), CH4_LM_pval = num(CH4_LM.p.val),
@@ -164,6 +168,12 @@ hl <- trimws(h21$measurement_height)
 h21$hcol <- ifelse(hl == "Root Crown", "RootCrown", sub(" cm$", "", hl))
 mi <- match(h21$tree, MT$k)
 stopifnot(!anyNA(mi))
+SR <- read.csv(file.path(OUT, "soil_readings.csv"), stringsAsFactors = FALSE)     # tree mean by tree_id
+sr21 <- SR %>% filter(!is.na(tree_id), tree_id != "") %>% group_by(tree_id) %>%
+  summarise(soil_t = mean(soil_temp_C, na.rm = TRUE), soil_v = mean(soil_vwc_pct, na.rm = TRUE) / 100, .groups = "drop") %>%
+  mutate(across(c(soil_t, soil_v), ~ ifelse(is.nan(.x), NA_real_, .x)))
+h21_st <- MT$SoilTemp_mean[mi]; h21_sv <- MT$VWC_mean[mi] / 100
+h21_fill <- (is.na(h21_st) | is.na(h21_sv)) & h21$tree %in% sr21$tree_id
 air21 <- vapply(seq_len(nrow(h21)), function(i) {
   if (h21$hcol[i] == "75" && h21$species[i] == "KALA")       # Kalmia: model reads 75 cm, else root crown
     return(coalesce(MT$Temp_Air_75cm[mi[i]], MT$Temp_Air_RootCrowncm[mi[i]]))
@@ -176,8 +186,11 @@ h21_out <- h21 %>% transmute(
   chamber_type = "rigid", chamber_id = as.character(chamber_id),
   st = wall_clock(start.time), win_start, win_end,
   chamber_area_cm2 = Area, system_volume_L = Vtot, chamber_temp_C = Tcham,
-  air_temp_C = air21, soil_temp_C = MT$SoilTemp_mean[mi], soil_vwc = MT$VWC_mean[mi] / 100,
-  env_source = "air: field air temperature at the chamber height; soil: tree mean of the 2021 survey soil readings (merged_tree_dataset_final.csv)",
+  air_temp_C = air21,
+  soil_temp_C = coalesce(h21_st, sr21$soil_t[match(tree, sr21$tree_id)]),
+  soil_vwc = coalesce(h21_sv, sr21$soil_v[match(tree, sr21$tree_id)]),
+  env_source = paste0("air: field air temperature at the chamber height; soil: tree mean of the 2021 survey soil readings ",
+                      ifelse(h21_fill, "(soil_readings by tree_id: none under the flux file's spelling)", "(merged_tree_dataset_final.csv)")),
   CH4_flux_nmol_m2_s = CH4_best.flux, CH4_model, CH4_LM_flux_nmol_m2_s = CH4_LM.flux, CH4_LM_r2 = CH4_LM.r2,
   CH4_LM_pval = CH4_LM.p.val, CH4_HM_flux_nmol_m2_s = CH4_HM.flux, CH4_quality = CH4_quality.check,
   CO2_flux_umol_m2_s = CO2_best.flux, CO2_model,
@@ -213,7 +226,8 @@ write_csv(DAY, out_path("flux_2023_clock_offsets.csv", "audit"))
 off_s <- 60 * DAY$offset_min[match(as.Date(y$date_clean), DAY$date)]
 bark <- y[["Bark Missing"]]; bark[bark %in% "0:00:00"] <- "0"      # spreadsheet read 0 as a time
 cond <- function(x) { x <- trimws(as.character(x)); x[x %in% c("", "NA")] <- NA; ifelse(tolower(x) == "dead", "dead", x) }
-y_air <- coalesce(num(y$air_temp_C), tower_air(as.POSIXct(y$date_clean, tz = "UTC")))
+y_field <- num(y$air_temp_C)
+y_air <- coalesce(y_field, tower_air(wall_clock(y$start.time) - off_s))
 y_out <- y %>% transmute(
   measurement_id = UniqueID, campaign = "2023_cross_species",
   tree_id = tree_of(F_23, "Tree Tag", `Tree Tag`, `Species Code`, `DBH (cm)`),
@@ -222,8 +236,9 @@ y_out <- y %>% transmute(
   st = wall_clock(start.time) - off_s, win_start = win_start - off_s, win_end = win_end - off_s,
   chamber_area_cm2 = Area, system_volume_L = Vtot, chamber_temp_C = Tcham,
   air_temp_C = y_air, soil_temp_C = num(`Soil Temp (°C)`), soil_vwc = num(vwc_mean) / 100,
-  env_source = ifelse(is.na(num(air_temp_C)), "air: met tower nearest 00:00 of the date (no field reading); soil: 2023 field sheet",
-                      "2023 field sheet (air temperature; soil temperature; mean of the VWC probes)"),
+  env_source = case_when(!is.na(y_field) ~ "2023 field sheet (air temperature; soil temperature; mean of the VWC probes)",
+                         !is.na(y_air) ~ "air: met tower, hour of the corrected start (no field reading); soil: 2023 field sheet",
+                         TRUE ~ "air: none (no field reading; no tower record within 24 h); soil: 2023 field sheet"),
   CH4_flux_nmol_m2_s = CH4_best.flux, CH4_model, CH4_LM_flux_nmol_m2_s = CH4_LM.flux, CH4_LM_r2 = CH4_LM.r2,
   CH4_LM_pval = CH4_LM.p.val, CH4_HM_flux_nmol_m2_s = CH4_HM.flux, CH4_quality = CH4_quality.check,
   CO2_flux_umol_m2_s = CO2_best.flux, CO2_model,

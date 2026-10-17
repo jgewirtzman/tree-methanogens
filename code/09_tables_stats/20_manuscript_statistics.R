@@ -109,8 +109,8 @@ semirigid_soil <- read.csv("data/processed/flux/semirigid_tree_final_complete_da
 # -100..200 filters that stood here were removed 2026-10-01: an r2 screen is not a
 # detection criterion and inflated the mean stem flux 144% (Methods S4).
 QC_EXCLUDED <- read.csv("outputs/data/qc_excluded_measurements.csv")$UniqueID
-moisture_data  <- read.csv("data/raw/field_data/ipad_data/Cleaned data/soilmoisture_total.csv",
-                           fileEncoding = "UTF-8-BOM")
+source("code/lib/soil_collars.R")
+moisture_data  <- collar_soil_readings()   # data/tables/soil_readings.csv, one row per collar and date
 
 ymf2021 <- read.csv("data/processed/integrated/merged_tree_dataset_final.csv")
 ymf2023 <- read.csv("data/processed/flux/tree_flux_2023_cross_species.csv")
@@ -226,12 +226,12 @@ record("upland_tree_ttest_p", tt$p.value)
 
 # VWC by position
 sub_header("Volumetric Water Content by position")
-moisture_data$Date <- as.Date(moisture_data$Date, format = "%m/%d/%y")
 moisture_data <- moisture_data %>%
-  mutate(Plot_Type = case_when(
-    Plot.letter == "U" ~ "U",
-    Plot.letter == "I" ~ "I",
-    Plot.letter %in% c("WD", "WS", "W") ~ "W",
+  mutate(VWC = soil_vwc_pct,
+         Plot_Type = case_when(
+    plot_letter == "U" ~ "U",
+    plot_letter == "I" ~ "I",
+    plot_letter %in% c("WD", "WS") ~ "W",
     TRUE ~ NA_character_
   )) %>%
   filter(!is.na(Plot_Type), !is.na(VWC))
@@ -560,13 +560,9 @@ otu_df <- as.data.frame(otu_table(ps.filt))
 tax_df <- as.data.frame(tax_table(ps.filt))
 samp_meta <- data.frame(sample_data(ps.filt))
 
-# Methanogen families
-methanogen_families <- c(
-  "Methanobacteriaceae", "Methanocellaceae", "Methanomassiliicoccaceae",
-  "Methanomicrobiaceae", "Methanosaetaceae", "Methanosarcinaceae",
-  "Methanospirillaceae", "Methanotrichaceae", "Methanomethylophilaceae",
-  "Methanoperedenaceae", "Methanofastidiosaceae"
-)
+# Methanogen families (code/lib/methanogen_families.R)
+source("code/lib/methanogen_families.R")
+methanogen_families <- METHANOGEN_FAMILIES
 
 methanogen_asvs <- rownames(tax_df)[tax_df$Family %in% methanogen_families]
 methanogen_asvs <- intersect(methanogen_asvs, rownames(otu_df))

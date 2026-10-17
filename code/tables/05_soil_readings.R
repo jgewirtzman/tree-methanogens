@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 source("code/lib/outputs.R")
 # ==============================================================================
-# 31_soil_readings.R -- soil_readings.csv (data/tables/)
+# 05_soil_readings.R -- soil_readings.csv (data/tables/)
 # ------------------------------------------------------------------------------
 # One row per soil reading, at a tree (tree_id) or at a soil collar (collar_id);
 # exactly one of the two is set.
@@ -28,18 +28,26 @@ source("code/lib/outputs.R")
 # and the 2020-21 master workbook data/raw/environmental/Soil_temp_moisture_2020.xlsx.
 # Where a collar-date appears in more than one record (both sources, or twice in
 # a sheet) each record is a row; soil_env_by_collar.csv is their mean.
-# Not used: data/raw/field_data/ipad_data/Cleaned data/soilmoisture_total.csv, an
-# older compilation of the same visits (still read by fig01 and
-# 20_manuscript_statistics.R). 221 of its 296 records fall on a collar-date here,
-# mostly with equal values; 63 are visits it dates one day earlier (2020-10-27,
-# 2020-11-05, 2021-05-18 vs -28, -06, -19 here) and 12 are collar-dates absent
-# here (2020-07-21, 2021-02-28, 2021-03-30). See outputs/audit/soil_readings_build.txt.
+# soilmoisture_total.csv (data/raw/field_data/ipad_data/Cleaned data/), an older
+# compilation of the same visits, is reconciled record by record (section 2b): each
+# of its 296 records is either empty or a reading already here, so it adds no row.
+# A record that matched nothing would be added (source soilmoisture_total.csv).
+# Its errors, for the record: 63 readings dated a day early (2020-10-27, 2020-11-05,
+# 2021-05-18; the sheets and the fluxes are -28, -06, -19), 22 of them under another
+# collar's label (incl. "1-31", "1-0"); its 12 records dated 2020-07-21 are the
+# 2020-06-17 readings of the same collars; at six 2020-08-26 collars its VWC column
+# holds the probe's raw reading. Every record's match:
+# outputs/audit/soil_readings_soilmoisture_total.csv.
+# The iPad sheets "Soil temp moisture 20200722.xlsx" and "...20200826.xlsx" are copies
+# of the 20200615 sheet (their date cell reads 2020-06-15; the six U_1 readings are
+# identical on all three dates). They are carried as recorded; see the audit file.
 #
 # Checks: tree means reproduce VWC_mean, ORP_mean, SoilTemp_mean,
 # OrganicDepth_mean, MineralDepth_mean of merged_tree_dataset_final.csv (and of
 # soil_tree_level_means.csv); collar-date means reproduce soil_env_by_collar.csv.
 #
-# Writes data/tables/soil_readings.csv, outputs/audit/soil_readings_build.txt
+# Writes data/tables/soil_readings.csv, outputs/audit/soil_readings_build.txt,
+#   outputs/audit/soil_readings_soilmoisture_total.csv
 # ==============================================================================
 suppressPackageStartupMessages({ library(tidyverse); library(readxl) })
 OUT <- "data/tables"
@@ -155,9 +163,49 @@ env <- bind_rows(env, m %>%
 COLLARS <- read.csv(file.path(OUT, "collars.csv"), colClasses = "character")
 C <- env %>% mutate(collar_id = paste0(plot_letter, "_", plot_tag))
 stopifnot(all(C$collar_id %in% COLLARS$collar_id))
-C <- C %>% group_by(collar_id, Date) %>% mutate(k = row_number(), n = n()) %>% ungroup() %>%
-  transmute(reading_id = paste0("collar_", collar_id, "_", Date, ifelse(n > 1, paste0("_", k), "")),
-            tree_id = NA_character_, collar_id, date = Date, soil_temp_C, soil_vwc_pct = soil_moisture_pct, source)
+C <- C %>% transmute(collar_id, date = Date, soil_temp_C, soil_vwc_pct = soil_moisture_pct, source)
+
+# ==============================================================================
+# 2b. soilmoisture_total.csv -- each record matched to a reading above, in order:
+#   empty (no temperature, no VWC); the same collar, date and values (NA = NA); the
+#   same collar, date and temperature with the probe's raw reading (< 3) in the VWC
+#   column; the same values on the same or the next day under any collar label; the
+#   same values at the same collar on another date. Unmatched records are added.
+# ==============================================================================
+SMT_F <- "data/raw/field_data/ipad_data/Cleaned data/soilmoisture_total.csv"
+SMT <- read.csv(SMT_F, check.names = FALSE, colClasses = "character", fileEncoding = "UTF-8-BOM")[, 1:6]
+names(SMT) <- c("Date", "Plot", "letter", "temp", "moist_raw", "VWC")
+SMT <- SMT %>% transmute(smt_row = row_number(), collar_id = paste0(toupper(trimws(letter)), "_", trimws(Plot)),
+                         date = as.Date(Date, "%m/%d/%y"), soil_temp_C = num(temp), soil_vwc_pct = num(VWC))
+stopifnot(nrow(SMT) == 296, !anyNA(SMT$date))
+smt_match <- function(r) {
+  if (is.na(r$soil_temp_C) && is.na(r$soil_vwc_pct)) return(c("empty record", NA, NA))
+  eqT <- same(C$soil_temp_C, r$soil_temp_C); eqV <- same(C$soil_vwc_pct, r$soil_vwc_pct)
+  rules <- list(
+    "same collar, date and values" = C$collar_id == r$collar_id & C$date == r$date & eqT & eqV,
+    "same collar, date and temperature; its VWC column holds the raw probe reading" =
+      C$collar_id == r$collar_id & C$date == r$date & eqT & isTRUE(r$soil_vwc_pct < 3),
+    "same values a day later" = C$collar_id == r$collar_id & C$date == r$date + 1 & eqT & eqV,
+    "same values a day later, under another collar label" = C$date == r$date + 1 & eqT & eqV,
+    "same values the same day, under another collar label" = C$date == r$date & eqT & eqV,
+    "same collar and values on another date" = C$collar_id == r$collar_id & eqT & eqV)
+  for (k in names(rules)) { j <- which(rules[[k]]); if (length(j)) return(c(k, C$collar_id[j[1]], format(C$date[j[1]]))) }
+  c("unmatched: added", NA, NA)
+}
+SM_M <- bind_cols(SMT, as_tibble(do.call(rbind, lapply(split(SMT, SMT$smt_row), smt_match)), .name_repair = ~ c("match", "match_collar", "match_date")))
+C <- bind_rows(C, SM_M %>% filter(match == "unmatched: added") %>%
+                 transmute(collar_id, date, soil_temp_C, soil_vwc_pct, source = basename(SMT_F)))
+stopifnot(all(C$collar_id %in% COLLARS$collar_id))
+C <- C %>% group_by(collar_id, date) %>% mutate(k = row_number(), n = n()) %>% ungroup() %>%
+  transmute(reading_id = paste0("collar_", collar_id, "_", date, ifelse(n > 1, paste0("_", k), "")),
+            tree_id = NA_character_, collar_id, date, soil_temp_C, soil_vwc_pct, source)
+SM_M <- SM_M %>% mutate(match_reading = ifelse(is.na(match_collar), NA, paste0("collar_", match_collar, "_", match_date)))
+write_csv(SM_M %>% select(smt_row, collar_id, date, soil_temp_C, soil_vwc_pct, match, match_reading),
+          out_path("soil_readings_soilmoisture_total.csv", "audit"), na = "")
+# sheets that repeat another date's readings (copied sheets)
+rep_sets <- C %>% filter(!is.na(soil_temp_C)) %>% distinct(collar_id, date, soil_temp_C, soil_vwc_pct) %>%
+  group_by(collar_id, soil_temp_C, soil_vwc_pct) %>% filter(n_distinct(date) > 1) %>%
+  summarise(dates = paste(sort(unique(format(date))), collapse = " "), .groups = "drop")
 
 # ==============================================================================
 # 3. ASSEMBLE
@@ -204,13 +252,6 @@ cm <- SR %>% filter(!is.na(collar_id)) %>% group_by(collar_id, date) %>%
 cj <- full_join(E, cm, by = c("collar_id", "date"))
 cbad <- cj %>% filter(!(same(t0, t1) & same(m0, m1)))
 
-# (c) soilmoisture_total.csv (not used): how its records compare
-SMT <- read.csv("data/raw/field_data/ipad_data/Cleaned data/soilmoisture_total.csv", check.names = FALSE, stringsAsFactors = FALSE)[, 1:6]
-names(SMT) <- c("Date", "Plot", "letter", "temp", "moist_raw", "VWC")
-SMT <- SMT %>% transmute(collar_id = paste0(toupper(trimws(letter)), "_", Plot), date = as.Date(Date, "%m/%d/%y"),
-                         temp = num(temp), vwc = num(VWC))
-smt_j <- SMT %>% left_join(cm, by = c("collar_id", "date"))
-
 sink(out_path("soil_readings_build.txt", "audit")); op <- options(width = 160)
 cat(sprintf("soil_readings: %d rows | trees: %d holes at %d trees | collars: %d records, %d collar-dates, %d collars, %d dates\n",
             nrow(SR), sum(!is.na(SR$tree_id)), n_distinct(SR$tree_id, na.rm = TRUE), sum(!is.na(SR$collar_id)),
@@ -225,10 +266,12 @@ cat(sprintf("    tree means vs soil_tree_level_means.csv:     %d trees there (in
 if (nrow(D1) + nrow(D2)) print(as.data.frame(bind_rows(D1, D2)), row.names = FALSE)
 cat(sprintf("\n(b) collar-date means vs soil_env_by_collar.csv: %d there, %d here, %d differ\n", nrow(E), nrow(cm), nrow(cbad)))
 if (nrow(cbad)) print(as.data.frame(cbad), row.names = FALSE)
-cat(sprintf("\n(c) soilmoisture_total.csv (not used): %d records; %d match a collar-date here (temperature equal: %d, VWC equal: %d); %d have no collar-date here, on dates %s\n",
-            nrow(SMT), sum(!is.na(smt_j$t1) | !is.na(smt_j$m1)), sum(same(smt_j$temp, smt_j$t1) & !is.na(smt_j$t1)),
-            sum(same(smt_j$vwc, smt_j$m1) & !is.na(smt_j$m1)), sum(is.na(smt_j$t1) & is.na(smt_j$m1)),
-            paste(sort(unique(format(smt_j$date[is.na(smt_j$t1) & is.na(smt_j$m1)]))), collapse = " ")))
+cat(sprintf("\n(c) soilmoisture_total.csv: %d records in; %d rows added (unmatched); by match:\n", nrow(SM_M),
+            sum(SM_M$match == "unmatched: added")))
+print(as.data.frame(SM_M %>% count(match, date) %>% group_by(match) %>%
+  summarise(n = sum(n), dates = paste(format(date), collapse = " "), .groups = "drop")), row.names = FALSE)
+cat("\nreadings repeated on several dates at the same collar (copied sheets: 20200722 and 20200826 are the 20200615 sheet):\n")
+print(as.data.frame(rep_sets), row.names = FALSE)
 options(op); sink()
 cat(readLines(out_path("soil_readings_build.txt", "audit")), sep = "\n")
 if (nrow(unexpected) || nrow(cbad)) stop("soil_readings does not reproduce today's means (outputs/audit/soil_readings_build.txt)")

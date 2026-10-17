@@ -48,9 +48,8 @@ otu_mat <- otu_mat[, sapply(otu_mat, is.numeric), drop = FALSE]   # keep numeric
 asv_relabund <- (rowSums(otu_mat, na.rm = TRUE) / sum(otu_mat, na.rm = TRUE)) * 100
 tax <- tax %>% mutate(relabund = asv_relabund[feature_id])
 
-methanogen_families <- c("Methanobacteriaceae","Methanomassiliicoccaceae","Methanoregulaceae",
-  "Methanocellaceae","Methanosaetaceae","Methanomicrobiaceae","Methanosarcinaceae",
-  "Methanomethyliaceae","Methanocorpusculaceae")
+source("code/lib/methanogen_families.R")
+methanogen_families <- METHANOGEN_FAMILIES
 
 # shared classifier expects Family / Genus / Phylum
 tdf <- data.frame(Family = tax$family, Genus = tax$genus, Phylum = tax$phylum, stringsAsFactors = FALSE)

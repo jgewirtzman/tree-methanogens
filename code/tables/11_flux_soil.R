@@ -23,8 +23,9 @@ source("code/lib/outputs.R")
 #                          (data/processed/environmental/soil_env_by_collar.csv); else
 #                          the mean for that plot tag (e.g. 1-3, all landscape
 #                          positions) that date in soilmoisture_total.csv.
-#   air temperature        met-tower Tair_Avg nearest 00:00 of the date (the model's
-#                          lookup), else the chamber temperature (tower at deployment).
+#   air temperature        met-tower hourly mean (data/tables/weather.csv, true time) of
+#                          the hour containing the logged start, else the chamber
+#                          temperature.
 #
 # FLAGS by key: qc_pass (closure screen); in_rf_training = qc_pass and the collar is
 # in the stand (collars.csv in_stand). Checked against the previous stage-B run's
@@ -74,12 +75,12 @@ S <- s %>% transmute(
   CO2_best.flux, CO2_model) %>%
   left_join(W %>% select(UniqueID, win_start, win_end), by = "UniqueID") %>%
   left_join(SE, by = c("date", "letter", "tag")) %>% left_join(SM, by = c("date", "tag")) %>%
-  mutate(air = coalesce(tower_air(as.POSIXct(as.character(date), tz = "UTC")), Tcham),
+  mutate(air = coalesce(tower_air(st), Tcham),
          soil_temp_C = coalesce(c_temp, p_temp), soil_vwc = coalesce(c_vwc, p_vwc),
          env_source = paste0(case_when(!is.na(c_temp) | !is.na(c_vwc) ~ "soil: collar reading that date",
                                        !is.na(p_temp) | !is.na(p_vwc) ~ "soil: plot-tag mean that date (soilmoisture_total.csv)",
                                        TRUE ~ "soil: no reading"),
-                             "; air: met tower nearest 00:00 of the date"))
+                             "; air: met tower, hour of the logged start"))
 stopifnot(nrow(S) == 288, !anyDuplicated(S$UniqueID), all(S$collar_id %in% COL$collar_id),
           all(!is.na(S$st)), all(!is.na(S$win_start)))
 

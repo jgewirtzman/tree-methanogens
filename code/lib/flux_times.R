@@ -26,19 +26,25 @@ read_windows <- function(f, keep_all = FALSE) {
   data.frame(UniqueID = w$UniqueID, win_start = wall_clock(w$start.time_corr), win_end = wall_clock(w$end.time_corr))
 }
 
-# met-tower Tair_Avg nearest a time, within 24 h -- the lookup 05_model/01_load_and_prep_data.R
-# makes (tower stamps and the given times compared as recorded)
+# "2020-06-15T13:57:00-04:00" -> true instant (POSIXct UTC)
+iso_instant <- function(x) as.POSIXct(substr(x, 1, 19), format = "%Y-%m-%dT%H:%M:%S", tz = "UTC") -
+  (as.numeric(substr(x, 20, 22)) * 3600 + sign(as.numeric(substr(x, 20, 22))) * as.numeric(substr(x, 24, 25)) * 60)
+
+# met-tower hourly mean air temperature (weather.csv air_temp_avg_C) for a local wall-clock
+# time t (as wall_clock() returns): the hour whose centre is nearest t in true time
+# (weather.csv timestamp; the hour containing t), within 24 h.
 tower_air <- local({
   WX <- NULL
   function(t) {
     if (is.null(WX)) {
-      w <- read.csv("data/raw/weather/ymf_clean_sorted.csv")
-      WX <<- data.frame(ts = as.POSIXct(w$TIMESTAMP, tz = "UTC"), tair = w$Tair_Avg)
-      WX <<- WX[!is.na(WX$tair), ]; WX <<- WX[order(WX$ts), ]
+      w <- read.csv("data/tables/weather.csv", colClasses = c(timestamp = "character"))
+      WX <<- data.frame(mid = as.numeric(iso_instant(w$timestamp)) - 1800, tair = w$air_temp_avg_C)
+      WX <<- WX[!is.na(WX$tair), ]; WX <<- WX[order(WX$mid), ]
     }
-    vapply(seq_along(t), function(i) {
-      if (is.na(t[i])) return(NA_real_)
-      d <- abs(as.numeric(WX$ts - t[i])); j <- which.min(d)
+    tu <- as.numeric(as.POSIXct(format(t, "%Y-%m-%d %H:%M:%S", tz = "UTC"), tz = FLUX_TZ))   # true instant
+    vapply(tu, function(x) {
+      if (is.na(x)) return(NA_real_)
+      d <- abs(WX$mid - x); j <- which.min(d)
       if (d[j] <= 86400) WX$tair[j] else NA_real_
     }, numeric(1))
   }

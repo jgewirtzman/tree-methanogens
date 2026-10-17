@@ -12,9 +12,12 @@
 # straight through summer and ends up NEGATIVELY correlated with observed soil
 # moisture at monthly scale (-0.52).
 #
-# The inputs needed to compute ET properly are all intact: Tair_Avg, Tair_Max,
-# Tair_Min, RH, Solar_Rad_kW_Avg and WindSpeed_ms_Avg are each 100% complete
-# across 2018-09 to 2023-05.
+# The inputs needed to compute ET properly are intact: air temperature (mean, max,
+# min), RH and solar radiation are each 100% complete across 2018-09 to 2023-05.
+# Wind is not (see below).
+#
+# Input: data/tables/weather.csv (true time; screened by code/tables/06_weather.R).
+# Days are local calendar days of the true time.
 #
 # WHAT THIS IS FOR. The soil campaign ran one year (2020-06 to 2021-05), and that
 # year had the second-driest Jun-Sep in the record (210 mm against 437 mm in
@@ -34,24 +37,25 @@ ELEV_M  <- 215          # Yale-Myers, approximate
 ALBEDO  <- 0.23         # FAO-56 reference grass
 SIGMA   <- 4.903e-9     # Stefan-Boltzmann, MJ K-4 m-2 day-1
 
-w <- read.csv("data/raw/weather/ymf_clean_sorted.csv", stringsAsFactors = FALSE)
-w$date <- as.Date(substr(w$TIMESTAMP, 1, 10))
+w <- read.csv("data/tables/weather.csv", stringsAsFactors = FALSE)
+w$date <- as.Date(substr(w$timestamp, 1, 10))
 NUM <- function(v) suppressWarnings(as.numeric(w[[v]]))
-w$tair <- NUM("Tair_Avg"); w$tmax <- NUM("Tair_Max"); w$tmin <- NUM("Tair_Min")
-w$rh <- NUM("RH")
-# WIND IS UNUSABLE. WindSpeed_ms_Avg has a median of 30.2 and a max of 289
-# despite the name; those are not m s-1 and the true unit is not recorded. Fed
-# into the Penman-Monteith aerodynamic term it inflated ET0 to 959 mm yr-1.
-# FAO-56 section on missing data prescribes a 2 m s-1 default in exactly this
-# case, which is what is used; the column is retained only for the record.
+w$tair <- NUM("air_temp_avg_C"); w$tmax <- NUM("air_temp_max_C"); w$tmin <- NUM("air_temp_min_C")
+w$rh <- NUM("relative_humidity_pct")
+# WIND IS UNUSABLE. The logger's WindSpeed_ms_Avg has a median of 30.2 and a max of
+# 289 despite the name; those are not m s-1 and the true unit is not recorded (after
+# the table's screen the median is still 7). Fed into the Penman-Monteith
+# aerodynamic term it inflated ET0 to 959 mm yr-1. FAO-56 section on missing data
+# prescribes a 2 m s-1 default in exactly this case, which is what is used; the
+# column is retained only for the record.
 U2_DEFAULT <- 2.0
-w$wind_raw <- NUM("WindSpeed_ms_Avg")
-# Solar: the column named Solar_Rad_kW_Avg is actually W m-2 (mean 140, max 1237),
-# and Solar_Rad_Tot_MJ_Tot is a direct hourly MJ m-2 total. Summed per day the two
+w$wind_raw <- NUM("wind_speed_avg_ms")
+# Solar: the logger column named Solar_Rad_kW_Avg is W m-2 (solar_rad_avg_W_m2), and
+# solar_rad_total_MJ_m2 is a direct hourly MJ m-2 total. Summed per day the two
 # agree at 12.1 MJ m-2 d-1, so the MJ column is used and the other is the check.
-w$srad_mj <- NUM("Solar_Rad_Tot_MJ_Tot")
-w$srad_w  <- NUM("Solar_Rad_kW_Avg")
-w$rain <- NUM("Rain_mm_Tot"); w$vwc <- NUM("VWC")
+w$srad_mj <- NUM("solar_rad_total_MJ_m2")
+w$srad_w  <- NUM("solar_rad_avg_W_m2")
+w$rain <- NUM("precip_mm"); w$vwc <- NUM("vwc")
 
 D <- w %>% group_by(date) %>% summarise(
   Tmean = mean(tair, na.rm = TRUE), Tmax = max(tmax, na.rm = TRUE), Tmin = min(tmin, na.rm = TRUE),

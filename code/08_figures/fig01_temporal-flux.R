@@ -7,7 +7,8 @@
 #
 # Inputs:
 #   - semirigid flux datasets (from data/processed/flux/)
-#   - soilmoisture_total.csv (from data/raw/field_data/)
+#   - data/tables/soil_readings.csv (collar readings, one value per collar-date;
+#     code/lib/soil_collars.R collar_soil_readings())
 #
 # Outputs:
 #   - outputs/figures/original/main/fig1_temporal_flux_timeseries.png
@@ -30,8 +31,8 @@ tree_dataset <- monthly_plain(read.csv('data/processed/flux/semirigid_tree_final
 # -100..200 filters that stood here were removed 2026-10-01: an r2 screen is not a
 # detection criterion and inflated the mean stem flux 144% (Methods S4).
 QC_EXCLUDED <- read.csv("outputs/data/qc_excluded_measurements.csv")$UniqueID
-moisture_data <- read.csv('data/raw/field_data/ipad_data/Cleaned data/soilmoisture_total.csv')
-names(moisture_data)[grep("Date", names(moisture_data))[1]] <- "Date"  # fix BOM-mangled column name
+source('code/lib/soil_collars.R')
+moisture_data <- collar_soil_readings()   # one row per collar and date
 
 # Convert Date columns to proper date format
 soil_dataset$Date <- as.Date(soil_dataset$Date)
@@ -156,29 +157,29 @@ combined_facet_raw <- bind_rows(soil_raw_data, tree_raw_data) %>%
 # ===== PREPARE DATA FOR VWC DENSITY PLOT (TOP PANEL) =====
 vwc_data <- moisture_data %>%
   mutate(
-    Date = mdy(Date),
+    Date = date,
     Plot_Type = case_when(
-      Plot.letter == "U" ~ "Upland",
-      Plot.letter == "I" ~ "Intermediate",
-      Plot.letter %in% c("WS", "WD") ~ "Wetland"
+      plot_letter == "U" ~ "Upland",
+      plot_letter == "I" ~ "Intermediate",
+      plot_letter %in% c("WS", "WD") ~ "Wetland"
     ),
     Plot_Type = factor(Plot_Type, levels = c("Upland", "Intermediate", "Wetland")),
-    Soil_Moisture = as.numeric(VWC)
+    Soil_Moisture = soil_vwc_pct
   ) %>%
   filter(!is.na(Soil_Moisture))
 
 # ===== PREPARE DATA FOR SOIL TEMP/MOISTURE PLOT (BOTTOM PANEL) =====
 soil_temp_moisture_data <- moisture_data %>%
   mutate(
-    Date = mdy(Date),
+    Date = date,
     Plot_Type = case_when(
-      Plot.letter == "U" ~ "Upland",
-      Plot.letter == "I" ~ "Intermediate",
-      Plot.letter %in% c("WS", "WD") ~ "Wetland"
+      plot_letter == "U" ~ "Upland",
+      plot_letter == "I" ~ "Intermediate",
+      plot_letter %in% c("WS", "WD") ~ "Wetland"
     ),
     Plot_Type = factor(Plot_Type, levels = c("Upland", "Intermediate", "Wetland")),
-    Soil_Temperature = as.numeric(Soil.temp),
-    Soil_Moisture = as.numeric(VWC)
+    Soil_Temperature = soil_temp_C,
+    Soil_Moisture = soil_vwc_pct
   ) %>%
   filter(!is.na(Date), !is.na(Soil_Temperature), !is.na(Soil_Moisture))
 

@@ -11,8 +11,7 @@ num<-function(x) suppressWarnings(as.numeric(x))
 otu<-read.delim("data/raw/16s/OTU_table.txt",header=TRUE,row.names=1,check.names=FALSE)
 taxc<-intersect(c("Kingdom","Phylum","Class","Order","Family","Genus","Species"),names(otu))
 tax<-otu[,taxc]; cnt<-as.matrix(sapply(otu[,setdiff(names(otu),taxc),drop=FALSE],num)); rownames(cnt)<-rownames(otu); tot<-colSums(cnt,na.rm=TRUE)
-mgfam<-c("Methanobacteriaceae","Methanomassiliicoccaceae","Methanoregulaceae","Methanocellaceae",
-         "Methanosaetaceae","Methanomicrobiaceae","Methanosarcinaceae","Methanomethyliaceae","Methanocorpusculaceae")
+source("code/lib/methanogen_families.R"); mgfam<-METHANOGEN_FAMILIES
 mg_asv<-rownames(otu)[tax$Family %in% mgfam]
 source("code/lib/load_methanotroph_definitions.R")
 dp<-"code/lib/methanotroph_definitions.csv"

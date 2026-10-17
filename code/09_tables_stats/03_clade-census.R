@@ -81,8 +81,7 @@ for (g in names(sort(table(TX_ALL$Genus[cres]), decreasing = TRUE)))
   rows[[length(rows) + 1]] <- census(paste0("Genus: ", g, " (", TX_ALL$Family[cres & TX_ALL$Genus == g][1], ")"),
                                      cres & TX_ALL$Genus == g, "Conditional / excluded rule")
 # ---- methanogen families ----
-MG <- c("Methanobacteriaceae","Methanomassiliicoccaceae","Methanoregulaceae","Methanocellaceae",
-        "Methanosaetaceae","Methanomicrobiaceae","Methanosarcinaceae","Methanomethyliaceae","Methanocorpusculaceae")
+source("code/lib/methanogen_families.R"); MG <- METHANOGEN_FAMILIES
 for (f in MG) rows[[length(rows) + 1]] <- census(paste0("Family: ", f), F(f), "Methanogen family")
 # ---- all other archaeal families present (not on the methanogen list) ----
 arch <- TX_ALL$Kingdom == "Archaea" & !is.na(TX_ALL$Kingdom) & !(TX_ALL$Family %in% MG)

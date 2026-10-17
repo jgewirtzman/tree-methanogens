@@ -32,6 +32,8 @@ B,code/01_import/08_inventory_build.R,root,TRUE,stand inventory from the 2018 an
 B,code/01_import/09_audit_inventory_duplicates.R,root,FALSE,check: no stem counted in both censuses
 B,code/01_import/10_species_traits.R,root,TRUE,species trait table from archived TRY and GWDD records (Methods S5)
 B,code/tables/04_trees.R,root,TRUE,canonical tables: inventory stems; measured trees; tree-name crosswalk (needs the stage-B inventory)
+B,code/tables/05_soil_readings.R,root,TRUE,canonical table: soil readings at trees and collars (read by the flux tables)
+B,code/tables/06_weather.R,root,TRUE,canonical table: hourly weather station record in true time; screened (read by the flux tables)
 B,code/tables/10_flux_stem.R,root,TRUE,canonical table: stem flux deployments with start times (checked against the previous model export and the archive)
 B,code/tables/11_flux_soil.R,root,TRUE,canonical table: soil flux deployments with start times
 B,code/tables/20_samples.R,root,TRUE,canonical table: DNA samples
@@ -39,10 +41,8 @@ B,code/tables/21_ddpcr.R,root,TRUE,canonical table: ddPCR by sample x gene x ass
 B,code/tables/22_qpcr.R,root,TRUE,canonical table: facility qPCR (16S and ITS)
 B,code/tables/23_16s.R,root,TRUE,canonical tables: 16S libraries; ASV counts and taxonomy (main and felled-oak runs)
 B,code/tables/30_wood_cores.R,root,TRUE,canonical table: wood core sections
-B,code/tables/31_soil_readings.R,root,TRUE,canonical table: soil readings at trees and collars
 B,code/tables/32_internal_gas.R,root,TRUE,canonical table: internal stem gas (incl. felled-oak GC calibration)
 B,code/tables/33_isotopes.R,root,TRUE,canonical table: Picarro isotope runs
-B,code/tables/34_weather.R,root,TRUE,canonical table: hourly weather station record
 B,code/tables/35_moisture_survey.R,root,TRUE,canonical tables: December 2020 soil-moisture survey; stream-channel flags
 B,code/tables/validate_tables.R,root,TRUE,check data/tables/ against code/tables/dictionary*.csv
 B,code/05_model/01_load_and_prep_data.R,script,TRUE,random-forest training tables (reads data/tables/ only)

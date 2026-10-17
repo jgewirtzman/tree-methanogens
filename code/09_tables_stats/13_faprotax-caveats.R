@@ -7,7 +7,7 @@ source("code/lib/outputs.R")
 # for a hypoxic habitat; and "dark hydrogen oxidation" (3.6% HW) is on par with
 # hydrogenotrophic methanogens (also H2 oxidisers) -> the H2 economy is understated.
 #
-# This reproduces the manuscript's FAPROTAX chain (code/08_figures/08d, same seed)
+# This reproduces the manuscript's FAPROTAX chain (code/08_figures/figS10_faprotax.R, same seed)
 # and computes the numbers that quantify these caveats:
 #   (1) ANNOTATED FRACTION: % of community abundance FAPROTAX assigns ANY function
 #       (the rest is functionally invisible -> the % values are of the WHOLE
@@ -24,31 +24,11 @@ source("code/lib/outputs.R")
 suppressPackageStartupMessages({ library(phyloseq); library(microeco); library(dplyr) })
 out <- "outputs"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
 
-# ---- reproduce the pipeline (verbatim logic from figS10_faprotax.R) -----
-ddpcr <- read.csv("data/raw/ddpcr/ddPCR_meta_all_data.csv")
-otu_tab <- read.delim("data/raw/16s/OTU_table.txt", header = TRUE, row.names = 1)
-bastard_tax <- otu_tab[, 590:596]; bastard_tax[bastard_tax == ""] <- NA
-tax_tab_pre <- tax_table(as.matrix(bastard_tax))
-taxa_names(tax_tab_pre) <- sub("sp", "seq", taxa_names(tax_tab_pre))
-otu_table_pre <- otu_table(otu_tab[, 1:589], taxa_are_rows = TRUE)
-phylo_tree <- read_tree("data/raw/16s/unrooted_tree.nwk")
-samp_data <- read.delim("data/raw/16s/tree_16s_mapping_dada2_corrected.txt", row.names = 1)
-samp_data$RowName <- row.names(samp_data)
-samp_data$seq_id <- sub("prime", "'", samp_data$seq_id); samp_data$seq_id <- sub("star", "*", samp_data$seq_id)
-samp_data$seq_id <- sub("HM", "H", samp_data$seq_id)
-samp_data$seq_id[samp_data$ForwardFastqFile == "206_B01_16S_S3_R1_001.fastq"] <- "RO104"
-samp_data$core_type[samp_data$ForwardFastqFile == "206_B01_16S_S3_R1_001.fastq"] <- "Inner"
-sm <- merge(ddpcr, samp_data, by = c("seq_id", "core_type"), all.y = TRUE)
-sm <- sm[!duplicated(sm$RowName), ]; row.names(sm) <- sm$RowName
-
-raw_ps <- phyloseq(tax_tab_pre, otu_table_pre, phylo_tree, sample_data(sm))
-pop_taxa <- function(ps, bad) prune_taxa(taxa_names(ps)[!(taxa_names(ps) %in% bad)], ps)
-mito <- rownames(tax_table(raw_ps))[which(tax_table(raw_ps)[, 5] == "Mitochondria")]
-chlo <- rownames(tax_table(raw_ps))[which(tax_table(raw_ps)[, 4] == "Chloroplast")]
-no_mito <- pop_taxa(raw_ps, c(mito, chlo))
+# ---- reproduce the pipeline (as figS10_faprotax.R) -----------------------------
+source("code/lib/build_phyloseq.R")
+no_mito <- build_16s_phyloseq()$ps
 taxa_names(no_mito) <- paste0("ASV", seq(ntaxa(no_mito)))
-set.seed(46814)
-ps.rare <- rarefy_even_depth(no_mito, sample.size = 3500)
+ps.rare <- rarefy_16s(no_mito)
 ps.ra <- transform_sample_counts(ps.rare, function(x) x / sum(x) * 100)
 colnames(tax_table(ps.ra)) <- c("Kingdom","Phylum","Class","Order","Family","Genus","Species")
 ps.wood <- subset_samples(ps.ra, material == "Wood")

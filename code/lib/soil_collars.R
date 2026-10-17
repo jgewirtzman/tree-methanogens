@@ -1,6 +1,22 @@
-# soil_collars.R -- soil collars outside the modelled stand.
+# soil_collars.R -- soil collars outside the modelled stand; soil readings per collar-date.
 # One definition, used by 05_model/01_load_and_prep_data.R (excludes them from the
 # soil model) and zenodo/01_compile_datasets.R (records why they are not in training).
 # Both collars sit in the wetland margin outside the censused stand, so the soil model,
 # which is applied only inside the stand, is not trained on them.
 OUT_OF_STAND_COLLARS <- c("WS_1-1", "WS_1-2")
+
+# Monthly-campaign soil readings at the collars (data/tables/soil_readings.csv), one row
+# per collar and date: the mean of that collar-date's records (the iPad sheet and the
+# master workbook often both hold it), as soil_env_by_collar.csv. plot_letter is the
+# collar's landscape position (U, I, WD, WS).
+collar_soil_readings <- function(path = "data/tables/soil_readings.csv") {
+  sr <- utils::read.csv(path, stringsAsFactors = FALSE, na.strings = "")
+  sr <- sr[!is.na(sr$collar_id), ]
+  mean_na <- function(x) if (all(is.na(x))) NA_real_ else mean(x, na.rm = TRUE)
+  k <- paste(sr$collar_id, sr$date)
+  out <- data.frame(collar_id = tapply(sr$collar_id, k, `[`, 1), date = as.Date(tapply(sr$date, k, `[`, 1)),
+                    soil_temp_C = tapply(sr$soil_temp_C, k, mean_na), soil_vwc_pct = tapply(sr$soil_vwc_pct, k, mean_na),
+                    n_records = as.integer(tapply(k, k, length)), row.names = NULL)
+  out$plot_letter <- sub("_.*", "", out$collar_id)
+  out[order(out$date, out$collar_id), ]
+}

@@ -30,12 +30,9 @@ library(cluster)
 otu_table <- read.table("data/raw/16s/black_oak/OTU_table.txt",
                         header = TRUE, sep = "\t", stringsAsFactors = FALSE)
 
-# Define methanogen families (consistent with Fig 5 / 08c)
-methanogen_families <- c(
-  "Methanobacteriaceae", "Methanomassiliicoccaceae", "Methanoregulaceae",
-  "Methanocellaceae", "Methanosaetaceae", "Methanomicrobiaceae",
-  "Methanosarcinaceae", "Methanomethyliaceae", "Methanocorpusculaceae"
-)
+# Methanogen families (code/lib/methanogen_families.R, as Fig 5)
+source("code/lib/methanogen_families.R")
+methanogen_families <- METHANOGEN_FAMILIES
 
 # Load REVISED methanotroph definitions (Methylacidiphilaceae family Known->Putative)
 source("code/lib/load_methanotroph_definitions.R")

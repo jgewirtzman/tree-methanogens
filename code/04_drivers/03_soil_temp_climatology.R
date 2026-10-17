@@ -12,7 +12,7 @@
 # ENTIRELY and get linearly interpolated, and each month's value is the
 # temperature on the few days somebody was in the field.
 #
-# WHY NOT THE TOWER. ymf_clean_sorted.csv has Tsoil_Avg, but it is not measuring
+# WHY NOT THE TOWER. The station logs Tsoil_Avg, but it is not measuring
 # soil: r = 0.993 with air temperature, damping ratio 1.03, zero lag at daily
 # resolution, seasonal amplitude 24.3 C against air's 23.6 C, and 5% of days below
 # -5 C. A probe in the ground damps and lags air by weeks. The column is unusable.
@@ -42,9 +42,10 @@ outdir <- "outputs/tables"
 load("outputs/models/TRAINING_DATA.RData")
 
 # ---- daily air temperature from the tower ------------------------------------
-w <- read.csv("data/raw/weather/ymf_clean_sorted.csv", stringsAsFactors = FALSE)
-w$date <- as.Date(w$TIMESTAMP)
-w$ta   <- suppressWarnings(as.numeric(w$Tair_Avg))
+# data/tables/weather.csv: local calendar days of the true time
+w <- read.csv("data/tables/weather.csv", stringsAsFactors = FALSE)
+w$date <- as.Date(substr(w$timestamp, 1, 10))
+w$ta   <- suppressWarnings(as.numeric(w$air_temp_avg_C))
 AIR <- w %>% filter(is.finite(ta), !is.na(date)) %>%
   group_by(date) %>% summarise(ta = mean(ta), .groups = "drop") %>% arrange(date)
 cat(sprintf("tower air temperature: %d days, %s to %s\n",

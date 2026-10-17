@@ -31,7 +31,7 @@ th <- theme_bw(base_size = 13) +
 # ---- (a) TAXA (S6 STRICT family-mcrA associations, FDR < 0.05) ----------------
 # Three evidence-graded groups:
 #   Methanogen (red) | Associate / syntroph (gold) | Other fermenter (grey)
-methanogen_fams <- c("Methanobacteriaceae","Methanomassiliicoccaceae","Methanosarcinaceae","Methanocellaceae")
+source("code/lib/methanogen_families.R"); methanogen_fams <- METHANOGEN_FAMILIES
 syntroph_fams   <- c("Christensenellaceae","Dysgonomonadaceae")  # demonstrated / community-level H2 associates
 fam_group <- function(f) ifelse(f %in% methanogen_fams, "Methanogen",
                           ifelse(f %in% syntroph_fams,  "Associate / syntroph", "Other fermenter"))

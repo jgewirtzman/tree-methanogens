@@ -86,11 +86,8 @@ compartment_colors <- c("Heartwood" = "#a6611a", "Sapwood" = "#dfc27d",
 # STEP 3: Methanogen calculations
 # ==============================================================================
 
-methanogen_families <- c(
-  "Methanobacteriaceae", "Methanomassiliicoccaceae", "Methanoregulaceae",
-  "Methanocellaceae", "Methanosaetaceae", "Methanomicrobiaceae",
-  "Methanosarcinaceae", "Methanomethyliaceae", "Methanocorpusculaceae"
-)
+source("code/lib/methanogen_families.R")
+methanogen_families <- METHANOGEN_FAMILIES
 
 mg_asvs <- rownames(tax_df)[tax_df$Family %in% methanogen_families]
 samp_meta$methanogen_pct <- colSums(otu_df[mg_asvs, , drop = FALSE], na.rm = TRUE)[rownames(samp_meta)]
