@@ -31,7 +31,7 @@ RAREFY_DEPTH <- 3500
 # Organelle ASVs: SILVA family Mitochondria or order Chloroplast. The one rule for
 # every 16S and PICRUSt2 analysis: these reads are removed before any relative
 # abundance is formed (build_16s_phyloseq(), asv_reads() in tables_read.R, and the
-# PICRUSt2 pathway table, code/01_import/11_picrust_pathways.R). tax: a data.frame
+# PICRUSt2 pathway table, code/01_import/06_picrust_pathways.R). tax: a data.frame
 # (or matrix) with columns Family and Order.
 is_organelle <- function(tax) {
   tax <- as.data.frame(tax, stringsAsFactors = FALSE)

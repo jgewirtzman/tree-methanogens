@@ -6,7 +6,7 @@
 # Writes four archives plus a manifest (path, bytes, md5) for each:
 #   tree-methanogens_raw.zip        data/raw/ except picrust/
 #   tree-methanogens_picrust.zip    data/raw/picrust/ (PICRUSt2 outputs, ~7 GB unzipped; read only by
-#                                   stage A 01_import/11_picrust_pathways.R, whose small product is in
+#                                   stage A 01_import/06_picrust_pathways.R, whose small product is in
 #                                   the processed archive)
 #   tree-methanogens_processed.zip  data/processed/
 #   tree-methanogens_compiled.zip   data/compiled/

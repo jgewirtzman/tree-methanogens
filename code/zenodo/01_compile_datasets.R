@@ -50,6 +50,7 @@ for (f in basename(src)) {
   cat(sprintf("  %-34s %7d rows\n", f, n))
 }
 stale <- setdiff(list.files(out_dir, "[.]csv$"), basename(src))
-if (length(stale)) cat("\nNOTE: files in", out_dir, "not written by this script:", paste(stale, collapse = ", "), "\n")
+# the archive mirrors data/tables exactly: anything else is a leftover and is removed
+if (length(stale)) { cat("\nremoved from", out_dir, "(no longer a table):", paste(stale, collapse = ", "), "\n"); unlink(file.path(out_dir, stale)) }
 cat(sprintf("\n%d datasets in %s/ (%d canonical tables)\n", length(src), out_dir,
             sum(dirname(src) == tables_dir)))

@@ -19,7 +19,7 @@
 #
 # Reads:  data/tables/flux_stem.csv; data/raw/lgr/static_2023/ (the analyser traces);
 #         data/processed/flux/ymf2023_goflux_auxfile.csv for the enclosure start and length
-#         on the ANALYSER clock (start.time, obs.length). The canonical table holds the
+#         on the ANALYSER clock (start.time, obs_length_seconds: the sheet's recorded system start to end). The canonical table holds the
 #         closure in corrected local time and the fitted window, not the enclosure length on
 #         the analyser clock, which is what aligns the raw traces; this is the one
 #         stage-A input this script still reads.
@@ -32,8 +32,8 @@ BUF <- 180; AMB_Q <- 0.10; PRE_EXCURSION_S <- 900
 
 a <- read.csv("data/processed/flux/ymf2023_goflux_auxfile.csv", stringsAsFactors = FALSE, check.names = TRUE)
 a$st <- as.POSIXct(a$start.time, format = "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
-a$ln <- suppressWarnings(as.numeric(a$obs.length))
-a <- a[is.finite(a$ln) & !is.na(a$st), ]
+a$ln <- suppressWarnings(as.numeric(a$obs_length_seconds))
+a <- a[is.finite(a$ln) & a$ln > 0 & !is.na(a$st), ]
 a$day <- format(a$st, "%Y-%m-%d")
 
 # One day's analyser traces. Most days hold each file twice -- extracted (inside a

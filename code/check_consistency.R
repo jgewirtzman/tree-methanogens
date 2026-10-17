@@ -199,7 +199,8 @@ live <- setdiff(list.files("code", "\\.R$", recursive = TRUE, full.names = TRUE)
 wpat <- "(write\\.csv|write_csv|write\\.table|saveRDS|save|ggsave|fwrite|write_tsv)\\s*\\("
 # Scripts that write model files only into a temporary SANDBOX directory (never
 # outputs/models): they reuse the canonical file names by design.
-SANDBOX_WRITERS <- c("code/05_model/05_audit_training_population.R")
+SANDBOX_WRITERS <- c("code/05_model/05_audit_training_population.R",
+                     "code/05_model/15_rf_air_temperature_test.R")
 pathre <- "[\"'][^\"']+\\.(csv|rds|RData|rda|tsv|png|pdf|txt)[\"']"
 writers <- list()
 for (f in setdiff(live, SANDBOX_WRITERS)) {

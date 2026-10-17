@@ -6,28 +6,3 @@ methanotroph_definitions.csv,Notes,character,NA,Rationale
 methanotroph_definitions.csv,Primary_source,character,NA,Literature source (Knief 2015 and references therein)
 methanotroph_definitions.csv,Taxon,character,NA,Family or genus name
 methanotroph_definitions.csv,Taxon_rank,character,NA,Taxonomic rank the rule applies to
-species_trait_sources.csv,column,character,NA,Trait column in species_traits.csv
-species_trait_sources.csv,spcode,character,NA,Four-letter species code
-species_trait_sources.csv,source,character,NA,Source database (TRY or GWDD)
-species_trait_sources.csv,dataset_id,character,NA,TRY DatasetID (NA for GWDD)
-species_trait_sources.csv,dataset,character,NA,TRY dataset name or GWDD source (source_short)
-species_trait_sources.csv,reference,character,NA,Reference for the dataset or source as given by TRY or GWDD (source_long); cite it when reusing the value
-species_trait_sources.csv,n_records,integer,NA,Records from this dataset used for this species and trait
-species_trait_sources.csv,dataset_value,numeric,as the trait column,Mean of this dataset's records; the species value is the mean over datasets (TRY) or over all records (GWDD)
-species_trait_sources.csv,record_ids,character,NA,Records used: TRY ObsDataID or GWDD id; semicolon-separated
-species_traits.csv,spcode,character,NA,Four-letter species code
-species_traits.csv,species,character,NA,Binomial as in TRY AccSpeciesName and GWDD species
-species_traits.csv,gymnosperm,integer,NA,1 = conifer; 0 = angiosperm
-species_traits.csv,wood_density_gcm3,numeric,g cm-3,Wood density: mean GWDD v2.2 wood specific gravity (wsg) over the species' non-bark records
-species_traits.csv,bark_density_gcm3,numeric,g cm-3,Bark density: mean GWDD v2.2 wsg over the species' bark records
-species_traits.csv,try_bark_volume_rel_wood,numeric,% of wood volume,Bark volume relative to wood (TRY 4079)
-species_traits.csv,try_wood_CN_ratio,numeric,g g-1,Wood C:N ratio (TRY 1260)
-species_traits.csv,try_stem_C,numeric,mg g-1,Stem wood carbon content per dry mass (TRY 407)
-species_traits.csv,try_bark_C,numeric,%,Bark carbon content per dry mass (TRY 617)
-species_traits.csv,try_CWD_stem_decomp_rate_k,numeric,yr-1,Coarse woody debris decomposition rate; single-exponential k (TRY 1158)
-species_traits.csv,try_waterlogging_tolerance,numeric,score 0-5,Waterlogging tolerance (TRY 61; Niinemets & Valladares 2006 scale)
-species_traits.csv,try_rooting_depth,numeric,m,Maximum rooting depth (TRY 6); not used in the analysis (6 of 10 analysis species)
-species_traits.csv,try_fine_root_diameter,numeric,mm,Fine-root mean diameter (TRY 896)
-species_traits.csv,try_fine_root_tissue_density,numeric,g cm-3,Fine-root tissue density (TRY 1781)
-species_traits.csv,try_ectomycorrhizal,numeric,share 0-1,Share of mycorrhizal-type datasets reporting ectomycorrhiza (TRY 7); the analysis classifies >= 0.5 as EcM
-species_traits.csv,try_plant_longevity,numeric,yr,Maximum plant age (TRY 59)

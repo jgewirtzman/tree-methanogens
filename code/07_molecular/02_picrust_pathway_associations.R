@@ -12,7 +12,7 @@
 #   - picrust_pathways.csv      per library x pathway: summed PICRUSt2 contributions of
 #                               the non-organelle ASVs (abundance), and without the
 #                               mcrA- (K00399) or pmoA- (K10944) carrying ASVs; built in
-#                               stage A by code/01_import/11_picrust_pathways.R from the
+#                               stage A by code/01_import/06_picrust_pathways.R from the
 #                               PICRUSt2 predictions (data/raw/picrust/)
 #   - picrust_pathway_info.csv  pathway descriptions
 #   - sample metadata: survey_16s_meta() (samples, samples_16S, ddpcr, qpcr, trees)
@@ -67,7 +67,7 @@ cat("  with mmoX:", nrow(wood_mmox), "\n")
 # ==============================================================================
 # STEP 2: Pathway abundances per library (data/tables/picrust_pathways.csv)
 # ==============================================================================
-# Organelle ASVs are already out (code/01_import/11_picrust_pathways.R).
+# Organelle ASVs are already out (code/01_import/06_picrust_pathways.R).
 PW <- read_table("picrust_pathways")
 descriptions <- with(read_table("picrust_pathway_info"), setNames(description, pathway))
 

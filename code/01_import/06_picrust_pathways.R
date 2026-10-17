@@ -1,5 +1,5 @@
 # ==============================================================================
-# 11_picrust_pathways.R -- PICRUSt2 MetaCyc pathway abundances per 16S library
+# 06_picrust_pathways.R -- PICRUSt2 MetaCyc pathway abundances per 16S library
 # ------------------------------------------------------------------------------
 # Stage A (runs with run_all.R --from raw). Turns the PICRUSt2 predictions
 # (data/raw/picrust/, the 7.9 GB tree-methanogens_picrust.zip) into the one small
