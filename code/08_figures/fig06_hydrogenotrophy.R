@@ -2,7 +2,7 @@
 # fig06_hydrogenotrophy.R -- Figure 6: hydrogenotrophic, syntrophy-fed methanogenesis
 # ------------------------------------------------------------------------------
 # Stage E. Run from the repository root, after figS14_taxonomy-mcra.R.
-#   (a) taxa: 16S families associated with mcrA (FDR < 0.05; the table of Figure S10),
+#   (a) taxa: 16S families associated with mcrA (p < 0.01; filled if FDR < 0.05; the table of Figure S10),
 #       grouped as methanogen / associate or syntroph / other fermenter
 #   (b) function: FAPROTAX energy and redox functions, log2 heartwood / sapwood
 #   (c) pathways: PICRUSt2 MetaCyc pathways associated with mcrA (FDR < 0.05, < 10% of
@@ -38,25 +38,29 @@ th <- theme_bw(base_size = 13) +
         legend.key.size = unit(0.45, "cm"), legend.text = element_text(size = 10.5),
         legend.title = element_text(size = 10.5))
 
-# ---- (a) TAXA: family-mcrA associations (Figure S10), FDR < 0.05 ----------------
+# ---- (a) TAXA: family-mcrA associations (Figure S10), p < 0.01; filled = FDR < 0.05 ----
 # Three evidence-graded groups:
-#   Methanogen (red) | Associate / syntroph (gold) | Other fermenter (grey)
+#   Methanogen (red) | Associate / syntroph (gold) | Other (grey)
 source("code/lib/methanogen_families.R"); methanogen_fams <- METHANOGEN_FAMILIES
 syntroph_fams   <- c("Christensenellaceae","Dysgonomonadaceae")  # demonstrated / community-level H2 associates
 fam_group <- function(f) ifelse(f %in% methanogen_fams, "Methanogen",
-                          ifelse(f %in% syntroph_fams,  "Associate / syntroph", "Other fermenter"))
+                          ifelse(f %in% syntroph_fams,  "Associate / syntroph", "Other"))
 fa <- read.csv("outputs/tables/family_mcra_associations_strict.csv") %>%
-  mutate(t = as.numeric(t)) %>% filter(is.finite(t), FDR < 0.05) %>% arrange(desc(t)) %>%
+  mutate(t = as.numeric(t)) %>% filter(is.finite(t), p < 0.01) %>% arrange(desc(t)) %>%
   mutate(group = fam_group(family),
-         group = factor(group, levels = c("Methanogen","Associate / syntroph","Other fermenter")),
+         group = factor(group, levels = c("Methanogen","Associate / syntroph","Other")),
+         fdr = factor(ifelse(FDR < 0.05, "FDR < 0.05", "p < 0.01 only"), levels = c("FDR < 0.05", "p < 0.01 only")),
          family = fct_reorder(family, t))
 pa <- ggplot(fa, aes(t, family, color = group)) +
   geom_segment(aes(x = 0, xend = t, yend = family), color = "grey78", linewidth = 0.6) +
-  geom_point(size = 3.6) +
-  scale_color_manual(values = c(Methanogen = RED, `Associate / syntroph` = SYN, `Other fermenter` = OTH), name = NULL) +
-  labs(x = expression("Co-occurrence with "*italic(mcrA)*" (t-statistic; FDR < 0.05)"), y = NULL) +
+  geom_vline(xintercept = 0, color = "grey60", linewidth = 0.3) +
+  geom_point(aes(shape = fdr), size = 3.6, stroke = 1.1, fill = "white") +
+  scale_shape_manual(values = c(`FDR < 0.05` = 16, `p < 0.01 only` = 21), name = NULL) +
+  scale_color_manual(values = c(Methanogen = RED, `Associate / syntroph` = SYN, Other = OTH), name = NULL) +
+  guides(color = guide_legend(order = 1, nrow = 1), shape = guide_legend(order = 2, nrow = 1)) +
+  labs(x = expression("Co-occurrence with "*italic(mcrA)*" (t-statistic)"), y = NULL) +
   th +
-  theme(legend.position = "bottom", legend.margin = margin(0, 0, 0, 0), legend.text = element_text(size = 9.5), legend.key.size = unit(0.35, "cm"),
+  theme(legend.position = "bottom", legend.box = "vertical", legend.margin = margin(0, 0, 0, 0), legend.text = element_text(size = 9.5), legend.key.size = unit(0.35, "cm"),
         legend.background = element_blank(),
         axis.text.y = element_text(face = "italic", size = 10))
 
