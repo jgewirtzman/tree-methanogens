@@ -15,7 +15,7 @@ source("code/lib/geometry.R")
 OUT <- "data/tables"; dir.create(OUT, showWarnings = FALSE, recursive = TRUE)
 
 site <- tibble(
-  site_id = "YMF", site_name = "Yale-Myers Forest ForestGEO plot, Connecticut, USA",
+  site_id = "YMF", site_name = "Yale-Myers Forest permanent plot, Connecticut, USA",
   ref_latitude = GEO_REF_LAT, ref_longitude = GEO_REF_LON, rotation_rad = GEO_ROTATION_RAD,
   earth_radius_m = GEO_EARTH_RADIUS, plot_side_m = PLOT_SIDE_M, quadrat_side_m = GAP_CELL_M,
   plot_area_m2 = PLOT_AREA_M2, uncensused_area_m2 = GAP_AREA_M2, stand_area_m2 = STAND_AREA_M2,

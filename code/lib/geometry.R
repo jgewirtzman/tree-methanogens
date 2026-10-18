@@ -26,7 +26,7 @@
 # ==============================================================================
 
 PLOT_SIDE_M <- 200
-GAP_CELL_M  <- 20          # ForestGEO quadrat size; the census's own survey unit
+GAP_CELL_M  <- 20          # plot census quadrat size; the census's own survey unit
 
 # The seven quadrats absent from the raw census, as codes row*100 + col with row
 # and col 0-indexed from the plot origin. Verified against the raw tables on every

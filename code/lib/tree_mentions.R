@@ -3,7 +3,7 @@
 # ------------------------------------------------------------------------------
 # tree_mentions() returns one row per (source_file, source_column, tag_recorded,
 # species_recorded, dbh_recorded_cm) with what that record says about the tree:
-#   kind      census_tag (numeric ForestGEO tag), name (2021/2024 field name),
+#   kind      census_tag (numeric plot census tag), name (2021/2024 field name),
 #             untag (monthly untagged stem), untag2023, ash2023, felled
 #   key       identity before tag-collision resolution: the tag, the NCBI-style
 #             name (code/lib/tree_ids.R), or the label

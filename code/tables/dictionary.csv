@@ -15,7 +15,7 @@ site,ref_longitude,numeric,degrees,NN,-73;-71,WGS84 longitude of the plot origin
 site,rotation_rad,numeric,rad,NN,0;0.5,Rotation of the plot axes from grid north applied before the geodetic offset,model .RData (rotation_angle)
 site,earth_radius_m,numeric,m,NN,6.3e6;6.4e6,Earth radius used by the geodetic transform,model .RData (earth_radius)
 site,plot_side_m,numeric,m,NN,1;1000,Side of the nominal square plot,code/lib/geometry.R
-site,quadrat_side_m,numeric,m,NN,1;100,Side of a ForestGEO census quadrat,code/lib/geometry.R
+site,quadrat_side_m,numeric,m,NN,1;100,Side of a plot census quadrat,code/lib/geometry.R
 site,plot_area_m2,numeric,m2,NN,1;1e6,Nominal plot area (plot_side_m squared),code/lib/geometry.R
 site,uncensused_area_m2,numeric,m2,NN,0;1e6,Area of the uncensused quadrats,code/lib/geometry.R
 site,stand_area_m2,numeric,m2,NN,1;1e6,Censused stand area: the basis of the budget,code/lib/geometry.R
@@ -27,12 +27,12 @@ collars,longitude,numeric,degrees,NN,lon_bbox,WGS84 longitude (handheld GPS),plo
 collars,elevation_m,numeric,m,NN,150;300,Ground elevation from the 1 m 3DEP lidar DEM at the GPS position,data/raw/inventory/spatial_data/lidar_3dep_1m_utm18n.tif
 collars,in_stand,logical,,NN,,FALSE for the two wetland-margin collars outside the censused stand,code/lib/soil_collars.R
 inventory_stems,stem_id,character,,PK,,<source>-<tag>-<stem>: census stem label where recorded; else 1; 2; ... in file order,04_trees.R
-inventory_stems,tree_id,character,,NN,,Physical tree the stem belongs to: the ForestGEO tag; <tag>_a; _b where one tag is on several trees (code/lib/tag_collision_decisions.csv); NOTAG_<source>_<n> for untagged stems. Matches trees.tree_id for measured trees,04_trees.R
-inventory_stems,source,character,,NN,,fg19 (2019 ForestGEO census) or bytag (2018 ForestGEO by-tag survey),08_inventory_build.R
-inventory_stems,tag,integer,identifier,,1;99999,ForestGEO tag as recorded (not unique across or within sheets),census sheets
+inventory_stems,tree_id,character,,NN,,Physical tree the stem belongs to: the plot census tag; <tag>_a; _b where one tag is on several trees (code/lib/tag_collision_decisions.csv); NOTAG_<source>_<n> for untagged stems. Matches trees.tree_id for measured trees,04_trees.R
+inventory_stems,source,character,,NN,,fg19 (2019 plot census) or bytag (2018 by-tag stem survey),08_inventory_build.R
+inventory_stems,tag,integer,identifier,,1;99999,Plot census tag as recorded (not unique across or within sheets),census sheets
 inventory_stems,stem,character,,,,Stem label in the census (ms1; ms2 ... from the 2018 multi-stem sheet),census sheets
 inventory_stems,species_code,character,,FK:species.species_code,,Census species code (blank in the census for 22 stems),census sheets
-inventory_stems,quadrat,integer,identifier,,0;999,ForestGEO 20 m quadrat (row*100 + column),census sheets
+inventory_stems,quadrat,integer,identifier,,0;999,Plot census 20 m quadrat (row*100 + column),census sheets
 inventory_stems,PX,numeric,m,,-50;400,Plot-local x (along the rotated plot axis; a few stems lie outside the 200 m square),08_inventory_build.R
 inventory_stems,PY,numeric,m,,-50;400,Plot-local y,08_inventory_build.R
 inventory_stems,latitude,numeric,degrees,,lat_bbox,WGS84 latitude from PX; PY (geodetic transform; site.csv); NA where not located,04_trees.R
@@ -45,9 +45,9 @@ inventory_stems,dbh_shifts,integer,count,NN,0;5,Decimal shifts applied by the re
 inventory_stems,in_notch,logical,,NN,,Located in the uncensused quadrats,08_inventory_build.R
 inventory_stems,in_square,logical,,NN,,Located in the nominal 200 x 200 m square,08_inventory_build.R
 inventory_stems,in_stand,logical,,NN,,In the censused stand (budget basis); unlocated stems count as in the stand,08_inventory_build.R
-trees,tree_id,character,,PK,,Physical tree: ForestGEO tag (disambiguated <tag>_a ...); 2021/2024 field name in NCBI spelling; UNTAG_ label; Ash<n>; QUVE_felled_2022,04_trees.R
+trees,tree_id,character,,PK,,Physical tree: plot census tag (disambiguated <tag>_a ...); 2021/2024 field name in NCBI spelling; UNTAG_ label; Ash<n>; QUVE_felled_2022,04_trees.R
 trees,species_code,character,,FK:species.species_code,,Species from the measurement campaign's field record (census species where no field record); disagreements in outputs/audit/tree_species_conflicts.csv,04_trees.R
-trees,species_source,character,,NN,,"Where species_code comes from: field record: <campaign>; ForestGEO census; 2021 records: <the sources of the majority species>; tree-name prefix; monthly survey; 2023 field sheet; felled-oak sheet. Conflicts in outputs/audit/tree_species_conflicts.csv (incl. RM105: recorded QURU, name prefix ACRU)",04_trees.R
+trees,species_source,character,,NN,,"Where species_code comes from: field record: <campaign>; plot census; 2021 records: <the sources of the majority species>; tree-name prefix; monthly survey; 2023 field sheet; felled-oak sheet. Conflicts in outputs/audit/tree_species_conflicts.csv (incl. RM105: recorded QURU, name prefix ACRU)",04_trees.R
 trees,dbh_cm,numeric,cm,,0;200,Diameter at breast height. 2021 survey: the stem diameter the flux datasheet records for the 125 cm chamber (else the median of its chamber heights; else the 2021 tree DBH list). Measured values only: NA where no DBH was recorded (dbh_source says so; 17 trees including 6 flux-measured 2021 trees); nothing is imputed,see dbh_source
 trees,dbh_date,date,,,2018-01-01;2025-12-31,Date the diameter was measured where recorded,see dbh_source
 trees,dbh_source,character,,,,Record the diameter comes from (monthly survey tree list; 2021 flux datasheet: stem diameter at the 125 cm chamber / median of its chamber heights; 2021 tree DBH list; 2023 field sheet; census; felled-oak sheet); none: no DBH measurement recorded (where dbh_cm is NA),04_trees.R

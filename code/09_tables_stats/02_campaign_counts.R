@@ -103,7 +103,7 @@ bo_tiss <- table(smp$position[smp$campaign == "2022_felled_oak"])
 wc <- read_table("wood_cores")
 wood_dens  <- uq(wc$tree_id[!is.na(wc$density_g_cm3)])
 wood_moist <- uq(wc$tree_id[!is.na(wc$moisture_dry_pct)])
-# inventory_stems.csv is the whole stand: the 2019 ForestGEO census merged with the
+# inventory_stems.csv is the whole stand: the 2019 plot census merged with the
 # supplementary by-tag survey. Individuals are physical trees (tree_id; tags are not
 # unique). Census status is a census-only attribute that the tables do not carry (the
 # stand inventory is live stems by design); the count is taken from the 2019 census

@@ -14,8 +14,8 @@
 #                  column (e.g. 2023 tag 1985 was written on two trees).
 #
 # TREE IDs
-#   census tag      the ForestGEO tag (both the 2019 census and the 2018 by-tag
-#                   survey are ForestGEO; the monthly and 2023 surveys use the same
+#   census tag      the plot's stem tag (the 2019 plot census and the 2018 by-tag
+#                   survey use one tag series; the monthly and 2023 surveys use the same
 #                   tags). Where one tag belongs to more than one physical tree, each
 #                   gets <tag>_a, <tag>_b, ... (census trees first: 2019 census, then
 #                   by-tag survey, in file order; then measured trees not in the census).
@@ -58,7 +58,7 @@
 # the trees are listed in the build report).
 #
 # SPECIES. species_source records where species_code comes from: a field record
-# (campaign), the ForestGEO census, the 2021 records (majority of the sources listed)
+# (campaign), the plot census, the 2021 records (majority of the sources listed)
 # or the tree-name prefix. Trees whose 2021 species disagrees with their name prefix
 # (e.g. RM105, recorded QURU) are listed in tree_species_conflicts.csv.
 #
@@ -265,12 +265,12 @@ T1 <- MR %>% arrange(match(campaign, c(MON, F21, C23))) %>% group_by(tree_id) %>
             sp_all = paste(unique(na.omit(species_code)), collapse = "/"), .groups = "drop") %>%
   left_join(cen, by = "tree_id") %>%
   mutate(species_source = ifelse(!is.na(species_code), paste("field record:", sp_src),
-                                 ifelse(c_src == "fg19", "ForestGEO census 2019", "ForestGEO by-tag survey 2018")),
+                                 ifelse(c_src == "fg19", "plot census 2019", "plot by-tag survey 2018")),
          species_code = coalesce(species_code, c_sp),
-         dbh_source = ifelse(is.na(dbh_cm) & !is.na(c_dbh), ifelse(c_src == "fg19", "ForestGEO census 2019", "ForestGEO by-tag survey 2018"), dbh_source),
+         dbh_source = ifelse(is.na(dbh_cm) & !is.na(c_dbh), ifelse(c_src == "fg19", "plot census 2019", "plot by-tag survey 2018"), dbh_source),
          dbh_cm = coalesce(dbh_cm, c_dbh),
          latitude = coalesce(c_lat, gps_latitude), longitude = coalesce(c_lon, gps_longitude),
-         coord_source = ifelse(!is.na(c_lat), ifelse(c_src == "fg19", "ForestGEO census 2019 (PX, PY)", "ForestGEO by-tag survey 2018 (PX, PY)"),
+         coord_source = ifelse(!is.na(c_lat), ifelse(c_src == "fg19", "plot census 2019 (PX, PY)", "plot by-tag survey 2018 (PX, PY)"),
                         ifelse(!is.na(gps_latitude), "GPS (monthly survey tree list)", NA)),
          in_inventory = stem_id, census_species = c_sp)
 
