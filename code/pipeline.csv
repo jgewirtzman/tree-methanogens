@@ -73,7 +73,7 @@ D,code/05_model/14_rf_height_extrapolation.R,root,FALSE,model behaviour above it
 D,code/05_model/15_rf_air_temperature_test.R,root,FALSE,sensitivity: both forests with the measured air temperature added (skill; budget under 24-h and daytime air)
 D,code/05_model/16_rf_hyperparameter_tuning.R,root,FALSE,what tuning mtry and min.node.size is worth: selection nested in grouped CV (Methods S6)
 D,code/06_upscale/11_sens_daily_drivers.R,root,FALSE,sensitivity: daily vs monthly drivers (averaging check; soil all cells; 300 sampled stems)
-D,code/07_molecular/01_faprotax_dump_HW_SW.R,root,FALSE,FAPROTAX functions by compartment (Fig 6b)
+D,code/07_molecular/01_faprotax_dump_HW_SW.R,root,FALSE,FAPROTAX functions by compartment and heartwood vs sapwood tests (Fig 6b)
 D,code/07_molecular/02_picrust_pathway_associations.R,root,FALSE,PICRUSt2 pathway associations with mcrA and pmoA from data/tables/picrust_pathways.csv (Fig 6c; Figs S13-S15)
 D,code/07_molecular/03_methanotroph_resolution.R,root,FALSE,Table S4: methanotrophs at several taxonomic resolutions; tree placement (Placed tier); sensitivity
 D,code/09_tables_stats/01_height_effects.R,root,FALSE,height effects by species (Results 2)

@@ -876,6 +876,20 @@ for (func in key_funcs) {
   }
 }
 
+# Figure 6b: heartwood vs sapwood without methanogen ASVs (methanogenesis row with them);
+# per-library tests from 07_molecular/01_faprotax_dump_HW_SW.R (Results; Methods S7)
+sub_header("Figure 6b: FAPROTAX heartwood vs sapwood, paired Wilcoxon per tree (BH across functions)")
+fap_tests <- read.csv("outputs/data/FAPROTAX_HW_SW_tests.csv")
+stat("Wood libraries (heartwood / sapwood)", sprintf("%d / %d", fap_tests$n_HW[1], fap_tests$n_SW[1]))
+stat("Trees with both tissues (pairs)", as.character(unique(fap_tests$n_pairs)))
+for (i in seq_len(nrow(fap_tests))) with(fap_tests[i, ], cat(sprintf(
+  "  %-32s HW=%5.2f%% SW=%5.2f%% log2=%+.2f | pairs HW>SW %d, SW>HW %d, tied %d | paired FDR=%.2g (p=%.2g) | unpaired FDR=%.2g\n",
+  func, pooled_HW, pooled_SW, log2_ratio, pairs_HW_gt, pairs_SW_gt, pairs_tied, paired_FDR, paired_p, unpaired_FDR)))
+stat("Largest paired FDR among significant functions (< 0.05)", signif(max(fap_tests$paired_FDR[fap_tests$paired_FDR < 0.05]), 2))
+stat("Functions not significant (paired FDR >= 0.05)", paste(fap_tests$func[fap_tests$paired_FDR >= 0.05], collapse = ", "))
+record("faprotax_hw_sw_pairs", unique(fap_tests$n_pairs))
+record("faprotax_hw_sw_max_sig_paired_fdr", max(fap_tests$paired_FDR[fap_tests$paired_FDR < 0.05]))
+
 # Panel (b): Heartwood only, per species
 ps.hw.fap <- subset_samples(ps.wood.fap, core_type == "Inner")
 meco_hw <- microtable$new(

@@ -4,7 +4,8 @@
 # Stage E. Run from the repository root, after figS14_taxonomy-mcra.R.
 #   (a) taxa: 16S families associated with mcrA (p < 0.01; filled if FDR < 0.05; the table of Figure S10),
 #       grouped as methanogen / associate or syntroph / other fermenter
-#   (b) function: FAPROTAX energy and redox functions, log2 heartwood / sapwood
+#   (b) function: FAPROTAX energy and redox functions, log2 heartwood / sapwood; asterisks,
+#       paired Wilcoxon (heartwood vs sapwood of the same tree), BH FDR
 #   (c) pathways: PICRUSt2 MetaCyc pathways associated with mcrA (FDR < 0.05, < 10% of
 #       the pathway from mcrA-carrying ASVs), by functional category
 #   (d) isotopes: d13C-CH4 of whole-stem gas (density and samples sized by CH4) with
@@ -13,7 +14,7 @@
 # gold = syntrophic fermenters / fermentation; grey = other; purple = isotopes.
 # Inputs
 #   outputs/tables/family_mcra_associations_strict.csv       figS14_taxonomy-mcra.R
-#   outputs/data/FAPROTAX_all_functions_HW_SW.csv            07_molecular/01_faprotax_dump_HW_SW.R
+#   outputs/data/FAPROTAX_HW_SW_tests.csv                    07_molecular/01_faprotax_dump_HW_SW.R
 #   outputs/data/picrust/pathway_associations_mcra_no_mcra_otus.csv,
 #     pathway_associations_combined.csv                      07_molecular/02_picrust_pathway_associations.R
 #   outputs/data/ISOTOPES_sample_table.csv, ISOTOPES_summary.csv  09_tables_stats/12_isotopes-canonical.R
@@ -51,6 +52,7 @@ fa <- read.csv("outputs/tables/family_mcra_associations_strict.csv") %>%
          group = factor(group, levels = c("Methanogen","Associate / syntroph","Other")),
          fdr = factor(ifelse(FDR < 0.05, "FDR < 0.05", "p < 0.01 only"), levels = c("FDR < 0.05", "p < 0.01 only")),
          family = fct_reorder(family, t))
+XLAB_AC <- expression("Association with "*italic(mcrA)*" (t-statistic)")   # panels (a) and (c)
 pa <- ggplot(fa, aes(t, family, color = group)) +
   geom_segment(aes(x = 0, xend = t, yend = family), color = "grey78", linewidth = 0.6) +
   geom_vline(xintercept = 0, color = "grey60", linewidth = 0.3) +
@@ -58,41 +60,33 @@ pa <- ggplot(fa, aes(t, family, color = group)) +
   scale_shape_manual(values = c(`FDR < 0.05` = 16, `p < 0.01 only` = 21), name = NULL) +
   scale_color_manual(values = c(Methanogen = RED, `Associate / syntroph` = SYN, Other = OTH), name = NULL) +
   guides(color = guide_legend(order = 1, nrow = 1), shape = guide_legend(order = 2, nrow = 1)) +
-  labs(x = expression("Co-occurrence with "*italic(mcrA)*" (t-statistic)"), y = NULL) +
+  scale_x_continuous(labels = mlab) +
+  labs(x = XLAB_AC, y = NULL) +
   th +
   theme(legend.position = "bottom", legend.box = "vertical", legend.margin = margin(0, 0, 0, 0), legend.text = element_text(size = 9.5), legend.key.size = unit(0.35, "cm"),
         legend.background = element_blank(),
         axis.text.y = element_text(face = "italic", size = 10))
 
 # ---- (b) FUNCTION (FAPROTAX, heartwood / sapwood) ------------------------------
-# Inclusion rule: energy/redox functions with mean relative abundance >= 0.1% in a
-# compartment; host-association, pathogen and phototrophy functions and redundant parent
-# annotations (generic chemoheterotrophy; generic, CO2 and methyl methanogenesis)
-# excluded; hydrogenotrophic_methanogenesis shown as the representative methanogenesis route.
-fap_all <- read.csv("outputs/data/FAPROTAX_all_functions_HW_SW.csv")
+# The functions are listed once in code/lib/fig6b_functions.R (inclusion rule there).
 # Methanogen ASVs are removed from every function except the methanogenesis row:
 # FAPROTAX files Methanobacteriaceae under dark H2 oxidation and Methanomassiliicoccaceae
 # under methylotrophy, which would recount the methanogens as independent functions.
-fap_sel <- tribble(~func, ~disp,
-  "hydrogenotrophic_methanogenesis", "H\u2082-trophic methanogenesis",
-  "dark_hydrogen_oxidation",         "Dark hydrogen oxidation",
-  "fermentation",                    "Fermentation",
-  "anaerobic_chemoheterotrophy",     "Anaerobic chemoheterotrophy",
-  "methylotrophy",                   "Methylotrophy",
-  "nitrate_reduction",               "Nitrate reduction",
-  "aerobic_chemoheterotrophy",       "Aerobic chemoheterotrophy",
-  "methanol_oxidation",              "Methanol oxidation",
-  "methanotrophy",                   "Methanotrophy",
-  "cellulolysis",                    "Cellulolysis")
-fap <- fap_sel %>% left_join(fap_all, by = "func") %>%
-  mutate(nonmg = func != "hydrogenotrophic_methanogenesis",
-         HWp = ifelse(nonmg, HW_nonmethanogen, HW), SWp = ifelse(nonmg, SW_nonmethanogen, SW),
-         lr = log2(HWp/SWp), fn = fct_reorder(disp, lr))
-stopifnot(all(is.finite(fap$lr)))
+# Bars: log2 of the unrounded pooled shares; asterisks: paired Wilcoxon per tree, BH FDR
+# (01_faprotax_dump_HW_SW.R). Non-significant bars carry no mark.
+source("code/lib/fig6b_functions.R")
+fap <- FIG6B_FUNCTIONS %>% left_join(read.csv("outputs/data/FAPROTAX_HW_SW_tests.csv"), by = "func") %>%
+  mutate(lr = log2_ratio, fn = fct_reorder(label, lr),
+         stars = case_when(paired_FDR < 0.001 ~ "***", paired_FDR < 0.01 ~ "**", paired_FDR < 0.05 ~ "*", TRUE ~ ""))
+stopifnot(all(is.finite(fap$lr)), !anyNA(fap$paired_FDR))
 pb <- ggplot(fap, aes(lr, fn, fill = lr)) +
   geom_col() + geom_vline(xintercept = 0, color = "grey50") +
+  geom_text(aes(x = lr + sign(lr) * 0.12, label = stars, hjust = ifelse(lr > 0, 0, 1)),
+            vjust = 0.75, size = 4.6, color = "grey20") +
+  annotate("text", x = max(fap$lr) + 0.45, y = 2.1, hjust = 1, size = 3, color = "grey25", lineheight = 0.95,
+           label = "Paired Wilcoxon (per tree),\nBH FDR: * < 0.05,\n** < 0.01, *** < 0.001") +
   scale_fill_gradient2(low = BLU, mid = "grey93", high = RED, midpoint = 0, guide = "none") +
-  scale_x_continuous(labels = mlab, expand = expansion(mult = c(0.08, 0.05))) +
+  scale_x_continuous(labels = mlab, expand = expansion(mult = c(0.14, 0.10))) +
   labs(x = expression(log[2]*"(heartwood / sapwood)"), y = NULL) + th
 
 # ---- (c) PATHWAY: a-priori FUNCTIONAL categories --------------------------------
@@ -138,7 +132,7 @@ pc <- ggplot(pwc, aes(t, lab, color = cat)) +
   geom_point(size = 3.2) + geom_vline(xintercept = 0, color = "grey50") +
   scale_color_manual(values = c(`C1 / carbon fixation`=RED, `Fermentation and carbohydrate breakdown`=SYN,
                                 `TCA cycle and aerobic respiration`=BLU, `Sulfur / nitrogen metabolism`=ABLU), name = NULL) +
-  labs(x = expression("Association with "*italic(mcrA)*" (t-statistic)"), y = NULL) + th +
+  labs(x = XLAB_AC, y = NULL) + th +
   theme(legend.position = "bottom", legend.margin = margin(0, 0, 0, 0),
         legend.background = element_blank(),
         legend.text = element_text(size = 8), axis.text.y = element_text(size = 8.3, lineheight = 0.85))

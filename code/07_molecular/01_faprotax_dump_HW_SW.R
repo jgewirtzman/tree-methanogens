@@ -3,8 +3,9 @@
 # ------------------------------------------------------------------------------
 # Stage D; run from the repository root. The FAPROTAX calculation of
 # 08_figures/figS10_faprotax.R (same phyloseq object and rarefaction), written out for
-# every function: the per-function heartwood/sapwood table panel (b) of Figure 6 reads.
-# Output: outputs/data/FAPROTAX_all_functions_HW_SW.csv
+# every function, and the heartwood vs sapwood tests behind the asterisks of Figure 6b.
+# Outputs: outputs/data/FAPROTAX_all_functions_HW_SW.csv  (pooled shares, every function)
+#          outputs/data/FAPROTAX_HW_SW_tests.csv          (Fig 6b functions, per-library tests)
 # ==============================================================================
 suppressPackageStartupMessages({library(phyloseq);library(microeco);library(tidyverse)})
 
@@ -43,3 +44,49 @@ df<-df[order(-df$HW),]
 write.csv(df,"outputs/data/FAPROTAX_all_functions_HW_SW.csv",row.names=FALSE)
 cat("=== ALL FAPROTAX functions (HW=Inner, SW=Outer, % relative abundance) ===\n")
 for(i in seq_len(nrow(df))) cat(sprintf("%-52s HW=%6.2f SW=%6.2f lr=%s | without methanogens HW=%6.2f SW=%6.2f (%d methanogen ASVs)\n",df$func[i],df$HW[i],df$SW[i],ifelse(is.na(df$lr[i]),"  Inf",sprintf("%+.2f",df$lr[i])),df$HW_nonmethanogen[i],df$SW_nonmethanogen[i],df$methanogen_asvs[i]))
+
+# ---- Per-library shares and tests for the functions of Figure 6b --------------------
+# Each library's share of a function (methanogen ASVs removed except for the
+# methanogenesis row, as in the panel). Pooled shares are the mean over libraries (each
+# library sums to 100%), so the log2 ratio here is the unrounded one the panel plots.
+# Paired test: heartwood vs sapwood of the same tree, replicate libraries of a tree and
+# tissue averaged; Wilcoxon signed-rank, BH across the plotted functions. The unpaired
+# test uses every library.
+source("code/lib/fig6b_functions.R")
+sel <- FIG6B_FUNCTIONS$func; stopifnot(all(sel %in% colnames(fm)))
+ab_lib <- as.matrix(meco_all$otu_table)
+stopifnot(all(rownames(fm) %in% rownames(ab_lib)),
+          sum(ab_lib[setdiff(rownames(ab_lib), rownames(fm)), ]) == 0,   # ASVs outside fm are absent
+          all(abs(colSums(ab_lib) - 100) < 1e-6))
+ab_lib <- ab_lib[rownames(fm), , drop = FALSE]
+lib_share <- sapply(sel, function(f) {
+  keep <- fm[, f] == 1 & (f == "hydrogenotrophic_methanogenesis" | !is_mg)
+  round(colSums(ab_lib[keep, , drop = FALSE]), 8) })   # shares are multiples of 1/35 %; rounding makes ties exact
+smp <- as.data.frame(as.matrix(meco_all$sample_table), stringsAsFactors = FALSE)
+L <- data.frame(tree_id = smp[rownames(lib_share), "tree_id"], core_type = smp[rownames(lib_share), "core_type"],
+                lib_share, check.names = FALSE)
+stopifnot(all(L$core_type %in% c("Inner", "Outer")))
+Lt <- L %>% filter(!is.na(tree_id)) %>% group_by(tree_id, core_type) %>%
+  summarise(across(all_of(sel), mean), .groups = "drop")
+tests <- map_dfr(sel, function(f) {
+  hw <- L[[f]][L$core_type == "Inner"]; sw <- L[[f]][L$core_type == "Outer"]
+  w <- Lt %>% select(tree_id, core_type, v = all_of(f)) %>%
+    pivot_wider(names_from = core_type, values_from = v) %>% filter(!is.na(Inner), !is.na(Outer))
+  d <- w$Inner - w$Outer
+  tibble(func = f, pooled_HW = mean(hw), pooled_SW = mean(sw), log2_ratio = log2(mean(hw) / mean(sw)),
+         median_HW = median(hw), median_SW = median(sw), n_HW = length(hw), n_SW = length(sw),
+         n_pairs = nrow(w), pairs_HW_gt = sum(d > 0), pairs_SW_gt = sum(d < 0), pairs_tied = sum(d == 0),
+         paired_p = wilcox.test(w$Inner, w$Outer, paired = TRUE, exact = FALSE)$p.value,
+         unpaired_p = wilcox.test(hw, sw, exact = FALSE)$p.value) }) %>%
+  mutate(paired_FDR = p.adjust(paired_p, "BH"), unpaired_FDR = p.adjust(unpaired_p, "BH"))
+# pooled shares agree with the table above (2-decimal columns)
+pooled_chk <- df %>% filter(func %in% sel) %>%
+  transmute(func, HWp = ifelse(func == "hydrogenotrophic_methanogenesis", HW, HW_nonmethanogen),
+            SWp = ifelse(func == "hydrogenotrophic_methanogenesis", SW, SW_nonmethanogen)) %>%
+  inner_join(tests, by = "func")
+stopifnot(nrow(pooled_chk) == length(sel),
+          max(abs(pooled_chk$HWp - pooled_chk$pooled_HW), abs(pooled_chk$SWp - pooled_chk$pooled_SW)) < 0.01)
+write.csv(tests, "outputs/data/FAPROTAX_HW_SW_tests.csv", row.names = FALSE)
+cat("\n=== Figure 6b functions: heartwood vs sapwood (", nrow(L), " libraries; ",
+    sum(is.na(L$tree_id)), " without a tree) ===\n", sep = "")
+print(as.data.frame(tests %>% mutate(across(where(is.double), ~ signif(.x, 3)))), row.names = FALSE)
