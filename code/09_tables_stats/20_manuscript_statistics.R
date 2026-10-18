@@ -1372,6 +1372,19 @@ if (nrow(sp_mcra_mt) >= 3) {
 }
 
 
+# Area-weighting profile sensitivity (Methods S4): 19b_area-weighting-profile.R
+sub_header("Area-weighting radial profile sensitivity (Methods S4; 19b_area-weighting-profile.R)")
+aw_prof <- read.csv("outputs/data/area_weighting_profile_sensitivity.csv")
+print(format(aw_prof[, c("profile", "sp_ratio_R2", "sp_ratio_p", "sp_mcrA_R2", "sp_mcrA_p",
+                         "sp_methanotroph_R2", "sp_methanotroph_p", "tree_mcrA_R2",
+                         "tree_mmoX_p", "tree_ratio_p")], digits = 3), row.names = FALSE)
+cat("  Named trait associations meeting the Methods S5 rule:\n")
+print(aw_prof[, c("profile", grep("_reported$", names(aw_prof), value = TRUE))], row.names = FALSE)
+cat(sprintf("  Species-level ratio R2 across profiles: %.3f-%.3f (p %.4f-%.4f)\n",
+            min(aw_prof$sp_ratio_R2), max(aw_prof$sp_ratio_R2),
+            min(aw_prof$sp_ratio_p), max(aw_prof$sp_ratio_p)))
+
+
 # ==============================================================================
 # SECTION 10: RANDOM FOREST & UPSCALING (Fig 9, S26-S29; Methods S6)
 # ==============================================================================

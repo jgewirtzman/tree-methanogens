@@ -7,7 +7,7 @@
 # 19, Figs 4, 8, S21), code/07_molecular/helper_radial_gene_plots.R (the parser
 # only), 09_tables_stats/17, 20 and 25, and Fig. S28. Builds, in the calling
 # environment:
-#   area_weighted_gene(), prepare_long_all_genes()
+#   area_weighted_gene(), prepare_long_all_genes(), build_gene_tables()
 #   ymf2021, ymf2023     - survey_2021_trees() and the 2023 cross-species deployments
 #   long_all             - wood genes, long (loose threshold; mcrA probe assay only)
 #   tree_genes_weighted  - per-tree area-weighted genes (trees with a measured DBH)
@@ -18,6 +18,9 @@
 #   analysis_ratio       - species-level: median_log_ratio, median_flux (n_trees>=5, n_flux>=5)
 #   analysis_mcra        - species-level area-weighted mcrA (col 'value')
 #   analysis_meth        - species-level methanotroph_total (col 'value')
+# The tree- and species-level objects come from build_gene_tables(), which takes the
+# area-weighting profile (default "linear", the paper's; the others are a sensitivity,
+# 09_tables_stats/19b_area-weighting-profile.R).
 # Side-effect free (no writes, no plots). Area weighting needs the tree's DBH: trees
 # without a measured DBH (trees.csv dbh_cm NA) have no area-weighted value.
 #
@@ -31,15 +34,32 @@ source("code/lib/tables_read.R")
 ymf2021 <- survey_2021_trees()
 ymf2023 <- flux_stem_campaign("2023_cross_species")
 
-area_weighted_gene <- function(gene_inner, gene_outer, dbh_cm) {
+area_weighted_gene <- function(gene_inner, gene_outer, dbh_cm, profile = "linear") {
   R <- dbh_cm / 2
   if (!is.finite(R) || R <= 0) return(NA_real_)
   # Cores were cut into an outer 5-cm segment (sapwood) and an inner segment (heartwood):
   # sapwood value in the outer 5 cm, heartwood value within min(5 cm, R - 5 cm) of the pith,
   # linear in radius between. A tree of radius <= 5 cm is all sapwood.
   r1 <- min(5, max(R - 5, 0)); r2 <- max(R - 5, r1)
-  S <- r1^2 + r1 * r2 + r2^2
-  gene_outer + (gene_inner - gene_outer) * (S / (3 * R^2))
+  # f = heartwood share of the cross-section. profile (sensitivity only; Methods S4,
+  # 09_tables_stats/19b_area-weighting-profile.R) sets the transition between r1 and r2:
+  #   "linear"     heartwood weight falls linearly from 1 at r1 to 0 at r2 (the paper)
+  #   "s_moderate" logistic in the transition fraction x = (r - r1)/(r2 - r1), centred at
+  #   "s_steep"    x = 0.5, slope k = 6 / k = 20, rescaled to run from 1 at r1 to 0 at r2
+  #   "step_max"   heartwood value everywhere inside the outer 5 cm (step at r2)
+  #   "step_min"   heartwood value only within r1 of the pith (step at r1)
+  f <- switch(profile,
+    linear   = (r1^2 + r1 * r2 + r2^2) / (3 * R^2),
+    step_max = r2^2 / R^2,
+    step_min = r1^2 / R^2,
+    s_moderate = , s_steep = {
+      k <- if (profile == "s_moderate") 6 else 20
+      L <- function(x) 1 / (1 + exp(k * (x - 0.5)))
+      h <- function(r) (L((r - r1) / (r2 - r1)) - L(1)) / (L(0) - L(1))
+      (r1^2 + if (r2 > r1) integrate(function(r) 2 * r * h(r), r1, r2)$value else 0) / R^2
+    },
+    stop("area_weighted_gene: unknown profile '", profile, "'"))
+  gene_outer + (gene_inner - gene_outer) * f
 }
 
 prepare_long_all_genes <- function(df) {
@@ -73,23 +93,6 @@ prepare_long_all_genes <- function(df) {
 
 long_all <- prepare_long_all_genes(ymf2021)
 
-tree_genes_weighted <- long_all %>%
-  left_join(ymf2021 %>% dplyr::select(tree_id, species_id, dbh), by = "tree_id") %>%
-  filter(is.finite(dbh)) %>%
-  group_by(tree_id, species_id, dbh, gene) %>%
-  summarise(gene_inner = mean(gene_copies[sample_type == "Heartwood"], na.rm = TRUE),
-            gene_outer = mean(gene_copies[sample_type == "Sapwood"], na.rm = TRUE),
-            .groups = "drop") %>%
-  filter(is.finite(gene_inner), is.finite(gene_outer)) %>%
-  mutate(gene_area_weighted = mapply(area_weighted_gene, gene_inner, gene_outer, dbh),
-         species = species_name(species_id)) %>%
-  dplyr::select(tree_id, species_id, species, gene, gene_area_weighted) %>%
-  pivot_wider(names_from = gene, values_from = gene_area_weighted) %>%
-  mutate(methanotroph_total = pmoA + mmoX)   # NA where either gene is missing
-
-tree_genes_complete <- tree_genes_weighted %>%
-  filter(!is.na(mcrA), !is.na(pmoA), !is.na(mmoX), !is.na(methanotroph_total))
-
 flux_all <- bind_rows(
   ymf2023 %>% dplyr::select(species_id = species_code, CH4_flux = CH4_flux_nmol_m2_s) %>%
     mutate(species = species_name(species_id)),
@@ -103,30 +106,56 @@ flux_by_species <- flux_all %>%
             q25_flux = quantile(CH4_flux, 0.25, na.rm = TRUE),
             q75_flux = quantile(CH4_flux, 0.75, na.rm = TRUE), .groups = "drop")
 
-tree_level_complete <- tree_genes_complete %>%
-  left_join(ymf2021 %>% dplyr::select(tree_id, CH4_flux = CH4_best.flux_125cm),
-            by = "tree_id") %>%
-  filter(!is.na(CH4_flux), !is.nan(CH4_flux)) %>%
-  mutate(log_tree_mcra = log10(mcrA + 1),
-         log_tree_mmox = log10(mmoX + 1),
-         log_pmoa = log10(pmoA + 1),
-         log_methanotroph = log10(methanotroph_total + 1),
-         ratio_mcra_methanotroph = (mcrA + 1) / (methanotroph_total + 1),
-         log_ratio = log10(ratio_mcra_methanotroph))
+# Tree- and species-level tables for one area-weighting profile (default: the paper's).
+build_gene_tables <- function(profile = "linear") {
+  tree_genes_weighted <- long_all %>%
+    left_join(ymf2021 %>% dplyr::select(tree_id, species_id, dbh), by = "tree_id") %>%
+    filter(is.finite(dbh)) %>%
+    group_by(tree_id, species_id, dbh, gene) %>%
+    summarise(gene_inner = mean(gene_copies[sample_type == "Heartwood"], na.rm = TRUE),
+              gene_outer = mean(gene_copies[sample_type == "Sapwood"], na.rm = TRUE),
+              .groups = "drop") %>%
+    filter(is.finite(gene_inner), is.finite(gene_outer)) %>%
+    mutate(gene_area_weighted = mapply(area_weighted_gene, gene_inner, gene_outer, dbh,
+                                             MoreArgs = list(profile = profile)),
+           species = species_name(species_id)) %>%
+    dplyr::select(tree_id, species_id, species, gene, gene_area_weighted) %>%
+    pivot_wider(names_from = gene, values_from = gene_area_weighted) %>%
+    mutate(methanotroph_total = pmoA + mmoX)   # NA where either gene is missing
 
-.species_agg <- function(col) {
-  tree_level_complete %>%
+  tree_genes_complete <- tree_genes_weighted %>%
+    filter(!is.na(mcrA), !is.na(pmoA), !is.na(mmoX), !is.na(methanotroph_total))
+
+  tree_level_complete <- tree_genes_complete %>%
+    left_join(ymf2021 %>% dplyr::select(tree_id, CH4_flux = CH4_best.flux_125cm),
+              by = "tree_id") %>%
+    filter(!is.na(CH4_flux), !is.nan(CH4_flux)) %>%
+    mutate(log_tree_mcra = log10(mcrA + 1),
+           log_tree_mmox = log10(mmoX + 1),
+           log_pmoa = log10(pmoA + 1),
+           log_methanotroph = log10(methanotroph_total + 1),
+           ratio_mcra_methanotroph = (mcrA + 1) / (methanotroph_total + 1),
+           log_ratio = log10(ratio_mcra_methanotroph))
+
+  .species_agg <- function(col) {
+    tree_level_complete %>%
+      group_by(species, species_id) %>%
+      summarise(n_trees = n(), value = median(.data[[col]], na.rm = TRUE), .groups = "drop") %>%
+      inner_join(flux_by_species, by = c("species", "species_id")) %>%
+      filter(n_trees >= 5, n_flux >= 5)
+  }
+
+  analysis_ratio <- tree_level_complete %>%
     group_by(species, species_id) %>%
-    summarise(n_trees = n(), value = median(.data[[col]], na.rm = TRUE), .groups = "drop") %>%
+    summarise(n_trees = n(), median_log_ratio = median(log_ratio, na.rm = TRUE), .groups = "drop") %>%
     inner_join(flux_by_species, by = c("species", "species_id")) %>%
     filter(n_trees >= 5, n_flux >= 5)
+
+  analysis_mcra <- .species_agg("mcrA")
+  analysis_meth <- .species_agg("methanotroph_total")
+  list(tree_genes_weighted = tree_genes_weighted, tree_genes_complete = tree_genes_complete,
+       tree_level_complete = tree_level_complete, analysis_ratio = analysis_ratio,
+       analysis_mcra = analysis_mcra, analysis_meth = analysis_meth)
 }
 
-analysis_ratio <- tree_level_complete %>%
-  group_by(species, species_id) %>%
-  summarise(n_trees = n(), median_log_ratio = median(log_ratio, na.rm = TRUE), .groups = "drop") %>%
-  inner_join(flux_by_species, by = c("species", "species_id")) %>%
-  filter(n_trees >= 5, n_flux >= 5)
-
-analysis_mcra <- .species_agg("mcrA")
-analysis_meth <- .species_agg("methanotroph_total")
+invisible(list2env(build_gene_tables(), environment()))
