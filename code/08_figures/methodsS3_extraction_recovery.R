@@ -1,8 +1,10 @@
 #!/usr/bin/env Rscript
 # ==============================================================================
-# methodsS3_extraction_recovery.R -- where target copies are lost, core to eluate
-# (schematic for SI Methods S3, §8 Recovery)
+# methodsS3_extraction_recovery.R -- SI Methods S3 schematic: where target copies are
+# lost, wood core to eluate
 # ------------------------------------------------------------------------------
+# Stage E. Run from the repository root. No data input: the values below are the
+# method study's measurements.
 # Follows target copies from the wood core to the eluate, using the method study's
 # measurements (Arnold et al. 2024, Methods Ecol. Evol.; bioRxiv 10.1101/2023.11.14.567064):
 #   - lysis-buffer control: gBlocks added to lysis buffer alone recover 30.4%
@@ -27,9 +29,7 @@ REL_WOOD  <- 0.817          # field wood relative to the control
 TRANSFER  <- 250 / 800      # fraction of lysate processed
 CLEANUP   <- CONTROL / TRANSFER
 DDPCR_SCALE <- 1 / TRANSFER   # eluate copies scaled to the whole lysate
-# Freeze-drying + cryo-grinding lose copies before extraction (spiked dowels: about
-# half), but how well that carries over to field cores is uncertain, so that step is
-# drawn as an unfilled dashed outline with no number. Quantities start at the powder.
+# Quantities start at the powder (the freeze-drying step has no number; see header).
 released    <- 100 * REL_WOOD
 transferred <- released * TRANSFER
 eluate      <- transferred * CLEANUP

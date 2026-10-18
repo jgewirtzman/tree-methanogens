@@ -1,25 +1,22 @@
 # ==============================================================================
-# assemble_campaign_flux.R -- build one campaign's tree-flux table from its
-# goFlux results. Non-interactive and re-runnable.
+# helper_assemble_campaign_flux.R -- one campaign's tree-flux table from its goFlux results
 # ------------------------------------------------------------------------------
-# WHY THIS EXISTS (2026-09-30). The three tree goFlux scripts (semirigid monthly,
-# 2021 multi-height, 2023 cross-species) wrote their intermediates AND their final
-# table to shared filenames. Whichever ran last won:
-#   - methanogen_tree_flux_complete_dataset.csv held 2021 data until the 2023 run
-#     overwrote it (Sep 2025). 04_harmonize_all_data.R expected 2021 and broke;
-#     fourteen other readers expected 2023 and happened to be right.
-#   - CO2_flux_lgr_results.csv held 2023 while its CH4/best siblings held 2021.
-# Every per-campaign file now carries the campaign in its name, and the final
-# assembly step lives here, so it can be rerun without repeating the interactive
-# window selection (click.peak2) in the goFlux scripts.
+# Not a manifest step: sourced at the end of each tree goFlux script (stage A:
+# semirigid/04_goflux_trees.R, static/03_goflux_trees_2021.R, static/04_goflux_trees_2023.R),
+# or run by hand to rebuild a table without repeating the closure-window selection.
 #
-# Usage (from the repo root, or sourced at the end of a goFlux script):
-#   Rscript code/02_flux/assemble_campaign_flux.R 2021_multiheight
-#   source("code/02_flux/assemble_campaign_flux.R"); assemble_campaign("2023_cross_species")
+# The table is the campaign's auxfile with the best.flux results of both gases joined by
+# UniqueID (columns prefixed CO2_ / CH4_); every row of the auxfile is kept. Every
+# per-campaign file carries the campaign in its name, so the three campaigns never
+# overwrite each other.
 #
-# Reads:  data/processed/flux/<aux file>
-#         data/processed/flux/{CO2,CH4}_best_flux_lgr_results_<campaign>.csv
-# Writes: data/processed/flux/<campaign output> (see CAMPAIGNS)
+# Usage (from the repository root, or sourced from a goFlux script's folder):
+#   Rscript code/02_flux/helper_assemble_campaign_flux.R 2021_multiheight
+#   source("code/02_flux/helper_assemble_campaign_flux.R"); assemble_campaign("2023_cross_species")
+#
+# Inputs:  data/processed/flux/<aux file> (CAMPAIGNS below)
+#          data/processed/flux/{CO2,CH4}_best_flux_lgr_results_<campaign>.csv
+# Outputs: data/processed/flux/<campaign output> (CAMPAIGNS below)
 # ==============================================================================
 suppressMessages({ library(readr); library(dplyr) })
 
@@ -63,6 +60,6 @@ assemble_campaign <- function(campaign, dir = flux_dir()) {
 
 if (sys.nframe() == 0L) {
   args <- commandArgs(trailingOnly = TRUE)
-  if (!length(args)) stop("usage: Rscript code/02_flux/assemble_campaign_flux.R <campaign>", call. = FALSE)
+  if (!length(args)) stop("usage: Rscript code/02_flux/helper_assemble_campaign_flux.R <campaign>", call. = FALSE)
   for (a in args) assemble_campaign(a)
 }

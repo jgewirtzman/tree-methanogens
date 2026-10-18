@@ -1,20 +1,25 @@
 #!/usr/bin/env Rscript
 # ==============================================================================
-# 03_merge_untagged_monthly.R
-# Folds the recovered untagged/dead-snag monthly measurements into the monthly
-# tree-flux dataset, producing a merged file (original left untouched):
-#   data/processed/flux/semirigid_tree_final_complete_dataset_with_untagged.csv
-# Schema-matched to the original (Plot.Tag, Plot.Letter, Date, CH4_best.flux,
-# CH4_LM.r2, CH4_HM.r2, CO2_LM.r2/HM.r2; plain names, see code/lib/monthly_cols.R)
-# + a new `dead` flag. The tagged trees
-# 4156 & 5091 (flagged dead in field notes) get dead=TRUE too.
-# Fig 1 + the manuscript-statistics recompute read this file.
+# 03_merge_untagged_monthly.R -- monthly stem-flux table including the untagged stems
+# ------------------------------------------------------------------------------
+# Stage A; workdir: repository root. Runs after 02_untagged_fluxes.R.
+#
+# Appends the untagged monthly measurements to the tagged monthly table in its schema
+# (Plot.Tag = the stem's ID, Plot.Letter, Date, UniqueID, CH4_best.flux, CH4_LM.r2/HM.r2
+# and the precision terms; plain names, code/lib/monthly_cols.R) and adds a `dead` flag:
+# untagged stems as recorded, tagged stems whose field notes say "dead" or "snag".
+# The tagged table itself is left as it is.
+# Read by 02_qc_c0_screen.R, 03_precision_and_detection.R and code/tables/10_flux_stem.R.
+#
+# Inputs:  data/processed/flux/semirigid_tree_final_complete_dataset.csv (04_goflux_trees.R)
+#          data/processed/flux/untagged_rescue/untagged_monthly_fluxes.csv
+#          data/raw/field_data/ipad_data/treeflux_total.xlsx (field notes)
+# Outputs: data/processed/flux/semirigid_tree_final_complete_dataset_with_untagged.csv
 # ==============================================================================
-suppressMessages(library(dplyr)); options(warn=-1); num<-function(x)suppressWarnings(as.numeric(x))
+suppressMessages({ library(dplyr); library(readxl) }); num<-function(x)suppressWarnings(as.numeric(x))
 source("code/lib/monthly_cols.R")
 srt<-monthly_plain(read.csv("data/processed/flux/semirigid_tree_final_complete_dataset.csv"))   # check.names=TRUE
 # dead tagged trees from field notes
-suppressMessages(library(readxl))
 tf<-read_excel("data/raw/field_data/ipad_data/treeflux_total.xlsx",sheet="Sheet1"); tf$PT<-trimws(as.character(tf[["Plot Tag"]])); tf$NO<-as.character(tf$Notes)
 dead_tags<-unique(tf$PT[grepl("^[0-9]+$",tf$PT)&grepl("dead|snag",tf$NO,ignore.case=TRUE)])
 srt$dead <- trimws(as.character(srt$Plot.Tag)) %in% dead_tags

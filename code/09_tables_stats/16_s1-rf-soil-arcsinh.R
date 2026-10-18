@@ -1,23 +1,18 @@
-source("code/lib/outputs.R")
 # ==============================================================================
-# S1 area-weighted RANDOM FOREST + SOIL-gene additions, redone with an
-# arcsinh RESPONSE (asinh(flux/0.1)/log10). Companion to R_S1S2_arcsinh.R.
-# Area-weighted RF (species + dbh + area-weighted genes) is reliably assemblable from
-# tree_level_complete + dbh; reports RAW vs ARCSINH variance-explained + importance.
-# Soil-gene additions: soil mcrA/pmoA/mmoX added to species + tree mmoX (RAW vs ARCSINH).
-# NOTE: the CONCENTRATION RF and the full partial-dependence / H-statistic diagnostics
-# live in a 5000-line path-dependent pipeline (methanotrophs/01_rf_models.R) and are
-# NOT reconstructed here; the faithful way to redo those is a copy-and-modify of that
-# script swapping the response to asf(flux). RF variable-importance rankings are
-# permutation-based and expected stable to a monotonic response transform.
-# 02_scale sourced for data only (2 outputs git-restored by wrapper).
+# 16_s1-rf-soil-arcsinh.R -- tree-level gene random forest and soil-gene additions
+# ------------------------------------------------------------------------------
+# (1) An area-weighted random forest (species + DBH + area-weighted genes), with the
+#     response raw and arcsinh (asinh(flux / 0.1) / log(10)): variance explained and
+#     importance.
+# (2) Soil genes (mcrA, pmoA, mmoX per g) added to species + tree mmoX, raw and arcsinh.
+# Data: code/07_molecular/helper_scale_dependent_gene_patterns.R (tables only).
 # Output: outputs/audit/S1_rf_soil_arcsinh_report.txt
 # ==============================================================================
+source("code/lib/outputs.R")
 suppressWarnings(suppressMessages(source("code/07_molecular/helper_scale_dependent_gene_patterns.R")))
 suppressPackageStartupMessages({ library(tidyverse); library(randomForest) })
-out <- "outputs"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
 sink(out_path("S1_rf_soil_arcsinh_report.txt"), split = TRUE)
-asf <- function(x) asinh(x / 0.1) / log(10)
+source("code/lib/flux_transform.R")   # flux_asinh10()
 line <- function() cat(strrep("-", 78), "\n")
 
 # ---- assemble area-weighted RF data: tree_level_complete genes + dbh ----------
@@ -30,7 +25,7 @@ rf <- tree_level_complete %>%
 cat("### S1 (RF). Area-weighted random forest: species + dbh + area-weighted genes\n"); line()
 cat("n trees =", nrow(rf), "\n")
 run_rf <- function(resp_raw) {
-  d <- rf; d$y <- if (resp_raw) d$CH4_flux else asf(d$CH4_flux); d$CH4_flux <- NULL
+  d <- rf; d$y <- if (resp_raw) d$CH4_flux else flux_asinh10(d$CH4_flux); d$CH4_flux <- NULL
   set.seed(42)
   m <- randomForest(y ~ ., data = d, importance = TRUE, ntree = 1000)
   ve <- 100 * m$rsq[length(m$rsq)]
@@ -57,7 +52,7 @@ for (nm in names(soil_genes)) {
   g <- soil_genes[[nm]]; if (!g %in% names(base)) { cat(sprintf("  soil %s: column missing\n", nm)); next }
   d <- base %>% filter(!is.na(.data[[g]]), !is.na(CH4_flux)) %>% mutate(lsg = log10(.data[[g]] + 1))
   for (resp in c("RAW", "ARCSINH")) {
-    d$yv <- if (resp == "RAW") d$CH4_flux else asf(d$CH4_flux)
+    d$yv <- if (resp == "RAW") d$CH4_flux else flux_asinh10(d$CH4_flux)
     m0 <- lm(yv ~ species + log_tree_mmox, d); m1 <- lm(yv ~ species + log_tree_mmox + lsg, d)
     dR2 <- summary(m1)$r.squared - summary(m0)$r.squared; p <- summary(m1)$coef["lsg", 4]
     cat(sprintf("  soil %-5s [%-7s] n=%d  dR2=%+.4f  p(soil)=%.3f\n", nm, resp, nrow(d), dR2, p))
@@ -78,7 +73,7 @@ crf <- y %>% filter(!is.na(CH4_best.flux_125cm), !is.na(species_id)) %>%
   filter(complete.cases(.))
 cat("n trees =", nrow(crf), "\n")
 for (resp in c("RAW", "ARCSINH")) {
-  d <- crf; d$yv <- if (resp == "RAW") d$CH4_flux else asf(d$CH4_flux); d$CH4_flux <- NULL
+  d <- crf; d$yv <- if (resp == "RAW") d$CH4_flux else flux_asinh10(d$CH4_flux); d$CH4_flux <- NULL
   set.seed(42); m <- randomForest(yv ~ ., data = d, importance = TRUE, ntree = 1000)
   imp <- sort(importance(m)[, "%IncMSE"], decreasing = TRUE)
   cat(sprintf("\n[%s]  variance explained = %.1f%%   top predictors (%%IncMSE):\n", resp, 100*m$rsq[length(m$rsq)]))

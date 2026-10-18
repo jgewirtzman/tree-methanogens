@@ -1,26 +1,23 @@
+# ==============================================================================
+# 15_s1s2-arcsinh.R -- tree- and species-level gene models (Methods S4)
+# ------------------------------------------------------------------------------
+# Flux prediction from gene abundances with the response on the raw scale and on the
+# arcsinh scale (asinh(flux / 0.1) / log(10), the cofactor of Figs 1-3), side by side.
+# Predictors are log10 gene abundances.
+#   S1: concentration models (6 genes); area-weighted models with an AIC ladder
+#   S2: heartwood mcrA (concentration); area-weighted mcrA, methanotrophs and ratio
+# Data: code/07_molecular/helper_scale_dependent_gene_patterns.R (tables only).
+# Output: outputs/audit/S1S2_arcsinh_report.txt
+# ==============================================================================
 source("code/lib/outputs.R")
-# ==============================================================================
-# S1/S2 tree- & species-level flux prediction, REDONE with an
-# arcsinh-transformed RESPONSE (asinh(flux/0.1)/log10; cofactor matches Fig 1/2/3).
-# The original workflow (20_manuscript_statistics.R, 01_rf_models.R) fit RAW CH4_flux;
-# flux is right-skewed, so the response should be variance-stabilized. Predictors
-# stay log-transformed as in the original. Reports RAW vs ARCSINH side by side.
-# Covers: S1 concentration 6-gene, S1 area-weighted + AIC ladder, S2 concentration
-# heartwood-mcrA, S2 area-weighted mcrA/methanotroph/ratio + AIC.
-# DEFERRED (separate pass): soil-gene additions; random forests (variance-reduction
-# splits are also not transform-invariant — redo, but rankings expected stable).
-# Originals untouched (02_scale sourced for data only, its 2 outputs
-# git-restored by the wrapper). Output: outputs/audit/S1S2_arcsinh_report.txt
-# ==============================================================================
 suppressWarnings(suppressMessages(source("code/07_molecular/helper_scale_dependent_gene_patterns.R")))
 suppressPackageStartupMessages({ library(tidyverse); has_car <- requireNamespace("car", quietly = TRUE) })
-out <- "outputs"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
 sink(out_path("S1S2_arcsinh_report.txt"), split = TRUE)
-asf <- function(x) asinh(x / 0.1) / log(10)
+source("code/lib/flux_transform.R")   # flux_asinh10()
 cr <- function(m, term) { s<-summary(m); c(b=unname(coef(m)[term]), se=s$coef[term,2], p=s$coef[term,4], r2=s$r.squared, adjr2=s$adj.r.squared, aic=AIC(m)) }
 # species-level flux from the COMBINED 2021+2023 dataset (flux_all, sourced), raw + arcsinh
 flux_sp <- flux_all %>% group_by(species, species_id) %>%
-  summarise(n_flux=n(), fr=median(CH4_flux), fa=median(asf(CH4_flux)), .groups="drop") %>% filter(n_flux>=5)
+  summarise(n_flux=n(), fr=median(CH4_flux), fa=median(flux_asinh10(CH4_flux)), .groups="drop") %>% filter(n_flux>=5)
 line <- function() cat(strrep("-", 78), "\n")
 
 # ============================ S1a. CONCENTRATION 6-GENE ============================
@@ -35,7 +32,7 @@ conc <- y %>% filter(!is.na(CH4_best.flux_125cm), !is.na(species_id)) %>%
 cat("n trees =", nrow(conc), " | n species =", n_distinct(conc$species), "\n")
 rhs <- "species + log_hw_mcra + log_sw_mcra + log_hw_pmoa + log_sw_pmoa + log_hw_mmox + log_sw_mmox"
 for (resp in c("RAW","ARCSINH")) {
-  conc$yv <- if (resp=="RAW") conc$CH4_best.flux_125cm else asf(conc$CH4_best.flux_125cm)
+  conc$yv <- if (resp=="RAW") conc$CH4_best.flux_125cm else flux_asinh10(conc$CH4_best.flux_125cm)
   m <- lm(as.formula(paste("yv ~", rhs)), conc); s <- summary(m)
   cat(sprintf("\n[%s]  model R2=%.3f  adjR2=%.3f  AIC=%.1f\n", resp, s$r.squared, s$adj.r.squared, AIC(m)))
   for (g in c("log_hw_mcra","log_sw_mcra","log_hw_pmoa","log_sw_pmoa","log_hw_mmox","log_sw_mmox"))
@@ -46,7 +43,7 @@ for (resp in c("RAW","ARCSINH")) {
 
 # ============================ S1b/c. AREA-WEIGHTED ============================
 cat("\n\n### S1b. Area-weighted single-gene models (species + gene)\n"); line()
-TL <- tree_level_complete %>% mutate(af = asf(CH4_flux))
+TL <- tree_level_complete %>% mutate(af = flux_asinh10(CH4_flux))
 awg <- c(mcrA="log_tree_mcra", pmoA="log_pmoa", mmoX="log_tree_mmox", methanotroph="log_methanotroph")
 cat("n trees =", nrow(TL), "\n")
 for (nm in names(awg)) { g<-awg[[nm]]; TL$g<-TL[[g]]; d<-TL %>% filter(is.finite(g))

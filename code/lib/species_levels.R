@@ -1,36 +1,14 @@
 # ==============================================================================
 # species_levels.R   --   SOURCED, never run alone
 # ------------------------------------------------------------------------------
-# THE single definition of how a raw species name maps onto a TreeRF model level.
-#
-# WHY THIS FILE EXISTS. The training side builds a taxonomic ladder
-# (02_rf_models.R, "SPECIES LEVELS"): a species with >= 10 records keeps its own
-# level, otherwise it falls back to GEN_<genus> if that genus was measured, and
-# only otherwise to SPECIES_OTHER. The prediction side did not replicate it. Four
-# scripts each carried
-#
-#     ifelse(species %in% trained, species, "SPECIES_OTHER")
-#
-# and `trained` holds the POOLED level names -- "GEN_Kalmia", "GEN_Quercus", ...
-# -- while the inventory holds raw binomials. So "Kalmia latifolia" matched
-# nothing and fell through to SPECIES_OTHER, taking 1,905 mountain laurel stems
-# and the 19 Quercus velutina with it. Only 6 stems (Acer pensylvanicum) plus 41
-# unidentified genuinely belonged there. tree_flux_predictions.csv contained zero
-# GEN_* rows, which is the proof: the ladder never reached the inventory.
-#
-# It was not a harmless relabelling. SPECIES_OTHER has the second-highest observed
-# mean of the 18 levels (0.2494 nmol m-2 s-1, calibration ratio 1.228) against
-# GEN_Kalmia's 0.0350 and ratio 0.468, so 1,924 stems were predicted from a bucket
-# whose mean is 7x their own. It carried 11.81% of the tree flux on 3.81% of the
-# band area, and the fix moves the measured band term down ~7%.
-#
-# It also made 10_rf_species_pooling.R inert: the scheme its cross-validation
-# selected was not the scheme the budget used.
-#
-# The mapping is fully determined by `trained` -- no taxonomy table is needed,
-# because a level named GEN_<genus> is itself the evidence that <genus> was
-# measured. Genus is the first whitespace-delimited token, exactly as on the
-# training side.
+# The single definition of how a raw species name maps onto a stem-forest level, on
+# the prediction side. It reproduces the training ladder of 05_model/02_rf_models.R:
+# a species with >= 10 records keeps its own level; otherwise it falls back to
+# GEN_<genus> if that genus was measured; otherwise it has no level (NO_LEVEL) and is
+# predicted as the band-area-weighted average over levels (predict_species_marginal()).
+# The mapping is fully determined by the model's level vocabulary: a level named
+# GEN_<genus> is itself the evidence that <genus> was measured. Genus is the first
+# whitespace-delimited token, as on the training side.
 # ==============================================================================
 
 # Map raw species names onto TreeRF levels, reproducing the training ladder.
@@ -66,16 +44,14 @@ species_to_model_level <- function(species, trained) {
   out
 }
 
-# STEMS WITHOUT A LEVEL (2026-10-16). An inventory stem whose species has no trained
+# STEMS WITHOUT A LEVEL. An inventory stem whose species has no trained
 # level -- unidentified, or a species of an unmeasured genus (Hamamelis, Acer
 # pensylvanicum, Amelanchier, Vaccinium, Liriodendron, Quercus coccinea in this
 # inventory) -- is predicted under every trained level in turn, with its own DBH,
 # moisture and position, and the predictions are averaged. The weights are each
 # level's share of the 0-2 m band area (pi x DBH x band; Kalmia 0.75 m) of the
 # in-stand inventory stems that map to it, i.e. the stand's own woody-surface
-# composition. There is no genus fallback for these stems. (Until 2026-10-16 they
-# took a SPECIES_OTHER level whose only training record was tree 7809, an
-# unidentified 2021 stem that trees.csv identifies as Kalmia latifolia.)
+# composition. There is no genus fallback for these stems.
 
 # Band-area share of each trained level among inventory stems mapped to it.
 #   level      species_to_model_level() of the in-stand inventory stems
@@ -137,8 +113,8 @@ report_species_levels <- function(species, level, trained) {
   invisible(NULL)
 }
 
-# Species codes the random-forest workflow names (05_model/01_load_and_prep_data.R
-# TAXONOMY, in this order; names and taxonomy from data/tables/species.csv). Census
+# Species codes the random-forest workflow names (05_model/01_load_and_prep_data.R,
+# in this order; names from data/tables/species.csv). Census
 # stems of any other code are left out of the model's inventory, and
 # 01_import/08_inventory_build.R names only these codes.
 MODEL_SPECIES <- c("ACRU", "ACSA", "ACPE", "BEAL", "BELE", "BEPA", "BEPO", "FAGR", "FRAM",

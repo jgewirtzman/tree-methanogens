@@ -1,11 +1,9 @@
 # ==============================================================================
-# Height Effect Analysis (Figure 2)
-# ==============================================================================
-# Purpose: Analyzes height-dependent CH4 flux patterns across species with
-#   statistical tests and visualization.
-#
-# Pipeline stage: 03 Analysis
-# Run after: 00_harmonization/02_harmonize_all_data.R
+# 01_height_effects.R -- height effects on stem flux, by species (Results 2, Fig 2)
+# ------------------------------------------------------------------------------
+# Stage D; run from the repository root. Height-dependent CH4 flux across species in
+# the 2021 multi-height campaign: species models, jackknife robustness, and soil
+# condition correlations.
 #
 # Inputs (canonical tables, via code/lib/tables_read.R):
 #   - data/tables/flux_stem.csv (2021_multiheight deployments: tree_id, height_cm, flux)
@@ -13,8 +11,7 @@
 #   - survey_2021_trees(): per-tree soil (soil_readings; attach_soil() for VWC) and
 #     soil mcrA (ddpcr + samples)
 #
-# Outputs:
-#   - outputs/figures/original/main/fig2_height_dependent_flux.png
+# Output: outputs/figures/original/main/fig2_height_dependent_flux.png (and the log)
 # ==============================================================================
 
 library(ggplot2)
@@ -27,6 +24,7 @@ library(tidyr)
 library(scales)
 library(patchwork)
 library(gghalves)
+grDevices::pdf(NULL)   # grob layout measures text on the open device; without one Rscript writes Rplots.pdf
 
 # ==============================================================================
 # 1. LOAD DATA
@@ -419,8 +417,6 @@ combined_plot <- (p_top_gg / p_middle / p_bottom) +
                   tag_prefix = "(",
                   tag_suffix = ")",
                   theme = theme(plot.tag = element_text(size = 11, face = "bold")))
-
-print(combined_plot)
 
 ggsave("outputs/figures/original/main/fig2_height_dependent_flux.png",
        plot = combined_plot,

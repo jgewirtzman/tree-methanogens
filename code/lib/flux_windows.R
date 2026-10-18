@@ -52,7 +52,7 @@ load_windows <- function(path) {
 }
 
 apply_model_choices <- function(best, gas, path) {
-  if (!file.exists(path)) { cat("no recorded model choices; using best.flux() as run\n"); return(best) }
+  if (!file.exists(path)) stop("recorded model choices not found: ", path, call. = FALSE)
   mc <- read.csv(path, stringsAsFactors = FALSE); mc <- mc[mc$gas == gas, ]
   k <- match(best$UniqueID, mc$UniqueID); has <- !is.na(k)
   ch <- mc$model[k[has]]

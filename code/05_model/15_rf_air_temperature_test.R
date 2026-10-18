@@ -43,11 +43,11 @@ fit <- function(X, y) ranger(x = as.data.frame(X), y = y, num.trees = RF_NUM_TRE
 stopifnot(!"air_temp_C" %in% colnames(X_tree), !"air_temp_C" %in% colnames(X_soil))
 Xs <- as.data.frame(X_soil)
 SPEC <- list(
-  tree_locked  = list(X = X_tree, y = tree_train_complete$y_asinh, grp = tree_train_complete$tree_id),
-  tree_withair = list(X = cbind(X_tree, air_temp_C = tree_train_complete$air_temp_C), y = tree_train_complete$y_asinh,
+  tree_locked  = list(X = X_tree, y = tree_train_complete$y_flux, grp = tree_train_complete$tree_id),
+  tree_withair = list(X = cbind(X_tree, air_temp_C = tree_train_complete$air_temp_C), y = tree_train_complete$y_flux,
                       grp = tree_train_complete$tree_id),
-  soil_locked  = list(X = Xs, y = soil_train_complete$y_asinh, grp = soil_train_complete$site_id),
-  soil_withair = list(X = cbind(Xs, air_temp_C = soil_train_complete$air_temp_C), y = soil_train_complete$y_asinh,
+  soil_locked  = list(X = Xs, y = soil_train_complete$y_flux, grp = soil_train_complete$site_id),
+  soil_withair = list(X = cbind(Xs, air_temp_C = soil_train_complete$air_temp_C), y = soil_train_complete$y_flux,
                       grp = soil_train_complete$site_id))
 M <- lapply(SPEC, function(s) fit(s$X, s$y))
 stopifnot(identical(M$tree_locked$predictions, TreeRF_main$predictions),

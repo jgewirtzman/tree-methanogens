@@ -1,17 +1,13 @@
-source("code/lib/outputs.R")
 # ==============================================================================
-# Known/Putative methanotroph & methanogen taxa table
-# ==============================================================================
+# 04_known-putative-table.R -- Table S2: methane-cycling taxa and their classification
+# ------------------------------------------------------------------------------
+# Stage D; run from the repository root.
 # Supplementary table of the taxa classified as known and putative methanotrophs and
 # methanogens. Methylacidiphilaceae: only geothermal members are methanotrophic;
 # mesophilic ones are not.
 #
 # CLASSIFICATION LOGIC: the project's shared, genus-aware classifier
-# (code/lib/load_methanotroph_definitions.R, revised definitions file) -- the SAME
-# rule Figure 5 and the Results use. Until 2026-09-30 this script carried its own
-# classify(), which read the earlier definitions and marked every mixed-family
-# ASV Putative WITHOUT checking the genus, so resolved non-methanotroph genera
-# (Methylobacterium, Roseiarcus, Bosea, ...) were listed as putative methanotrophs:
+# (code/lib/load_methanotroph_definitions.R) -- the rule Figure 5 and the Results use:
 #   METHANOTROPH, "Known"    = ASV genus is a cultivated methanotroph genus, OR ASV
 #                              family is an EXCLUSIVE methanotroph family (all members
 #                              are methanotrophs) when genus is unresolved.
@@ -20,7 +16,7 @@ source("code/lib/outputs.R")
 #                              and genus is unresolved -> cannot be confirmed.
 #   Methylotroph-only families (Methylophilaceae, Methyloligellaceae, Methylopilaceae)
 #                              are NOT methanotrophs and are excluded.
-#   METHANOGEN               = ASV family is one of 9 established methanogen families.
+#   METHANOGEN               = ASV family is in code/lib/methanogen_families.R.
 #
 # METHYLACIDIPHILACEAE: reclassify from Known -> Putative,
 # since verified methanotrophy is restricted to thermoacidophilic geothermal members;
@@ -31,9 +27,9 @@ source("code/lib/outputs.R")
 #          16S run (no mock, no "other" libraries); organelle ASVs removed
 # Outputs: outputs/data/known_putative_taxa_table.csv, kp_counts.txt
 # ==============================================================================
+source("code/lib/outputs.R")
 
 suppressPackageStartupMessages({ library(tidyverse) })
-out <- "outputs"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
 
 source("code/lib/load_methanotroph_definitions.R")
 defs_rev  <- load_methanotroph_defs()                                     # revised (current)

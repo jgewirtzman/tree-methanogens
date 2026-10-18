@@ -1,4 +1,3 @@
-source("code/lib/outputs.R")
 # ==============================================================================
 # FAPROTAX/PICRUSt caveat metrics
 # ==============================================================================
@@ -20,9 +19,9 @@ source("code/lib/outputs.R")
 #
 # Output: outputs/audit/faprotax_caveat_metrics.txt
 # ==============================================================================
+source("code/lib/outputs.R")
 
 suppressPackageStartupMessages({ library(phyloseq); library(microeco); library(dplyr) })
-out <- "outputs"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
 
 # ---- reproduce the pipeline (as figS10_faprotax.R) -----------------------------
 source("code/lib/build_phyloseq.R")

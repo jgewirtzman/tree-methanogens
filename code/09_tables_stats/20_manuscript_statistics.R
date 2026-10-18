@@ -1,18 +1,12 @@
 # ==============================================================================
-# Manuscript Statistics — All Quantitative Results
-# ==============================================================================
-# Purpose: Recomputes every quantitative result reported in the manuscript
-#   from underlying data. Organized by manuscript section for easy
-#   cross-referencing. No figures are generated — console output only.
+# 20_manuscript_statistics.R -- the quantitative statements of the text, in one log
+# ------------------------------------------------------------------------------
+# Stage D; run from the repository root (about 1 min). Computes the numbers quoted in
+# the text from the canonical tables and pipeline outputs, or reads them from the
+# script that computes them, grouped by figure and Results topic. No figures.
 #
-# Usage: Open tree-methanogens.Rproj in RStudio, then:
-#   source("code/09_tables_stats/20_manuscript_statistics.R")
-#
-# Output: Saves all statistics to outputs/manuscript_statistics.txt
-#   and prints to console. Ends with a machine-readable summary for
-#   easy diff between revisions.
-#
-# Run time: ~2-3 minutes (phyloseq rarefaction is the bottleneck)
+# Output: outputs/audit/manuscript_statistics.txt (also printed), ending with a
+#   machine-readable summary for diffing between runs.
 # ==============================================================================
 
 # ==============================================================================
@@ -84,9 +78,8 @@ cat("\nLoading data...\n")
 # deployment in data/tables/flux_stem.csv (recovered untagged and dead stems included) and
 # every soil deployment in flux_soil.csv. Measurements are excluded only for procedural
 # failure: the chamber screen in 02_qc_c0_screen.R (two soil chambers not at ambient at
-# closure; flux_soil.qc_pass). The r2 >= 0.7 and -100..200 filters that stood here were
-# removed 2026-10-01: an r2 screen is not a detection criterion and inflated the mean stem
-# flux 144% (Methods S4). Landscape position: collars.csv (soil), trees.csv (stems).
+# closure; flux_soil.qc_pass). No r2 or range filter: an r2 screen is not a detection
+# criterion and inflates the mean stem flux (Methods S2). Landscape position: collars.csv (soil), trees.csv (stems).
 .collars <- read_table("collars")
 semirigid_soil <- read_table("flux_soil") %>% filter(campaign == "monthly_2020_2021", qc_pass) %>%
   transmute(UniqueID = measurement_id, Date = date, Plot.Tag = collar_id,
@@ -105,17 +98,7 @@ moisture_data  <- collar_soil_readings()   # data/tables/soil_readings.csv, one 
 ymf2021 <- survey_2021_trees(soil = TRUE)
 ymf2023 <- flux_stem_campaign("2023_cross_species")
 
-# CANONICAL BUDGET is authoritative for every stand-level number (2026-07-30).
-# This script is named "manuscript statistics" and was quoting the LEGACY
-# ANNUAL_SUMMARY.csv / MONTHLY_FLUXES.csv, which come from the old upscaling block
-# inside 02_rf_models.R -- built on a 7,010-stem inventory that omits the entire bytag
-# survey, with a two-rung species ladder that buckets all 1,899 Kalmia into
-# SPECIES_OTHER, and annualised with 30.4 days/month. It reported tree 2.725 and soil
-# -543.43 against the canonical 4.378 and -422.16: 38% and 29% apart. Those legacy
-# files are still read below for the monthly SHAPE only; every scalar now comes from
-# canonical_budget.csv.
-monthly_fluxes <- read.csv("outputs/tables/MONTHLY_FLUXES.csv")
-annual_summary <- read.csv("outputs/tables/ANNUAL_SUMMARY.csv")
+# Every stand-level number comes from the canonical budget (code/06_upscale/03_budget_canonical.R).
 CANON <- local({
   f <- "outputs/data/canonical_budget.csv"
   if (!file.exists(f))
@@ -137,7 +120,7 @@ cat("  All data loaded.\n")
 
 section_header("SECTION 1: TEMPORAL FLUX PATTERNS (Figure 1)")
 
-# Quality filter (matches 06_soil_tree_timeseries.R)
+# soil deployments with a CH4 flux
 soil_qc <- semirigid_soil %>%
   filter(!is.na(CH4_best.flux)) %>%
   mutate(Plot_Type = case_when(
@@ -169,7 +152,7 @@ stat("Unique soil plots", length(unique(soil_qc$Plot.Tag)))
 sub_header("Tree fluxes (nmol m-2 s-1)")
 for (pos in c("U", "I", "W")) {
   d <- tree_qc %>% filter(Plot_Type == pos)
-  pos_label <- c(U = "Upland", I = "Intermediate", W = "Transitional wetland")[pos]
+  pos_label <- c(U = "Upland", I = "Intermediate", W = "Wetland margin")[pos]
   mean_val <- mean(d$CH4_flux, na.rm = TRUE)
   cat(sprintf("\n  %s (n=%d):\n", pos_label, nrow(d)))
   stat("    Mean", mean_val, "nmol m-2 s-1")
@@ -185,7 +168,7 @@ for (pos in c("U", "I", "W")) {
 sub_header("Soil fluxes (nmol m-2 s-1)")
 for (pos in c("U", "I", "W")) {
   d <- soil_qc %>% filter(Plot_Type == pos)
-  pos_label <- c(U = "Upland", I = "Intermediate", W = "Transitional wetland")[pos]
+  pos_label <- c(U = "Upland", I = "Intermediate", W = "Wetland margin")[pos]
   mean_val <- mean(d$CH4_best.flux, na.rm = TRUE)
   cat(sprintf("\n  %s (n=%d):\n", pos_label, nrow(d)))
   stat("    Mean", mean_val, "nmol m-2 s-1")
@@ -223,7 +206,7 @@ moisture_data <- moisture_data %>%
 
 for (pos in c("U", "I", "W")) {
   d <- moisture_data %>% filter(Plot_Type == pos)
-  pos_label <- c(U = "Upland", I = "Intermediate", W = "Transitional wetland")[pos]
+  pos_label <- c(U = "Upland", I = "Intermediate", W = "Wetland margin")[pos]
   cat(sprintf("  %s: %.1f +/- %.1f%% (n=%d)\n",
               pos_label, mean(d$VWC, na.rm = TRUE), sd(d$VWC, na.rm = TRUE), nrow(d)))
 }
@@ -394,10 +377,7 @@ section_header("SECTION 3: VARIANCE PARTITIONING (Figure 3)")
 
 # The partition and species means reported in Results §3 come from the Figure 3
 # script (one growing-season breast-height value per tree, 472 trees, inverse-variance
-# weighted), printed to outputs/logs/fig03_variance-partition.txt. The earlier
-# per-measurement version that stood here (476 rows, a different model) disagreed
-# with the figure and the text, so it was removed (2026-10-05) rather than kept as a
-# second, conflicting set of numbers.
+# weighted), printed to outputs/logs/fig03_variance-partition.txt (one set of numbers).
 cat("  See outputs/logs/fig03_variance-partition.txt (Figure 3 script) for the partition\n")
 cat("  and species means quoted in Results §3.\n")
 
@@ -433,7 +413,7 @@ gene_stats(ymf2021$ddpcr_mcra_probe_Organic_loose, "Organic soil")
 # Judged per sample on the reaction scale, so it does not depend on sample mass; in recovered
 # copies per gram (scaled to the whole lysate) it is ~3,600 for 100 mg of wood and ~1,900 for 250 mg of soil.
 source("code/lib/ddpcr_constants.R")
-LOD_CONC <- 3 / 20
+LOD_CONC <- DDPCR_LOD_COPIES_PER_UL
 sub_header("mcrA (probe, loose): samples at or above the limit of detection (3 copies per reaction)")
 # every 2021 probe-mcrA run that passed QC (data/tables/ddpcr.csv; position and mass from samples.csv)
 cg <- read_table("ddpcr") %>% filter(gene == "mcrA", assay == "probe", qc_pass, !is.na(copies_per_uL_rxn)) %>%
@@ -526,20 +506,13 @@ section_header("SECTION 5: 16S COMMUNITY COMPOSITION (Figure 5)")
 
 cat("Building phyloseq object...\n")
 
-# Replicate phyloseq build from 08c_combined_methane_cycling_composition.R
-
-# 16S phyloseq assembly: single definition in code/lib/build_phyloseq.R.
-# All nine copies of this ~45-line block produced an identical object
-# (71,511 taxa / 587 samples / 6,427,747 counts) before consolidation.
+# 16S phyloseq object: code/lib/build_phyloseq.R
 source("code/lib/build_phyloseq.R")
 .ps16   <- build_16s_phyloseq()
 no_mito <- .ps16$ps
-phylo_tree <- .ps16$tree
-ddpcr      <- .ps16$ddpcr
 taxa_names(no_mito) <- paste0("ASV", seq(ntaxa(no_mito)))
 
-set.seed(46814)
-ps.rare <- rarefy_even_depth(no_mito, sample.size = 3500)
+ps.rare <- rarefy_16s(no_mito)   # 3,500 reads, seed 46814
 colnames(tax_table(ps.rare)) <- c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species")
 ps.ra <- transform_sample_counts(ps.rare, function(x) x / sum(x) * 100)
 
@@ -607,7 +580,7 @@ acsa_hw <- hw_samples %>% filter(species.x == "ACSA")
 cat(sprintf("  A. saccharum heartwood methanogen: %.1f +/- %.1f%% (n=%d)\n",
             mean(acsa_hw$methanogen_pct), sd(acsa_hw$methanogen_pct), nrow(acsa_hw)))
 
-# Top methanogen families by abundance (VERIFY TAXA NAMES)
+# Top methanogen families by abundance
 sub_header("Top methanogen families by mean relative abundance (heartwood)")
 hw_family_means <- data.frame()
 for (fam in methanogen_families) {
@@ -668,7 +641,7 @@ pos_only <- hw_mcra_sp %>% filter(pos)
 cat(sprintf("  heartwood mcrA among positive, vs other species: Welch t p = %.2g; Wilcoxon p = %.2g\n",
             t.test(lg ~ acsa, data = pos_only)$p.value, wilcox.test(lg ~ acsa, data = pos_only)$p.value))
 
-# Soil taxa (VERIFY Bathyarchaeia dominance)
+# Soil taxa
 sub_header("Top soil archaeal taxa (Mineral + Organic)")
 soil_samples <- samp_meta %>% filter(compartment %in% c("Mineral Soil", "Organic Soil"))
 all_classes <- tax_df$Class
@@ -691,7 +664,7 @@ if (length(archaea_asvs) > 0) {
   }
 }
 
-# Families correlated with mcrA (VERIFY taxa names)
+# Families correlated with mcrA
 sub_header("Top families correlated with mcrA (heartwood)")
 hw_with_mcra <- hw_samples %>% filter(!is.na(mcra_probe_strict))
 if (nrow(hw_with_mcra) > 5) {
@@ -718,7 +691,7 @@ if (nrow(hw_with_mcra) > 5) {
   }
 }
 
-# Methanotroph composition (VERIFY taxonomy)
+# Methanotroph composition
 sub_header("Methanotroph families detected (known/putative)")
 # One rule for every count: the shared classifier (genus-aware; a mixed-family ASV is
 # Putative only when its genus is unresolved). This section previously classified inline
@@ -857,10 +830,10 @@ with(subset(plastid_dropout$cond, compartment == "heartwood" & set == "methanoge
 
 
 # ==============================================================================
-# SECTION 6: FAPROTAX / PICRUSt (Figures S3-S5)
+# SECTION 6: FAPROTAX / PICRUSt (Methods S7; Figs S12-S15)
 # ==============================================================================
 
-section_header("SECTION 6: FAPROTAX / PICRUSt (Figures S3-S5)")
+section_header("SECTION 6: FAPROTAX / PICRUSt (Methods S7; Figs S12-S15)")
 
 # FAPROTAX — computed via microeco (same pipeline as figS10_faprotax.R)
 sub_header("FAPROTAX functional predictions (via microeco)")
@@ -951,7 +924,7 @@ for (fn in names(func_means)) {
 }
 
 # PICRUSt pathway verification
-sub_header("PICRUSt pathway associations (VERIFY pathway names)")
+sub_header("PICRUSt pathway associations")
 picrust_mcra <- "outputs/data/picrust/pathway_associations_mcra_all.csv"
 {
   pvals_mcra <- read.csv(picrust_mcra)
@@ -1032,7 +1005,7 @@ picrust_combined_file <- "outputs/data/picrust/pathway_associations_combined.csv
   }
 
   # Verify pathway names mentioned in manuscript
-  sub_header("VERIFY: Manuscript-cited pathway names in Fig 6 data")
+  sub_header("Pathway names cited in the text, in the Fig 6 data")
   manuscript_pathways <- c("reductive acetyl-CoA", "methanogenesis", "homolactic fermentation",
                            "mannan degradation", "L-arginine biosynthesis",
                            "purine nucleotide degradation", "heme biosynthesis",
@@ -1181,10 +1154,10 @@ section_header("SECTION 7: FELLED BLACK OAK PROFILES (Figure 7)")
 
 
 # ==============================================================================
-# SECTION 8: INDIVIDUAL GENE-FLUX (Figure S7, S10)
+# SECTION 8: INDIVIDUAL GENE-FLUX (Methods S4; Fig S22)
 # ==============================================================================
 
-section_header("SECTION 8: INDIVIDUAL GENE-FLUX RELATIONSHIPS (Figs S7, S10)")
+section_header("SECTION 8: INDIVIDUAL GENE-FLUX RELATIONSHIPS (Methods S4; Fig S22)")
 
 # Area-weighted genes per tree and species-level flux: code/lib/species_gene_data.R,
 # the prep every gene-flux analysis uses (helper_scale_dependent_gene_patterns.R, 17).
@@ -1212,7 +1185,7 @@ for (nm in names(genes)) {
 }
 
 # --- Concentration-based models (S1 methods: heartwood/sapwood separately) ---
-sub_header("Concentration-based LMs (tissue-specific, Figure S7)")
+sub_header("Concentration-based LMs (tissue-specific; Methods S4)")
 conc_cols <- c("ddpcr_mcra_probe_Inner_loose", "ddpcr_mcra_probe_Outer_loose",
                "ddpcr_pmoa_Inner_loose", "ddpcr_pmoa_Outer_loose",
                "ddpcr_mmox_Inner_loose", "ddpcr_mmox_Outer_loose")
@@ -1284,7 +1257,7 @@ if (conc_available) {
 }
 
 # --- Concentration-based species-level models (S8) ---
-sub_header("Concentration-based species-level models (Figure S8)")
+sub_header("Concentration-based species-level models (Methods S4)")
 if (conc_available) {
   # Species medians for heartwood mcrA
   sp_hw_mcra <- ymf2021 %>%
@@ -1309,10 +1282,10 @@ if (conc_available) {
 
 
 # ==============================================================================
-# SECTION 9: SPECIES-LEVEL GENE-FLUX (Figure 8, S8, S9, S10 right, S13)
+# SECTION 9: SPECIES-LEVEL GENE-FLUX (Fig 8, S22, S24)
 # ==============================================================================
 
-section_header("SECTION 9: SPECIES-LEVEL GENE-FLUX (Fig 8, S8, S9, S10, S13)")
+section_header("SECTION 9: SPECIES-LEVEL GENE-FLUX (Fig 8, S22, S24)")
 
 # Flux by species (combined 2021 + 2023): flux_by_sp, from code/lib/species_gene_data.R (Section 8)
 
@@ -1367,7 +1340,7 @@ stat("mcrA model AIC", AIC(m_mcra))
 stat("Ratio model AIC", AIC(m_ratio))
 
 # mcrA vs methanotroph correlation (S13)
-sub_header("mcrA vs methanotroph (Figure S13)")
+sub_header("mcrA vs methanotroph (Fig S24)")
 tree_mcra_mt <- cor.test(tree_level$log_mcra, tree_level$log_methanotroph)
 cat(sprintf("  Tree-level: r = %.3f, p = %.4f (n=%d)\n",
             tree_mcra_mt$estimate, tree_mcra_mt$p.value, nrow(tree_level)))
@@ -1386,10 +1359,10 @@ if (nrow(sp_mcra_mt) >= 3) {
 
 
 # ==============================================================================
-# SECTION 10: RANDOM FOREST & UPSCALING (Figure 9, S9)
+# SECTION 10: RANDOM FOREST & UPSCALING (Fig 9, S26-S29; Methods S6)
 # ==============================================================================
 
-section_header("SECTION 10: RANDOM FOREST & UPSCALING (Fig 9, S9)")
+section_header("SECTION 10: RANDOM FOREST & UPSCALING (Fig 9, S26-S29; Methods S6)")
 
 # OOB R²
 sub_header("Random Forest OOB performance")
@@ -1406,11 +1379,8 @@ if (exists("SoilRF")) {
 
 # Monthly fluxes
 sub_header("Monthly predicted fluxes")
-# Phi_*_umol_m2_s already holds nmol m-2 s-1 -- the name is a documented misnomer.
-# The x1000 that stood here reported the tree mean as 4.96 nmol m-2 s-1 instead of
-# 0.00496 and soil as -1078 instead of -1.08.
-# canonical_monthly.csv (code/06_upscale) is the source of the monthly numbers in
-# Results §10 and Fig 9c; the legacy MONTHLY_FLUXES.csv used here before disagreed.
+# canonical_monthly.csv (code/06_upscale/03_budget_canonical.R): the monthly numbers
+# in Results §10 and Fig 9c, nmol m-2 s-1
 canon_monthly <- read.csv("outputs/data/canonical_monthly.csv")
 tree_monthly_nmol <- canon_monthly$tree_nmol_m2_s
 soil_monthly_nmol <- canon_monthly$soil_nmol_m2_s
@@ -1431,18 +1401,10 @@ stat("Net budget", round(canon("net_measured_mg_m2_yr"), 3), "mg CH4 m-2 yr-1")
 record("annual_tree_mg_m2_yr", canon("tree_measured_mg_m2_yr"))
 record("annual_soil_mg_m2_yr", canon("soil_mg_m2_yr"))
 record("net_measured_mg_m2_yr", canon("net_measured_mg_m2_yr"))
-cat(sprintf("  [legacy ANNUAL_SUMMARY.csv, NOT used: tree %.3f, soil %.3f -- see note at the top]\n",
-            annual_summary$annual_tree_mg_m2, annual_summary$annual_soil_mg_m2))
 
 # Surface area and offset
 sub_header("Stem surface area and offset")
-# Load inventory for geometry
-# Read, not recomputed. This block used PLACEHOLDER_INVENTORY (7,010 stems, no bytag
-# survey), a hardcoded plot_area_ha <- 10.2 -- the lat/lon BOUNDING BOX of a plot
-# rotated ~10 degrees from north, 2.7x the censused stand -- and pi*DBH*2 for every
-# stem including the 1,904 Kalmia whose band is 0.75 m. It was also inside a tryCatch
-# whose guard ("DBH" %in% names(inv)) is FALSE for that object, so it silently emitted
-# nothing at all.
+# read from the canonical budget
 stat("Total stem surface area (0-2m)", round(canon("stem_area_0_2m_m2"), 0), "m2")
 stat("Stem area as % of censused stand", round(100*canon("stem_area_index"), 2), "%")
 stat("Censused stand area", round(canon("stand_area_m2")/1e4, 2), "ha")
@@ -1456,10 +1418,7 @@ record("plot_offset_pct", offset_pct)
 
 # WAI extrapolation
 # WHOLE-SURFACE SCALING: read the grid, do not re-derive it here.
-# What stood here multiplied a PER-M2-OF-GROUND tree flux by a woody area index, which
-# is per m2 of woody surface per m2 of ground -- the two are not composable that way,
-# so that calculation was removed. The scaling is
-# now a 240-combination grid (6 flux forms x 5 WAI x 4 branch x 2 bole) produced by
+# The scaling is a 240-combination grid (6 flux forms x 5 WAI x 4 branch x 2 bole) produced by
 # 07_scaling_full_grid.R, which holds the measured 0-2 m band fixed and lets only the
 # area above 2 m absorb the WAI choice. Quote the RANGE; the named pair (flux declines /
 # holds above 2 m) is two cells of 240.
@@ -1542,13 +1501,12 @@ local({
 })
 
 # ==============================================================================
-# SECTION 11: ADDITIONAL METHANOTROPH RESULTS (S10, S12)
+# SECTION 11: METHANOTROPH GENES (Fig S9; Methods S4)
 
 
 # ==============================================================================
 
-section_header("SECTION 11: ADDITIONAL METHANOTROPH RESULTS (S10, S12)")
-cat("  (Statistics from existing analyses not yet in manuscript)\n\n")
+section_header("SECTION 11: METHANOTROPH GENES (Fig S9; Methods S4)")
 
 # pmoA vs mmoX correlation
 sub_header("pmoA vs mmoX correlation (wood samples)")
@@ -1593,7 +1551,7 @@ for (g in c("log_mcra", "log_pmoa", "log_mmox", "log_methanotroph", "log_ratio")
 }
 
 # Soil genes adding no value. Complete cases: trees without the soil gene are left out of
-# both models (until 2026-10-16 a missing soil gene entered as 0 copies).
+# both models (a missing soil gene is not entered as 0 copies).
 sub_header("Soil genes beyond tree mmoX")
 if ("log_mmox" %in% names(tree_level)) {
   for (soil_gene in c("ddpcr_mcra_probe_Mineral_loose", "ddpcr_pmoa_Mineral_loose", "ddpcr_mmox_Mineral_loose")) {
@@ -1657,11 +1615,11 @@ if (exists("ps.filt") && exists("mt_defs")) {
   cat("  [Requires phyloseq objects from Section 5]\n")
 }
 
-# --- Figure S3: FAPROTAX (already in Section 6, just cross-reference) ---
-sub_header("Figure S3: FAPROTAX (see Section 6 above)")
+# --- Figure S12: FAPROTAX (in Section 6) ---
+sub_header("Figure S12: FAPROTAX (see Section 6 above)")
 
-# --- PICRUSt pathway statistics (supporting Figures S4-S5) ---
-sub_header("PICRUSt pathway statistics (Figures S4-S5)")
+# --- PICRUSt pathway statistics (Figs S13-S15) ---
+sub_header("PICRUSt pathway statistics (Figs S13-S15)")
 picrust_mcra_all <- "outputs/data/picrust/pathway_associations_mcra_all.csv"
 {
   pa_all <- read.csv(picrust_mcra_all, stringsAsFactors = FALSE)
@@ -1676,7 +1634,7 @@ picrust_mcra_all <- "outputs/data/picrust/pathway_associations_mcra_all.csv"
               nrow(pos_all), nrow(neg_all)))
 }
 
-sub_header("Figure S5: pmoA pathway associations")
+sub_header("Figure S15: pmoA pathway associations")
 picrust_pmoa_no <- "outputs/data/picrust/pathway_associations_pmoa_no_pmoa_otus.csv"
 {
   pa_pmoa <- read.csv(picrust_pmoa_no, stringsAsFactors = FALSE)
@@ -1687,18 +1645,18 @@ picrust_pmoa_no <- "outputs/data/picrust/pathway_associations_pmoa_no_pmoa_otus.
   cat(sprintf("  Positive: %d, Negative: %d\n", nrow(pos_pmoa), nrow(neg_pmoa)))
 }
 
-# --- Figure S4: PICRUSt mcrA no-mcrA-ASV heatmap (expanded version of Fig 6) ---
-sub_header("Figure S4: PICRUSt mcrA (no-mcrA ASVs, full FDR < 0.01) heatmap")
+# --- Figure S13: PICRUSt mcrA heatmap without mcrA-carrying ASVs ---
+sub_header("Figure S13: PICRUSt mcrA (no-mcrA ASVs, full FDR < 0.01) heatmap")
 {
   cat(sprintf("  See pathway counts above. Full FDR<0.01 set: %d pathways\n", nrow(sig_all)))
 }
 
-# --- Figure S5: PICRUSt pmoA heatmap ---
-sub_header("Figure S5: PICRUSt pmoA heatmap")
+# --- Figure S15: PICRUSt pmoA heatmap ---
+sub_header("Figure S15: PICRUSt pmoA heatmap")
 cat("  See pmoA pathway counts above.\n")
 
-# --- Figure S7: Internal gas beeswarm by species ---
-sub_header("Figure S7: Internal gas concentrations by species")
+# --- Figure S16: internal gas by species ---
+sub_header("Figure S16: Internal gas concentrations by species")
 gas_data <- ymf2021 %>%
   filter(!is.na(CH4_concentration), !is.na(species_id)) %>%
   mutate(species_latin = SPECIES_NAMES[species_id]) %>%
@@ -1739,7 +1697,7 @@ if ("O2_concentration" %in% names(ymf2021)) {
 }
 
 # --- Figure S8: Internal gas profiles (4 panels) ---
-sub_header("Figure S8: Internal gas correlation panels")
+sub_header("Figure S17: Internal gas correlation panels")
 
 # Panel A: CH4 vs CO2
 ch4_co2 <- ymf2021 %>% filter(!is.na(CH4_concentration), !is.na(CO2_concentration))
@@ -1801,7 +1759,7 @@ for (h_col in c("CH4_best.flux_50cm", "CH4_best.flux_125cm", "CH4_best.flux_200c
 }
 
 # --- Figure S9: δ13CH4 isotope analysis ---
-sub_header("Figure S9: d13CH4 isotope analysis")
+sub_header("Figure S18: d13CH4 isotope analysis")
 # isotopes.csv: whole-tree set flagged by the rule in code/lib/isotope_samples.R; species from trees.csv
 {
   internal_iso <- isotope_whole_tree() %>% dplyr::select(SampleName, species, d13CH4, ch4_ppm)
@@ -1842,15 +1800,13 @@ sub_header("Figure S9: d13CH4 isotope analysis")
   }
 }
 
-# --- Figure S15: RF model diagnostics (expanded) ---
-sub_header("Figure S15: RF model diagnostics (expanded)")
+# --- Figure S26: random-forest models ---
+sub_header("Figure S26: RF model diagnostics")
 if (exists("TreeRF") && exists("SoilRF")) {
-  # CCC requires DescTools; compute manually if not available
-  # Already nmol m-2 s-1. The x1000 that stood here was a umol-era conversion and made
-  # every RMSE printed below 1000x too large, on lines labelled "nmol m-2 s-1".
+  # nmol m-2 s-1; CCC computed directly
   tree_obs <- tree_train_complete$stem_flux_corrected
   tree_pred <- tree_train_complete$pred_flux
-  soil_obs <- soil_train_complete$soil_flux_umol_m2_s
+  soil_obs <- soil_train_complete$soil_flux_nmol_m2_s
   soil_pred <- soil_train_complete$pred_flux
 
   # Manual CCC: 2 * r * sx * sy / (sx^2 + sy^2 + (mx - my)^2)
@@ -1891,13 +1847,13 @@ if (exists("TreeRF") && exists("SoilRF")) {
   }
 }
 
-# --- Figure S11: already covered in Sections 8 + 11 ---
-sub_header("Figure S11: Scale-dependent genes (see Sections 8-9)")
+# --- Figure S22: in Sections 8 and 11 ---
+sub_header("Figure S22: Scale-dependent genes (see Sections 8-9)")
 cat("  Individual gene-flux R2: see Section 8\n")
 cat("  Species-level correlations: see Section 9\n")
 
-# --- Figure S13: Tree radial mcrA cross-sections ---
-sub_header("Figure S13: Tree radial mcrA cross-sections")
+# --- Figure S23: tree radial mcrA cross-sections ---
+sub_header("Figure S23: Tree radial mcrA cross-sections")
 # mcrA by species (inner vs outer)
 sp_mcra_comps <- ymf2021 %>%
   filter(!is.na(species_id)) %>%
@@ -1922,9 +1878,8 @@ for (i in 1:min(5, nrow(sp_mcra_comps))) {
               sp_mcra_comps$inner_outer_ratio[i]))
 }
 
-# --- Figure S10: pmoA vs mmoX patterns (already in Section 11) ---
-sub_header("Figure S10: pmoA/mmoX patterns (see Section 11)")
-# Add S12-specific stats from manuscript text
+# --- Figure S9: pmoA vs mmoX (also Section 11) ---
+sub_header("Figure S9: pmoA/mmoX patterns (see Section 11)")
 # pmoA detection, mmoX detection, co-occurrence
 pmoa_inner <- ymf2021$ddpcr_pmoa_Inner_loose
 mmox_inner <- ymf2021$ddpcr_mmox_Inner_loose
@@ -1986,19 +1941,18 @@ if (nrow(hw_ratios) > 3) {
   }
 }
 
-# --- Figure S14: mcrA vs methanotroph independence (already in Section 9) ---
-sub_header("Figure S14: mcrA vs methanotroph (see Section 9)")
+# --- Figure S24: mcrA vs methanotroph independence (also Section 9) ---
+sub_header("Figure S24: mcrA vs methanotroph (see Section 9)")
 cat("  Tree-level and species-level correlations reported above.\n")
 
-# --- Figure S12: Black oak methanome heatmap ---
+# --- Figure S21: felled black oak methanome heatmap ---
 sub_header("Figure S21: Black oak tissue methanome heatmap")
-# The typed qualitative list that stood here disagreed with the figure. Fig. S21
-# (code/08_figures/figS20_black-oak-methanome.R) prints its own range; the felled-oak
+# Fig. S21 (code/08_figures/figS20_black-oak-methanome.R) prints its own range; the felled-oak
 # methanotroph percentages in the text come from Table S4 (07_molecular/03_methanotroph_resolution.R).
 cat("  See Table S4 (outputs/data/methanotroph_resolution_black_oak.csv) for the values quoted in the text.\n\n")
 
-# --- Figure S2: Taxonomy x pmoA heatmap ---
-sub_header("Figure S2: Family-level 16S x pmoA associations")
+# --- Figure S11: taxonomy x pmoA heatmap ---
+sub_header("Figure S11: Family-level 16S x pmoA associations")
 picrust_pmoa_full <- "outputs/data/picrust/pathway_associations_pmoa.csv"
 {
   pa_pmoa_f <- read.csv(picrust_pmoa_full, stringsAsFactors = FALSE)
@@ -2007,9 +1961,9 @@ picrust_pmoa_full <- "outputs/data/picrust/pathway_associations_pmoa.csv"
   stat("Significant at FDR < 0.01 (pmoA)", nrow(sig_pmoa_f))
 }
 
-# Also check taxonomy heatmap for S6
+# Figure S10: taxonomy x mcrA heatmap
 taxonomy_mcra_file <- "outputs/data/picrust/pathway_associations_mcra_no_mcra_otus.csv"
-sub_header("Figure S6: Family-level 16S x mcrA associations")
+sub_header("Figure S10: Family-level 16S x mcrA associations")
 if (exists("fam_cors") && nrow(fam_cors) > 0) {
   stat("Families significantly correlated with mcrA (p<0.05)", nrow(fam_cors))
   stat("Positively correlated", sum(fam_cors$r > 0))

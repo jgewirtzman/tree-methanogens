@@ -1,266 +1,95 @@
 # ==============================================================================
-# Prepare Tree Flux Auxiliary File
-# ==============================================================================
-# Purpose: Prepares goFlux auxiliary metadata file for tree flux measurements,
-#   adding chamber geometry and weather station data.
+# 03_prep_tree_auxfile.R -- goFlux auxiliary file for the monthly semi-rigid stem fluxes
+# ------------------------------------------------------------------------------
+# Stage A; workdir: this script's folder (code/02_flux/semirigid/).
 #
-# Pipeline stage: 01 Flux Processing (semirigid)
-# Run after: 02_join_flux_geometry.R
+# One row per tagged-stem deployment with a valid sampling time and geometry.
+# UniqueID = Date_PlotTag_PlotLetter_Chamber (a sequence number is appended where a
+# stem was measured twice with the same chamber on one day).
 #
-# Inputs:
-#   - flux_with_geometry_fixed.csv (from 02_join_flux_geometry.R; geometry per
-#     deployment and its source, code/lib/stem_chamber_geometry.R, carried through)
-#   - ymf_clean_sorted.csv (from data/raw/weather/; logger clock, see Tcham below)
-#
-# Outputs:
-#   - auxfile_goFlux_with_weather.csv
-#
+# Area and chamber volume: the deployment's geometry from 02_join_flux_geometry.R
+#   (code/lib/stem_chamber_geometry.R), carried with its source.
+# Vtot = chamber volume + TUBING_CM3 + ANALYZER_VOLUME_CM3 (code/lib/chamber_constants.R).
 # Tcham: station hourly mean air temperature of the hour containing the start, in true
 #   time (logger clock converted by code/lib/weather_time.R, the rule of
 #   code/tables/06_weather.R), within 24 h; every deployment must have one (the build
-#   stops otherwise; no default). Pcham: 101.325 kPa.
+#   stops otherwise). Pcham: 101.325 kPa.
+#
+# Inputs:  data/processed/flux/flux_with_geometry_fixed.csv (02_join_flux_geometry.R)
+#          data/raw/weather/ymf_clean_sorted.csv
+# Outputs (data/processed/flux/):
+#          auxfile_goFlux_with_weather.csv  (read by 04_goflux_trees.R)
+#          auxfile_goFlux_with_weather.txt  (tab-separated copy)
+#          auxfile_goFlux_with_weather_formatted_datetime.csv  (+ start.time as text;
+#          the base of the assembled monthly stem table)
 # ==============================================================================
 
 library(dplyr)
 library(readr)
 library(lubridate)
 
-source("../../lib/chamber_constants.R")  # ANALYZER_VOLUME_CM3
+source("../../lib/chamber_constants.R")  # TUBING_CM3, ANALYZER_VOLUME_CM3
 source("../../lib/weather_time.R")       # read_station_air(), station_air_at()
 
-# Read the CSV file
 flux_data <- read_csv("../../../data/processed/flux/flux_with_geometry_fixed.csv")
 
-# Station air temperature, keyed by true time
 station_air <- read_station_air("../../../data/raw/weather/ymf_clean_sorted.csv")
 cat("Station air temperature:", nrow(station_air), "hourly records\n")
 
-# Check for problematic time values first
-cat("\n=== INVESTIGATING TIME FORMAT ISSUES ===\n")
-problematic_times <- flux_data %>%
-  mutate(numeric_time = as.numeric(`Time of sampling`)) %>%
-  filter(is.na(numeric_time) & !is.na(`Time of sampling`)) %>%
-  select(Date, `Plot Tag`, `Plot Letter`, `Time of sampling`, `File name`)
-
-if(nrow(problematic_times) > 0) {
-  cat("Found", nrow(problematic_times), "rows with non-numeric time values:\n")
-  print(problematic_times)
-} else {
-  cat("No problematic time values found.\n")
-}
-
-# Show examples of time format variations
-cat("\nExamples of time formats in your data:\n")
-time_examples <- flux_data %>%
-  filter(!is.na(`Time of sampling`)) %>%
-  select(`Time of sampling`) %>%
-  distinct() %>%
-  head(10)
-print(time_examples)
-
-# Check for potential duplicates before processing
-potential_duplicates <- flux_data %>%
-  mutate(UniqueID_base = paste(Date, `Plot Tag`, `Plot Letter`, Chamber_ID, sep = "_")) %>%
-  group_by(UniqueID_base) %>%
-  summarise(count = n(), .groups = "drop") %>%
-  filter(count > 1)
-
-if(nrow(potential_duplicates) > 0) {
-  cat("\nFound", nrow(potential_duplicates), "sets of duplicate measurements:\n")
-  print(potential_duplicates)
-}
-
-cat("\n=== CONVERTING TO AUXFILE FORMAT WITH WEATHER DATA ===\n")
-
-# Convert to auxfile format for goFlux
-auxfile <- flux_data %>%
-  # Create UniqueID by combining relevant identifiers
+prepared <- flux_data %>%
   mutate(
-    # Convert time, handling both decimal and integer HHMM formats
     numeric_time = as.numeric(`Time of sampling`),
-    
-    # Create a base unique identifier
     UniqueID_base = paste(Date, `Plot Tag`, `Plot Letter`, Chamber_ID, sep = "_"),
-    
-    # Make truly unique IDs by adding sequence numbers for duplicates
     UniqueID = ave(UniqueID_base, UniqueID_base, FUN = function(x) {
-      if(length(x) == 1) {
-        return(x)
-      } else {
-        return(paste(x, seq_along(x), sep = "_"))
-      }
+      if (length(x) == 1) x else paste(x, seq_along(x), sep = "_")
     }),
-    
-    # IMPROVED DATETIME HANDLING FOR HHMM FORMAT (with or without decimals)
-    # First calculate hours and minutes for all rows
-    time_int = floor(numeric_time),  # Remove decimal part
-    hours = floor(time_int / 100),
-    minutes = time_int %% 100,
-    
-    # Convert HHMM time format (e.g., 1357.0 or 1357) to HH:MM:SS
-    formatted_time = case_when(
-      is.na(numeric_time) ~ NA_character_,  # Keep NA for missing values
-      hours >= 0 & hours <= 23 & minutes >= 0 & minutes <= 59 ~ 
-        sprintf("%02d:%02d:00", hours, minutes),  # Valid time
-      TRUE ~ NA_character_  # Keep NA for invalid times - don't create fake times
-    ),
-    
-    # Combine Date and formatted time - ensuring datetime is preserved
-    datetime_string = case_when(
-      !is.na(formatted_time) ~ paste(Date, formatted_time),
-      TRUE ~ NA_character_  # Keep NA if no valid time
-    ),
-    start.time = as.POSIXct(datetime_string, 
-                            format = "%Y-%m-%d %H:%M:%S", 
-                            tz = "UTC"),
-    
-    # Convert surface area from cm2 (already correct unit)
-    Area = surface_area_cm2,
-    
-    # Calculate total system volume
-    # Chamber volume (from your data) + tubing volume + system volume
-    # Tubing: 1/8" ID × 12 ft = π × (1/16)² × 12 × 12 = π × (0.0625)² × 144 in³
-    # Convert to cm³: × 16.387 
-    tubing_volume_cm3 = pi * (1/16)^2 * 12 * 12 * 16.387, # ≈ 29.0 cm³
-    system_volume_cm3 = ANALYZER_VOLUME_CM3, # analyzer internal volume (lab convention, see lib)
-    
-    # Total volume = chamber + tubing + system, convert to L
-    Vtot = (volume_cm3 + tubing_volume_cm3 + system_volume_cm3) / 1000
-  ) %>%
-  # Remove rows with missing critical data before merging
-  filter(!is.na(start.time), !is.na(Area), !is.na(Vtot)) %>%
-  # Station air temperature of the hour containing the start (true time)
-  mutate(Tcham = station_air_at(start.time, station_air), Pcham = 101.325)
-stopifnot(!anyNA(auxfile$Tcham))   # station air temperature within 24 h for every deployment; no default
-
-# Final processing - no defaults
-auxfile <- auxfile %>%
-  # Select columns needed for goFlux auxfile plus original columns to preserve
-  select(UniqueID, start.time, Area, Vtot, Tcham, Pcham, 
-         Date, `Plot Tag`, `Plot Letter`, Chamber_ID, `File name`, Notes,
-         geometry_source, chamber_dims, D_stem_cm, chamber_volume_cm3 = volume_cm3) %>%
-  # Arrange by start time to maintain chronological order
-  arrange(start.time)
-
-# DATETIME VERIFICATION
-cat("\n=== DATETIME VERIFICATION ===\n")
-cat("Sample of start.time values (showing full datetime):\n")
-print(head(auxfile$start.time, 10))
-cat("\nClass of start.time column:", class(auxfile$start.time), "\n")
-cat("Timezone:", attr(auxfile$start.time, "tzone"), "\n")
-
-# Check if any times are missing (would show NA)
-missing_times <- sum(is.na(auxfile$start.time))
-cat("Number of measurements with missing start.time (these will be excluded):", missing_times, "\n")
-
-# Display the first few rows to check the format
-cat("\nFirst 6 rows of auxfile with weather data:\n")
-print(auxfile)
-
-# Check the structure
-cat("\nStructure of auxfile:\n")
-str(auxfile)
-
-# SAVE WITH PROPER DATETIME FORMAT
-# Save the auxfile ensuring datetime format is preserved
-write.table(auxfile, "../../../data/processed/flux/auxfile_goFlux_with_weather.txt", 
-            sep = "\t", row.names = FALSE, quote = FALSE)
-
-# Also save as CSV for easier viewing
-write_csv(auxfile, "../../../data/processed/flux/auxfile_goFlux_with_weather.csv")
-
-# ADDITIONAL: Create a human-readable version showing the datetime formatting
-auxfile_readable <- auxfile %>%
-  mutate(
-    start.time_formatted = format(start.time, "%Y-%m-%d %H:%M:%S %Z")
-  )
-
-write_csv(auxfile_readable, "../../../data/processed/flux/auxfile_goFlux_with_weather_formatted_datetime.csv")
-
-# Print summary information
-cat("\n=== SUMMARY ===\n")
-cat("Auxfile created with", nrow(auxfile), "measurements\n")
-cat("Date range:", as.character(range(auxfile$start.time, na.rm = TRUE)), "\n")
-cat("Time range:", 
-    format(min(auxfile$start.time, na.rm = TRUE), "%H:%M:%S"), "to",
-    format(max(auxfile$start.time, na.rm = TRUE), "%H:%M:%S"), "\n")
-cat("Temperature range:", round(range(auxfile$Tcham, na.rm = TRUE), 1), "°C\n")
-cat("Files saved as:\n")
-cat("  - auxfile_goFlux_with_weather.txt (main file for goFlux)\n")
-cat("  - auxfile_goFlux_with_weather.csv (for viewing)\n")
-cat("  - auxfile_goFlux_with_weather_formatted_datetime.csv (with readable datetime)\n")
-
-# Display comprehensive quality checks
-cat("\n=== DATA QUALITY CHECKS ===\n")
-cat("Original flux rows:", nrow(flux_data), "\n")
-cat("Final rows:", nrow(auxfile), "\n")
-cat("Rows removed:", nrow(flux_data) - nrow(auxfile), "\n")
-cat("Missing start.time:", sum(is.na(auxfile$start.time)), "\n")
-cat("Missing Area:", sum(is.na(auxfile$Area)), "\n")
-cat("Missing Vtot:", sum(is.na(auxfile$Vtot)), "\n")
-cat("Missing Tcham:", sum(is.na(auxfile$Tcham)), "\n")
-cat("Missing Pcham:", sum(is.na(auxfile$Pcham)), "\n")
-cat("Duplicate UniqueIDs:", sum(duplicated(auxfile$UniqueID)), "\n")
-
-# Show time distribution
-cat("\n=== TIME DISTRIBUTION ===\n")
-time_summary <- auxfile %>%
-  mutate(hour = hour(start.time)) %>%
-  count(hour, sort = TRUE)
-cat("Measurements by hour of day:\n")
-print(time_summary)
-
-# Weather data usage summary
-weather_matched <- sum(!is.na(auxfile$Tcham))
-
-cat("\n=== WEATHER DATA USAGE ===\n")
-cat("Measurements with weather data:", weather_matched, "\n")
-cat("Weather data coverage:", round(100 * weather_matched / nrow(auxfile), 1), "%\n")
-
-# Show which rows were removed and why (if any)
-removed_rows <- flux_data %>%
-  mutate(
-    numeric_time = as.numeric(`Time of sampling`),
+    # sampling time HHMM (1357 or 1357.0) -> HH:MM:00; missing or invalid times -> NA
     time_int = floor(numeric_time),
     hours = floor(time_int / 100),
     minutes = time_int %% 100,
     formatted_time = case_when(
       is.na(numeric_time) ~ NA_character_,
-      hours >= 0 & hours <= 23 & minutes >= 0 & minutes <= 59 ~ 
+      hours >= 0 & hours <= 23 & minutes >= 0 & minutes <= 59 ~
         sprintf("%02d:%02d:00", hours, minutes),
-      TRUE ~ NA_character_  # Keep NA for invalid times
+      TRUE ~ NA_character_
     ),
     datetime_string = case_when(
       !is.na(formatted_time) ~ paste(Date, formatted_time),
       TRUE ~ NA_character_
     ),
-    start.time = as.POSIXct(datetime_string, 
-                            format = "%Y-%m-%d %H:%M:%S", 
-                            tz = "UTC"),
-    Area = surface_area_cm2,
-    tubing_volume_cm3 = pi * (1/16)^2 * 12 * 12 * 16.387,
-    system_volume_cm3 = ANALYZER_VOLUME_CM3,
-    Vtot = (volume_cm3 + tubing_volume_cm3 + system_volume_cm3) / 1000
-  ) %>%
+    start.time = as.POSIXct(datetime_string, format = "%Y-%m-%d %H:%M:%S", tz = "UTC"),
+    Area = surface_area_cm2,                                         # cm2
+    Vtot = (volume_cm3 + TUBING_CM3 + ANALYZER_VOLUME_CM3) / 1000    # L
+  )
+
+removed_rows <- prepared %>%
   filter(is.na(start.time) | is.na(Area) | is.na(Vtot)) %>%
   select(Date, `Plot Tag`, `Plot Letter`, `Time of sampling`, surface_area_cm2, volume_cm3)
 
-if(nrow(removed_rows) > 0) {
-  cat("\nRows that were removed due to missing critical data:\n")
+auxfile <- prepared %>%
+  filter(!is.na(start.time), !is.na(Area), !is.na(Vtot)) %>%
+  mutate(Tcham = station_air_at(start.time, station_air), Pcham = 101.325)
+stopifnot(!anyNA(auxfile$Tcham))   # station air temperature within 24 h for every deployment
+
+auxfile <- auxfile %>%
+  select(UniqueID, start.time, Area, Vtot, Tcham, Pcham,
+         Date, `Plot Tag`, `Plot Letter`, Chamber_ID, `File name`, Notes,
+         geometry_source, chamber_dims, D_stem_cm, chamber_volume_cm3 = volume_cm3) %>%
+  arrange(start.time)
+
+cat("Deployments:", nrow(flux_data), "->", nrow(auxfile), "in the auxfile | range:",
+    as.character(range(auxfile$start.time, na.rm = TRUE)), "\n")
+cat("Tcham range:", round(range(auxfile$Tcham, na.rm = TRUE), 1), "degC | duplicate UniqueIDs:",
+    sum(duplicated(auxfile$UniqueID)), "\n")
+if (nrow(removed_rows) > 0) {
+  cat("\nNot in the auxfile (no valid time or no geometry):\n")
   print(removed_rows)
-} else {
-  cat("\nNo rows were removed - all data successfully converted!\n")
 }
 
-cat("\n=== AUXFILE READY FOR goFlux! ===\n")
-cat("Your auxfile contains all required columns with proper datetime formatting:\n")
-cat("- UniqueID: Unique identifier for each measurement\n")
-cat("- start.time: Full datetime in POSIXct format (YYYY-MM-DD HH:MM:SS UTC)\n")
-cat("- Area: Chamber surface area in cm²\n")
-cat("- Vtot: Total system volume in L (chamber + tubing + system)\n")
-cat("- Tcham: Chamber temperature in °C (from weather data where available)\n")
-cat("- Pcham: Chamber pressure in kPa\n")
-cat("\nTime parsing handles both formats: 1357.0 and 1357 → 13:57:00\n")
-cat("Weather data integrated from Yale-Myers weather station!\n")
-cat("Original columns preserved: Date, Plot Tag, Plot Letter, Chamber_ID, File name, Notes\n")
-cat("The start.time column preserves both date AND time information!\n")
+write.table(auxfile, "../../../data/processed/flux/auxfile_goFlux_with_weather.txt",
+            sep = "\t", row.names = FALSE, quote = FALSE)
+write_csv(auxfile, "../../../data/processed/flux/auxfile_goFlux_with_weather.csv")
+auxfile_readable <- auxfile %>%
+  mutate(start.time_formatted = format(start.time, "%Y-%m-%d %H:%M:%S %Z"))
+write_csv(auxfile_readable, "../../../data/processed/flux/auxfile_goFlux_with_weather_formatted_datetime.csv")
+cat("Wrote data/processed/flux/auxfile_goFlux_with_weather{.csv,.txt,_formatted_datetime.csv}\n")

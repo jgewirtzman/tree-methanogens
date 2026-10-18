@@ -20,10 +20,10 @@ suppressMessages(library(dplyr))
 source("code/lib/ddpcr_constants.R")
 source("code/lib/outputs.R")
 
-DROPLET_NL <- 0.85
+DROPLET_NL <- DDPCR_DROPLET_NL
 REF_DROPLETS <- 16000
 REF_MASS_MG <- c(Wood = 100, Soil = 250)
-LOD_CONC <- 3 / 20   # copies per µL reaction
+LOD_CONC <- DDPCR_LOD_COPIES_PER_UL   # copies per µL reaction
 read_ul <- REF_DROPLETS * DROPLET_NL / 1000
 conc_at <- function(k) -log(1 - k / REF_DROPLETS) / (DROPLET_NL / 1000)
 

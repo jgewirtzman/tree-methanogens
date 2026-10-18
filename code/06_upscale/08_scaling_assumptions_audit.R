@@ -1,39 +1,29 @@
-source("code/lib/rf_spec.R")   # RF_NUM_TREES, RF_THREADS
-source("code/lib/outputs.R")
 #!/usr/bin/env Rscript
 # ==============================================================================
-# 08_scaling_assumptions_audit.R
+# 08_scaling_assumptions_audit.R -- what the stand upscaling assumes
 # ------------------------------------------------------------------------------
-# What, exactly, is the stand upscaling assuming? Four questions, answered from the
-# data where the data can answer them and flagged as unconstrained where it cannot.
+# Stage C (non-fatal audit); run from the repository root. Four questions, answered
+# from the data where they can be and flagged as unconstrained where they cannot.
 #
 #   Q1  What is the height-flux profile, overall and by species?
 #   Q2  What allometry converts DBH to surface area?
 #   Q3  How is woody surface area distributed vertically (bole vs branches)?
 #   Q4  How does our own surface area relate to the Gauci et al. 2024 WAI of 3.07?
 #
-# Output: outputs/audit/scaling_assumptions_audit.txt (transcript of this run)
+# Output: the log (outputs/logs/08_scaling_assumptions_audit.txt)
 #         outputs/figures/generated/fig_height_profiles_by_species.png
 # ==============================================================================
+source("code/lib/rf_spec.R")   # RF_NUM_TREES, RF_THREADS
+source("code/lib/outputs.R")
 
 suppressMessages({library(dplyr); library(ggplot2); library(tidyr); library(ranger)})
 source("code/lib/geometry.R")
 source("code/lib/species_levels.R")
 set.seed(42)
-outdir <- "outputs"; dir.create(outdir, showWarnings = FALSE, recursive = TRUE)
 
 load("outputs/models/RF_MODELS.RData")
 load("outputs/models/TRAINING_DATA.RData")
-load("data/processed/integrated/rf_workflow_input_data_with_2023.RData")
-INV <- canonical_inventory()
-
-# CANONICAL stems and ground (2026-07-29). This read
-# rf_workflow_data$PLACEHOLDER_INVENTORY over A_PLOT <- 200*200: fg19 only, so the
-# entire bytag survey (961 stems) was missing -- 7,010 stems instead of 8,006 -- over
-# the nominal 40,000 m2 square instead of the 37,200 m2 censused stand. Every
-# per-ground figure below was 7.0% low and every WAI*area 7.5% high, and the stem-area
-# index came out 0.0888 against the canonical 0.11629. The allometry and the DBH repair
-# were also local copies; both now come from geometry.R.
+INV <- canonical_inventory()   # in-stand stems, heights and band areas (geometry.R)
 A_PLOT <- STAND_AREA_M2; WAI_GAUCI <- 3.07; CONV <- 86400*365.25*16e-6
 
 rule <- function(s) cat("\n", strrep("=", 78), "\n ", s, "\n", strrep("=", 78), "\n", sep="")

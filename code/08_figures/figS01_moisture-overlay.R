@@ -1,209 +1,19 @@
 # ==============================================================================
-# Methods Figure Map
-# ==============================================================================
-# Purpose: Study site methods figure map for publication.
-#
-# Pipeline stage: 4 — Visualization
-#
-# Outputs:
-#   - methods map PNGs (to outputs/figures/)
-# ==============================================================================
-
-# Source upstream dependencies (must run from project root)
-source("code/06_upscale/helper_forestgeo_alignment.R")
-source("code/06_upscale/helper_spatial_interpolation.R")
-
-# Overlay stem map on interpolated moisture map
-
-# Create overlay plot with stem map on moisture/hillshade background
-stem_moisture_overlay <- ggplot() +
-  # Base hillshade layer for terrain effect
-  geom_raster(data = hillshade_df, aes(x = Longitude, y = Latitude, alpha = Hillshade)) +
-  # Subtle elevation background
-  geom_raster(data = elev_df, aes(x = Longitude, y = Latitude), fill = "grey50", alpha = 0.1) +
-  # Moisture overlay (includes river influence)
-  geom_raster(data = moisture_df, aes(x = Longitude, y = Latitude, fill = VWC), alpha = 0.6) +
-  # ForestGEO trees - sized by basal area, colored by species
-  geom_point(data = fg_final,
-             aes(x = Longitude_final, y = Latitude_final,
-                 size = BasalArea_m2, color = Species_Name),
-             alpha = 0.8, stroke = 0.3) +
-  # Research plots as reference points
-  geom_point(data = plots_data, aes(x = Longitude, y = Latitude),
-             color = "white", fill = "black", size = 2, stroke = 1, shape = 21, alpha = 0.9) +
-  # Plot ellipses for context
-  geom_polygon(data = plot_tree_ellipses, aes(x = Longitude, y = Latitude, group = Site_Plot), 
-               fill = NA, color = "white", size = 0.8, alpha = 0.7, linetype = "dashed") +
-  
-  # Color and size scales
-  scale_fill_viridis_c(name = "Soil Moisture\n(VWC %)", option = "mako", direction = -1) +
-  scale_color_manual(
-    values = final_colors,
-    breaks = legend_order,
-    name = "Tree Species"
-  ) +
-  scale_size_continuous(
-    name = "Basal Area\n(m²)",
-    range = c(0.5, 4),
-    breaks = c(0.001, 0.01, 0.05, 0.1, 0.2),
-    labels = c("0.001", "0.01", "0.05", "0.1", "0.2"),
-    guide = guide_legend(override.aes = list(alpha = 1))
-  ) +
-  scale_alpha_identity() +
-  
-  # Formatting
-  coord_equal() +
-  labs(
-    title = "ForestGEO Stem Map Overlaid on Soil Moisture + Terrain",
-    subtitle = paste("N =", nrow(fg_final), "trees on moisture gradient with research plots"),
-    x = "Longitude", y = "Latitude"
-  ) +
-  theme_minimal() +
-  theme(
-    legend.position = "right",
-    legend.box = "vertical",
-    legend.key.size = unit(0.4, "cm"),
-    legend.text = element_text(size = 8),
-    legend.title = element_text(size = 9),
-    panel.grid.major = element_line(color = "grey70", linewidth = 0.3),
-    panel.grid.minor = element_line(color = "grey80", linewidth = 0.2),
-    panel.background = element_rect(fill = "grey90")
-  ) +
-  guides(
-    color = guide_legend(override.aes = list(size = 3, alpha = 1), ncol = 1),
-    size = guide_legend(ncol = 1)
-  )
-
-print(stem_moisture_overlay)
-
-# Create a cleaner version focusing on tree distribution patterns
-tree_distribution_plot <- ggplot() +
-  # Simplified moisture background
-  geom_raster(data = moisture_df, aes(x = Longitude, y = Latitude, fill = VWC), alpha = 0.7) +
-  # Trees with larger points for better visibility
-  geom_point(data = fg_final, 
-             aes(x = Longitude_final, y = Latitude_final, 
-                 size = BasalArea_m2, color = Species_Name), 
-             alpha = 0.9) +
-  # Research plots as reference
-  geom_point(data = plots_data, aes(x = Longitude, y = Latitude), 
-             color = "black", fill = "white", size = 3, stroke = 1.5, shape = 21) +
-  
-  scale_fill_viridis_c(name = "Soil Moisture\n(VWC %)", option = "viridis", direction = -1) +
-  scale_color_manual(
-    values = final_colors,
-    breaks = legend_order,
-    name = "Tree Species"
-  ) +
-  scale_size_continuous(
-    name = "Basal Area\n(m²)",
-    range = c(1, 5),
-    breaks = c(0.001, 0.01, 0.05, 0.1, 0.2),
-    labels = c("0.001", "0.01", "0.05", "0.1", "0.2")
-  ) +
-  
-  coord_equal() +
-  labs(
-    title = "Tree Species Distribution Across Moisture Gradient",
-    subtitle = "Tree size = basal area, colors = phylogenetic grouping",
-    x = "Longitude", y = "Latitude"
-  ) +
-  theme_minimal() +
-  theme(
-    legend.position = "bottom",
-    legend.box = "horizontal",
-    legend.key.size = unit(0.5, "cm"),
-    panel.grid = element_blank(),
-    axis.text = element_text(size = 10)
-  )
-
-print(tree_distribution_plot)
-
-# Create transformation method comparison on moisture background
-transformation_comparison <- ggplot() +
-  geom_raster(data = moisture_df, aes(x = Longitude, y = Latitude, fill = VWC), alpha = 0.5) +
-  geom_point(data = fg_final, 
-             aes(x = Longitude_final, y = Latitude_final, 
-                 color = transformation_method, shape = Coordinates_Estimated), 
-             size = 2, alpha = 0.8) +
-  geom_point(data = plots_data, aes(x = Longitude, y = Latitude), 
-             color = "white", fill = "black", size = 2, stroke = 1, shape = 21) +
-  
-  scale_fill_viridis_c(name = "Soil Moisture\n(VWC %)", option = "plasma", direction = -1) +
-  scale_color_manual(
-    values = c("Geodetic Transform" = "red", "Original GPS" = "blue"),
-    name = "Coordinate Method"
-  ) +
-  scale_shape_manual(
-    values = c("FALSE" = 16, "TRUE" = 17),
-    labels = c("FALSE" = "Original GPS", "TRUE" = "Estimated GPS"),
-    name = "GPS Source"
-  ) +
-  
-  coord_equal() +
-  labs(
-    title = "Tree Coordinate Sources on Moisture Gradient",
-    subtitle = "Red = geodetic transform from PX/PY, Blue = original GPS coordinates",
-    x = "Longitude", y = "Latitude"
-  ) +
-  theme_minimal() +
-  theme(legend.position = "bottom")
-
-print(transformation_comparison)
-
-# Note: figS1 is saved at the end of this script after computing the
-# clipped/aligned final_extended_plot (the publication version)
-
-# Print summary of overlay
-cat("=== STEM MAP - MOISTURE OVERLAY SUMMARY ===\n")
-cat("Trees in ForestGEO dataset:", nrow(fg_final), "\n")
-cat("Trees with geodetic transformation:", sum(fg_final$transformation_method == "Geodetic Transform"), "\n")
-cat("Trees with original GPS:", sum(fg_final$transformation_method == "Original GPS"), "\n")
-cat("Research plots for reference:", nrow(plots_data), "\n")
-cat("Moisture interpolation grid points:", nrow(moisture_df), "\n\n")
-
-# Check coordinate alignment
-lon_overlap <- range(fg_final$Longitude_final)[1] >= range(moisture_df$Longitude)[1] && 
-  range(fg_final$Longitude_final)[2] <= range(moisture_df$Longitude)[2]
-lat_overlap <- range(fg_final$Latitude_final)[1] >= range(moisture_df$Latitude)[1] && 
-  range(fg_final$Latitude_final)[2] <= range(moisture_df$Latitude)[2]
-
-cat("Coordinate alignment check:\n")
-cat("Trees longitude range:", round(range(fg_final$Longitude_final), 6), "\n")
-cat("Moisture longitude range:", round(range(moisture_df$Longitude), 6), "\n")
-cat("Trees latitude range:", round(range(fg_final$Latitude_final), 6), "\n")
-cat("Moisture latitude range:", round(range(moisture_df$Latitude), 6), "\n")
-cat("Longitude overlap:", lon_overlap, "\n")
-cat("Latitude overlap:", lat_overlap, "\n\n")
-
-if(!lon_overlap || !lat_overlap) {
-  cat("WARNING: Tree coordinates may not fully overlap with moisture interpolation area\n")
-  cat("Consider checking coordinate reference systems or expanding interpolation bounds\n")
-}
-
-
-
-
-
-
-
-
-
-
-
-
-# ==============================================================================
-# FIGURE S1 (publication version)
+# figS01_moisture-overlay.R -- Figure S1: study plot, sampling design and soil moisture
 # ------------------------------------------------------------------------------
-# Drawn in UTM 18N metres (EPSG:26918), so distances are true; the earlier
-# longitude/latitude version with coord_equal stretched the map ~1.35x east-west.
+# Stage E; run from the repository root. Drawn in UTM 18N metres (EPSG:26918).
+#   (a) sampling design on the soil-moisture surface: inventory stems (canonical
+#       inventory, located in-stand stems, sized by basal area), monthly-survey trees
+#       and their plots, soil collars, the stream, the censused plot outline and the
+#       moisture survey's extent; inset: location in the northeastern US
+#   (b) inventory stems by species group (share of basal area)
 #
-# Basemap: hillshade from the 2016 Connecticut statewide lidar (USGS 3DEP 1 m,
-#   data/raw/inventory/spatial_data/lidar_3dep_1m_utm18n.tif).
-# Moisture: the analysis surface. 04_moisture_surface.R fits a thin-plate spline to
-#   the December 2020 survey points and saves the fit; it is predicted here on a 1 m
-#   grid out to the map edges (values outside the survey's convex hull, dashed, are
-#   extrapolated) and bounded to the survey range.
+# Basemap: hillshade and 2 m contours from the 2016 Connecticut statewide lidar (USGS
+#   3DEP 1 m, data/raw/inventory/spatial_data/lidar_3dep_1m_utm18n.tif).
+# Moisture: the analysis surface. 04_drivers/04_moisture_surface.R fits a thin-plate
+#   spline to the December 2020 survey points and saves the fit; it is predicted here on
+#   a 1 m grid (values outside the survey's convex hull, dashed, are extrapolated) and
+#   bounded to the survey range.
 # Stream: the 21 GPS flags in walked order. Lidar flow routing shows the defined
 #   channel is the middle reach (flags 4-12: contributing area >4,000 m2), draining
 #   west from a low point at flags 8-12 (~198 m); the southern and northern flags sit
@@ -211,7 +21,71 @@ if(!lon_overlap || !lat_overlap) {
 #   downslope along lidar flow directions from flag 10. Only the defined channel and
 #   outlet (1-2 m wide) are set to 100% VWC, after the fit, so the measured bank
 #   readings are not altered.
+# Monthly-survey plots: each plot's ellipse is the 95% covariance ellipse of its plot
+#   points and the monthly-survey trees nearest to it (trees more than 2 SD from the
+#   trees' median position are left out as GPS outliers).
+#
+# Inputs: data/raw/inventory/spatial_data/{plots.csv, River.xlsx,
+#   YM_trees_measured.csv.csv, lidar_3dep_1m_utm18n.tif};
+#   outputs/models/moisture_surface_tps.rds; outputs/tables/inventory_stems.csv
+# Output: outputs/figures/original/supplementary/figS1_moisture_overlay.png
 # ==============================================================================
+suppressPackageStartupMessages({library(ggplot2); library(dplyr); library(readxl)})
+
+# ---- monthly-survey plots, trees and the stream flags (raw GPS files) -----------
+SPATIAL <- "data/raw/inventory/spatial_data"
+plots_data <- read.csv(file.path(SPATIAL, "plots.csv"))
+trees_data <- read.csv(file.path(SPATIAL, "YM_trees_measured.csv.csv"))
+river_data <- read_excel(file.path(SPATIAL, "River.xlsx"))
+
+# each monthly-survey tree to its nearest plot point, after dropping GPS outliers
+# (more than 2 SD from the trees' median position)
+assign_trees_to_plots <- function(trees_data, plots_data) {
+  tc <- trees_data
+  d <- sqrt((tc$Longitude - median(tc$Longitude, na.rm = TRUE))^2 +
+            (tc$Latitude - median(tc$Latitude, na.rm = TRUE))^2)
+  keep <- d <= mean(d, na.rm = TRUE) + 2 * sd(d, na.rm = TRUE)
+  if (any(!keep)) {
+    cat("Removing", sum(!keep), "outlier tree(s):\n")
+    print(tc[!keep, c("Label", "Longitude", "Latitude")])
+  }
+  tc <- tc[keep, ]
+  tc$Nearest_Plot <- NA; tc$Nearest_Site <- NA; tc$Distance_to_Plot <- NA
+  for (i in seq_len(nrow(tc))) {
+    dist <- sqrt((tc$Longitude[i] - plots_data$Longitude)^2 + (tc$Latitude[i] - plots_data$Latitude)^2)
+    j <- which.min(dist)
+    tc$Nearest_Plot[i] <- paste(plots_data$Site[j], plots_data$Plot[j], sep = "_")
+    tc$Nearest_Site[i] <- plots_data$Site[j]
+    tc$Distance_to_Plot[i] <- round(dist[j] * 111000, 2)   # metres
+  }
+  tc
+}
+trees_with_plots <- assign_trees_to_plots(trees_data, plots_data)
+
+# 95% covariance ellipse of each plot's points and its assigned trees (>= 3 points)
+create_plot_tree_ellipses <- function(plots_data, trees_with_plots) {
+  plots_data$Site_Plot <- paste(plots_data$Site, plots_data$Plot, sep = "_")
+  out <- list()
+  for (site_plot in unique(plots_data$Site_Plot)) {
+    ps <- plots_data[plots_data$Site_Plot == site_plot, ]
+    ts <- trees_with_plots[trees_with_plots$Nearest_Plot == site_plot, ]
+    pts <- rbind(data.frame(Longitude = ps$Longitude, Latitude = ps$Latitude),
+                 if (nrow(ts) > 0) data.frame(Longitude = ts$Longitude, Latitude = ts$Latitude))
+    if (nrow(pts) < 3) next
+    e <- eigen(cov(cbind(pts$Longitude, pts$Latitude)))
+    a <- seq(0, 2*pi, length.out = 100); k <- sqrt(qchisq(0.95, df = 2))
+    out[[site_plot]] <- data.frame(
+      Longitude = mean(pts$Longitude) + k * sqrt(e$values[1]) * cos(a) * e$vectors[1,1] + k * sqrt(e$values[2]) * sin(a) * e$vectors[1,2],
+      Latitude  = mean(pts$Latitude)  + k * sqrt(e$values[1]) * cos(a) * e$vectors[2,1] + k * sqrt(e$values[2]) * sin(a) * e$vectors[2,2],
+      Site_Plot = site_plot, Site = ps$Site[1], Plot = ps$Plot[1], n_points = nrow(ps), n_trees = nrow(ts))
+  }
+  do.call(rbind, out)
+}
+plot_tree_ellipses <- create_plot_tree_ellipses(plots_data, trees_with_plots)
+cat(sprintf("monthly-survey trees %d on %d plot ellipses; stream flags %d\n",
+            nrow(trees_with_plots), length(unique(plot_tree_ellipses$Site_Plot)), nrow(river_data)))
+
+# ---- the figure ----------------------------------------------------------------
 suppressPackageStartupMessages({library(fields); library(sf); library(terra); library(ggnewscale)
                                 library(ggspatial); library(patchwork); library(maps)})
 source("code/lib/geometry.R")
@@ -220,7 +94,7 @@ MS <- readRDS("outputs/models/moisture_surface_tps.rds")
 tr_ms <- geo_transforms()
 to_utm <- function(lon, lat) st_coordinates(st_transform(st_as_sf(data.frame(lon = lon, lat = lat), coords = c("lon", "lat"), crs = 4326), UTM))
 
-# stems: the canonical inventory the upscaling uses (in-stand, located), not the older fg_final join
+# stems: the canonical inventory the upscaling uses (in-stand, located)
 INVc <- canonical_inventory(); INVc <- INVc[INVc$located, ]
 llc <- tr_ms$fwd(INVc$PX, INVc$PY)
 TR  <- as.data.frame(to_utm(llc$lon, llc$lat)); TR$BA <- pi * (INVc$dbh_m / 2)^2; TR$species <- INVc$species
@@ -387,5 +261,4 @@ rowA <- cowplot::plot_grid(pa0, colA, nrow = 1, rel_widths = c(1, 0.28))
 rowB <- cowplot::plot_grid(pb0, legB, nrow = 1, rel_widths = c(1, 0.28))
 final_extended_plot <- cowplot::plot_grid(rowA, rowB, ncol = 1, labels = c("(a)", "(b)"), label_size = 14)
 
-print(final_extended_plot)
 ggsave("outputs/figures/original/supplementary/figS1_moisture_overlay.png", final_extended_plot, width = 11, height = 15.5, dpi = 300, bg = "white")

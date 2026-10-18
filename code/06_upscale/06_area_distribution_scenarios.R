@@ -1,14 +1,10 @@
-source("code/lib/outputs.R")
 #!/usr/bin/env Rscript
 # ==============================================================================
-# 06_area_distribution_scenarios.R
+# 06_area_distribution_scenarios.R -- how is woody surface area distributed with height?
 # ------------------------------------------------------------------------------
-# HOW IS WOODY SURFACE AREA DISTRIBUTED WITH HEIGHT?
-#
-# This is an unconstrained assumption -- no LiDAR, no branch harvest at this site --
-# and it was previously left implicit. The scaling had been assuming PER-TREE UNIFORM
-# area density from 0 to each stem's height. That is documented here as one scenario
-# among several rather than carried silently.
+# Stage C (non-fatal audit); run from the repository root. The vertical distribution
+# is an unconstrained assumption (no LiDAR, no branch harvest at this site), so it is
+# set out here as a set of scenarios.
 #
 # The area of each stem is split into a BOLE and a BRANCH component, each with its own
 # vertical shape, then summed across all stems. Because stem heights differ, the
@@ -37,34 +33,21 @@ source("code/lib/outputs.R")
 #              branch = bole * branch:stem ratio (W&W: 2.7 Smokies deciduous, 4.0
 #                       Brookhaven oak-pine)
 #
-# Output: outputs/data/area_distribution_scenarios.csv / .txt
+# Output: outputs/data/area_distribution_scenarios.csv
 #         outputs/figures/generated/fig_area_distribution_scenarios.png
 # ==============================================================================
+source("code/lib/outputs.R")
 
 suppressMessages({library(ranger);library(dplyr);library(ggplot2);library(tidyr);library(patchwork)})
 set.seed(42)
-outdir <- "outputs"; dir.create(outdir, showWarnings=FALSE, recursive=TRUE)
 source("code/lib/geometry.R")
 source("code/lib/species_levels.R")
 load("outputs/models/RF_MODELS.RData"); load("outputs/models/TRAINING_DATA.RData")
 d <- tree_train_complete; trained <- sort(unique(as.character(d$species_clean)))
 CONV <- 86400*365.25*16e-6
-A_PLOT <- STAND_AREA_M2   # censused ground. Was hardcoded 200*200 = 40,000, which
-                          # is the NOMINAL square and 7.5% too large, so every WAI
-                          # and every mg m-2 this script reported was low by that.
+A_PLOT <- STAND_AREA_M2   # censused ground (geometry.R)
 
-# CANONICAL INPUTS, not private re-derivations. This script used to carry its own
-# copy of the whole upscaling front end, and every part of it had drifted:
-#   * rf_workflow_data$PLACEHOLDER_INVENTORY -- the pre-rebuild inventory, before
-#     the bytag coordinate rescue and the DBH unit fix (08_inventory_build.R);
-#   * an fx() stack of species-specific DBH "repairs" that 08_inventory_build.R
-#     replaced with one documented rule, and which over-corrected;
-#   * the campaign monthly drivers with approx(rule = 2) gapfilling, rather than
-#     the climatologies;
-#   * an UNCALIBRATED 2 m anchor predicted here from scratch;
-#   * the species-ladder bug (see species_levels.R).
-# It now reads the same products 07_scaling_full_grid.R reads, so the two cannot
-# disagree. One producer per quantity.
+# The inventory and the calibrated 2 m anchor per stem, as 07_scaling_full_grid.R reads them
 NEED <- c(inv="outputs/tables/inventory_stems.csv",
           tree="outputs/tables/tree_flux_predictions.csv")
 if (any(!file.exists(NEED)))
@@ -74,23 +57,16 @@ INV <- read.csv(NEED[["inv"]],  stringsAsFactors=FALSE)
 TRP <- read.csv(NEED[["tree"]], stringsAsFactors=FALSE)
 INV <- INV[INV$in_stand, ]; TRP <- TRP[TRP$in_stand, ]
 stopifnot(nrow(INV) == nrow(TRP))
-INV$dbh <- INV$dbh_m          # already unit-checked and typo-repaired upstream
+INV$dbh <- INV$dbh_m
 INV$sp  <- species_to_model_level(INV$species, trained)
-GY <- c("Pinus strobus","Tsuga canadensis")
-# One allometry, from geometry.R. This was a copy-pasted duplicate that retyped
-# the canopy anchor and both exponents and recomputed the 95th-percentile DBH
-# locally, so changing CANOPY_H_M or the exponents would have moved none of them.
-# NO shrub cap: the published allometry is applied uniformly
-INV$H <- stem_height_m(INV$dbh, INV$species)
+INV$H <- stem_height_m(INV$dbh, INV$species)   # the one allometry (geometry.R); no shrub cap
 
 TAPER <- 1.275     # midpoint of W&W 1.20-1.35
-BRSTEM <- 3.35     # midpoint of 2.7-4.0
+BRSTEM <- BRANCH_STEM_RATIO   # W&W midpoint of 2.7-4.0 (geometry.R)
 INV$A_bole   <- pi*INV$dbh*INV$H/2 * TAPER
 INV$A_branch <- INV$A_bole * BRSTEM
 
-# ---- 2 m anchor per tree: READ the canonical calibrated value ----------------
-# This was re-predicted here from the campaign drivers with no per-species
-# calibration, so it disagreed with the anchor the budget and the grid use.
+# ---- 2 m anchor per tree: the calibrated value of 01_predict_tree_flux.R -------
 f2 <- TRP$flux_2m_nmol_m2_s
 stopifnot(all(is.finite(f2)))
 

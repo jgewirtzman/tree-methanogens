@@ -13,23 +13,23 @@ Action types: **removed** (row dropped from analysis, still in the archive with 
 where possible) · **flagged** (row kept, column says why) · **corrected** (value changed,
 original recoverable from raw) · **defined** (a convention every downstream step follows).
 
-Counts are as of 2026-10-01. *Status* marks rules whose effect is not yet logged by the
-pipeline itself; those are being wired so the counts are produced, not typed.
+Counts are as of the run of 2026-10-17; each is reported in the log of the script that
+applies the rule.
 
 ## 1. Stem and soil flux
 
 | # | rule | action | applied in | rows affected | why |
 |---|---|---|---|---|---|
-| F1 | July 2021 campaign dates: the import hard-coded one base date onto a 19-day campaign | corrected | 05_model/01_load_and_prep_data.R (per-deployment dates from the field sheets; base date is a logged fallback only) | 46% of July 2021 rows had August dates labelled July | wrong dates mis-assign temperature and moisture |
+| F1 | July 2021 campaign dates: each deployment is dated at its own logged start (an early import had put one base date on a 19-day campaign) | corrected | tables/10_flux_stem.R (start_time) → 05_model/01_load_and_prep_data.R | 46% of July 2021 rows had carried August dates labelled July | wrong dates mis-assign temperature and moisture |
 | F2 | December 2020 monthly-survey files handled separately (date format) | corrected | 02_flux/semirigid/05_fix_december.R | December 2020 campaign | otherwise not matched to its aux file |
-| F3 | Failed goFlux fits reprocessed with manual window corrections | corrected | 02_flux/static/05_fix_failed.R | *status: count to be logged* | fits that failed on default windows |
+| F3 | 2021 fits that failed on their first windows, re-picked by hand | corrected | data/raw/flux_windows/lgr_manual_identification_2021_multiheight_final.csv (tools/repick_failed_2021_windows.R) | 5 deployments | fits that failed on the first windows |
 | F4 | Untagged monthly stems: closure windows chosen by hand, stems given species | corrected | interactive rescue; products in data/processed/flux/untagged_rescue/ | 49 fluxes on 7 stems | otherwise silently dropped; cannot be regenerated without repeating the clicking |
 | F5 | Analyzer cell volume 28 cm³ (was goFlux's 70 cm³ example value) | corrected | lib/chamber_constants.R → 02_flux/01_apply_auxfile_vtot.R | every flux; −0.5 to −6.8% | wrong system volume scales every flux |
 | F6 | Closure duration in seconds for the minimum detectable flux (2021 logged every 5 s) | corrected | 02_flux/03_precision_and_detection.R | MDF of every 2021 measurement (was 5× too high) | MDF used sample count in place of seconds |
-| F7 | Chamber not at ambient at closure: starting CH₄ > 1.5× the campaign median | removed | 02_flux/02_qc_c0_screen.R → outputs/data/qc_excluded_measurements.csv | 2 soil deployments (5.7× and 24× median); 0 stems | procedural failure |
-| F8 | Detection status from the MDF (90%) and slope p-value | flagged | 02_flux/03_precision_and_detection.R | 772 of 1,146 stem and 260 of 286 soil measurements detected | reported, never used to exclude |
-| F9 | Chamber-type offset: semirigid (monthly) relative to rigid, estimated on the asinh scale with environment and species | corrected | 05_model/02_rf_models.R | all semirigid stem rows entering the model | systematic chamber difference; chamber type has no counterpart on inventory stems. Fitted β = −0.025 on the asinh scale (SE 0.019; 95% CI −0.063 to 0.012), i.e. not distinguishable from zero; logged in outputs/logs/02_rf_models.txt |
-| F10 | Per-campaign flux filenames (three campaigns had overwritten one shared name) | defined | 02_flux/assemble_campaign_flux.R, migrate_campaign_filenames.R | all campaigns | a filename collision silently dropped campaigns |
+| F7 | Chamber not at ambient at closure: starting CH₄ > 1.5× the campaign median | removed | 02_flux/02_qc_c0_screen.R → data/processed/flux/qc_excluded_measurements.csv | 2 soil deployments (5.7× and 24× median); 0 stems | procedural failure |
+| F8 | Detection status from the MDF (90%) and slope p-value | flagged | 02_flux/03_precision_and_detection.R | 801 of 1,191 stem and 259 of 286 soil measurements detected | reported, never used to exclude |
+| F9 | Chamber-type offset: semirigid (monthly) relative to rigid, estimated on the asinh scale with the stem forest's predictors | corrected | 05_model/02_rf_models.R | all semirigid stem rows entering the model | systematic chamber difference; chamber type has no counterpart on inventory stems. Fitted β = −0.032 on the asinh scale (SE 0.018; 95% CI −0.068 to 0.003), i.e. not distinguishable from zero; logged in outputs/logs/02_rf_models.txt |
+| F10 | Per-campaign flux filenames (three campaigns had overwritten one shared name) | defined | 02_flux/helper_assemble_campaign_flux.R, migrate_campaign_filenames.R | all campaigns | a filename collision silently dropped campaigns |
 | F11 | Hand-picked closure windows and the linear/non-linear model choice are the record; fits are repeated from them | defined | data/raw/flux_windows/ (lgr_manual_identification_*.csv, flux_model_choices.csv); lib/flux_windows.R; tools/rebuild_closure_windows.R | windows for every campaign (monthly 369 and 2023 338 recovered exactly from the stored fits); 2,868 model choices | goFlux 0.2.0 chooses the non-linear model differently for ~9% of deployments; the choice made at the time is kept |
 | F12 | Soil fits from saved windows use the collar geometry, not the volume stored in the window file | corrected | lib/chamber_constants.R (SOIL_VTOT_L) → 04_goflux_soils.R, 05_fix_december.R | 30 December 2020 soil deployments | those windows carry the pre-correction 17.81 L collar volume; the result had depended on a later rescaling step that also rewrote the window files |
 
@@ -37,9 +37,9 @@ pipeline itself; those are being wired so the counts are produced, not typed.
 
 | # | rule | action | applied in | rows affected | why |
 |---|---|---|---|---|---|
-| T1 | Dead stems | flagged; excluded from model training | lib/dead_stems.R | 59 deployments on 12 stems | the inventory contains no dead stems; kept in all descriptive analyses |
-| T2 | Root-crown measurement | excluded from model training | 05_model/03_export_canonical_tables.R | 1 deployment | not a stem surface |
-| T3 | Every deployment carried in one table with `in_rf_training` and `exclusion_reason` | defined | 05_model/03_export_canonical_tables.R | 1,191 deployments; 1,131 train | row accounting is checked by check_consistency.R |
+| T1 | Dead stems | flagged; excluded from model training | tables/04_trees.R (dead, dead_from) → tables/10_flux_stem.R (dead_stem) | 64 deployments on 16 trees | the inventory contains no dead stems; kept in all descriptive analyses |
+| T2 | Root-crown measurement | excluded from model training | tables/10_flux_stem.R (in_rf_training) | 1 deployment | not a stem surface |
+| T3 | Every deployment carried in one table with `in_rf_training` and `exclusion_reason` | defined | tables/10_flux_stem.R; 05_model/03_export_canonical_tables.R | 1,200 deployments (1,191 outside the felled oak); 1,126 train | row accounting is checked by check_consistency.R |
 | T4 | Species calibration needs ≥ 5 training measurements | defined | lib/species_calibration.R | levels with < 5 get ratio 1 | one measurement cannot calibrate a species |
 
 ## 3. Internal gas and isotopes
@@ -61,7 +61,7 @@ pipeline itself; those are being wired so the counts are produced, not typed.
 | V3 | Stems far from their own quadrat label | flagged unlocated, kept | 08_inventory_build.R | 14 | position contradicts the census |
 | V4 | Repeated tags kept (tags are reused; 70 carry different species) | corrected | 08_inventory_build.R | 169 stems restored | had been de-duplicated away |
 | V5 | 2018 multi-stem trees from the census "multiple stems" sheet | corrected | 08_inventory_build.R, data/raw/inventory/fg_2018_multiple_stems.csv | 40 stems on 17 trees | diameters live only on that sheet |
-| V6 | Diameter decimal-shift repair | corrected | 08_inventory_build.R | 8 of 8,208 stems | data-entry errors |
+| V6 | Diameter decimal-shift repair | corrected | 08_inventory_build.R | 8 of 8,197 stems | data-entry errors |
 | V7 | Stems in the uncensused notch | removed | 08_inventory_build.R | 3 | outside the censused stand |
 | V8 | Stems without coordinates kept in the stand total | flagged | 08_inventory_build.R | 34 | they are in the stand; only their position is unknown |
 | V9 | No dead stems: neither census records a dead status | defined | — | — | why the model is trained on live stems only |
@@ -71,8 +71,8 @@ pipeline itself; those are being wired so the counts are produced, not typed.
 | # | rule | action | applied in | rows affected | why |
 |---|---|---|---|---|---|
 | M1 | 16S: chloroplast and mitochondrial reads removed, rarefied to 3,500 | removed | 16S processing (lib/build_phyloseq.R) | 35 wood samples fall below 3,500 after plastid removal | host DNA; dropout disclosed in Methods S3 |
-| M2 | ddPCR copies g⁻¹ = copies µL⁻¹ of reaction × (25/2.5) template dilution × elution (75 µL wood, 100 µL soil) × (800/250) lysate scaling ÷ mass; dry mass for wood, fresh mass for soil | defined | lib/ddpcr_constants.R, used by 03_merge/04_harmonize_all_data.R | all ddPCR values | lysate volume (250 µL) a lower bound, pending confirmation |
-| M3 | ddPCR "loose" vs "strict" positive calls; analyses use loose | defined | harmonize_all_data.R | all ddPCR values | stated convention |
+| M2 | ddPCR copies g⁻¹ = copies µL⁻¹ of reaction × (25/2.5) template dilution × elution (75 µL wood, 100 µL soil) × (800/250) lysate scaling ÷ mass; dry mass for wood, fresh mass for soil | defined | lib/ddpcr_constants.R, used by tables/21_ddpcr.R | all ddPCR values | lysate volume (250 µL) a lower bound |
+| M3 | ddPCR "loose" vs "strict" positive calls; analyses use loose | defined | tables/21_ddpcr.R | all ddPCR values | stated convention |
 | M4 | Methanotroph classification by methane-monooxygenase capacity (Known / Putative / listed, not counted) | defined | lib/load_methanotroph_definitions.R, methanotroph_definitions.csv | all 16S methanotroph ASVs | growth phenotype is not the criterion |
 | M5 | 16S and ITS copy numbers are the sequencing facility's qPCR values | defined | sample metadata | — | not ddPCR; the ddPCR conversion does not apply |
 
@@ -80,5 +80,5 @@ pipeline itself; those are being wired so the counts are produced, not typed.
 
 | # | rule | action | applied in | rows affected | why |
 |---|---|---|---|---|---|
-| E1 | Soil environment archive is the union of the per-date sheets and the 2020 summary | corrected | tables/05_soil_readings.R (03_merge/02_compile_soil_env.R retired 2026-10-17) | 291 records, 22 dates | earlier builds read one source and lost dates |
-| E2 | Stream points in the December moisture survey set to 100% VWC | defined | 04_drivers/04_moisture_surface.R | stream boundary points | an assumption, not a measurement; anchors the wet end |
+| E1 | Soil environment archive is the union of the per-date sheets and the 2020 summary | corrected | tables/05_soil_readings.R | 291 records, 22 dates | earlier builds read one source and lost dates |
+| E2 | Stream channel set to 100% VWC in the Fig. S1 moisture map only (after the fit); the moisture surface uses the survey points alone | defined | 08_figures/figS01_moisture-overlay.R | the defined channel (1-2 m wide) | display only; no stream VWC was measured |

@@ -1,5 +1,4 @@
 #!/usr/bin/env Rscript
-source("code/lib/outputs.R")
 # ==============================================================================
 # 04_trees.R -- inventory_stems.csv, trees.csv and tree_tags.csv (data/tables/)
 # ------------------------------------------------------------------------------
@@ -67,6 +66,7 @@ source("code/lib/outputs.R")
 #        outputs/audit/{tag_collisions,tree_species_conflicts,tree_dead_status,
 #                       tree_tags_unresolved}.csv, outputs/audit/trees_build.txt
 # ==============================================================================
+source("code/lib/outputs.R")
 suppressPackageStartupMessages(library(tidyverse))
 source("code/lib/geometry.R"); source("code/lib/tree_mentions.R")
 OUT <- "data/tables"; dir.create(OUT, showWarnings = FALSE, recursive = TRUE)

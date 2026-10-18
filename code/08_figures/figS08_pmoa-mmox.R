@@ -1,44 +1,31 @@
-source("code/lib/outputs.R")
 # ==============================================================================
-# SI: pmoA and mmoX by compartment (a), coupling (b,c) and composition (d,e),
-# WOOD (focus) vs SOIL (contrast).
-# Tree-focused; four compartments (BrBG palette): Heartwood, Sapwood (wood) /
-# Organic, Mineral (soil), each with its own fit.
-#   (a) Wood decoupling: pmoA vs mmoX (heartwood/sapwood) — no co-variation (r2~0).
-#   (b) Soil decoupling: pmoA vs mmoX (organic/mineral) — co-vary.
-#   (c) Wood composition: balance log(pmoA/mmoX) vs size 1/2[log pmoA + log mmoX],
-#       heartwood/sapwood with individual fits + independence permutation.
-#   (d) Soil composition: same axes for organic/mineral.
-#       PERMUTATION NULL: shuffle pmoA and mmoX INDEPENDENTLY across samples (preserves
-#       each gene's marginal, breaks within-sample pairing), recompute the balance-size
-#       slope; two-sided p = deviation from that null. This controls the built-in
-#       balance-vs-size geometry (a steep slope is mechanically expected when one gene
-#       has restricted variance). WOOD matches the null (perm p 0.47/0.32) -> the ~1.4
-#       slope IS that mechanical expectation (mmoX = fixed low background, pmoA carries
-#       the variance), NOT co-regulation. SOIL deviates (perm p < 0.001) -> real coupling.
-#
-# UNITS: copies g^-1 (= copies/uL x elution/mass). BASIS DIFFERS BY MATERIAL: WOOD tube
-#   mass is a subsample of freeze-dried core -> DRY; SOIL has no per-sample dry mass or
-#   moisture -> FIELD-MOIST -> FRESH (labeled as such; dry-basis harmonization pending).
-#   Conclusions basis-invariant (ratio/slope-based; per-sample mass scalar cancels) and
-#   normalization-robust (within-habitat mass CV 3-4%). Do NOT pool wood+soil (cross-
-#   habitat CV 44%); habitats kept separate. Balances/ratios are unit-invariant.
-# NONDETECTS: kept via log10(x+1) in the decoupling panels (wood ND 3-5%, soil 0%).
-#   Composition panels need both genes detected (ratio undefined at a zero) -> complete-case.
-# NOTE size axis = geometric-mean center (the 1/2 is the Bland-Altman mean); NOT the
-#   arithmetic-sum "total abundance" used elsewhere.
-# Copies g-1 from data/tables/ddpcr.csv (code/lib/ddpcr_constants.R); ratios/slopes are unit-free.
-# Original S10 generator untouched. Output: outputs/figures/generated/figS10_final.png
+# figS08_pmoa-mmox.R -- Figure S9: pmoA and mmoX by compartment, and their coupling
+# ------------------------------------------------------------------------------
+# Stage E. Run from the repository root.
+#   (a) pmoA and mmoX by compartment: median and IQR, copies g-1 (non-detects as 0)
+#   (b, c) coupling: log10(mmoX + 1) against log10(pmoA + 1), wood (heartwood, sapwood)
+#       and soil (organic, mineral), one linear fit per compartment
+#   (d, e) composition: balance log10(pmoA/mmoX) against size
+#       1/2 (log10 pmoA + log10 mmoX), wood and soil, samples with both genes detected
+# PERMUTATION NULL for (d, e): pmoA and mmoX are shuffled INDEPENDENTLY across samples
+# (each gene's marginal kept, the within-sample pairing broken) and the balance-size
+# slope recomputed, 3000 times; two-sided p = deviation from that null. A steep slope
+# is expected mechanically when one gene has restricted variance, so only a deviation
+# from the null indicates coupling.
+# Units: copies g-1, dry mass for wood, fresh mass for soil (data/tables/ddpcr.csv,
+# code/lib/ddpcr_constants.R); slopes and ratios are unit-free. Wood and soil are never
+# pooled. The size axis is the geometric-mean centre, not the arithmetic total
+# abundance used elsewhere.
+# Samples: 2021 DNA samples with both genes measured (dna_samples(), mean over a
+#   sample's runs that passed QC); a sample with one gene missing is left out.
+# Outputs: outputs/figures/generated/figS10_final.png, outputs/data/pmoa_mmox_by_compartment.csv
 # ==============================================================================
 suppressPackageStartupMessages({ library(tidyverse); library(patchwork) })
-out <- "outputs"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
+source("code/lib/outputs.R")
 source("code/lib/ddpcr_constants.R")
 COMP4 <- c(Heartwood = "#a6611a", Sapwood = "#dfc27d", Organic = "#018571", Mineral = "#80cdc1")
 WOODC <- c("Heartwood", "Sapwood"); SOILC <- c("Organic", "Mineral")
 
-# per DNA sample (data/tables/ddpcr.csv + samples.csv via dna_samples()): copies per g,
-# mean over a sample's runs that passed QC. Both genes must have been measured (a sample
-# with one gene missing is left out; until 2026-10-16 a missing gene was entered as 0).
 source("code/lib/tables_read.R")
 W <- dna_samples("2021_survey") %>%
   filter(!is.na(pmoa_g), !is.na(mmox_g)) %>%
@@ -69,7 +56,7 @@ fmtp <- function(p) ifelse(p < 0.001, "<0.001", sprintf("=%.2f", p))
 fmtr <- function(r) ifelse(r < 0.001, "<0.001", sprintf("=%.3f", r))
 permlab <- function(p) ifelse(p < 0.001, "<0.001", sprintf("=%.2f", p))
 
-# ---- (a),(b) decoupling by compartment ---------------------------------------
+# ---- (b),(c) coupling by compartment ------------------------------------------
 decouple_panel <- function(comps, basis) {
   dd <- dec %>% filter(comp %in% comps)
   p <- ggplot(dd, aes(lp1, lm1, color = comp)) +
@@ -86,9 +73,8 @@ decouple_panel <- function(comps, basis) {
     labs(x = bquote(log[10]~italic(pmoA)~"(copies g"^-1*" "*.(basis)*" + 1)"),
          y = bquote(log[10]~italic(mmoX)~"(copies g"^-1*" "*.(basis)*" + 1)")) + th + theme(legend.position = "none")
 }
-pa <- decouple_panel(WOODC, "dry"); pb <- decouple_panel(SOILC, "fresh")
 
-# ---- (c),(d) composition by compartment --------------------------------------
+# ---- (d),(e) composition by compartment --------------------------------------
 comp_panel <- function(comps) {
   d <- cc %>% filter(comp %in% comps); st <- compstat %>% filter(comp %in% comps)
   p <- ggplot(d, aes(size, bal, color = comp)) +
@@ -103,12 +89,9 @@ comp_panel <- function(comps) {
   p + labs(x = expression("Size, "*frac(1,2)*"(log"[10]*" "*italic(pmoA)*" + log"[10]*" "*italic(mmoX)*")"),
            y = expression("log"[10]*"("*italic(pmoA)*" / "*italic(mmoX)*")")) + th + theme(legend.position = "none")
 }
-pc <- comp_panel(WOODC); pd <- comp_panel(SOILC)
 
 # ---- (a) pmoA and mmoX separately, by compartment (median + IQR) -------------
-# Merged in 2026-10-01 from the archived rev_figS07_pmoa-mmox-compartment.R (old SI
-# S07), which recomputed copies/g its own way and was no longer run by the pipeline.
-# Same data and copies/g as panels (b)-(e); nondetects enter as zero.
+# Same samples and copies/g as panels (b)-(e); non-detects enter as zero.
 sep <- dec %>% select(comp, pmoA = pmoa_g, mmoX = mmox_g) %>%
   pivot_longer(c(pmoA, mmoX), names_to = "gene", values_to = "cg") %>%
   group_by(comp, gene) %>%

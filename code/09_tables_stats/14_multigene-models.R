@@ -1,22 +1,19 @@
-source("code/lib/outputs.R")
 # ==============================================================================
-# Species-level multi-gene flux models (does adding a methanotroph term
-# to mcrA improve the fit?). Companion to R_S1S2_arcsinh.R / R_figS11_final.R.
-# Species level (n=10, >=5 trees & >=5 flux). Response = arcsinh flux (cofactor 0.1),
-# transform-then-aggregate on both axes. Reports every combination with R2, ADJUSTED
-# R2, AIC (the fair small-n metrics), and the per-term coefficient sign + p, for BOTH
-# median and mean aggregation.
-# Key question: flux ~ mcrA + pmoA vs flux ~ mcrA. Honest reading: adding the
-# oxidation term improves adj-R2 under MEDIAN (mcrA enters +, methanotroph -), but not
-# under MEAN, and no methanotroph term is individually significant at n=10.
-# Sources 02_scale for data only (outputs git-restored by wrapper).
+# 14_multigene-models.R -- species-level multi-gene flux models
+# ------------------------------------------------------------------------------
+# Does adding a methanotroph term to mcrA improve the species-level fit? Species
+# with >= 5 trees and >= 5 fluxes (n = 10). Response: arcsinh flux (cofactor 0.1,
+# log10 units), transformed before aggregating; genes log10(x + 1). Every model is
+# reported with R2, adjusted R2, AIC and each term's sign and p, for median and mean
+# aggregation.
+# Data: code/07_molecular/helper_scale_dependent_gene_patterns.R (tables only).
 # Output: outputs/audit/species_multigene_models.txt
 # ==============================================================================
+source("code/lib/outputs.R")
 suppressWarnings(suppressMessages(source("code/07_molecular/helper_scale_dependent_gene_patterns.R")))
 suppressPackageStartupMessages(library(tidyverse))
-out <- "outputs"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
 sink(out_path("species_multigene_models.txt"), split = TRUE)
-asf <- function(x) asinh(x / 0.1) / log(10)
+source("code/lib/flux_transform.R")   # flux_asinh10()
 
 # species aggregates: transform THEN aggregate (median & mean), arcsinh flux + log genes
 TL <- tree_level_complete %>% mutate(lg_mcra = log10(mcrA+1), lg_pmoa = log10(pmoA+1),
@@ -25,7 +22,7 @@ G <- TL %>% group_by(species, species_id) %>%
   summarise(across(c(lg_mcra, lg_pmoa, lg_mmox, lg_meth, lg_ratio),
                    list(med = ~median(.x, na.rm=TRUE), mn = ~mean(.x, na.rm=TRUE)), .names = "{.col}_{.fn}"),
             n_trees = n(), .groups = "drop")
-F <- flux_all %>% mutate(af = asf(CH4_flux)) %>% group_by(species, species_id) %>%
+F <- flux_all %>% mutate(af = flux_asinh10(CH4_flux)) %>% group_by(species, species_id) %>%
   summarise(fmed = median(af, na.rm=TRUE), fmn = mean(af, na.rm=TRUE), n_flux = n(), .groups = "drop")
 S <- G %>% inner_join(F, by = c("species","species_id")) %>% filter(n_trees >= 5, n_flux >= 5)
 cat("n species =", nrow(S), "  (response = arcsinh flux, cofactor 0.1)\n\n")

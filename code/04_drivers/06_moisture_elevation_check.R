@@ -1,8 +1,8 @@
 #!/usr/bin/env Rscript
 # ==============================================================================
-# 06_moisture_elevation_check.R
+# 06_moisture_elevation_check.R -- an independent check on the moisture surface
 # ------------------------------------------------------------------------------
-# An INDEPENDENT check on the interpolated soil-moisture surface.
+# Stage C (non-fatal check), after 04_moisture_surface.R.
 #
 # Elevation never enters the moisture interpolation, so topography is a free
 # validation: water runs downhill, and a moisture surface that is capturing real
@@ -10,8 +10,10 @@
 # If the two are uncorrelated, the surface is not describing the plot's hydrology
 # and should be treated as decoration.
 #
-# Reads outputs/tables/combined_elevation_data.csv, which helper_spatial_interpolation.R
-# writes when Figure S1 is built, so the manifest runs this after figS01 (stage E).
+# Elevation: the GPS elevations recorded with the moisture survey points, the monthly-
+# survey plots, the wells, the monthly-survey trees (GPS outliers, > 2 SD from the
+# trees' median position, left out) and the stream flags
+# (data/raw/inventory/spatial_data/).
 #
 # Two tests, in increasing dependence on interpolation:
 #   1. AT THE SURVEY POINTS. Some rows of the elevation archive were recorded at
@@ -22,10 +24,9 @@
 #      compared cell by cell. Weaker, since both are smoothed, but it tests the
 #      thing the budget actually consumes.
 #
-# Elevation is NOT added as a predictor. Deliberately: rf_model_selection.R
-# already established that elevation and distance-to-river are static per collar
-# -- they take 28 distinct values across 266 observations and act as collar
-# identity in disguise, raising OOB R2 while LOWERING grouped-CV R2. Using
+# Elevation is not a model predictor: elevation and distance to river are static per
+# collar (28 values across 266 observations) and act as collar identity, raising OOB
+# R2 while lowering grouped-CV R2 (05_model/02_rf_models.R, soil feature set). Using
 # topography to VALIDATE an independently built surface is sound; using it to
 # fit one here is the overfitting route already rejected.
 #
@@ -37,7 +38,18 @@ suppressPackageStartupMessages({library(dplyr); library(fields); library(ggplot2
 set.seed(42)
 source("code/lib/geometry.R")
 
-E <- read.csv("outputs/tables/combined_elevation_data.csv", stringsAsFactors = FALSE)
+SPATIAL <- "data/raw/inventory/spatial_data"
+elev_of <- function(d, source) data.frame(Longitude = d$Longitude, Latitude = d$Latitude,
+                                          Elevation = d$Elevation, Source = source, stringsAsFactors = FALSE)
+TREES <- read.csv(file.path(SPATIAL, "YM_trees_measured.csv.csv"))
+dc <- sqrt((TREES$Longitude - median(TREES$Longitude, na.rm = TRUE))^2 +
+           (TREES$Latitude - median(TREES$Latitude, na.rm = TRUE))^2)
+TREES <- TREES[dc <= mean(dc, na.rm = TRUE) + 2 * sd(dc, na.rm = TRUE), ]
+E <- rbind(elev_of(read.csv(file.path(SPATIAL, "soil_moisture_20201216.csv")), "Soil_Moisture"),
+           elev_of(read.csv(file.path(SPATIAL, "plots.csv")), "Research_Plots"),
+           elev_of(read.csv(file.path(SPATIAL, "wells.csv")), "Wells"),
+           elev_of(TREES, "Trees"),
+           elev_of(readxl::read_excel(file.path(SPATIAL, "River.xlsx")), "River"))
 E <- E[is.finite(E$Longitude) & is.finite(E$Latitude) & is.finite(E$Elevation), ]
 M <- read.csv("data/tables/moisture_survey.csv", stringsAsFactors = FALSE)   # December 2020 survey
 M <- data.frame(lon = M$longitude, lat = M$latitude, vwc = M$soil_vwc_pct)

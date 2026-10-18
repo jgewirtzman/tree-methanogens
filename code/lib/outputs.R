@@ -1,20 +1,12 @@
 # ==============================================================================
-# Where outputs go. One definition, routed by artifact kind.
-#
-# WHY THIS EXISTS. outputs/revision/ was a flat dump of 196 files -- 70 .png,
-# 68 .csv, 51 .txt -- three unrelated kinds in one directory, mirroring the
-# code/revision/ mistake on the output side. Worse, 39 scripts wrote through a
-# local `out <- "outputs/revision"` variable and 15 of those emitted more than
-# one kind through it, so the destination could not be fixed by retargeting a
-# variable. Routing on the artifact's own extension handles both the literal and
-# the variable forms uniformly.
-#
+# outputs.R -- where outputs go: one definition, routed by the file's extension
+# ------------------------------------------------------------------------------
 #   out_path("canonical_budget.csv")  -> outputs/data/canonical_budget.csv
 #   out_path("rf_grouped_cv.txt")     -> outputs/audit/rf_grouped_cv.txt
 #   out_path("fig9_budget.png")       -> outputs/figures/generated/fig9_budget.png
 #
 # Pass `kind` to override the routing (e.g. out_path("x.png", "figures/qc")).
-# The directory is created on demand, so callers no longer need dir.create().
+# The directory is created on demand.
 # ==============================================================================
 
 OUT_ROOT <- "outputs"

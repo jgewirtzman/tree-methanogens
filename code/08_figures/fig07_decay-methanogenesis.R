@@ -1,27 +1,30 @@
 #!/usr/bin/env Rscript
 # ==============================================================================
-# fig07_decay-methanogenesis.R  (candidate expanded MAIN Fig 7 — DRAFT)
-# Folds the deterioration + fungal-decay story into Fig 7:
-#   TOP ROW  (population-level, a-b):
-#     a  stem decay (bark loss) -> CH4 flux hump   [2023 survey]
-#     b  fungal colonization (ITS load) -> mcrA hump, wood vs soil  [2021 survey]
-#   BOTTOM ROW (within the felled black oak, c-f) — vertical profiles vs height:
-#     c  internal CH4    d  mcrA (copies/g)    e  CH4 flux    f  fungal ITS load
-#   Methanogens/gas/flux peak at 4-6 m — the leading edge of the ~4 m decay cone
-#   (cavity <1 m, staining 1-2 m, clean >6 m) = intermediate/early decay, matching
-#   the two population humps.
-# Matches rev_fig07 felled-oak aesthetics. Data: canonical tables (code/lib/tables_read.R):
-#   felled oak  internal_gas.csv (calibrated trunk gas by height), ddpcr.csv + samples.csv
-#               (mcrA copies/g), qpcr.csv (ITS copies per uL extract, converted with each
-#               sample's own extraction mass), flux_stem.csv (2022_felled_oak)
-#   2023 survey flux_stem.csv (2023_cross_species; bark-loss score; species from trees.csv)
-#   2021 survey ddpcr.csv + qpcr.csv + samples.csv per DNA sample (dna_samples())
-# Writes outputs/figures/generated/fig7_decay_methanogenesis.png
+# fig07_decay-methanogenesis.R -- Figure 7: stem decay, fungi and methanogenesis
+# ------------------------------------------------------------------------------
+# Stage E. Run from the repository root.
+# Top row, populations:
+#   (a) CH4 flux against bark loss (2023 survey): quadratic mixed model
+#       asinh(flux) ~ x + x^2 + (1 | species), fit +/- 95% CI
+#   (b) mcrA against fungal ITS load per DNA sample (2021 survey): quadratic mixed
+#       model for wood, linear for soil
+# Bottom row, the felled black oak by height:
+#   (c) internal CH4 (fill: O2)  (d) mcrA, heartwood and sapwood  (e) CH4 flux
+#   (f) fungal ITS load in heartwood (linear axis)
+# Panel statistics: marginal R2 and the quadratic-term p; the ML-refit dAIC (quadratic
+# against linear) is printed for the text.
+# Inputs (data/tables/, via code/lib/tables_read.R)
+#   felled oak   internal_gas.csv (2022_felled_oak), dna_samples("2022_felled_oak")
+#                (mcrA copies per g; ITS per uL extract, converted per sample with its
+#                extraction mass, extract_copies_per_g() in code/lib/ddpcr_constants.R),
+#                flux_stem.csv (2022_felled_oak)
+#   2023 survey  flux_stem.csv (2023_cross_species: bark_missing score; species)
+#   2021 survey  dna_samples("2021_survey")
+# Output: outputs/figures/generated/fig7_decay_methanogenesis.png
 # ==============================================================================
 suppressMessages({library(tidyverse);library(patchwork);library(lme4);library(lmerTest)})
 source("code/lib/ddpcr_constants.R"); source("code/lib/tables_read.R")
-options(warn=-1)
-asinh10<-function(x) asinh(x/0.1)/log(10)
+source("code/lib/flux_transform.R")   # flux_asinh10()
 # marginal R2 for a mixed model (fixed-effects variance / total)
 r2m<-function(m){vf<-var(predict(m,re.form=NA));vc<-as.data.frame(VarCorr(m))
   vr<-sum(vc$vcov[vc$grp!="Residual"]);ve<-vc$vcov[vc$grp=="Residual"];as.numeric(vf/(vf+vr+ve))}
@@ -74,9 +77,10 @@ pf<-ggplot(itw,aes(height,ITS_g))+geom_smooth(se=FALSE,color="black",span=1)+
   ylab(expression("fungal ITS ("*10^9~"copies g"^-1*")"))+theme(plot.margin=margin(5,16,5,5))+scale_x_continuous(breaks=hb,labels=hlab,minor_breaks=NULL)
 
 ## ===================== TOP ROW: population humps =====================
+# ordinal condition score: the recorded 1-3, "dead" = 4
 ord<-function(v){v<-tolower(trimws(as.character(v)));x<-suppressWarnings(as.numeric(v));x[v=="dead"]<-4;x}
 y<-flux_stem_campaign("2023_cross_species")
-y<-y[!is.na(y$CH4_flux_nmol_m2_s),];y$fx<-asinh10(y$CH4_flux_nmol_m2_s);y$sp<-as.factor(y$species_code);y$x<-ord(y$bark_missing);y<-y[!is.na(y$x),]
+y<-y[!is.na(y$CH4_flux_nmol_m2_s),];y$fx<-flux_asinh10(y$CH4_flux_nmol_m2_s);y$sp<-as.factor(y$species_code);y$x<-ord(y$bark_missing);y<-y[!is.na(y$x),]
 mq<-lmer(fx~x+I(x^2)+(1|sp),data=y);co<-summary(mq)$coefficients;pqa<-co["I(x^2)","Pr(>|t|)"]
 # AIC compares fixed effects, so from ML refits (REML AICs are not comparable)
 mla<-lmer(fx~x+(1|sp),data=y);dAICa<-as.numeric(AIC(update(mla,REML=FALSE))-AIC(update(mq,REML=FALSE)));R2a<-r2m(mq)
@@ -87,9 +91,9 @@ pa<-ggplot(y,aes(x,fx))+geom_hline(yintercept=0,linetype=3,colour="grey70")+
   geom_jitter(width=.12,alpha=.15,size=1.1,colour="#756BB1")+
   geom_ribbon(data=gA,aes(x,ymin=fit-1.96*se,ymax=fit+1.96*se),alpha=.2,fill="#756BB1",inherit.aes=FALSE)+
   geom_line(data=gA,aes(x,fit),linewidth=1,colour="#54278f",inherit.aes=FALSE)+
-  annotate("text",Inf,asinh10(0.9),hjust=1.05,vjust=1,size=3.2,lineheight=.9,label=stat_lab(R2a,pqa))+
-  scale_x_continuous(breaks=1:4,labels=c("healthy","moderate","severe","dead"))+scale_y_continuous(breaks=asinh10(obrk),labels=obrk)+
-  coord_cartesian(ylim=asinh10(c(-0.3,1)))+shared_theme+labs(x="bark loss (decay)",y=expression(CH[4]~flux~(nmol~m^-2~s^-1)))
+  annotate("text",Inf,flux_asinh10(0.9),hjust=1.05,vjust=1,size=3.2,lineheight=.9,label=stat_lab(R2a,pqa))+
+  scale_x_continuous(breaks=1:4,labels=c("healthy","moderate","severe","dead"))+scale_y_continuous(breaks=flux_asinh10(obrk),labels=obrk)+
+  coord_cartesian(ylim=flux_asinh10(c(-0.3,1)))+shared_theme+labs(x="bark loss (decay)",y=expression(CH[4]~flux~(nmol~m^-2~s^-1)))
 
 # 2021 survey, per DNA sample: mcrA copies/g (ddpcr.csv, probe assay, loose threshold);
 # ITS: facility qPCR copies per uL of extract x elution / mass (extract_copies_per_g)

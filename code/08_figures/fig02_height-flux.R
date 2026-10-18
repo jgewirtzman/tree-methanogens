@@ -1,32 +1,24 @@
 # ==============================================================================
-# Height Effect Analysis (Figure 2)
+# fig02_height-flux.R -- Figure 2: stem CH4 flux with height, by species
+# ------------------------------------------------------------------------------
+# Stage E. Run from the repository root.
+#   (a) flux at 0.5, 1.25 and 2 m per species: half-boxplots and deployments, one
+#       shared arcsinh axis (code/lib/flux_transform.R)
+#   (b) height effect per species: lmer(flux ~ height + (1 | tree)), slope per m
+#       with 95% CI; p from the normal approximation of t
+#   (c) species means of soil VWC and soil mcrA (organic, mineral), z-scored
+# The 2021 multi-height deployments at 50, 125 and 200 cm are used; Kalmia latifolia
+# (measured at 75 cm and the root crown, no height_cm for the latter) is left out.
+# Inputs (data/tables/, via code/lib/tables_read.R)
+#   flux_stem.csv (2021_multiheight), trees.csv, species.csv
+#   survey_2021_trees(soil = TRUE): per-tree soil VWC (code/lib/soil_fill.R) and soil
+#     mcrA (ddpcr.csv + samples.csv)
+# Output
+#   outputs/figures/generated/fig2_final.png; height-effect statistics to the console
 # ==============================================================================
-# Purpose: Analyzes height-dependent CH4 flux patterns across species with
-#   statistical tests and visualization.
-#
-# Pipeline stage: 03 Analysis
-# Run after: 00_harmonization/02_harmonize_all_data.R
-#
-# Inputs (canonical tables, via code/lib/tables_read.R):
-#   - data/tables/flux_stem.csv (2021_multiheight deployments: tree_id, height_cm, flux)
-#   - data/tables/trees.csv (species, landscape position), species.csv (names)
-#   - survey_2021_trees(): per-tree soil (soil_readings; attach_soil() for VWC) and
-#     soil mcrA (ddpcr + samples)
-#
-# Outputs:
-#   - outputs/figures/original/main/fig2_height_dependent_flux.png
-# ==============================================================================
-
-# Fig 2 FINAL: copy of code/09_tables_stats/01_height_effects.R
-# with ONE change — panel a uses a shared signed pseudo-log x-axis across all species,
-# preserving the original grid layout and 7x7.5 dimensions; the original is not
-# edited. Output: outputs/figures/generated/fig2_final.png
 library(ggplot2)
 library(dplyr)
-library(purrr)
 library(lme4)
-library(gridExtra)
-library(grid)
 library(tidyr)
 library(scales)
 library(patchwork)
@@ -37,8 +29,8 @@ library(gghalves)
 # ==============================================================================
 
 source("code/lib/tables_read.R")
-# 2021 multi-height deployments; species and landscape position (plot) from trees.csv.
-# The root-crown deployment has no height_cm (it and the 75 cm rows are Kalmia, left out below).
+source("code/lib/flux_transform.R")
+# 2021 multi-height deployments; species and landscape position (plot) from trees.csv
 final_dataset <- flux_stem_campaign("2021_multiheight") %>%
   transmute(UniqueID = measurement_id, tree_id, species = species_code,
             plot = trees_table()$landscape_position[match(tree_id, trees_table()$tree_id)],
@@ -51,7 +43,7 @@ merged_data <- survey_2021_trees(soil = TRUE)   # 2021 survey per tree (data/tab
 # 2. PREPARE DATA
 # ==============================================================================
 
-# Publication colors — red for positive height effect, blue for negative
+# Publication colors -- red for positive height effect, blue for negative
 colors_pub <- c(
   "Significant Negative" = "#4575B4",
   "Significant Positive" = "#D73027",
@@ -66,7 +58,7 @@ shapes_pub <- c(
 
 boxplot_color <- "#756BB1"
 
-# Prepare data for top panel (boxplots)
+# Deployments with a height (the root crown has none) and flux; Kalmia left out
 plot_data_top <- final_dataset %>%
   mutate(height_numeric = as.numeric(measurement_height)) %>%
   filter(!is.na(CH4_best.flux) & !is.na(height_numeric)) %>%
@@ -94,30 +86,13 @@ plot_data_top <- plot_data_top %>%
             by = "species") %>%
   mutate(species_label = factor(species_label_with_n, levels = sort(unique(species_label_with_n))))
 
-# Calculate axis breaks for each species panel
-species_breaks <- plot_data_top %>%
-  group_by(species, species_label) %>%
-  summarise(
-    data_min = min(CH4_best.flux, na.rm = TRUE),
-    data_max = max(CH4_best.flux, na.rm = TRUE),
-    .groups = 'drop'
-  ) %>%
-  mutate(
-    breaks_list = case_when(
-      species == "SAAL" ~ map2(data_min, data_max, ~ c(.x, .y)),
-      TRUE ~ map2(data_min, data_max, ~ c(.x, (.x + .y)/2, .y))
-    )
-  )
-
-breaks_lookup <- setNames(species_breaks$breaks_list, species_breaks$species_label)
-
 # ==============================================================================
 # 3. MIXED-EFFECTS HEIGHT ANALYSIS
 # ==============================================================================
 
-analysis_data <- plot_data_top %>%
-  mutate(tree_unique = paste(plot, tree_id, sep = "_"))
+analysis_data <- plot_data_top
 
+# Species with fewer than 3 trees measured at more than one height are not tested
 test_species_height_effect <- function(species_name, data) {
   species_data <- data %>% filter(species == species_name)
 
@@ -138,179 +113,55 @@ test_species_height_effect <- function(species_name, data) {
     ))
   }
 
-  tryCatch({
-    model <- lmer(CH4_best.flux ~ height_numeric + (1|tree_unique), data = species_data)
-    coef_table <- summary(model)$coefficients
-    height_row <- which(rownames(coef_table) == "height_numeric")
-
-    data.frame(
-      species = species_name, n_obs = n_obs, n_trees = n_trees,
-      n_trees_multi_height = n_trees_multi_height,
-      height_coef = coef_table[height_row, "Estimate"],
-      height_se = coef_table[height_row, "Std. Error"],
-      height_t = coef_table[height_row, "t value"],
-      height_p = 2 * (1 - pnorm(abs(coef_table[height_row, "t value"]))),
-      model_type = "mixed_effects"
-    )
-  }, error = function(e) {
-    tryCatch({
-      model <- lm(CH4_best.flux ~ height_numeric, data = species_data)
-      coef_table <- summary(model)$coefficients
-      height_row <- which(rownames(coef_table) == "height_numeric")
-
-      data.frame(
-        species = species_name, n_obs = n_obs, n_trees = n_trees,
-        n_trees_multi_height = n_trees_multi_height,
-        height_coef = coef_table[height_row, "Estimate"],
-        height_se = coef_table[height_row, "Std. Error"],
-        height_t = coef_table[height_row, "t value"],
-        height_p = coef_table[height_row, "Pr(>|t|)"],
-        model_type = "linear_model"
-      )
-    }, error = function(e2) {
-      data.frame(
-        species = species_name, n_obs = n_obs, n_trees = n_trees,
-        n_trees_multi_height = n_trees_multi_height,
-        height_coef = NA, height_se = NA, height_t = NA, height_p = NA,
-        model_type = "failed"
-      )
-    })
-  })
+  model <- lmer(CH4_best.flux ~ height_numeric + (1|tree_unique), data = species_data)
+  coef_table <- summary(model)$coefficients
+  data.frame(
+    species = species_name, n_obs = n_obs, n_trees = n_trees,
+    n_trees_multi_height = n_trees_multi_height,
+    height_coef = coef_table["height_numeric", "Estimate"],
+    height_se = coef_table["height_numeric", "Std. Error"],
+    height_t = coef_table["height_numeric", "t value"],
+    height_p = 2 * (1 - pnorm(abs(coef_table["height_numeric", "t value"]))),
+    model_type = "mixed_effects"
+  )
 }
 
 species_list <- sort(unique(plot_data_top$species))
 species_results <- do.call(rbind, lapply(species_list, test_species_height_effect, analysis_data))
 
 # ==============================================================================
-# 4. PANEL A — Species boxplots (top)
+# 4. PANEL A -- species half-boxplots, one faceted plot
 # ==============================================================================
-
-# --- Fig 2a: ONE shared signed pseudo-log x-axis for all species ----------------
-# Original drew each species on its own free linear axis (its min/mid/max), so
-# scales were not comparable and single outliers distorted panels. Same transform
-# now on every panel; dashed line = zero net flux. Layout/grid otherwise unchanged.
-PANEL_A_STYLE <- "boxplot"   # "boxplot" (half-boxplot + jitter) or "meanSE" (mean +/- SE over jitter)
-# arcsinh (inverse hyperbolic sine) transform: signed, ~linear within the cofactor
-# window, log-like for larger |x|; handles zeros/negatives. Cofactor 0.1 unified
-# across the main flux-axis figures (Fig 1, Fig 2, Fig 3).
-asinh_cofac <- 0.1
-trans_symlog_fig2 <- scales::trans_new("arcsinh",
-  transform = function(x) asinh(x / asinh_cofac),
-  inverse   = function(x) asinh_cofac * sinh(x))
-shared_brks_fig2  <- c(0, 0.1, 1)   # 3 well-separated ticks (fixes label crowding near zero)
+# One shared arcsinh flux axis (cofactor 0.1, as Figs 1 and 3); dashed line = zero
+# net flux. Axis text only on the outer panels, species names as strips.
+trans_symlog_fig2 <- flux_asinh_trans()
+shared_brks_fig2  <- c(0, 0.1, 1)   # 3 well-separated ticks (no label crowding near zero)
 shared_lims_fig2  <- range(c(plot_data_top$CH4_best.flux, shared_brks_fig2), na.rm = TRUE)
 shared_lab_fig2   <- function(x) sub("-", "\u2212", format(x, drop0trailing = TRUE, trim = TRUE, scientific = FALSE))
-se <- function(z) sd(z) / sqrt(length(z))
 
-create_species_plot_half <- function(species_name, species_data, breaks_data, sig_lookup) {
-  current_label <- breaks_data$species_label[breaks_data$species == species_name]
-  sig_row    <- sig_lookup[sig_lookup$species == species_name, , drop = FALSE]
-  is_sig     <- nrow(sig_row) == 1 && isTRUE(sig_row$is_sig)
-  sign_color <- if (nrow(sig_row) == 1 && isTRUE(sig_row$slope_sign == "neg")) "#4575B4" else "#D73027"
-  mean_col   <- boxplot_color   # consistent mean-point colour for all species; only trend LINES are red/blue
-
-  g <- ggplot(species_data, aes(x = height_m, y = CH4_best.flux)) +
-    geom_hline(yintercept = 0, linetype = "dashed", color = "gray40",
-               linewidth = 0.6, alpha = 0.8)
-  if (PANEL_A_STYLE == "boxplot") {
-    g <- g +
-      geom_half_boxplot(aes(group = height_m), alpha = 0.6, outlier.shape = NA,
-                        fill = boxplot_color, color = "gray30", side = "r") +
-      geom_jitter(alpha = 0.4, size = 1.1, color = "gray20",
-                  position = position_jitter(width = 0.1, height = 0))
-  } else {                      # mean +/- SE overlaid on jittered points
-    g <- g +
-      geom_jitter(alpha = 0.4, size = 1.1, color = "gray60",
-                  position = position_jitter(width = 0.1, height = 0)) +
-      stat_summary(aes(group = height_m), fun = mean,
-                   fun.min = function(z) mean(z) - se(z), fun.max = function(z) mean(z) + se(z),
-                   geom = "pointrange", color = mean_col, size = 0.55, fatten = 2.4)
-  }
-  g +
-    coord_flip() +
-    scale_x_continuous(breaks = c(0.5, 1.25, 2), labels = c("0.5", "1.25", "2"), expand = expansion(mult = c(0.13, 0.13))) +
-    scale_y_continuous(
-      trans = trans_symlog_fig2, breaks = shared_brks_fig2, limits = shared_lims_fig2,
-      labels = shared_lab_fig2, expand = expansion(mult = c(0.05, 0.12))
-    ) +
-    labs(x = "", y = "") +
-    ggtitle(current_label) +
-    theme_minimal(base_size = 9) +
-    theme(
-      plot.title = element_text(size = 7, face = "italic", margin = margin(b = 1),
-                                hjust = 0.5),
-      axis.text = element_text(size = 7),
-      axis.text.x = element_text(margin = margin(t = 1)),
-      axis.text.y = element_text(margin = margin(r = 1)),
-      panel.grid.major = element_line(linewidth = 0.2, color = "gray90"),
-      panel.grid.minor = element_blank(),
-      panel.border = element_rect(color = "gray40", fill = NA, linewidth = 0.4),
-      plot.margin = margin(t = 0, r = 1, b = 0, l = 1)
-    )
-}
-
-# Build individual species plots (alphabetical order)
-sig_lookup <- species_results %>%
-  transmute(species,
-            is_sig = !is.na(height_p) & height_p < 0.05,
-            slope_sign = ifelse(!is.na(height_coef) & height_coef < 0, "neg", "pos"))
-
-plot_list_half <- list()
-for(sp in species_list) {
-  sp_data <- plot_data_top %>% filter(species == sp)
-  if(nrow(sp_data) > 0) {
-    plot_list_half[[sp]] <- create_species_plot_half(sp, sp_data, species_breaks, sig_lookup)
-  }
-}
-
-# Arrange into grid with shared axis labels
-# Convert plots to grobs with clipping off so axis text isn't cut
-plot_grobs_half <- lapply(plot_list_half, function(p) {
-  g <- ggplotGrob(p)
-  g$layout$clip <- "off"
-  g
-})
-
-p_top_final <- arrangeGrob(
-  grobs = plot_grobs_half,
-  ncol = 5,
-  left = textGrob("Height (m)", rot = 90, vjust = 1, gp = gpar(fontsize = 10)),
-  bottom = textGrob(
-    expression("CH"[4]*" flux (nmol m"^-2*" s"^-1*"),  arcsinh scale"),
-    vjust = -0.3, gp = gpar(fontsize = 10)
-  ),
-  padding = unit(0.2, "lines")
-)
-
-p_top_gg <- wrap_elements(full = p_top_final)   # previous layout: 15 separate panels, each with its own axes
-
-# Panel (a) as one faceted plot: same axes, breaks and labels as above, but axis text only on the
-# outer panels and species names as strips, which removes the repeated axes and most white space.
-if (PANEL_A_STYLE == "boxplot") {
-  lab_df <- species_breaks %>% dplyr::select(species, species_label)
-  top_df <- plot_data_top %>%
-    mutate(species_label = factor(species_label, levels = lab_df$species_label[match(species_list, lab_df$species)]))
-  p_top_gg <- ggplot(top_df, aes(x = height_m, y = CH4_best.flux)) +
-    geom_hline(yintercept = 0, linetype = "dashed", color = "gray40", linewidth = 0.5, alpha = 0.8) +
-    geom_half_boxplot(aes(group = height_m), alpha = 0.6, outlier.shape = NA,
-                      fill = boxplot_color, color = "gray30", side = "r", linewidth = 0.3) +
-    geom_jitter(alpha = 0.4, size = 0.9, color = "gray20", position = position_jitter(width = 0.1, height = 0)) +
-    facet_wrap(~ species_label, ncol = 5) +
-    coord_flip() +
-    scale_x_continuous(breaks = c(0.5, 1.25, 2), labels = c("0.5", "1.25", "2"), expand = expansion(mult = c(0.13, 0.13))) +
-    scale_y_continuous(trans = trans_symlog_fig2, breaks = shared_brks_fig2, limits = shared_lims_fig2,
-                       labels = shared_lab_fig2, expand = expansion(mult = c(0.05, 0.12))) +
-    labs(x = "Height (m)", y = expression("CH"[4]*" flux (nmol m"^-2*" s"^-1*"),  arcsinh scale")) +
-    theme_minimal(base_size = 9) +
-    theme(strip.text = element_text(size = 7, face = "italic", margin = margin(b = 1, t = 1), lineheight = 0.9),
-          axis.text = element_text(size = 7), axis.title = element_text(size = 9),
-          panel.grid.major = element_line(linewidth = 0.2, color = "gray90"),
-          panel.grid.minor = element_blank(),
-          panel.border = element_rect(color = "gray40", fill = NA, linewidth = 0.4),
-          panel.spacing.x = unit(0.25, "lines"), panel.spacing.y = unit(0.35, "lines"),
-          plot.margin = margin(t = 0, r = 2, b = 0, l = 2))
-  p_top_gg <- wrap_elements(full = p_top_gg)   # not aligned to (b)/(c), so it can use the full width
-}
+lab_df <- plot_data_top %>% distinct(species, species_label)
+top_df <- plot_data_top %>%
+  mutate(species_label = factor(species_label, levels = lab_df$species_label[match(species_list, lab_df$species)]))
+p_top_gg <- ggplot(top_df, aes(x = height_m, y = CH4_best.flux)) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray40", linewidth = 0.5, alpha = 0.8) +
+  geom_half_boxplot(aes(group = height_m), alpha = 0.6, outlier.shape = NA,
+                    fill = boxplot_color, color = "gray30", side = "r", linewidth = 0.3) +
+  geom_jitter(alpha = 0.4, size = 0.9, color = "gray20", position = position_jitter(width = 0.1, height = 0)) +
+  facet_wrap(~ species_label, ncol = 5) +
+  coord_flip() +
+  scale_x_continuous(breaks = c(0.5, 1.25, 2), labels = c("0.5", "1.25", "2"), expand = expansion(mult = c(0.13, 0.13))) +
+  scale_y_continuous(trans = trans_symlog_fig2, breaks = shared_brks_fig2, limits = shared_lims_fig2,
+                     labels = shared_lab_fig2, expand = expansion(mult = c(0.05, 0.12))) +
+  labs(x = "Height (m)", y = expression("CH"[4]*" flux (nmol m"^-2*" s"^-1*"),  arcsinh scale")) +
+  theme_minimal(base_size = 9) +
+  theme(strip.text = element_text(size = 7, face = "italic", margin = margin(b = 1, t = 1), lineheight = 0.9),
+        axis.text = element_text(size = 7), axis.title = element_text(size = 9),
+        panel.grid.major = element_line(linewidth = 0.2, color = "gray90"),
+        panel.grid.minor = element_blank(),
+        panel.border = element_rect(color = "gray40", fill = NA, linewidth = 0.4),
+        panel.spacing.x = unit(0.25, "lines"), panel.spacing.y = unit(0.35, "lines"),
+        plot.margin = margin(t = 0, r = 2, b = 0, l = 2))
+p_top_gg <- wrap_elements(full = p_top_gg)   # not aligned to (b)/(c), so it can use the full width
 
 # ==============================================================================
 # 5. PANEL B — Height effect coefficients (middle)
@@ -484,11 +335,8 @@ combined_plot <- (p_top_gg / p_middle / p_bottom) +
                   theme = theme(plot.tag = element_text(size = 11, face = "bold"))) &
   theme(plot.tag = element_text(size = 11, face = "bold"))
 
-print(combined_plot)
-
-out_fn <- if (PANEL_A_STYLE == "meanSE") "outputs/figures/generated/fig2_final_meanSE.png" else "outputs/figures/generated/fig2_final.png"
-ggsave(out_fn, plot = combined_plot, width = 7, height = 7, units = "in", dpi = 300, bg = "white")
-cat("Wrote", out_fn, "(panel-a style:", PANEL_A_STYLE, ")\n")
+ggsave("outputs/figures/generated/fig2_final.png", plot = combined_plot, width = 7, height = 7, units = "in", dpi = 300, bg = "white")
+cat("Wrote outputs/figures/generated/fig2_final.png\n")
 
 
 # ==============================================================================
@@ -576,13 +424,11 @@ test_robustness <- function(species_name, data) {
   for(tree in unique_trees) {
     subset_data <- species_data %>% filter(tree_unique != tree)
     if(nrow(subset_data) > 6) {
-      tryCatch({
-        model <- lmer(CH4_best.flux ~ height_numeric + (1|tree_unique), data = subset_data)
-        coef_val <- summary(model)$coefficients["height_numeric", "Estimate"]
-        p_val <- 2 * (1 - pnorm(abs(summary(model)$coefficients["height_numeric", "t value"])))
-        jackknife_results <- rbind(jackknife_results,
-                                   data.frame(excluded_tree = tree, coef = coef_val, p = p_val))
-      }, error = function(e) {})
+      model <- lmer(CH4_best.flux ~ height_numeric + (1|tree_unique), data = subset_data)
+      coef_val <- summary(model)$coefficients["height_numeric", "Estimate"]
+      p_val <- 2 * (1 - pnorm(abs(summary(model)$coefficients["height_numeric", "t value"])))
+      jackknife_results <- rbind(jackknife_results,
+                                 data.frame(excluded_tree = tree, coef = coef_val, p = p_val))
     }
   }
 
@@ -605,7 +451,7 @@ test_robustness <- function(species_name, data) {
   }
 }
 
-sig_species_list <- c("BEAL", "TSCA", "ACSA")
+sig_species_list <- c("BEAL", "TSCA", "ACSA")   # typed: the species named in the text
 robustness_results <- do.call(rbind, lapply(sig_species_list, test_robustness, analysis_data))
 cat("\nRobustness of significant height effects:\n")
 print(robustness_results)

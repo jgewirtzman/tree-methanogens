@@ -1,18 +1,19 @@
 #!/usr/bin/env Rscript
 # ==============================================================================
-# figS04_mcra-probe-validation.R  (SI)
-# Validate the probe-based mcrA ddPCR assay against the original EvaGreen/ML assay
-# on the same wood samples. Pseudo-log axes so non-detects sit at true 0 and low
-# detections rise continuously (no artificial gap). EvaGreen calls many positives
-# the specific probe scores zero (its false-positive signature; Arnold et al. 2024),
-# while agreeing quantitatively where both detect. Compared on copies/uL (direct
-# measurement). Writes BOTH axis orientations for choosing; the canonical
-# figS19_mcra_probe_validation.png = probe-on-x (trusted-assay-as-reference).
-# Reads data/tables/ddpcr.csv and samples.csv.
+# figS04_mcra-probe-validation.R -- Figure S4: probe mcrA assay against EvaGreen
+# ------------------------------------------------------------------------------
+# Stage E. Run from the repository root.
+# The probe-based mcrA ddPCR assay (this study) against the EvaGreen assay of the
+# literature on the same 2021 wood extracts, copies per uL of reaction (loose
+# threshold, runs that passed QC; a sample run more than once is its mean). Pseudo-log
+# axes, so non-detects sit at 0 (jittered within the grey band) and low detections
+# rise continuously. EvaGreen on x: samples EvaGreen calls positive and the probe scores
+# zero (its false-positive signature; Arnold et al. 2024) form a band at probe = 0.
+# Line: log-log fit over samples both assays detect; dashed: 1:1.
+# Inputs: data/tables/ddpcr.csv, samples.csv (code/lib/tables_read.R)
+# Output: outputs/figures/generated/figS19_mcra_probe_validation.png
 # ==============================================================================
-suppressMessages({library(ggplot2); library(scales)}); options(warn=-1, stringsAsFactors=FALSE)
-# data/tables/ddpcr.csv: QX200 Conc (copies per uL of reaction) at the loose threshold, runs
-# that passed QC, 2021 wood samples; a sample run more than once is its mean
+suppressMessages({library(ggplot2); library(scales)})
 source("code/lib/tables_read.R")
 dd <- read_table("ddpcr"); smp <- read_table("samples")
 wood <- smp$sample_id[smp$campaign == "2021_survey" & smp$material == "wood"]
@@ -41,6 +42,7 @@ lbl <- c("0",expression(10^-1),expression(10^0),expression(10^1),expression(10^2
 eglab <- expression(EvaGreen~italic(mcrA)~assay~"(literature)"~~copies~mu*L^{-1})
 prlab <- expression(Probe~italic(mcrA)~assay~"(this study)"~~copies~mu*L^{-1})
 
+# x/y: plotted columns (non-detects jittered); xr/yr: the measured columns for the fit
 build <- function(xp, yp, xr, yr, xlab, ylab, out){
   px<-pos[[xr]]; py<-pos[[yr]]; cf<-coef(lm(log10(py)~log10(px)))
   fx<-10^seq(log10(min(px)),log10(max(px)),length=100); fit<-data.frame(x=fx, y=10^(cf[1]+cf[2]*log10(fx)))
@@ -57,10 +59,7 @@ build <- function(xp, yp, xr, yr, xlab, ylab, out){
     labs(x=xlab, y=ylab) +
     theme_bw(base_size=11) + theme(legend.position=c(.99,.02), legend.justification=c(1,0),
                                    legend.background=element_rect(fill=alpha("white",.7), colour=NA))
-  ggsave(out, p, width=7.4, height=6.3, dpi=300); out
+  ggsave(out, p, width=7.4, height=6.3, dpi=300)
 }
-build("prp","egp","pr","eg", prlab, eglab, "outputs/figures/generated/figS19_mcra_probe-x.png")      # probe on X
-build("egp","prp","eg","pr", eglab, prlab, "outputs/figures/generated/figS19_mcra_evagreen-x.png")   # EvaGreen on X (chosen)
-# canonical = EvaGreen-on-x: false positives form a band pinned to 0 on OUR probe measure
-file.copy("outputs/figures/generated/figS19_mcra_evagreen-x.png", "outputs/figures/generated/figS19_mcra_probe_validation.png", overwrite=TRUE)
-cat("wrote figS19_mcra_{probe-x,evagreen-x}.png (canonical = EvaGreen-x)\n")
+build("egp","prp","eg","pr", eglab, prlab, "outputs/figures/generated/figS19_mcra_probe_validation.png")
+cat("wrote outputs/figures/generated/figS19_mcra_probe_validation.png\n")

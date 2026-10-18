@@ -18,9 +18,11 @@
 # recoveries (22% wood, 30% liquid control) reproduce from its Dryad data only with
 # the x10 reaction dilution included; the 30% liquid control is ~250/800.
 #
-# Sourced by: 08_figures/fig07_decay-methanogenesis.R,
-#   09_tables_stats/06_copies-per-gram.R, 09_tables_stats/07_mass-basis-sensitivity.R
+# Sourced by: tables/21_ddpcr.R, lib/tables_read.R, lib/build_phyloseq.R,
+#   08_figures/fig07_decay-methanogenesis.R, figS08_pmoa-mmox.R,
+#   09_tables_stats/06_copies-per-gram.R, 07_mass-basis-sensitivity.R, 20, 24
 # ==============================================================================
+DDPCR_DROPLET_NL  <- 0.85   # droplet volume (nL), QX200
 DDPCR_REACTION_UL <- 25     # total reaction volume (µL)
 DDPCR_TEMPLATE_UL <- 2.5    # DNA extract per reaction (µL)
 DDPCR_ELUTION_UL  <- c(Wood = 75, Soil = 100)   # elution volume (µL) by material
@@ -48,3 +50,8 @@ ddpcr_copies_per_g <- function(conc_per_ul_reaction, mass_mg, material)
 DDPCR_WELL_UL <- 20
 ddpcr_copies_per_g_from_well <- function(copies_per_well, mass_mg, material)
   ddpcr_copies_per_g(copies_per_well / DDPCR_WELL_UL, mass_mg, material)
+
+# Limit of detection: 3 copies per 20 µL well (detected in 6/6 replicates; Arnold et al.
+# 2024), i.e. 0.15 copies per µL of reaction.
+DDPCR_LOD_COPIES_PER_WELL <- 3
+DDPCR_LOD_COPIES_PER_UL   <- DDPCR_LOD_COPIES_PER_WELL / DDPCR_WELL_UL

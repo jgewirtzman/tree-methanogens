@@ -1,194 +1,81 @@
 # ==============================================================================
-# Soil and Tree Flux Time Series (Figure 1)
-# ==============================================================================
-# Purpose: Combined soil and tree flux faceted time series plots.
-#
-# Pipeline stage: 4 — Publication Figures
-#
-# Inputs (canonical tables):
-#   - data/tables/flux_soil.csv, flux_stem.csv (monthly_2020_2021 deployments; soil rows
-#     that failed the chamber-closure screen, qc_pass FALSE, left out)
-#   - data/tables/collars.csv, trees.csv (landscape position of each collar and stem)
-#   - data/tables/soil_readings.csv (collar readings, one value per collar-date;
-#     code/lib/soil_collars.R collar_soil_readings())
-#
-# Outputs:
-#   - outputs/figures/original/main/fig1_temporal_flux_timeseries.png
+# fig01_temporal-flux.R -- Figure 1: soil and stem CH4 flux through the monthly survey
+# ------------------------------------------------------------------------------
+# Stage E. Run from the repository root.
+#   (a) soil VWC at the collars, density by landscape position
+#   (b) soil and stem CH4 flux by sampling campaign: deployments (jittered) and the
+#       campaign mean +/- SE, arcsinh axis (code/lib/flux_transform.R)
+#   (c) soil temperature and VWC through time (loess +/- SE)
+# Inputs (data/tables/, via code/lib/tables_read.R)
+#   flux_soil.csv, flux_stem.csv  monthly_2020_2021 deployments. A deployment is left out
+#                                 only for procedural failure: soil chambers that failed
+#                                 the closure screen (flux_soil.qc_pass). No r2 or range
+#                                 filter. Stems: every deployment, untagged and dead
+#                                 stems included.
+#   collars.csv, trees.csv        landscape position of each collar and stem
+#   soil_readings.csv             collar readings, one per collar and date
+#                                 (code/lib/soil_collars.R collar_soil_readings())
+# Output
+#   outputs/figures/generated/fig1_final.png; summary statistics to the console
 # ==============================================================================
 
-# Load required libraries
 library(ggplot2)
 library(dplyr)
 library(lubridate)
 library(cowplot)
 library(scales)
-
-# Read the canonical tables. Measurements are excluded only for procedural failure: the
-# chamber screen in 02_qc_c0_screen.R (two soil chambers not at ambient at closure;
-# flux_soil.qc_pass). The r2 >= 0.7 and -100..200 filters that stood here were removed
-# 2026-10-01: an r2 screen is not a detection criterion and inflated the mean stem flux
-# 144% (Methods S4). Stems: every monthly deployment (untagged and dead stems included).
 source("code/lib/tables_read.R")
+source("code/lib/flux_transform.R")
+source("code/lib/soil_collars.R")
+
 collars <- read_table("collars"); trees <- trees_table()
 soil_dataset <- read_table("flux_soil") %>% filter(campaign == "monthly_2020_2021", qc_pass) %>%
-  transmute(UniqueID = measurement_id, Date = date, Plot.Tag = collar_id,
+  transmute(UniqueID = measurement_id, Date = as.Date(date), Plot.Tag = collar_id,
             Plot.letter = collars$landscape_position[match(collar_id, collars$collar_id)],
             CH4_best.flux = CH4_flux_nmol_m2_s)
 tree_dataset <- read_table("flux_stem") %>% filter(campaign == "monthly_2020_2021") %>%
-  transmute(UniqueID = measurement_id, Date = date, Plot.Tag = tree_id,
-            Plot.Letter = trees$landscape_position[match(tree_id, trees$tree_id)],
+  transmute(UniqueID = measurement_id, Date = as.Date(date), Plot.Tag = tree_id,
+            Plot.letter = trees$landscape_position[match(tree_id, trees$tree_id)],
             CH4_best.flux = CH4_flux_nmol_m2_s)
-stopifnot(!anyNA(soil_dataset$Plot.letter), !anyNA(tree_dataset$Plot.Letter))
-source('code/lib/soil_collars.R')
+stopifnot(!anyNA(soil_dataset$Plot.letter), !anyNA(tree_dataset$Plot.letter),
+          !anyNA(soil_dataset$Date), !anyNA(tree_dataset$Date))
 moisture_data <- collar_soil_readings()   # one row per collar and date
 
-# Convert Date columns to proper date format
-soil_dataset$Date <- as.Date(soil_dataset$Date)
-tree_dataset$Date <- as.Date(tree_dataset$Date)
+POSITIONS <- c(U = "Upland", I = "Intermediate", W = "Wetland")   # WD and WS pooled as W
 
 # ===== PREPARE DATA FOR CH4 FLUX PLOT (MIDDLE PANEL) =====
-
-# Prepare soil data
-soil_plot_data <- soil_dataset %>%
+# Sampling campaigns: a date more than 7 days after the previous one starts a new
+# campaign, dated by its first day (soil and stems grouped separately).
+with_campaign <- function(d, type) d %>%
   filter(!is.na(CH4_best.flux)) %>%
-  mutate(
-    Plot_Type = case_when(
-      Plot.letter %in% c("WD", "WS") ~ "W",
-      Plot.letter == "I" ~ "I",
-      Plot.letter == "U" ~ "U",
-      TRUE ~ Plot.letter
-    )
-  ) %>%
+  mutate(Plot_Type = ifelse(Plot.letter %in% c("WD", "WS"), "W", Plot.letter),
+         Data_Type = type, Plot.Tag = as.character(Plot.Tag)) %>%
   arrange(Date) %>%
-  mutate(
-    Date_numeric = as.numeric(Date),
-    Date_group = cumsum(c(TRUE, diff(Date_numeric) > 7))
-  ) %>%
+  mutate(Date_group = cumsum(c(TRUE, diff(as.numeric(Date)) > 7))) %>%
   group_by(Date_group) %>%
   mutate(Date_interval = min(Date)) %>%
   ungroup() %>%
-  group_by(Plot_Type, Date_interval) %>%
-  summarise(
-    mean_flux = mean(CH4_best.flux, na.rm = TRUE),
-    se_flux = sd(CH4_best.flux, na.rm = TRUE) / sqrt(n()),
-    n_measurements = n(),
-    .groups = 'drop'
-  ) %>%
-  filter(!is.na(mean_flux), !is.na(Date_interval)) %>%
-  mutate(Data_Type = "Soil")
-
-# Prepare tree data
-tree_plot_data <- tree_dataset %>%
-  filter(!is.na(CH4_best.flux)) %>%
-  mutate(
-    Plot_Type = case_when(
-      Plot.Letter %in% c("WD", "WS") ~ "W",
-      Plot.Letter == "I" ~ "I",
-      Plot.Letter == "U" ~ "U",
-      TRUE ~ Plot.Letter
-    )
-  ) %>%
-  arrange(Date) %>%
-  mutate(
-    Date_numeric = as.numeric(Date),
-    Date_group = cumsum(c(TRUE, diff(Date_numeric) > 7))
-  ) %>%
-  group_by(Date_group) %>%
-  mutate(Date_interval = min(Date)) %>%
-  ungroup() %>%
-  group_by(Plot_Type, Date_interval) %>%
-  summarise(
-    mean_flux = mean(CH4_best.flux, na.rm = TRUE),
-    se_flux = sd(CH4_best.flux, na.rm = TRUE) / sqrt(n()),
-    n_measurements = n(),
-    .groups = 'drop'
-  ) %>%
-  filter(!is.na(mean_flux), !is.na(Date_interval)) %>%
-  mutate(Data_Type = "Tree")
-
-# Combine datasets for CH4 flux
-combined_facet_data <- bind_rows(soil_plot_data, tree_plot_data) %>%
-  mutate(Plot_Type = factor(Plot_Type, levels = c("U", "I", "W"),
-                            labels = c("Upland", "Intermediate", "Wetland")))
-
-# Prepare raw data for jittering
-soil_raw_data <- soil_dataset %>%
-  filter(!is.na(CH4_best.flux)) %>%
-  mutate(
-    Plot_Type = case_when(
-      Plot.letter %in% c("WD", "WS") ~ "W",
-      Plot.letter == "I" ~ "I",
-      Plot.letter == "U" ~ "U",
-      TRUE ~ Plot.letter
-    ),
-    Data_Type = "Soil",
-    Plot.Tag = as.character(Plot.Tag)
-  ) %>%
-  arrange(Date) %>%
-  mutate(
-    Date_numeric = as.numeric(Date),
-    Date_group = cumsum(c(TRUE, diff(Date_numeric) > 7))
-  ) %>%
-  group_by(Date_group) %>%
-  mutate(Date_interval = min(Date)) %>%
-  ungroup() %>%
-  filter(!is.na(CH4_best.flux), !is.na(Date_interval)) %>%
   rename(CH4_flux = CH4_best.flux)
-
-tree_raw_data <- tree_dataset %>%
-  filter(!is.na(CH4_best.flux)) %>%
-  mutate(
-    Plot_Type = case_when(
-      Plot.Letter %in% c("WD", "WS") ~ "W",
-      Plot.Letter == "I" ~ "I",
-      Plot.Letter == "U" ~ "U",
-      TRUE ~ Plot.Letter
-    ),
-    Data_Type = "Tree",
-    Plot.Tag = as.character(Plot.Tag)
-  ) %>%
-  arrange(Date) %>%
-  mutate(
-    Date_numeric = as.numeric(Date),
-    Date_group = cumsum(c(TRUE, diff(Date_numeric) > 7))
-  ) %>%
-  group_by(Date_group) %>%
-  mutate(Date_interval = min(Date)) %>%
-  ungroup() %>%
-  filter(!is.na(CH4_best.flux), !is.na(Date_interval)) %>%
-  rename(CH4_flux = CH4_best.flux)
+soil_raw_data <- with_campaign(soil_dataset, "Soil")
+tree_raw_data <- with_campaign(tree_dataset, "Tree")
 
 combined_facet_raw <- bind_rows(soil_raw_data, tree_raw_data) %>%
-  mutate(Plot_Type = factor(Plot_Type, levels = c("U", "I", "W"),
-                            labels = c("Upland", "Intermediate", "Wetland")))
+  mutate(Plot_Type = factor(POSITIONS[Plot_Type], levels = POSITIONS))
+# campaign mean and SE by data type and landscape position
+combined_facet_data <- combined_facet_raw %>%
+  group_by(Data_Type, Plot_Type, Date_interval) %>%
+  summarise(mean_flux = mean(CH4_flux), se_flux = sd(CH4_flux) / sqrt(n()),
+            n_measurements = n(), .groups = "drop")
 
-# ===== PREPARE DATA FOR VWC DENSITY PLOT (TOP PANEL) =====
+# ===== PREPARE DATA FOR VWC DENSITY (TOP) AND SOIL TEMP/MOISTURE (BOTTOM) PANELS =====
+collar_position <- function(letter) factor(POSITIONS[ifelse(letter %in% c("WS", "WD"), "W", letter)],
+                                           levels = POSITIONS)
 vwc_data <- moisture_data %>%
-  mutate(
-    Date = date,
-    Plot_Type = case_when(
-      plot_letter == "U" ~ "Upland",
-      plot_letter == "I" ~ "Intermediate",
-      plot_letter %in% c("WS", "WD") ~ "Wetland"
-    ),
-    Plot_Type = factor(Plot_Type, levels = c("Upland", "Intermediate", "Wetland")),
-    Soil_Moisture = soil_vwc_pct
-  ) %>%
+  mutate(Date = date, Plot_Type = collar_position(plot_letter), Soil_Moisture = soil_vwc_pct) %>%
   filter(!is.na(Soil_Moisture))
-
-# ===== PREPARE DATA FOR SOIL TEMP/MOISTURE PLOT (BOTTOM PANEL) =====
 soil_temp_moisture_data <- moisture_data %>%
-  mutate(
-    Date = date,
-    Plot_Type = case_when(
-      plot_letter == "U" ~ "Upland",
-      plot_letter == "I" ~ "Intermediate",
-      plot_letter %in% c("WS", "WD") ~ "Wetland"
-    ),
-    Plot_Type = factor(Plot_Type, levels = c("Upland", "Intermediate", "Wetland")),
-    Soil_Temperature = soil_temp_C,
-    Soil_Moisture = soil_vwc_pct
-  ) %>%
+  mutate(Date = date, Plot_Type = collar_position(plot_letter),
+         Soil_Temperature = soil_temp_C, Soil_Moisture = soil_vwc_pct) %>%
   filter(!is.na(Date), !is.na(Soil_Temperature), !is.na(Soil_Moisture))
 
 # ===== CREATE VWC DENSITY PLOT (TOP) =====
@@ -261,13 +148,13 @@ ch4_flux_plot <- ggplot() +
   guides(color = guide_legend(title = NULL), fill = guide_legend(title = NULL)) +
   scale_x_date(date_labels = "%b %Y", date_breaks = "3 months") +
   scale_y_continuous(
-    trans = scales::trans_new("arcsinh", function(x) asinh(x/0.1), function(x) 0.1*sinh(x)),
+    trans = flux_asinh_trans(),
     breaks = c(-10, -1, -0.1, 0, 0.1, 1, 10, 100),
     labels = c("−10", "−1", "−0.1", "0", "0.1", "1", "10", "100")) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "grey20", alpha = 0.9)
 
 # ===== CREATE SOIL TEMP/MOISTURE PLOT (BOTTOM) =====
-# Uses geom_smooth(se = TRUE) for identical curves to original + SE bands
+# loess +/- SE; VWC drawn on the temperature axis divided by 2.5 (secondary axis)
 
 temp_moisture_plot <- ggplot(soil_temp_moisture_data, aes(x = Date)) +
   # Temperature with SE band
@@ -317,9 +204,6 @@ final_plot <- plot_grid(
   label_fontface = "bold"
 )
 
-# Display the final combined plot
-print(final_plot)
-
 # Save the plot
 ggsave("outputs/figures/generated/fig1_final.png",
        final_plot, width = 8, height = 6, dpi = 300, bg = "white")   # near print size (17 cm) so text prints at ~7-9 pt
@@ -328,10 +212,8 @@ ggsave("outputs/figures/generated/fig1_final.png",
 
 # Overall statistics
 cat("\n===== OVERALL STATISTICS =====\n")
-cat("Total tree flux measurements:", nrow(tree_dataset %>%
-                                            filter(!is.na(CH4_best.flux))), "\n")
-cat("Total soil flux measurements:", nrow(soil_dataset %>%
-                                            filter(!is.na(CH4_best.flux))), "\n")
+cat("Total tree flux measurements:", nrow(tree_raw_data), "\n")
+cat("Total soil flux measurements:", nrow(soil_raw_data), "\n")
 cat("Date range:", format(min(combined_facet_data$Date_interval, na.rm = TRUE), "%B %Y"),
     "to", format(max(combined_facet_data$Date_interval, na.rm = TRUE), "%B %Y"), "\n")
 
@@ -394,52 +276,18 @@ print(temp_stats)
 # ===== ADDITIONAL STATISTICS FOR RESULTS TEXT =====
 
 cat("\n===== FLUX STATISTICS IN DIFFERENT UNITS =====\n")
-
-# Convert nmol m-2 s-1 to ug CH4 m-2 hr-1
-# Factor = 57.744
+# nmol m-2 s-1 -> ug CH4 m-2 h-1: x 16.04 g mol-1 x 3600 s h-1 / 1000
 conversion_factor <- 57.744
-
 flux_converted <- flux_stats %>%
-  mutate(
-    mean_ug = mean * conversion_factor,
-    median_ug = median * conversion_factor,
-    min_ug = min * conversion_factor,
-    max_ug = max * conversion_factor,
-    q25_ug = q25 * conversion_factor,
-    q75_ug = q75 * conversion_factor
-  )
-
-cat("\nUpland tree emissions (ug CH4 m-2 hr-1):\n")
-upland_tree <- flux_converted %>% filter(Plot_Type == "Upland", Data_Type == "Tree")
-cat("  Mean:", round(upland_tree$mean_ug, 1), "\n")
-cat("  Range:", round(upland_tree$min_ug, 1), "to", round(upland_tree$max_ug, 1), "\n")
-cat("  IQR:", round(upland_tree$q25_ug, 1), "to", round(upland_tree$q75_ug, 1), "\n")
-
-cat("\nUpland soil consumption (ug CH4 m-2 hr-1):\n")
-upland_soil <- flux_converted %>% filter(Plot_Type == "Upland", Data_Type == "Soil")
-cat("  Mean:", round(upland_soil$mean_ug, 1), "\n")
-cat("  Range:", round(upland_soil$min_ug, 1), "to", round(upland_soil$max_ug, 1), "\n")
-
-cat("\nIntermediate tree emissions (ug CH4 m-2 hr-1):\n")
-int_tree <- flux_converted %>% filter(Plot_Type == "Intermediate", Data_Type == "Tree")
-cat("  Mean:", round(int_tree$mean_ug, 1), "\n")
-cat("  Range:", round(int_tree$min_ug, 1), "to", round(int_tree$max_ug, 1), "\n")
-
-cat("\nIntermediate soil consumption (ug CH4 m-2 hr-1):\n")
-int_soil <- flux_converted %>% filter(Plot_Type == "Intermediate", Data_Type == "Soil")
-cat("  Mean:", round(int_soil$mean_ug, 1), "\n")
-cat("  Range:", round(int_soil$min_ug, 1), "to", round(int_soil$max_ug, 1), "\n")
-
-cat("\nTransitional wetland tree emissions (ug CH4 m-2 hr-1):\n")
-wet_tree <- flux_converted %>% filter(Plot_Type == "Wetland", Data_Type == "Tree")
-cat("  Mean:", round(wet_tree$mean_ug, 1), "\n")
-cat("  Range:", round(wet_tree$min_ug, 1), "to", round(wet_tree$max_ug, 1), "\n")
-
-cat("\nTransitional wetland soil fluxes (ug CH4 m-2 hr-1):\n")
-wet_soil <- flux_converted %>% filter(Plot_Type == "Wetland", Data_Type == "Soil")
-cat("  Mean:", round(wet_soil$mean_ug, 1), "\n")
-cat("  Median:", round(wet_soil$median_ug, 1), "\n")
-cat("  Range:", round(wet_soil$min_ug, 1), "to", round(wet_soil$max_ug, 1), "\n")
+  mutate(across(c(mean, median, min, max, q25, q75), ~ .x * conversion_factor, .names = "{.col}_ug"))
+for (pos in POSITIONS) for (type in c("Tree", "Soil")) {
+  r <- flux_converted %>% filter(Plot_Type == pos, Data_Type == type)
+  cat(sprintf("\n%s %s (ug CH4 m-2 hr-1):\n", pos, if (type == "Tree") "tree" else "soil"))
+  cat("  Mean:", round(r$mean_ug, 1), "\n")
+  cat("  Median:", round(r$median_ug, 1), "\n")
+  cat("  Range:", round(r$min_ug, 1), "to", round(r$max_ug, 1), "\n")
+  cat("  IQR:", round(r$q25_ug, 1), "to", round(r$q75_ug, 1), "\n")
+}
 
 # Check proportion of positive vs negative fluxes
 cat("\n===== FLUX DIRECTIONALITY =====\n")

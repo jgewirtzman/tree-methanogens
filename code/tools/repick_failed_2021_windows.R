@@ -1,17 +1,11 @@
 # ==============================================================================
-# Reprocess Failed Flux Measurements
-# ==============================================================================
-# Purpose: Reprocesses failed or problematic flux measurements with manual
-#   corrections.
-#
-# Pipeline stage: 01 Flux Processing (static)
-# Run after: 03_goflux_trees_2021.R
-#
-# Inputs:
-#   - lgr_manual_identification_2021_multiheight.csv (in memory as manID.lgr3)
-#
-# Outputs:
-#   - lgr_manual_identification_2021_multiheight_final.csv
+# repick_failed_2021_windows.R -- re-pick the 2021 windows whose first fits failed
+# ------------------------------------------------------------------------------
+# A tool, run by hand inside an interactive session of
+# 02_flux/static/03_goflux_trees_2021.R (it needs that session's ow.lgr3.complete and
+# manID_batches). Re-picks the five deployments listed below and writes
+# data/raw/flux_windows/lgr_manual_identification_2021_multiheight_final.csv, the 2021
+# window record.
 # ==============================================================================
 
 cat("=== REPROCESSING SPECIFIC FAILED MEASUREMENTS ===\n")

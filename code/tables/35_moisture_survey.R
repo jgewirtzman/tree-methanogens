@@ -1,5 +1,4 @@
 #!/usr/bin/env Rscript
-source("code/lib/outputs.R")
 # ==============================================================================
 # 35_moisture_survey.R -- moisture_survey.csv (data/tables/)
 # ------------------------------------------------------------------------------
@@ -14,11 +13,12 @@ source("code/lib/outputs.R")
 #
 # stream_points: the 21 flags along the stream channel (waypoints 762-782 of the same
 # receiver, data/raw/inventory/spatial_data/River.xlsx); no VWC was measured there.
-# The model's December moisture raster sets them to saturation (STREAM_VWC in
-# code/05_model/01_load_and_prep_data.R, the one place that assumption is made).
+# No analysis assigns them a moisture value; Fig. S1 sets only the defined channel to
+# 100% VWC, after the moisture fit (08_figures/figS01_moisture-overlay.R).
 #
 # Writes data/tables/moisture_survey.csv, data/tables/stream_points.csv
 # ==============================================================================
+source("code/lib/outputs.R")
 suppressPackageStartupMessages(library(tidyverse))
 OUT <- "data/tables"
 SRC <- "data/raw/inventory/spatial_data/soil_moisture_20201216.csv"

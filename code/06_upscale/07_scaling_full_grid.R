@@ -1,84 +1,57 @@
-source("code/lib/outputs.R")
 #!/usr/bin/env Rscript
 # ==============================================================================
-# 07_scaling_full_grid.R
+# 07_scaling_full_grid.R -- the whole-surface scaling grid and the named pair
 # ------------------------------------------------------------------------------
-# THE FULL SCALING SENSITIVITY GRID.
+# Stage C; run from the repository root. Every unconstrained assumption of the
+# whole-surface estimate, crossed:
 #
-# Every unconstrained assumption, crossed:
-#
-#   WAI (total woody area)   5 levels: 2 literature bounds + a bottom-up low/mid/high
-#       1.50   Whittaker & Woodwell 1967, Brookhaven oak-pine (open, mixed conifer)
-#       3.07   Gauci et al. 2024, temperate forest -- the value used in the submitted ms
-#       2.23 / 2.82 / 3.40  bottom-up from THIS inventory + W&W relations (taper
-#              1.20-1.35, branch:stem 2.7-4.0). READ from wai_bottomup.csv, never typed
-#              here. The trio was 1.69/2.11/2.57 until 2026-07-29, computed on the
-#              pre-rebuild 7,010-stem inventory over the nominal 40,000 m2 square; both
-#              errors pushed it down ~32%. Note Gauci's 3.07 now sits INSIDE our own
-#              range rather than above it, which changes what the 'high bound' means.
-#
-#   BOLE SHAPE               2   cone / paraboloid   (W&W: true stems lie between the
-#                                conic and parabolic forms; cylinder was dropped)
+#   WAI (total woody area)   5 levels
+#       1.50   Whittaker & Woodwell 1967, Brookhaven oak-pine (low bound)
+#       3.07   Gauci et al. 2024, temperate forest (high bound)
+#       low / mid / high bottom-up for this inventory with W&W relations (taper
+#              1.20-1.35, branch:stem 2.7-4.0), read from wai_bottomup.csv
+#              (04_wai_bottomup.R)
+#   BOLE SHAPE               2   cone / paraboloid (W&W: true stems lie between them)
 #   BRANCH SHAPE             4   uniform_all / uniform_top50 / gaussian_50 / gaussian_75
-#   FLUX ABOVE 2 m           6   Each has a stated mechanism and is identifiable from
-#                                three heights. One constraint is imposed: no stem may
-#                                increase substantially with height (no mechanism, no
-#                                precedent). Everything else is allowed.
-#       constant          no decline aloft; equals the asymptote-at-f(2m) case
-#       exponential       exponential decay toward zero; the asymptote-at-0 case
-#       power             gradual decay, different curvature, never reaches zero
+#   FLUX ABOVE 2 m           6   no stem may increase substantially with height
+#       constant          each stem keeps its 2 m value
+#       exponential       decay toward zero, fitted to the campaign means at 0.5/1.25/2 m
+#       power             gradual decay, never reaching zero
 #       linear_floored    linear decline truncated at zero
-#       linear_bounded_median  linear decline continuing THROUGH zero into net
-#                         uptake, bounded at the median detected stem uptake
-#       exp_band_slope    per-stem decay fitted to that stem's MODELLED 0-2 m profile,
+#       linear_bounded_median  linear decline through zero into uptake, bounded at the
+#                         median detected stem uptake
+#       exp_band_slope    per-stem decay fitted to the stem's modelled 0-2 m profile,
 #                         capped at its own 2 m value
+#   An asymptotic form is phi*constant + (1-phi)*exponential, so it is spanned by two
+#   forms already present.
+#   = length(FORMS) x length(WAIS) x length(BRANCH) x length(BOLE) combinations (240).
 #
-#   An asymptotic ("decline then plateau") form is NOT carried separately: it is
-#   algebraically phi*constant + (1-phi)*exponential, so the family is spanned by the
-#   two endpoints already present. See asymptote_estimation.R -- the asymptote is
-#   estimable only after aggregating to species or moisture bins, only converges for a
-#   minority of groups, and where estimable sits at 0.83-0.97 of the 2 m flux, i.e.
-#   against the 'constant' end of that continuum.
+# Each estimate = MEASURED (woody area at z <= 2 m: the canonical band term of
+# 03_budget_canonical.R) + EXTRAPOLATED (area above 2 m x each stem's calibrated 2 m
+# flux x the form's shape ratio; nothing above 2 m is measured at this site).
+# The named pair (decline = exponential, hold = constant, at the bottom-up "this
+# stand" WAI, gaussian_75, cone) is written to scaling_headline.csv.
 #
-#   = 6 flux x 5 WAI x 4 branch x 2 bole = 240 combinations. Do not hardcode this
-#   count anywhere: it is length(FORMS)*length(WAIS)*length(BRANCH)*length(BOLE),
-#   and the stale "216" that stood here outlived three changes to the axes.
-#
-# STRUCTURE OF EACH ESTIMATE. The budget is split into two parts that are reported
-# separately, because they have completely different evidentiary status:
-#
-#   MEASURED    woody area at z <= 2 m, flux from the RF predicted at that height for
-#               that tree (species, DBH, moisture, temperature). Interpolation inside
-#               the training range. Below 0.5 m the 0.5 m value is held (conservative;
-#               tested earlier and worth <5%).
-#
-#   EXTRAPOLATED  woody area at z > 2 m, flux = each tree's RF value at 2 m times the
-#               chosen form's shape ratio. NOTHING here is measured at this site.
-#
-# The extrapolated fraction is the honest headline uncertainty. Across the current grid
-# its median is 78.5% and it spans 10.6-94.9% (it exceeds 100% for the uptake form,
-# where the extrapolated part is negative and the total is below the measured band).
-#
-# Output: outputs/data/scaling_full_grid.csv
-#         outputs/figures/generated/fig_scaling_full_grid.png
+# Inputs: outputs/tables/{inventory_stems, tree_flux_predictions, tree_band_profile,
+#   tree_band_profile_edges}.csv, outputs/data/{canonical_budget, wai_bottomup}.csv,
+#   data/tables/flux_stem.csv, outputs/models/TRAINING_DATA.RData
+# Outputs (outputs/data/): scaling_full_grid.csv, scaling_headline.csv,
+#   scaling_slope_diagnostics.csv, and for figS27 scaling_flux_shapes.csv,
+#   scaling_shape_kernels.csv, scaling_band_profile.csv, scaling_flux_anchors.csv,
+#   scaling_area_profiles.csv; outputs/figures/generated/fig_scaling_full_grid.png
 # ==============================================================================
+source("code/lib/outputs.R")
 
 suppressMessages({library(ranger);library(dplyr);library(ggplot2);library(tidyr);library(patchwork)})
 set.seed(42)
-outdir <- "outputs"; dir.create(outdir, showWarnings=FALSE, recursive=TRUE)
 source("code/lib/geometry.R")
 source("code/lib/species_levels.R")
+source("code/lib/flux_transform.R")
 load("outputs/models/RF_MODELS.RData"); load("outputs/models/TRAINING_DATA.RData")
-load("data/processed/integrated/rf_workflow_input_data_with_2023.RData")
-DR <- rf_workflow_data$PLACEHOLDER_DRIVERS
 d <- tree_train_complete; trained <- sort(unique(as.character(d$species_clean)))
 CONV <- 86400*365.25*16e-6
 
-# Inputs are the canonical products, not re-derivations. The measured band and the
-# soil term were previously recomputed here and drifted from the budget: the grid
-# reported a 5.7874 mg band while canonical_budget.csv said 5.41, and Figure 9
-# stacked one on the other in a single waterfall. The soil term was the hardcoded
-# constant -543.88. Both are now read.
+# the canonical products: the measured band and the soil term are read, not recomputed
 need <- c(inv="outputs/tables/inventory_stems.csv",
           tree="outputs/tables/tree_flux_predictions.csv",
           prof="outputs/tables/tree_band_profile.csv",
@@ -97,31 +70,13 @@ TRP <- read.csv(need[["tree"]], stringsAsFactors=FALSE)
 INV <- read.csv(need[["inv"]],  stringsAsFactors=FALSE)
 INV <- INV[INV$in_stand, ]; TRP <- TRP[TRP$in_stand, ]
 stopifnot(nrow(INV)==nrow(TRP))
-INV$dbh <- INV$dbh_m                          # already unit-checked and typo-repaired
+INV$dbh <- INV$dbh_m
 INV$A_band_m2 <- TRP$A_stem_m2                # measured-band area, Kalmia at 0.75 m
-INV <- INV %>% group_by(species) %>%
-  ungroup() %>% as.data.frame()
 INV$sp <- species_to_model_level(INV$species, trained)
-GY <- c("Pinus strobus","Tsuga canadensis")
-# One allometry, from geometry.R. This was a copy-pasted duplicate that retyped
-# the canopy anchor and both exponents and recomputed the 95th-percentile DBH
-# locally, so changing CANOPY_H_M or the exponents would have moved none of them.
-INV$H <- stem_height_m(INV$dbh, INV$species)   # no shrub cap, by decision
+INV$H <- stem_height_m(INV$dbh, INV$species)   # the one allometry (geometry.R); no shrub cap
 n <- nrow(INV)
 
-# --- per-tree band profile: READ, not re-derived ------------------------------
-# This block used to re-run the forest here to rebuild the profile and the 2 m
-# anchor. That re-derivation drifted from the canonical band in two ways at once:
-# it drove the model from the CAMPAIGN monthly means (DRIVERS$soil_moisture_at_tree
-# with one plot-mean value per month, December substituted from the soil collars,
-# January and March absent and filled by approx(rule = 2), and campaign soil
-# temperature rather than the climatology), and it applied NO per-species
-# calibration. Since the extrapolated term hangs entirely off the 2 m anchor, that
-# put 74% of the headline scenario on a different basis from the 26% read from
-# canonical_budget.csv above -- inside a single reported total.
-# 01_predict_tree_flux.R now exports the calibrated profile it already
-# computes, on the climatology drivers and the per-stem moisture surface, and it is
-# consumed here. One producer per quantity: the grid re-derives nothing.
+# --- per-tree band profile: the calibrated profile of 01_predict_tree_flux.R ----
 PE    <- read.csv(need[["pedge"]], stringsAsFactors=FALSE)
 PRF   <- read.csv(need[["prof"]],  stringsAsFactors=FALSE)
 PRF   <- PRF[PRF$in_stand, ]
@@ -143,9 +98,7 @@ rf_slope <- as.numeric(apply(PROFI,1,function(f){
   if(any(!is.finite(f))||all(f<=0)||sd(f)==0) return(0)
   as.numeric(coef(lm(log(pmax(f,1e-9))~zh))[2])}))
 
-# The three disclosures that must accompany exp_band_slope are COMPUTED
-# here; the values that stood in the comments below were typed by hand and drifted
-# across model versions (-0.914 / +0.052 / 0.580 and -0.672 / +0.057 / 0.559).
+# Diagnostics of the per-stem slopes behind exp_band_slope (scaling_slope_diagnostics.csv)
 slope_fit <- function(f, z) {
   if(any(!is.finite(f))||all(f<=0)||sd(f)==0) return(c(NA, NA))
   m <- lm(log(pmax(f,1e-9))~z); c(coef(m)[2], summary(m)$r.squared) }
@@ -170,37 +123,17 @@ b_lin <- as.numeric(coef(lm(fbar~hq)))
 # cylinder dropped: real stems taper, and W&W show true stems lie BETWEEN the conic
 # and parabolic forms, so those two bracket reality.
 BOLE <- list(cone=function(u) pmax(1-u,0), paraboloid=function(u) sqrt(pmax(1-u,0)))
-# BRANCH PLACEMENT. None of these is empirically supported here; they bracket
-# plausible crown geometries. gaussian_50 was added after the profile figure made
-# the set's shape visible: uniform_crown puts every branch above 0.60H with a hard
-# cutoff and nothing below, which no real crown does, and without a second Gaussian
-# the smooth options were represented only by one centred high at 0.75H. The pair
-# of Gaussians now brackets a deep crown and a shallow one.
-# uniform_crown (all branch area above 0.60H) is DROPPED. It was a near-duplicate
-# of uniform_top50: cutoffs at 0.60H and 0.50H gave median totals of 16.4 and 16.9
-# mg, a 3% difference, so the two together consumed two of five levels while
-# spanning almost none of the range. The remaining four bracket properly -- area
-# low (uniform_all), a hard cutoff (uniform_top50), and two Gaussian crowns at
-# different depths (0.50H, 0.75H).
+# BRANCH PLACEMENT. None is empirically supported here; they bracket plausible crown
+# geometries: area low (uniform_all), a hard cutoff (uniform_top50), and Gaussian
+# crowns at two depths (0.50H, 0.75H). (uniform_crown, all branch area above 0.60H,
+# duplicated uniform_top50 to within 3% and is not carried.)
 BRANCH <- list(uniform_all=function(u) rep(1,length(u)),
   uniform_top50=function(u) as.numeric(u>=.50),
   gaussian_50=function(u) dnorm(u,.50,.18),
   gaussian_75=function(u) dnorm(u,.75,.15))
-# WAI SCENARIOS. The bottom-up value is OURS and is labelled as such. It must not
-# be presented as jointly supported by Whittaker & Woodwell's climax-forest value
-# of 2.0-2.2: our estimate is built FROM their taper correction and branch:stem
-# ratios applied to this inventory, so landing near their published figure is
-# partly circular and is corroboration only of the arithmetic, not of the value.
-# That belongs in the Discussion, not in a scenario label. The two literature
-# values bound the range from either side.
-# The three bottom-up values are READ from their producer, not retyped. They were
-# hardcoded here as 1.69 / 2.11 / 2.57, which were computed by
-# 04_wai_bottomup.R on the PRE-REBUILD inventory (7,010 stems,
-# the whole bytag survey missing) divided by the nominal 40,000 m2 square instead of
-# the 37,200 m2 stand. Both errors pushed WAI down; the correct trio is 2.23 / 2.82 /
-# 3.40. Because the literals lived here, fixing the producer alone would not have
-# reached the headline -- and WAI multiplies the extrapolated term, which is ~70% of it.
-# The two literature bounds stay literal: they are citations, not derived quantities.
+# WAI SCENARIOS. The bottom-up trio is read from 04_wai_bottomup.R (built from W&W's
+# taper and branch:stem ratios, so closeness to their published values corroborates
+# the arithmetic only). The two literature values are citations and stay literal.
 WAI_BU <- local({
   f <- out_path("wai_bottomup.csv")
   if (!file.exists(f))
@@ -217,31 +150,17 @@ WAIS <- c(`1.50 W&W Brookhaven (low bound)` = 1.50,
           `3.07 Gauci 2024 (high bound)` = 3.07)
 WAIS <- WAIS[order(WAIS)]
 cat(sprintf("WAI axis (%d levels): %s\n", length(WAIS), paste(names(WAIS), collapse=" | ")))
-# NEGATIVE BOUND for the linear form: the median detected stem uptake, READ from
-# outputs/data/flux_FINAL.csv (code/02_flux/03_precision_and_detection.R), not typed.
-# It was a typed literal (-0.0262) until 2026-09-25, when the MDF was corrected to divide by
-# closure seconds rather than logged samples (the 2021 campaign logged every 5 s) and the
-# literal silently went stale. Now -0.0244, n = 67 (sigma from 02b_instrument_precision.R).
-#
-#   The 5th percentile (-0.0943) was tested and REJECTED. Uptake prevalence tracks
-#   instrument precision, not any biological covariate:
-#       Height+molecular  sigma 1.216 ppb   1.4% uptake   deepest -0.0263   median r2 0.38
-#       Cross-species     sigma 1.719 ppb  10.1% uptake   deepest -0.3843   median r2 0.39
-#       Monthly survey    sigma 2.285 ppb   6.5% uptake   deepest -0.1747   median r2 0.21
-#   The 5th percentile is 3x deeper than anything seen under the best instrument
-#   conditions and is drawn from the two noisy campaigns' tails. Because the floor applies
-#   to ~90% of woody surface, adopting it would make an extreme tail value the modal
-#   assumption for the whole canopy rather than a mild outer bound.
-#
-#   The lowest-noise campaign contributes only six shallow uptakes (none deeper than -0.03),
-#   so the bound rests mainly on the two noisier periods. It is further contradicted by the
-#   climbed tree (Felled black oak), where all four measurements above 2 m are positive
-#   and each exceeds this bound in magnitude.
-.ff <- read.csv(out_path("flux_FINAL.csv"), stringsAsFactors = FALSE)
-NEG_MEDIAN <- round(median(.ff$best.flux[.ff$type == "stem" & .ff$class == "uptake"]), 4)
+# NEGATIVE BOUND for the linear form: the median detected stem uptake (data/tables/
+# flux_stem.csv, detection_class "uptake"; 02_flux/03_precision_and_detection.R). The median, not
+# a low percentile: uptake prevalence tracks instrument precision (sigma per campaign,
+# 02b_instrument_precision.R) rather than any biological covariate, so a deep tail
+# value would come from the two noisier campaigns. The felled oak (all four
+# measurements above 2 m positive) contradicts even this bound.
+.fs <- read.csv("data/tables/flux_stem.csv", stringsAsFactors = FALSE)
+NEG_MEDIAN <- round(median(.fs$CH4_flux_nmol_m2_s[.fs$detection_class %in% "uptake"]), 4)
 stopifnot(is.finite(NEG_MEDIAN), NEG_MEDIAN < 0)
-cat(sprintf("NEG_MEDIAN (median detected stem uptake, from flux_FINAL.csv) = %.4f\n", NEG_MEDIAN))
-rm(.ff)
+cat(sprintf("NEG_MEDIAN (median detected stem uptake, flux_stem.csv) = %.4f\n", NEG_MEDIAN))
+rm(.fs)
 FORMS <- c("constant","exponential","power","linear_floored",
            "linear_bounded_median","exp_band_slope")
 
@@ -253,10 +172,9 @@ Zb <- pmin(pmax(Z,0.5),2)
 Fband <- matrix(NA_real_, n, NU)
 for (i in seq_len(n)) Fband[i,] <- prof_at(i, Zb[i,])
 
-# Shape ratios relative to each stem's own 2 m flux. linear_unfloored is the only form
-# permitted to go negative, representing a decline that continues through zero into net
-# uptake aloft -- a behaviour reported in the literature and implied by ~15% of the
-# converging stems here, but never directly observed in our dataset.
+# Shape ratios relative to each stem's own 2 m flux. linear_bounded_median is the only
+# form that goes negative: a decline that continues through zero into net uptake aloft,
+# reported in the literature but not observed in this dataset.
 f2m_lin <- max(b_lin[1]+b_lin[2]*2, 1e-9)
 # The linear forms are absolute-valued below, then converted to a ratio, so the floor
 # is applied in flux units rather than as a fraction of f(2 m).
@@ -271,40 +189,21 @@ shape_ratio <- function(form, zz) switch(form,
 SHARED <- setdiff(FORMS,"exp_band_slope")
 Rmat <- lapply(SHARED, function(fm) matrix(shape_ratio(fm, as.vector(Z)), nrow=n))
 names(Rmat) <- SHARED
-# exp_band_slope. Named for what it is rather than for the model that produced it:
-# a log-linear (exponential) decay whose rate is fitted per stem to the four RF
-# band values, then projected above 2 m and capped at 1 so no stem exceeds its own
-# 2 m flux. It is the same functional FAMILY as `exponential`; what differs is that
-# the rate comes from each stem's own within-band profile rather than from one fit
-# to the campaign means.
-#
-# It is a deliberately conservative scenario and its limits should be stated. The
-# fit spans 1.13 m (interval midpoints 0.685-1.815 m) and is projected to 25 m;
-# the four-point fit is poor, because a straight line in log space fits a
-# non-monotonic step poorly; and the 50 cm value supplies essentially all of the
-# decline -- refitting above 88 cm changes the sign of the median slope (values in
-# scaling_slope_diagnostics.csv). The consequence is that 97% of stems fall below 1% of their 2 m
-# flux by 25 m, against 0.82x measured on the one climbed tree at 10 m. It is
-# retained because a single climbed stem cannot exclude decline in other species
-# or conditions, but it is a lower bound on emission rather than a central case.
-# Uncapped, the 31 stems (0.4%) with a slightly positive fitted slope reach up to 100x
-# their 2 m value at canopy height -- the one behaviour excluded a priori.
-#
-# NOTE, and it matters for reading the grid: this rate is fitted to the RF's own
-# within-band profile, so it is a MODEL-DERIVED shape, not a data-derived one.
-# Dropping dbh_within_z from the forest moved it: the median slope became shallower
-# (-0.914 to -0.672) while the area-weighted fraction surviving to 25 m FELL, from
-# 0.108 to 0.030, because the shallow-sloped stems that carried most of that
-# survival lost their shallow slopes. That is why the extrapolated term falls
-# further (-53%) than the measured band (-32%) between the two model versions.
+# exp_band_slope: a log-linear decay whose rate is fitted per stem to the forest's
+# band values (interval midpoints), projected above 2 m and capped at 1 so no stem
+# exceeds its own 2 m flux. Same family as `exponential`, but the rate comes from
+# each stem's modelled within-band profile, a model-derived shape: the fit spans
+# ~1.1 m, the lowest interval supplies most of the decline (dropping it changes the
+# median slope; scaling_slope_diagnostics.csv), and it is projected to canopy height.
+# A lower bound on emission rather than a central case.
 Rmat$exp_band_slope <- pmin(exp(rf_slope * (Z-2)), 1)
 
 res <- list()
 for (bn in names(BOLE)) for (rn in names(BRANCH)) {
   wb <- BOLE[[bn]](u); wb <- wb/sum(wb)
   wr <- BRANCH[[rn]](u); wr <- wr/sum(wr)
-  # Shape of area with height: bole and branch in W&W proportion (branch:stem 3.35).
-  Ashape <- outer(rep(1,n), wb)*(1/4.35) + outer(rep(1,n), wr)*(3.35/4.35)
+  # Shape of area with height: bole and branch in W&W proportion (geometry.R)
+  Ashape <- outer(rep(1,n), wb)*BOLE_FRACTION + outer(rep(1,n), wr)*BRANCH_FRACTION
   Ashape <- Ashape * (pi*INV$dbh*INV$H/2)   # per-tree weighting by conic stem area
   # The 0-2 m band area is MEASURED (pi*DBH*2 per stem) and does NOT depend on which
   # literature WAI is adopted; it is held fixed and spread uniformly over the band
@@ -316,8 +215,7 @@ for (bn in names(BOLE)) for (rn in names(BRANCH)) {
     A_above_tot <- WAIS[wn]*A_PLOT - sum(INV$A_band_m2)
     w_tree <- pi*INV$dbh*INV$H/2; w_tree <- w_tree/sum(w_tree)
     Aslab <- Aband + shp_ab * (w_tree * A_above_tot)
-    # the measured band is the canonical value, not a re-derivation (see header)
-    meas <- MEAS_BAND
+    meas <- MEAS_BAND   # the canonical band term
     for (fm in FORMS) {
       extr <- sum((f2*Rmat[[fm]])[above]*Aslab[above])/A_PLOT*CONV
       res[[length(res)+1]] <- data.frame(WAI=wn, bole=bn, branch=rn, flux=fm,
@@ -330,8 +228,8 @@ for (bn in names(BOLE)) for (rn in names(BRANCH)) {
 R <- bind_rows(res)
 write.csv(R, out_path("scaling_full_grid.csv"), row.names=FALSE)
 
-# ---- THE NAMED PAIR, defined once (2026-10-16) --------------------------------
-# The whole-surface estimate is quoted as TWO cases at one geometry, not one cell:
+# ---- THE NAMED PAIR ---------------------------------------------------------------
+# The whole-surface estimate is quoted as two cases at one geometry:
 #   decline  flux `exponential`: the decay fitted to the observed campaign means at
 #            0.5 / 1.25 / 2 m, carried upward. This is the pooled measured decline,
 #            and it is mostly yellow birch: without that species the pooled slope
@@ -340,14 +238,10 @@ write.csv(R, out_path("scaling_full_grid.csv"), row.names=FALSE)
 #   hold     flux `constant`: each stem keeps its own 2 m value. Best upward
 #            extrapolator in the same CV (13_height_form_crossvalidation.R) and
 #            consistent with the climbed oak (0.82x the 2 m flux at 10 m).
-# Both shapes come from MEASUREMENTS. exp_band_slope (a per-stem decay fitted to
-# the RF's modelled 0-2 m profile) is no longer named: it extrapolates the
-# forest's within-band height step, which nothing measured above 2 m supports. It
-# remains one of the six grid forms.
-# Shared geometry: WAI = our bottom-up estimate for THIS stand (selected by its
-# label, never by its digits -- a digit match silently returned NA once the value
-# was corrected); branch gaussian_75 (crown centred at 0.75H); bole cone (bole
-# shape is worth <1 mg across the grid). THE RANGE IS STILL THE RESULT.
+# Both shapes come from measurements (exp_band_slope, a model-derived shape, is not
+# named). Shared geometry: WAI = the bottom-up estimate for this stand (selected by
+# label); branch gaussian_75; bole cone (bole shape is worth <1 mg across the grid).
+# The range across the grid remains the result.
 HEAD_WAI <- grep("bottom-up, this stand", names(WAIS), value = TRUE)[1]
 stopifnot(length(HEAD_WAI) == 1, !is.na(HEAD_WAI))
 CASES <- data.frame(case = c("decline", "hold"), flux = c("exponential", "constant"),
@@ -365,10 +259,7 @@ for (i in seq_len(nrow(HL)))
               HL$case[i], HL$flux[i], HL$total_mg[i], HL$pct_of_soil[i],
               HL$pct_extrapolated[i], HL$net_mg[i]))
 
-# ---- export the SHAPES themselves, for figS27_scaling-profiles.R ------------
-# The profile figure must show exactly what this grid computed, so the curves are
-# written out here rather than re-derived from the same formulae elsewhere: a
-# second implementation is a second thing that can drift.
+# ---- export the shapes for figS27_scaling-profiles.R (one implementation) ------
 ZB <- seq(0, 26, by = 0.25)                       # absolute-height bins, metres
 zmid <- head(ZB,-1) + diff(ZB)/2
 
@@ -384,34 +275,24 @@ fx_prof <- bind_rows(lapply(FORMS, function(fm) {
 }))
 write.csv(fx_prof, out_path("scaling_flux_shapes.csv"), row.names=FALSE)
 
-# RAW SHAPE KERNELS, before any application to the inventory. The stand profiles
-# below are the sum over thousands of stems of differing height, so trees drop out
-# of successive slabs and the curves acquire steps and bumps that belong to the
-# INVENTORY, not to the shapes. Exporting the kernels lets the profile figure show
-# the forms themselves, on a single tree, which is what a reader needs to
-# understand them.
+# Raw shape kernels on a single tree (the stand profiles below also carry the
+# inventory's mix of stem heights)
 kern <- bind_rows(
   bind_rows(lapply(names(BOLE), function(b) {
     w <- BOLE[[b]](u); data.frame(part = "bole", shape = b, u = u, w = w/sum(w)) })),
   bind_rows(lapply(names(BRANCH), function(b) {
     w <- BRANCH[[b]](u); data.frame(part = "branch", shape = b, u = u, w = w/sum(w)) })))
-# W&W branch:stem 3.35, so the bole carries 1/4.35 of woody area and branches 3.35/4.35
-kern$part_fraction <- ifelse(kern$part == "bole", 1/4.35, 3.35/4.35)
+kern$part_fraction <- ifelse(kern$part == "bole", BOLE_FRACTION, BRANCH_FRACTION)
 write.csv(kern, out_path("scaling_shape_kernels.csv"), row.names=FALSE)
 
-# THE MEASURED BAND PROFILE, 0-2 m, as a ratio to each stem's own 2 m value. This
-# is what the model actually uses below 2 m -- the RF's own height response, a step
-# function with breakpoints where the forest splits -- and it is NOT one of the six
-# extrapolation forms. The profile figure needs it to show the full 0-26 m picture.
+# The measured band profile, 0-2 m, as a ratio to each stem's own 2 m value: the
+# forest's height response (a step function), not one of the extrapolation forms.
 zb <- seq(0, 2, by = 0.02)
 kk <- findInterval(pmin(pmax(zb*100, 50), 200), edges, rightmost.closed = TRUE)
 wgt <- INV$A_band_m2
 band_prof <- data.frame(series = "all stems (area-weighted)", z = zb,
   ratio = sapply(kk, function(k) sum(PROFI[, k]*wgt)/sum(f2*wgt)))
-# ALSO per species. The aggregate is what the budget uses, but it describes no
-# individual species: the decline from 50 cm to 2 m runs from 1.6x in Quercus
-# rubra to 3.5x in Pinus strobus. Reporting only the pooled curve would present a
-# stand-level average as if it were a biological profile.
+# also per species (the aggregate describes no individual species)
 sp_big <- names(sort(table(INV$sp), decreasing = TRUE))
 sp_big <- sp_big[sp_big != "SPECIES_OTHER"][1:6]
 band_sp <- bind_rows(lapply(sp_big, function(sp) {
@@ -452,7 +333,7 @@ ar_prof <- list()
 for (bn in names(BOLE)) for (rn in names(BRANCH)) {
   wb <- BOLE[[bn]](u); wb <- wb/sum(wb)
   wr <- BRANCH[[rn]](u); wr <- wr/sum(wr)
-  Ashape <- outer(rep(1,n), wb)*(1/4.35) + outer(rep(1,n), wr)*(3.35/4.35)
+  Ashape <- outer(rep(1,n), wb)*BOLE_FRACTION + outer(rep(1,n), wr)*BRANCH_FRACTION
   Ashape <- Ashape * (pi*INV$dbh*INV$H/2)
   nb <- rowSums(!above); Aband <- (!above) * INV$A_band_m2 / pmax(nb,1)
   shp_ab <- Ashape*above; shp_ab <- shp_ab/pmax(rowSums(shp_ab),1e-12)
@@ -464,10 +345,8 @@ for (bn in names(BOLE)) for (rn in names(BRANCH)) {
     ok <- k >= 1 & k <= length(zmid)
     a <- tapply(as.vector(Aslab)[ok], k[ok], sum)
     v <- rep(0, length(zmid)); v[as.integer(names(a))] <- as.numeric(a)
-    # ALSO the flux-weighted area, sum_i f2_i * Aslab_i(z). The plain area profile
-    # times a mean 2 m flux does NOT reproduce the grid, because stem area and stem
-    # flux are correlated across the inventory -- large stems are not average ones.
-    # Exporting this makes the profile figure integrate to exactly the grid cell.
+    # also the flux-weighted area, sum_i f2_i * Aslab_i(z): stem area and 2 m flux are
+    # correlated across stems, so this (not area x mean flux) integrates to the grid cell
     fa <- tapply((as.vector(Aslab) * rep(f2, times = ncol(Aslab)))[ok], k[ok], sum)
     w2 <- rep(0, length(zmid)); w2[as.integer(names(fa))] <- as.numeric(fa)
     ar_prof[[length(ar_prof)+1]] <- data.frame(
@@ -485,13 +364,9 @@ cat(sprintf("\n=== FULL GRID: %d combinations ===\n", nrow(R)))
 cat(sprintf("  %d WAI x %d bole x %d branch x %d flux forms\n\n",
             length(WAIS), length(BOLE), length(BRANCH), length(FORMS)))
 
-# The grid now spans zero, because linear_bounded_median lets flux decline through
-# zero into uptake aloft. Fold-changes and shares of a total are undefined across a
-# sign change, so ranges are reported as intervals and spreads in mg, never as
-# ratios. The uptake form is also reported separately: it is CONTRADICTED by the
-# only direct evidence above 2 m (all four climbed-tree measurements there are
-# positive, each larger in magnitude than the sink it assumes), so it bounds what
-# the data cannot exclude rather than describing a likely outcome.
+# The grid spans zero (linear_bounded_median), so ranges are reported as intervals and
+# spreads in mg, not ratios. The uptake form is also reported separately: the only
+# measurements above 2 m (the felled oak) are all positive.
 CONTRA <- "linear_bounded_median"
 Rp <- R[R$flux != CONTRA, ]
 rng <- function(v) sprintf("%.1f to %.1f", min(v), max(v))
@@ -532,21 +407,11 @@ print(as.data.frame(hc), row.names=FALSE, digits=4)
 cat("\n  (constant flux is identical across all 8 area shapes -- the vertical\n   distribution cancels algebraically, so only WAI matters in this row)\n")
 
 # --- figure -------------------------------------------------------------------
-# Order the panel by the forms that ACTUALLY exist. This was a hardcoded list of
-# six names, three of which (asymptote50, rf_learned, log_linear) were retired or
-# renamed: factor() silently mapped them to NA, so 120 of the 240 rows -- including
-# exp_band_slope -- vanished from the figure without a warning.
-# Derive the order from FORMS so it can never fall out of step again.
+# panel order from FORMS (a typed list could silently drop renamed forms)
 stopifnot(setequal(unique(R$flux), FORMS))
 R$flux <- factor(R$flux, levels=FORMS[order(-tapply(R$total_mg, R$flux, median)[FORMS])])
-# A log10 axis cannot render the uptake form: linear_bounded_median goes negative, so
-# log10 sent 40 of the 240 rows to NaN and ggplot dropped them with only a warning --
-# the same silent-loss failure as the factor-level bug above, and it hid precisely the
-# uptake scenario. Use a signed log (asinh, base 10, unit cofactor)
-# so sign is preserved and the whole grid is visible.
-slog <- scales::trans_new("signed_log10",
-          transform = function(x) asinh(x/2)/log(10),
-          inverse   = function(x) 2*sinh(x*log(10)))
+# signed log axis (asinh, log10 units, cofactor 2): keeps the negative totals
+slog <- flux_asinh_trans(cofactor = 2, base10 = TRUE)
 sbrk <- c(-10, -3, 0, 3, 10, 30, 100)
 p1 <- ggplot(R, aes(flux, total_mg, fill=WAI)) +
   geom_boxplot(outlier.size=.5, linewidth=.3) +

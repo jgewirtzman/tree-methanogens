@@ -16,7 +16,7 @@
 #   G  gate                  check_consistency.R
 #
 # Usage (from the repository root)
-#   Rscript code/run_all.R                    # stages B-G: everything from data/processed/
+#   Rscript code/run_all.R                    # stages B-G: from data/processed/ and data/raw/
 #   Rscript code/run_all.R --from raw         # stages A-G: everything from data/raw/
 #   Rscript code/run_all.R --from C           # skip the model fit (uses outputs/models/)
 #   Rscript code/run_all.R --only E           # one stage (make_figures.R does this)
@@ -38,6 +38,10 @@ stopifnot(all(run_stages %in% STAGES))
 
 if (!file.exists("code/pipeline.csv"))
   stop("Run from the repository root:  Rscript code/run_all.R", call. = FALSE)
+# Several scripts read column names and text with non-ASCII characters (µ, °), which
+# fail under a C locale. The scripts inherit this process's locale.
+if (!isTRUE(l10n_info()[["UTF-8"]]))
+  stop("run under a UTF-8 locale, e.g.  LC_ALL=en_US.UTF-8 Rscript code/run_all.R", call. = FALSE)
 P <- read.csv("code/pipeline.csv", stringsAsFactors = FALSE)
 stopifnot(all(P$stage %in% STAGES), all(file.exists(P$script)))
 P <- P[P$stage %in% run_stages, ]
@@ -84,4 +88,7 @@ for (i in seq_len(nrow(P))) {
 write.csv(res, file.path(LOGDIR, "pipeline_run.csv"), row.names = FALSE)
 fails <- res$script[res$status == "FAIL"]
 cat(sprintf("\n%d scripts, %d failed, %.0f min\n", nrow(res), length(fails), sum(res$secs) / 60))
-if (length(fails)) cat("failed (non-fatal):\n", paste("  ", fails, collapse = "\n"), "\n")
+if (length(fails)) {
+  cat("failed (non-fatal):\n", paste("  ", fails, collapse = "\n"), "\n")
+  quit(status = 1)
+}

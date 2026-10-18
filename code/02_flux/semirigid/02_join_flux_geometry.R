@@ -1,6 +1,8 @@
 # ==============================================================================
 # 02_join_flux_geometry.R -- chamber area and volume for each monthly stem deployment
 # ------------------------------------------------------------------------------
+# Stage A; workdir: this script's folder (code/02_flux/semirigid/).
+#
 # Each deployment's geometry comes from the chamber used that day (treeflux_total.xlsx
 # Chamber) and the stem's diameter, by the rule in code/lib/stem_chamber_geometry.R:
 # the chamber sheet's row for that stem x month x chamber where there is one, else the
@@ -8,18 +10,14 @@
 # of each deployment's geometry is written with it (geometry_source, chamber_dims,
 # D_stem_cm) and carried to data/tables/flux_stem.csv.
 #
-# (Until 2026-10-16 this script joined on the stem label only and averaged the
-# geometry over every chamber sheet row the stem had, whatever chamber was used.)
-#
 # Untagged stems (non-numeric Plot Tag) get no geometry here: the rescue
 # (code/02_flux/rescue/01_untagged_auxfile.R) handles them with the same rule.
 #
-# Pipeline stage: A (workdir = script). Run after: 01_calc_chamber_dims.R
 # Inputs:  data/raw/field_data/ipad_data/treeflux_total.xlsx (deployments, chamber used)
 #          data/raw/flux_chamber_corrections/Chamber vol corr/Tree_fluxes_*.xlsx
 #          data/raw/inventory/spatial_data/YM_trees_measured.csv.csv (D_stem of stems on
 #          no chamber sheet)
-# Outputs: data/processed/flux/flux_with_geometry_fixed.csv
+# Outputs: data/processed/flux/flux_with_geometry_fixed.csv (tagged stems only)
 #          outputs/audit/semirigid_chamber_dims.csv (the dimensions used per chamber)
 # ==============================================================================
 suppressPackageStartupMessages({ library(readxl); library(dplyr); library(readr) })

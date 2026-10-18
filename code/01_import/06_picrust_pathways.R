@@ -1,7 +1,7 @@
 # ==============================================================================
 # 06_picrust_pathways.R -- PICRUSt2 MetaCyc pathway abundances per 16S library
 # ------------------------------------------------------------------------------
-# Stage A (runs with run_all.R --from raw). Turns the PICRUSt2 predictions
+# Stage A; workdir: repository root. Turns the PICRUSt2 predictions
 # (data/raw/picrust/, the 7.9 GB tree-methanogens_picrust.zip) into the one small
 # input every PICRUSt2 analysis and figure reads. Nothing analytical happens here:
 # the contributions are summed, no sample is selected and nothing is normalised.
@@ -59,7 +59,7 @@ C <- C[!taxon %in% organelle]
 n_org <- n_all - nrow(C)
 stopifnot(all(unique(C$taxon) %in% O$feature_id))
 setnames(C, "function", "pathway")
-# grouped sums in file order (the order the earlier per-analysis rebuild summed in)
+# grouped sums in file order (the order fixes the floating-point summation)
 A  <- C[, .(abundance = sum(taxon_function_abun)), by = .(sample, pathway)]
 NM <- C[!taxon %in% mcra_asvs, .(abundance_no_mcra_asvs = sum(taxon_function_abun)), by = .(sample, pathway)]
 NP <- C[!taxon %in% pmoa_asvs, .(abundance_no_pmoa_asvs = sum(taxon_function_abun)), by = .(sample, pathway)]

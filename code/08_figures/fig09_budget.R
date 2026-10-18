@@ -1,21 +1,25 @@
+# ==============================================================================
+# fig09_budget.R -- Figure 9: the stand CH4 budget
+# ------------------------------------------------------------------------------
+# Stage E. Run from the repository root.
+#   (a) annual soil flux, the interpolated surface over the stand (per m2 ground)
+#   (b) predicted stem flux, 0-2 m mean, per mapped stem (per m2 bark)
+#   (c) monthly soil flux and stem flux at breast height
+#   (d) the annual budget as a waterfall (mg CH4 m-2 ground yr-1): soil, stems 0-2 m,
+#       the whole woody surface (decline case; whisker = the scaling grid without the
+#       uptake form), net, and foliage (unknown)
+# Colour encodes direction throughout: sink = blue, source = red (RdBu).
+# Every number is read from the upscaling outputs, none typed.
+# Inputs
+#   outputs/tables/soil_surface_annual.csv, tree_flux_predictions.csv (06_upscale/)
+#   outputs/data/canonical_budget.csv     06_upscale/03_budget_canonical.R
+#   outputs/data/canonical_monthly.csv    06_upscale/03_budget_canonical.R
+#   outputs/data/scaling_full_grid.csv, scaling_headline.csv  06_upscale/07_scaling_full_grid.R
+#   data/tables/site.csv (plot rotation); code/lib/geometry.R (stand outline)
+# Output: outputs/figures/generated/fig_budget_maps.png; the budget numbers to the console
+# ==============================================================================
 source("code/lib/outputs.R")
-# ==============================================================================
-# Main figure: plot CH4 budget (maps + seasonal + net waterfall)
-# Redesign: color = PROCESS (sink cool / source warm), consistent across panels.
-# ==============================================================================
-# Design principles:
-#   * color encodes CH4 direction: SINK = cool (teal/blue), SOURCE = warm (orange/red),
-#     used consistently in maps AND budget so soil reads sink, tree reads source.
-#   * spatial -> temporal -> net reading order.
-#   * net flux made explicit via a waterfall (0 -> soil -> tree offset -> net).
-#   * units: maps + seasonal = nmol m-2 s-1 (rate); budget = mg m-2 yr-1 (integrated).
-#   * honesty: whole-surface cases drawn dashed (extrapolated), with the grid range.
-#
-# Output: outputs/figures/generated/fig_budget_maps.png
-# ==============================================================================
-
 suppressPackageStartupMessages({ library(tidyverse); library(patchwork); library(scales) })
-out <- "outputs"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
 
 # ---- palette: RdBu family matching the paper's red/blue (sink = blue #2166ac,
 #      source = red #b2182b), consistent with the other main figures -----------
@@ -24,21 +28,16 @@ REDS  <- c("#f7f7f7","#fddbc7","#f4a582","#d6604d","#b2182b")  # ~0 -> deep emis
 SINK <- "#2166ac"; SRC <- "#b2182b"; SRC_LT <- "#f4a582"; NETC <- "grey40"
 
 # ---- inputs ------------------------------------------------------------------
-# ALL FOUR PANELS NOW DRAW ON THE SAME SOURCES. Previously the map panel drew the
-# interpolated soil surface while the seasonal and budget panels took soil from
-# MONTHLY_FLUXES.csv -- two independent estimates of one quantity, 4.7% apart --
-# and the budget panel stacked a 5.41 mg measured band (canonical) under an 85 mg
-# whole-surface bar built on a 5.79 mg band (grid). Soil is the interpolated
-# surface everywhere; the tree term is the canonical band.
+# All four panels draw on the same sources: soil is the interpolated surface
+# everywhere; the stem term is the canonical band.
 source("code/lib/geometry.R")
+source("code/lib/flux_transform.R")
 soil_map <- read.csv("outputs/tables/soil_surface_annual.csv")     # clipped to the stand
 tree_pts <- read.csv("outputs/tables/tree_flux_predictions.csv")
 tree_pts <- tree_pts[tree_pts$in_stand & tree_pts$located, ]       # mappable subset
 soil_map$mean_flux_nmol <- soil_map$flux_nmol_m2_s
 
-# ---- budget numbers: READ, never hardcoded ----------------------------------
-# All values come from 03_budget_canonical.R, which computes them from the locked
-# models and the inventory. Run that script first if any input has changed.
+# ---- budget numbers: READ, never hardcoded (06_upscale/03_budget_canonical.R) --
 B <- read.csv("outputs/data/canonical_budget.csv", stringsAsFactors = FALSE)
 val <- function(q) { v <- B$value[B$quantity == q]
   if (!length(v)) stop("canonical_budget.csv is missing: ", q); v }
@@ -62,21 +61,13 @@ tree_lo <- min(GRp$total_mg); tree_hi <- max(GRp$total_mg)
 tree_grid_lo <- min(GR$total_mg); tree_grid_hi <- max(GR$total_mg)
 
 off <- function(x) 100 * abs(x)/abs(soil_ann)
-rf_tree_r2 <- val("tree_r2_oob"); rf_soil_r2 <- val("soil_r2_oob")
-n_trees <- nrow(tree_pts)
 cat(sprintf("read canonical: soil %.2f | tree measured %.2f | decline %.1f | hold %.1f | grid %.1f-%.1f (all %.1f-%.1f)\n",
             soil_ann, tree_meas, tree_dec, tree_hold, tree_lo, tree_hi, tree_grid_lo, tree_grid_hi))
 
-# shared map extent so a & b align exactly
-# MAPPED IN PLOT-LOCAL METRES, not lon/lat. The moisture grid is regular in PX/PY
-# but the plot is rotated ~10 degrees from north, so in lon/lat its cells are not
-# axis-aligned: geom_raster cannot draw them at all, and geom_tile leaves ragged
-# overhangs that made the staircase boundary look like detached chunks. In PX/PY
-# the grid is axis-aligned, the rectilinear stand boundary renders exactly, and
-# the axes read directly in metres over a 200 m plot -- more useful than a lon/lat
-# graticule quoted to three decimals. North is drawn rotated by the plot's own
-# rotation angle instead.
-xl <- c(0, PLOT_SIDE_M); yl <- c(0, PLOT_SIDE_M)
+# Maps in plot-local metres (PX/PY), not lon/lat: the grid is regular in PX/PY but the
+# plot is rotated ~10 degrees from north, so only in PX/PY are the cells axis-aligned
+# (geom_raster) and the rectilinear stand boundary exact. North is drawn rotated by
+# the plot's own rotation. Shared extent so (a) and (b) align.
 map_scales <- list(
   scale_x_continuous(breaks = seq(0, 200, 50), expand = c(0, 0)),
   scale_y_continuous(breaks = seq(0, 200, 50), expand = c(0, 0)))
@@ -93,17 +84,9 @@ th_map <- theme_bw(base_size = 11) +
         legend.text = element_text(size = 9))
 
 # ---- (a) soil map (sink = blue; per m2 GROUND) -------------------------------
-# geom_TILE, not geom_raster: the grid is regular in plot-local metres but the
-# plot is rotated ~10 degrees from north, so in lon/lat the cells are not
-# axis-aligned and geom_raster cannot represent them.
 pa <- ggplot(soil_map, aes(PX, PY, fill = mean_flux_nmol)) +
   geom_raster() +
-  # DIVERGING, centred on zero. The previous scale ran from the minimum to 0, so
-  # every cell with a positive flux fell outside it and rendered as grey missing
-  # data -- which silently erased the wet zones that are net CH4 SOURCES. They are
-  # 17.5% of the stand and reach +0.67 nmol m-2 s-1, and they sit where the soil is
-  # wettest (mean VWC 45.9 against 14.1 in the sink cells). Showing them also makes
-  # the panel consistent with this figure's own convention: sink cool, source warm.
+  # diverging, centred on zero, so wet cells that are net sources show as sources
   scale_fill_gradientn(colours = c(rev(BLUES), REDS[-1]),
                       name = expression("Soil CH"[4]*" flux (nmol m"^-2*" ground s"^-1*")"),
                       limits = max(abs(soil_map$mean_flux_nmol))*c(-1, 1),
@@ -114,30 +97,13 @@ pa <- ggplot(soil_map, aes(PX, PY, fill = mean_flux_nmol)) +
             colour = "grey25", linewidth = 0.45) +
   coord_equal(xlim = c(-6, 206), ylim = c(-6, 206), expand = FALSE) + th_map
 
-# ---- (b) tree map (source = red; per m2 WOODY SURFACE; quantile-spread color) -
+# ---- (b) tree map (source = red; per m2 WOODY SURFACE) ------------------------
 tv <- tree_pts$flux_nmol_m2_s
-# LINEAR colour scale. This was previously rescaled to equal quantiles of the
-# prediction distribution, which is pathological here: RF predictions are clumped
-# (30% of stems sit within 1% of one value), so two of the five colour stops
-# landed 1% apart and the ramp jumped from pale to mid-red at the median. The map
-# read as uniformly hot when most stems sit at the low-middle of the range.
-# ASINH colour scaling (2026-07-30). UNITS ARE UNCHANGED -- the legend still reads
-# nmol m-2 s-1 and the breaks are round numbers in those units; only the mapping from
-# value to colour is transformed. The distribution is strongly right-skewed: median
-# 0.102 against a maximum of 0.758, so on a linear ramp the median sat at 13% of the
-# range, four fifths of the stems shared the palest two colours, and the spatial
-# structure in the bulk was invisible. asinh rather than log because it is well behaved
-# as the value approaches zero (stems run down to 0.018) and needs no offset, and it is
-# the transform already used for flux axes elsewhere in this figure set.
-asinh_col <- scales::trans_new(
-  "asinh_flux",
-  transform = function(x) asinh(x / 0.1),
-  inverse   = function(x) 0.1 * sinh(x))
-# Breaks chosen for even spacing ON THE TRANSFORMED scale, anchored at zero. On
-# asinh(x/0.1) these sit at 0, 0.48, 0.88, 1.44, 2.10 and 2.71, i.e. gaps of
-# 0.48/0.40/0.56/0.65/0.62 -- near-uniform. The old 0.02 stop crowded the bottom of the
-# bar (0.20 on the transformed scale, a third of the way to the next tick) and told the
-# reader nothing the zero anchor does not.
+# Colour on the arcsinh scale of the flux axes (code/lib/flux_transform.R): the
+# predictions are right-skewed, and on a linear ramp most stems share the palest
+# colours. Legend units stay nmol m-2 s-1; the breaks are near-evenly spaced on the
+# transformed scale, anchored at zero.
+asinh_col <- flux_asinh_trans()
 col_brks <- c(0, 0.05, 0.1, 0.2, 0.4, 0.75)
 col_brks <- col_brks[col_brks <= max(tv) * 1.02]
 
@@ -157,19 +123,8 @@ pb <- ggplot(tree_pts %>% arrange(flux_nmol_m2_s), aes(PX, PY, color = flux_nmol
 # The axes are metres, so no scale bar is needed. The plot is rotated from north,
 # so the needle is drawn at that angle rather than pointing up the page.
 .rot <- read.csv("data/tables/site.csv")$rotation_rad   # plot-axis rotation from grid north
-# Placed in the BOTTOM-RIGHT, inside the uncensused quadrat staircase (PX 140-200,
-# PY 0-60), which carries no stems and no soil cells -- genuinely empty space rather
-# than somewhere the marker has to compete with data.
-#
-# The panels used to reserve headroom to ylim 224 purely for a top-right arrow; with
-# the marker moved into the staircase that band was empty, so the maps are now square
-# at ylim 206 and the stand fills the panel.
-# It previously sat at (186, 214) with the "N" at 1.5x the needle length above the
-# tip, i.e. y ~ 230, while coord_equal clipped at ylim 224 -- so the letter was drawn
-# outside the panel and silently cropped. That is why the arrow had no N.
-#
-# Style: a conventional shaft-and-head arrow rather than the half-filled compass
-# needle, with the N above the tip and a white halo so it reads over any background.
+# Placed bottom-right, inside the uncensused quadrat staircase (PX 140-200, PY 0-60),
+# which carries no stems and no soil cells; "N" above the tip on a white halo.
 add_ctx <- function(p) {
   cx <- 178; cy <- 22; L <- 13                 # arrow centre and half-length, metres
   rr <- function(dx, dy) c(cx + dx*cos(-.rot) - dy*sin(-.rot),
@@ -187,15 +142,9 @@ add_ctx <- function(p) {
 pa <- add_ctx(pa); pb <- add_ctx(pb)
 
 # ---- (c) MONTHLY series: soil (blue) + tree (red), points joined by lines --------
-# Reads the canonical monthly series, which uses the height-integrated 0-2 m band for
-# the tree term. MONTHLY_FLUXES.csv carries the superseded single-value tree scaling.
+# The stem series is mean flux at breast height per m2 of woody surface, comparable
+# with the map in (b); per-m2-ground stem flux appears only in the budget panel (d).
 CM <- read.csv("outputs/data/canonical_monthly.csv", stringsAsFactors = FALSE)
-# The tree series is MEAN FLUX AT BREAST HEIGHT, per m2 of woody surface -- a
-# measured quantity, directly comparable to the map in panel (b). It used to be
-# the 0-2 m band's contribution per m2 of GROUND, which exists only because we
-# summed stem area and divided by plot area; placed beside soil it invited a
-# like-for-like reading when it is diluted by that denominator. Per-ground-area
-# belongs in the budget panel, and that is where it now lives exclusively.
 mon <- CM %>%
   transmute(month,
             `Soil (per m² ground)` = soil_nmol_m2_s,
@@ -284,7 +233,7 @@ pd <- ggplot(wf) +
   theme(axis.text.x = element_text(size = 8, lineheight = 0.9),
         panel.grid.minor = element_blank(), panel.grid.major.x = element_blank())
 
-# ---- assemble (net-sink / RF-R2 / basis notes go in the figure CAPTION) -------
+# ---- assemble (net-sink and basis notes are in the caption) --------------------
 fig <- (pa | pb) / (pc | pd) + plot_layout(heights = c(1.05, 1)) +
   plot_annotation(tag_levels = 'a', tag_prefix = "(", tag_suffix = ")") & theme(plot.tag = element_text(face = "bold", size = 13))
 ggsave(out_path("fig_budget_maps.png"), fig, width = 9.2, height = 8, dpi = 300, bg = "white")   # near print size

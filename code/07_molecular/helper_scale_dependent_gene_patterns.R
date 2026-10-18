@@ -1,54 +1,28 @@
 # ==============================================================================
-# Scale-Dependent Gene Patterns (Figures S10, S13)
+# helper_scale_dependent_gene_patterns.R -- species-level gene-flux summaries
+# ------------------------------------------------------------------------------
+# SOURCED, never run alone (from the repository root). Builds, from the canonical
+# tables (code/lib/species_gene_data.R):
+#   tree_level_complete, flux_all, ...      (species_gene_data.R)
+#   analysis_mcra, _pmoa, _mmox, _methanotroph, _ratio
+#                                           per species (>= 5 trees with every gene
+#                                           and >= 5 fluxes): median and quartiles of
+#                                           the gene, median flux
+#   cor_area_mcra, _pmoa, _mmox, _methanotroph, pearson_ratio
+#                                           species-level Pearson tests (log10 gene)
+#   tree_comparison_data, species_comparison_data, y_limit
+#                                           R2 and p of the five gene models at tree
+#                                           (flux ~ species + gene) and species level
+#   species_palette, theme_pub_gene         shared plot styling
+# Sourced by fig04, fig08, figS21 and 09_tables_stats/14-20.
 # ==============================================================================
-# Purpose: Summary statistics for mcrA, pmoA, and mmoX gene abundances across
-#   species and compartments at individual-tree and species-mean scales.
-#
-# Pipeline stage: 3 — Analysis
-#
-# Inputs (canonical tables, via code/lib/tables_read.R):
-#   - data/tables/: trees, flux_stem (2021_multiheight, 2023_cross_species),
-#     ddpcr + samples, species
-# ==============================================================================
 
-cat("\n============================================================\n")
-cat("CREATING 3x2 SIDE-BY-SIDE LAYOUT FIGURE\n")
-cat("Using COMPLETE GENE DATA (filtered for all genes present)\n")
-cat("============================================================\n")
+suppressPackageStartupMessages({
+  library(tidyverse)
+  library(ggrepel)
+  library(patchwork)
+})
 
-library(tidyverse)
-library(ggplot2)
-library(ggrepel)
-library(patchwork)
-
-# ============================================================
-# PSEUDOLOG TRANSFORMATION FUNCTIONS
-# ============================================================
-
-# For individual tree level - stretched near zero
-pseudolog10_individual <- function(x) {
-  asinh(x / 0.2) / log(10)
-}
-
-inv_pseudolog10_individual <- function(x) {
-  0.2 * sinh(x * log(10))
-}
-
-# For species level - original scaling
-pseudolog10 <- function(x) {
-  asinh(x / 2) / log(10)
-}
-
-inv_pseudolog10 <- function(x) {
-  2 * sinh(x * log(10))
-}
-
-# ============================================================
-# DATA PREPARATION: code/lib/species_gene_data.R (the one copy of the prep)
-# ============================================================
-# ymf2021, ymf2023, area-weighted genes per tree (tree_genes_weighted,
-# tree_genes_complete), tree_level_complete (+ 125 cm flux, log genes, log_ratio),
-# flux_all and flux_by_species (n_flux, median and quartiles)
 source("code/lib/species_gene_data.R")
 
 cat("\n=== FILTERING FOR COMPLETE GENE DATA ===\n")
@@ -156,12 +130,11 @@ pearson_ratio <- cor.test(analysis_ratio$median_log_ratio,
                           analysis_ratio$median_flux)
 
 # ============================================================
-# SHARED PUBLICATION INFRASTRUCTURE
+# SHARED PLOT STYLING
 # ============================================================
-
 library(grid)
 
-# Consistent species color palette (shared across S8 left-column and S11)
+# species colours (Fig S24)
 species_in_data <- sort(unique(tree_level_complete$species))
 species_palette <- setNames(
   scales::viridis_pal()(length(species_in_data)),
@@ -176,215 +149,26 @@ theme_pub_gene <- theme_classic(base_size = 11) +
     plot.tag = element_text(size = 11, face = "bold")
   )
 
-# Y-axis labels with units
-y_lab_individual <- expression(CH[4]~flux~(nmol~m^{-2}~s^{-1}))
-y_lab_species    <- expression(Median~CH[4]~flux~(nmol~m^{-2}~s^{-1}))
-
 # ============================================================
-# LEFT COLUMN: INDIVIDUAL TREE LEVEL - PSEUDOLOG FLUX
+# GENE MODELS: tree level (flux ~ species + gene) and species level
 # ============================================================
-
-# Panel A1: Individual - mcrA
 tree_lm_mcra <- lm(CH4_flux ~ species + log_tree_mcra, data = tree_level_complete)
 tree_mcra_r2 <- summary(tree_lm_mcra)$r.squared
 tree_mcra_p <- summary(tree_lm_mcra)$coefficients["log_tree_mcra", "Pr(>|t|)"]
-
-p_tree_mcra <- ggplot(tree_level_complete,
-                      aes(x = log_tree_mcra, y = pseudolog10_individual(CH4_flux), color = species)) +
-  geom_point(size = 1.95, alpha = 0.6) +
-  geom_smooth(method = "lm", se = TRUE, color = "#E74C3C",
-              fill = "#FADBD8", alpha = 0.2, linewidth = 1) +
-  geom_hline(yintercept = pseudolog10_individual(0), linetype = "dashed", color = "gray50") +
-  annotate("label", x = Inf, y = Inf,
-           label = sprintf("p=%.3f", tree_mcra_p),
-           hjust = 1.1, vjust = 1.1, size = 3.25, fill = "white", alpha = 0.9) +
-  scale_y_continuous(
-    breaks = pseudolog10_individual(c(0, 0.1, 1)),
-    labels = c("0", "0.1", "1")
-  ) +
-  scale_color_manual(values = species_palette, name = "Species") +
-  labs(tag = "(a)", x = expression(log[10]~mcrA), y = y_lab_individual) +
-  theme_pub_gene +
-  theme(legend.position = "none")
-
-# Panel A2: Individual - pmoA
 tree_lm_pmoa <- lm(CH4_flux ~ species + log_pmoa, data = tree_level_complete)
 tree_pmoa_r2 <- summary(tree_lm_pmoa)$r.squared
 tree_pmoa_p <- summary(tree_lm_pmoa)$coefficients["log_pmoa", "Pr(>|t|)"]
-
-p_tree_pmoa <- ggplot(tree_level_complete,
-                      aes(x = log_pmoa, y = pseudolog10_individual(CH4_flux), color = species)) +
-  geom_point(size = 1.95, alpha = 0.6) +
-  geom_smooth(method = "lm", se = TRUE, color = "#3498DB",
-              fill = "#D6EAF8", alpha = 0.2, linewidth = 1) +
-  geom_hline(yintercept = pseudolog10_individual(0), linetype = "dashed", color = "gray50") +
-  annotate("label", x = Inf, y = Inf,
-           label = sprintf("p=%.3f", tree_pmoa_p),
-           hjust = 1.1, vjust = 1.1, size = 3.25, fill = "white", alpha = 0.9) +
-  scale_y_continuous(
-    breaks = pseudolog10_individual(c(0, 0.1, 1)),
-    labels = c("0", "0.1", "1")
-  ) +
-  scale_color_manual(values = species_palette, name = "Species") +
-  labs(tag = "(c)", x = expression(log[10]~pmoA), y = "") +
-  theme_pub_gene +
-  theme(legend.position = "none")
-
-# Panel A3: Individual - mmoX
 tree_lm_mmox <- lm(CH4_flux ~ species + log_tree_mmox, data = tree_level_complete)
 tree_mmox_r2 <- summary(tree_lm_mmox)$r.squared
 tree_mmox_p <- summary(tree_lm_mmox)$coefficients["log_tree_mmox", "Pr(>|t|)"]
-
-p_tree_mmox <- ggplot(tree_level_complete,
-                      aes(x = log_tree_mmox, y = pseudolog10_individual(CH4_flux), color = species)) +
-  geom_point(size = 1.95, alpha = 0.6) +
-  geom_smooth(method = "lm", se = TRUE, color = "#5DADE2",
-              fill = "#D6EAF8", alpha = 0.2, linewidth = 1) +
-  geom_hline(yintercept = pseudolog10_individual(0), linetype = "dashed", color = "gray50") +
-  annotate("label", x = Inf, y = Inf,
-           label = sprintf("p=%.3f", tree_mmox_p),
-           hjust = 1.1, vjust = 1.1, size = 3.25, fill = "white", alpha = 0.9) +
-  scale_y_continuous(
-    breaks = pseudolog10_individual(c(0, 0.1, 1)),
-    labels = c("0", "0.1", "1")
-  ) +
-  scale_color_manual(values = species_palette, name = "Species") +
-  labs(tag = "(e)", x = expression(log[10]~mmoX), y = "") +
-  theme_pub_gene +
-  theme(legend.position = "none")
-
-# Panel A4: Individual - Methanotrophs
 tree_lm_methanotroph <- lm(CH4_flux ~ species + log_methanotroph, data = tree_level_complete)
 tree_methanotroph_r2 <- summary(tree_lm_methanotroph)$r.squared
 tree_methanotroph_p <- summary(tree_lm_methanotroph)$coefficients["log_methanotroph", "Pr(>|t|)"]
-
-p_tree_methanotroph <- ggplot(tree_level_complete,
-                              aes(x = log_methanotroph, y = pseudolog10_individual(CH4_flux), color = species)) +
-  geom_point(size = 1.95, alpha = 0.6) +
-  geom_smooth(method = "lm", se = TRUE, color = "#1F618D",
-              fill = "#D6EAF8", alpha = 0.2, linewidth = 1) +
-  geom_hline(yintercept = pseudolog10_individual(0), linetype = "dashed", color = "gray50") +
-  annotate("label", x = Inf, y = Inf,
-           label = sprintf("p=%.3f", tree_methanotroph_p),
-           hjust = 1.1, vjust = 1.1, size = 3.25, fill = "white", alpha = 0.9) +
-  scale_y_continuous(
-    breaks = pseudolog10_individual(c(0, 0.1, 1)),
-    labels = c("0", "0.1", "1")
-  ) +
-  scale_color_manual(values = species_palette, name = "Species") +
-  labs(tag = "(g)", x = expression(log[10]~(pmoA+mmoX)), y = "") +
-  theme_pub_gene +
-  theme(legend.position = "none")
-
-# Panel A5: Individual - Ratio
 tree_lm_ratio <- lm(CH4_flux ~ species + log_ratio, data = tree_level_complete)
 tree_ratio_r2 <- summary(tree_lm_ratio)$r.squared
 tree_ratio_p <- summary(tree_lm_ratio)$coefficients["log_ratio", "Pr(>|t|)"]
 
-p_tree_ratio <- ggplot(tree_level_complete,
-                       aes(x = log_ratio, y = pseudolog10_individual(CH4_flux), color = species)) +
-  geom_point(size = 1.95, alpha = 0.6) +
-  geom_smooth(method = "lm", se = TRUE, color = "#9B59B6",
-              fill = "#EBDEF0", alpha = 0.2, linewidth = 1) +
-  geom_hline(yintercept = pseudolog10_individual(0), linetype = "dashed", color = "gray50") +
-  geom_vline(xintercept = 0, linetype = "dotted", color = "gray50", alpha = 0.5) +
-  annotate("label", x = Inf, y = Inf,
-           label = sprintf("p=%.3f", tree_ratio_p),
-           hjust = 1.1, vjust = 1.1, size = 3.25, fill = "white", alpha = 0.9) +
-  scale_y_continuous(
-    breaks = pseudolog10_individual(c(0, 0.1, 1)),
-    labels = c("0", "0.1", "1")
-  ) +
-  scale_color_manual(values = species_palette, name = "Species") +
-  labs(tag = "(i)", x = expression(log[10]~ratio), y = "") +
-  theme_pub_gene +
-  theme(legend.position = "none")
-
-# ============================================================
-# RIGHT COLUMN: SPECIES LEVEL - LINEAR FLUX (WITH ERROR BARS)
-# ============================================================
-
-# Panel B1: Species - mcrA
-p_species_mcra <- ggplot(analysis_mcra,
-                         aes(x = log10(median_mcra + 1), y = median_flux, color = species)) +
-  geom_smooth(method = "lm", se = TRUE, color = "#E74C3C",
-              fill = "#FADBD8", alpha = 0.2, linewidth = 1) +
-  geom_point(size = 3.25, alpha = 0.85) +
-  geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
-  annotate("label", x = Inf, y = Inf,
-           label = sprintf("p=%.3f", cor_area_mcra$p.value),
-           hjust = 1.1, vjust = 1.1, size = 3.25, fill = "white", alpha = 0.9) +
-  scale_color_manual(values = species_palette, name = "Species") +
-  labs(tag = "(b)", x = expression(log[10]~median~mcrA), y = y_lab_species) +
-  theme_pub_gene +
-  theme(legend.position = "none")
-
-# Panel B2: Species - pmoA
-p_species_pmoa <- ggplot(analysis_pmoa,
-                         aes(x = log10(median_pmoa + 1), y = median_flux, color = species)) +
-  geom_smooth(method = "lm", se = TRUE, color = "#3498DB",
-              fill = "#D6EAF8", alpha = 0.2, linewidth = 1) +
-  geom_point(size = 3.25, alpha = 0.85) +
-  geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
-  annotate("label", x = Inf, y = Inf,
-           label = sprintf("p=%.3f", cor_area_pmoa$p.value),
-           hjust = 1.1, vjust = 1.1, size = 3.25, fill = "white", alpha = 0.9) +
-  scale_color_manual(values = species_palette, name = "Species") +
-  labs(tag = "(d)", x = expression(log[10]~median~pmoA), y = "") +
-  theme_pub_gene +
-  theme(legend.position = "none")
-
-# Panel B3: Species - mmoX
-p_species_mmox <- ggplot(analysis_mmox,
-                         aes(x = log10(median_mmox + 1), y = median_flux, color = species)) +
-  geom_smooth(method = "lm", se = TRUE, color = "#5DADE2",
-              fill = "#D6EAF8", alpha = 0.2, linewidth = 1) +
-  geom_point(size = 3.25, alpha = 0.85) +
-  geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
-  annotate("label", x = Inf, y = Inf,
-           label = sprintf("p=%.3f", cor_area_mmox$p.value),
-           hjust = 1.1, vjust = 1.1, size = 3.25, fill = "white", alpha = 0.9) +
-  scale_color_manual(values = species_palette, name = "Species") +
-  labs(tag = "(f)", x = expression(log[10]~median~mmoX), y = "") +
-  theme_pub_gene +
-  theme(legend.position = "none")
-
-# Panel B4: Species - Methanotrophs
-p_species_methanotroph <- ggplot(analysis_methanotroph,
-                                 aes(x = log10(median_methanotroph + 1), y = median_flux, color = species)) +
-  geom_smooth(method = "lm", se = TRUE, color = "#1F618D",
-              fill = "#D6EAF8", alpha = 0.2, linewidth = 1) +
-  geom_point(size = 3.25, alpha = 0.85) +
-  geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
-  annotate("label", x = Inf, y = Inf,
-           label = sprintf("p=%.3f", cor_area_methanotroph$p.value),
-           hjust = 1.1, vjust = 1.1, size = 3.25, fill = "white", alpha = 0.9) +
-  scale_color_manual(values = species_palette, name = "Species") +
-  labs(tag = "(h)", x = expression(log[10]~median~(pmoA+mmoX)), y = "") +
-  theme_pub_gene +
-  theme(legend.position = "none")
-
-# Panel B5: Species - Ratio
-p_species_ratio <- ggplot(analysis_ratio,
-                          aes(x = median_log_ratio, y = median_flux, color = species)) +
-  geom_smooth(method = "lm", se = TRUE, color = "#9B59B6",
-              fill = "#EBDEF0", alpha = 0.2, linewidth = 1) +
-  geom_point(size = 3.25, alpha = 0.85) +
-  geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
-  geom_vline(xintercept = 0, linetype = "dotted", color = "gray50", alpha = 0.5) +
-  annotate("label", x = Inf, y = Inf,
-           label = sprintf("p=%.3f", pearson_ratio$p.value),
-           hjust = 1.1, vjust = 1.1, size = 3.25, fill = "white", alpha = 0.9) +
-  scale_color_manual(values = species_palette, name = "Species") +
-  labs(tag = "(j)", x = expression(log[10]~ratio), y = "") +
-  theme_pub_gene +
-  theme(legend.position = "none")
-
-# ============================================================
-# BOTTOM ROW: MODEL COMPARISONS (A6 and B6)
-# ============================================================
-
-# Panel A6: Individual level comparison
+# R2 and p of each gene model, tree level
 tree_comparison_data <- data.frame(
   Model = c("mcrA", "pmoA", "mmoX", "pmoA+mmoX", "Ratio"),
   R2 = c(tree_mcra_r2, tree_pmoa_r2, tree_mmox_r2, 
@@ -397,7 +181,7 @@ tree_comparison_data <- data.frame(
     Model = factor(Model, levels = Model[order(R2)])
   )
 
-# Panel B6: Species level comparison
+# species level
 species_comparison_data <- data.frame(
   Model = c("mcrA", "pmoA", "mmoX", "pmoA+mmoX", "Ratio"),
   R2 = c(cor_area_mcra$estimate^2,
@@ -419,381 +203,3 @@ species_comparison_data <- data.frame(
 # Calculate shared y-axis limit
 max_r2 <- max(c(tree_comparison_data$R2, species_comparison_data$R2))
 y_limit <- max_r2 * 1.2
-
-p_tree_comparison <- ggplot(tree_comparison_data,
-                            aes(x = Model, y = R2, fill = Significant)) +
-  geom_col(alpha = 0.8) +
-  geom_text(aes(label = sprintf("%.3f", R2)),
-            vjust = -0.3, size = 3.25) +
-  scale_fill_manual(values = c("FALSE" = "gray70", "TRUE" = "#27AE60"),
-                    labels = c("NS", "p < 0.05"),
-                    name = "") +
-  ylim(0, y_limit) +
-  labs(tag = "(k)", x = "", y = expression(italic(R)^2)) +
-  theme_pub_gene +
-  theme(legend.position = "bottom",
-        legend.text = element_text(size = 10))
-
-p_species_comparison <- ggplot(species_comparison_data,
-                               aes(x = Model, y = R2, fill = Significant)) +
-  geom_col(alpha = 0.8) +
-  geom_text(aes(label = sprintf("%.3f", R2)),
-            vjust = -0.3, size = 3.25) +
-  scale_fill_manual(values = c("FALSE" = "gray70", "TRUE" = "#27AE60"),
-                    labels = c("NS", "p < 0.05"),
-                    name = "") +
-  ylim(0, y_limit) +
-  labs(tag = "(l)", x = "", y = "") +
-  theme_pub_gene +
-  theme(legend.position = "bottom",
-        legend.text = element_text(size = 10))
-
-# ============================================================
-# COMBINE LAYOUT (6x2 with column headers)
-# ============================================================
-
-# Column headers
-header_individual <- wrap_elements(full =
-  textGrob("Individual Tree Level", gp = gpar(fontface = "bold", fontsize = 13)))
-header_species <- wrap_elements(full =
-  textGrob("Species Level", gp = gpar(fontface = "bold", fontsize = 13)))
-
-# Create a legend-only panel as a ggplot (cowplot::get_legend doesn't scale in patchwork)
-legend_panel <- ggplot(tree_level_complete,
-    aes(x = log_tree_mcra, y = CH4_flux, color = species)) +
-  geom_point(alpha = 0) +
-  scale_color_manual(values = species_palette, name = "Species") +
-  guides(color = guide_legend(nrow = 2, byrow = TRUE,
-                              override.aes = list(size = 3, alpha = 1))) +
-  theme_void() +
-  theme(legend.position = "bottom",
-        legend.text = element_text(face = "italic", size = 9),
-        legend.title = element_text(size = 10, face = "bold"),
-        legend.key.size = unit(0.5, "cm"),
-        legend.margin = margin(0, 0, 0, 0),
-        legend.box.margin = margin(0, 0, 0, 0))
-
-# Build left and right columns with headers
-left_column <- header_individual /
-  p_tree_mcra / p_tree_pmoa / p_tree_mmox /
-  p_tree_methanotroph / p_tree_ratio / p_tree_comparison +
-  plot_layout(ncol = 1, heights = c(0.06, 1, 1, 1, 1, 1, 0.85))
-
-right_column <- header_species /
-  p_species_mcra / p_species_pmoa / p_species_mmox /
-  p_species_methanotroph / p_species_ratio / p_species_comparison +
-  plot_layout(ncol = 1, heights = c(0.06, 1, 1, 1, 1, 1, 0.85))
-
-# Combine: two columns side-by-side, legend row at bottom
-main_grid <- left_column | right_column
-combined_layout <- main_grid / legend_panel +
-  plot_layout(heights = c(1, 0.08))
-
-ggsave("outputs/figures/original/supplementary/figS11_scale_dependent_genes.png", combined_layout,
-       width = 12, height = 15, dpi = 300)
-
-# ============================================================
-# INDIVIDUAL-ONLY LAYOUT (2 columns x 3 rows)
-# ============================================================
-
-individual_layout <- (p_tree_mcra | p_tree_pmoa) /
-  (p_tree_mmox | p_tree_methanotroph) /
-  (p_tree_ratio | p_tree_comparison)
-
-# ggsave("outputs/figures/Figure_Individual_Only_Complete_Genes.pdf", individual_layout,
-#        width = 8, height = 10)
-# ggsave("outputs/figures/Figure_Individual_Only_Complete_Genes.png", individual_layout,
-#        width = 8, height = 10, dpi = 300)
-
-# ============================================================
-# SPECIES-ONLY LAYOUT (2 columns x 3 rows)
-# ============================================================
-
-species_layout <- (p_species_mcra | p_species_pmoa) /
-  (p_species_mmox | p_species_methanotroph) /
-  (p_species_ratio | p_species_comparison)
-
-# ggsave("outputs/figures/Figure_Species_Only_Complete_Genes.pdf", species_layout,
-#        width = 8, height = 10)
-# ggsave("outputs/figures/Figure_Species_Only_Complete_Genes.png", species_layout,
-#        width = 8, height = 10, dpi = 300)
-
-# ============================================================
-# SPECIES-ONLY 2x2 LAYOUT (mcrA, methanotrophs, ratio, comparison)
-# ============================================================
-
-# Panel 1: Species - mcrA (custom red color)
-p_species_mcra_2x2 <- ggplot(analysis_mcra,
-                             aes(x = log10(median_mcra + 1), y = median_flux)) +
-  geom_smooth(method = "lm", se = TRUE, color = "#C03221",
-              fill = "#F5C9C3", alpha = 0.2, linewidth = 1) +
-  geom_point(size = 3.25, alpha = 0.85, color = "#C03221") +
-  geom_text_repel(aes(label = species), size = 2.6, fontface = "italic",
-                  box.padding = 0.2, max.overlaps = 20) +
-  geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
-  annotate("label", x = Inf, y = Inf,
-           label = sprintf("p=%.3f", cor_area_mcra$p.value),
-           hjust = 1.1, vjust = 1.1, size = 3.25,
-           fill = "white", alpha = 0.9) +
-  labs(x = expression("log"[10]*" median mcrA"),
-       y = expression("Median CH"[4]*" flux")) +
-  theme_classic(base_size = 11.7) +
-  theme(
-    panel.grid.major = element_line(color = "gray95", linewidth = 0.3),
-    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.8)
-  )
-
-# Panel 2: Species - Methanotrophs (custom blue color)
-p_species_methanotroph_2x2 <- ggplot(analysis_methanotroph,
-                                     aes(x = log10(median_methanotroph + 1), y = median_flux)) +
-  geom_smooth(method = "lm", se = TRUE, color = "#4A6FA5",
-              fill = "#C5D5E8", alpha = 0.2, linewidth = 1) +
-  geom_point(size = 3.25, alpha = 0.85, color = "#4A6FA5") +
-  geom_text_repel(aes(label = species), size = 2.6, fontface = "italic",
-                  box.padding = 0.2, max.overlaps = 20) +
-  geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
-  annotate("label", x = Inf, y = Inf,
-           label = sprintf("p=%.3f", cor_area_methanotroph$p.value),
-           hjust = 1.1, vjust = 1.1, size = 3.25,
-           fill = "white", alpha = 0.9) +
-  labs(x = expression("log"[10]*" median (pmoA+mmoX)"),
-       y = "") +
-  theme_classic(base_size = 11.7) +
-  theme(
-    panel.grid.major = element_line(color = "gray95", linewidth = 0.3),
-    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.8)
-  )
-
-# Panel 3: Species - Ratio (custom purple color)
-p_species_ratio_2x2 <- ggplot(analysis_ratio,
-                              aes(x = median_log_ratio, y = median_flux)) +
-  geom_smooth(method = "lm", se = TRUE, color = "#6B5B95",
-              fill = "#D7D2E0", alpha = 0.2, linewidth = 1) +
-  geom_point(size = 3.25, alpha = 0.85, color = "#6B5B95") +
-  geom_text_repel(aes(label = species), size = 2.6, fontface = "italic",
-                  box.padding = 0.2, max.overlaps = 20) +
-  geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
-  geom_vline(xintercept = 0, linetype = "dotted", color = "gray50", alpha = 0.5) +
-  annotate("label", x = Inf, y = Inf,
-           label = sprintf("p=%.3f", pearson_ratio$p.value),
-           hjust = 1.1, vjust = 1.1, size = 3.25,
-           fill = "white", alpha = 0.9) +
-  labs(x = expression("log"[10]*" ratio"),
-       y = expression("Median CH"[4]*" flux")) +
-  theme_classic(base_size = 11.7) +
-  theme(
-    panel.grid.major = element_line(color = "gray95", linewidth = 0.3),
-    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.8)
-  )
-
-# Panel 4: Model Comparison (custom green for significance)
-p_species_comparison_2x2 <- ggplot(species_comparison_data,
-                                   aes(x = Model, y = R2, fill = Significant)) +
-  geom_col(alpha = 0.8) +
-  geom_text(aes(label = sprintf("%.3f", R2)),
-            vjust = -0.3, size = 3.25) +
-  scale_fill_manual(values = c("FALSE" = "gray70", "TRUE" = "#285238"),
-                    labels = c("NS", "p < 0.05"),
-                    name = "") +
-  ylim(0, y_limit) +
-  labs(x = "", y = "") +
-  theme_classic(base_size = 11.7) +
-  theme(legend.position = "bottom",
-        legend.text = element_text(size = 10.4))
-
-# Create 2x2 layout
-species_2x2_layout <- (p_species_mcra_2x2 | p_species_methanotroph_2x2) /
-  (p_species_ratio_2x2 | p_species_comparison_2x2)
-
-# ggsave("outputs/figures/Figure_Species_2x2_Complete_Genes.pdf", species_2x2_layout,
-#        width = 8, height = 8)
-# ggsave("outputs/figures/Figure_Species_2x2_Complete_Genes.png", species_2x2_layout,
-#        width = 8, height = 8, dpi = 300)
-
-cat("\n============================================================\n")
-cat("ALL FIGURES CREATED (COMPLETE GENE DATA)\n")
-cat("============================================================\n")
-cat("\nFiles saved:\n")
-cat("  1. Combined layout (side-by-side):\n")
-cat("     - Figure_Scale_Dependent_Complete_Genes.pdf\n")
-cat("     - Figure_Scale_Dependent_Complete_Genes.png\n")
-cat("  2. Individual tree level only (2x3):\n")
-cat("     - Figure_Individual_Only_Complete_Genes.pdf\n")
-cat("     - Figure_Individual_Only_Complete_Genes.png\n")
-cat("  3. Species level only (2x3):\n")
-cat("     - Figure_Species_Only_Complete_Genes.pdf\n")
-cat("     - Figure_Species_Only_Complete_Genes.png\n")
-cat("  4. Species level 2x2 (key metrics):\n")
-cat("     - Figure_Species_2x2_Complete_Genes.pdf\n")
-cat("     - Figure_Species_2x2_Complete_Genes.png\n")
-
-cat("\n### SUMMARY TABLE ###\n")
-summary_table <- rbind(
-  tree_comparison_data %>% mutate(Scale = "Individual"),
-  species_comparison_data %>% mutate(Scale = "Species")
-) %>%
-  dplyr::select(Scale, Model, R2, P_value, Significant) %>%
-  arrange(Scale, desc(R2))
-
-print(summary_table)
-
-write.csv(summary_table, "outputs/tables/Scale_Dependent_Complete_Genes_Summary.csv", row.names = FALSE)
-
-cat("\n### DATA FILTERING SUMMARY ###\n")
-cat("Trees with complete gene data:", nrow(tree_level_complete), "\n")
-cat("Species analyzed:", nrow(analysis_ratio), "\n")
-cat("All analyses use the SAME filtered dataset\n")
-
-cat("\n============================================================\n")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# ============================================================
-# ADDITIONAL ANALYSIS: mcrA vs. (pmoA+mmoX) 
-# At both individual tree and species levels
-# ============================================================
-
-cat("\n============================================================\n")
-cat("CREATING mcrA vs METHANOTROPH PLOTS\n")
-cat("============================================================\n")
-
-# ------------------------------------------------------------
-# INDIVIDUAL TREE LEVEL: mcrA vs methanotroph_total
-# ------------------------------------------------------------
-
-# Calculate correlation
-cor_tree_mcra_methanotroph <- cor.test(
-  tree_level_complete$log_tree_mcra,
-  tree_level_complete$log_methanotroph
-)
-
-# Create plot (NO trendline - not significant)
-p_tree_mcra_vs_methanotroph <- ggplot(tree_level_complete,
-                                      aes(y = log_methanotroph,
-                                          x = log_tree_mcra,
-                                          color = species)) +
-  geom_point(size = 2.5, alpha = 0.6) +
-  scale_color_manual(values = species_palette, name = "Species") +
-  annotate("label", x = Inf, y = Inf,
-           label = sprintf("r = %.3f\np = %.3f",
-                           cor_tree_mcra_methanotroph$estimate,
-                           cor_tree_mcra_methanotroph$p.value),
-           hjust = 1.1, vjust = 1.1, size = 3.5,
-           fill = "white", alpha = 0.9) +
-  labs(
-    title = "Individual Tree Level",
-    y = expression(log[10]~(pmoA+mmoX)),
-    x = expression(log[10]~mcrA)
-  ) +
-  theme_pub_gene +
-  theme(
-    legend.position = "right",
-    legend.text = element_text(face = "italic", size = 8),
-    legend.title = element_text(size = 9),
-    plot.title = element_text(hjust = 0.5, face = "bold")
-  )
-
-# ------------------------------------------------------------
-# SPECIES LEVEL: median mcrA vs median methanotroph
-# ------------------------------------------------------------
-
-# Combine mcrA and methanotroph data for species-level analysis
-species_mcra_methanotroph <- analysis_mcra %>%
-  dplyr::select(species, species_id, median_mcra, q25_mcra, q75_mcra) %>%
-  left_join(
-    analysis_methanotroph %>% 
-      dplyr::select(species, median_methanotroph, q25_methanotroph, q75_methanotroph),
-    by = "species"
-  )
-
-# Calculate correlation
-cor_species_mcra_methanotroph <- cor.test(
-  log10(species_mcra_methanotroph$median_mcra + 1),
-  log10(species_mcra_methanotroph$median_methanotroph + 1)
-)
-
-# Create plot (NO trendline - not significant)
-p_species_mcra_vs_methanotroph <- ggplot(species_mcra_methanotroph,
-                                         aes(y = log10(median_methanotroph + 1),
-                                             x = log10(median_mcra + 1),
-                                             color = species)) +
-  geom_point(size = 3.5, alpha = 0.85) +
-  scale_color_manual(values = species_palette) +
-  geom_text_repel(aes(label = species), size = 3, fontface = "italic",
-                  box.padding = 0.3, max.overlaps = 20) +
-  annotate("label", x = Inf, y = Inf,
-           label = sprintf("r = %.3f\np = %.3f",
-                           cor_species_mcra_methanotroph$estimate,
-                           cor_species_mcra_methanotroph$p.value),
-           hjust = 1.1, vjust = 1.1, size = 3.5,
-           fill = "white", alpha = 0.9) +
-  labs(
-    title = "Species Level",
-    y = expression(log[10]~median~(pmoA+mmoX)),
-    x = expression(log[10]~median~mcrA)
-  ) +
-  theme_pub_gene +
-  theme(
-    plot.title = element_text(hjust = 0.5, face = "bold"),
-    legend.position = "none"
-  )
-
-# ------------------------------------------------------------
-# COMBINE AND SAVE
-# ------------------------------------------------------------
-
-# Side-by-side layout with panel labels
-mcra_vs_methanotroph_layout <- (p_tree_mcra_vs_methanotroph |
-  p_species_mcra_vs_methanotroph) +
-  plot_annotation(tag_levels = "a",
-                  tag_prefix = "(",
-                  tag_suffix = ")",
-                  theme = theme(plot.tag = element_text(size = 11, face = "bold")))
-
-# Save combined figure
-# ggsave("outputs/figures/Figure_mcrA_vs_Methanotroph.pdf", mcra_vs_methanotroph_layout,
-#        width = 12, height = 5)
-ggsave("outputs/figures/original/supplementary/figS14_mcra_vs_methanotroph.png", mcra_vs_methanotroph_layout,
-       width = 13, height = 5.5, dpi = 300)
-
-# Save individual plots
-# ggsave("outputs/figures/Figure_mcrA_vs_Methanotroph_Individual.pdf",
-#        p_tree_mcra_vs_methanotroph,
-#        width = 6, height = 5)
-# ggsave("outputs/figures/Figure_mcrA_vs_Methanotroph_Species.pdf",
-#        p_species_mcra_vs_methanotroph,
-#        width = 6, height = 5)
-
-# Print summary
-cat("\n### mcrA vs METHANOTROPH CORRELATION SUMMARY ###\n")
-cat("\nIndividual Tree Level:\n")
-cat(sprintf("  Pearson r = %.3f\n", cor_tree_mcra_methanotroph$estimate))
-cat(sprintf("  p-value = %.4f\n", cor_tree_mcra_methanotroph$p.value))
-cat(sprintf("  n = %d trees\n", nrow(tree_level_complete)))
-
-cat("\nSpecies Level:\n")
-cat(sprintf("  Pearson r = %.3f\n", cor_species_mcra_methanotroph$estimate))
-cat(sprintf("  p-value = %.4f\n", cor_species_mcra_methanotroph$p.value))
-cat(sprintf("  n = %d species\n", nrow(species_mcra_methanotroph)))
-
-cat("\nFigures saved:\n")
-cat("  - Figure_mcrA_vs_Methanotroph.pdf (combined)\n")
-cat("  - Figure_mcrA_vs_Methanotroph.png (combined)\n")
-cat("  - Figure_mcrA_vs_Methanotroph_Individual.pdf\n")
-cat("  - Figure_mcrA_vs_Methanotroph_Species.pdf\n")
-
-cat("\n============================================================\n")

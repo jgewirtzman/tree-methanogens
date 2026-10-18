@@ -17,7 +17,7 @@ Recorded 2026-09-30.
 
 | file | source |
 |---|---|
-| `data/raw/external/try/try_request47607_records.csv` | TRY request 47607: the 5,955 records of 11 traits for the 16 species, all original columns (UTF-8). Added 2026-10-14; read by `code/01_import/10_species_traits.R`. |
+| `data/raw/external/try/try_request47607_records.csv` | TRY request 47607: the 5,955 records of 11 traits for the 16 species, all original columns (UTF-8). Added 2026-10-14; read by `code/tables/07_species_traits.R`. |
 | `data/raw/external/gwdd/gwdd_v2.2_records_16spp.csv` | GWDD v2.2 (with bark): the 4,114 records of the 16 species, all columns. Added 2026-10-14. |
 | `data/raw/external/README.md` | sources, versions, licences and citation requirements of every external input. |
 | `data/raw/photos/{semirigid,rigid}_chamber.jpg` | chamber photographs (SI Fig. S2), copied 2026-10-01 from `outputs/figures/photos/`, which is git-ignored and not regenerable |
@@ -72,16 +72,11 @@ Run `Rscript code/tools/migrate_campaign_filenames.R` on a restored archive; it 
 | `lgr_manual_identification_results_final.csv` | `lgr_manual_identification_2021_multiheight_final.csv` |
 | `lgr_manual_identification_summary_final.csv` | `lgr_manual_identification_summary_2021_multiheight_final.csv` |
 
-## 3. Regenerated — reproducible from committed code, in this order
+## 3. Regenerated — reproducible from committed code
 
-1. `Rscript code/02_flux/assemble_campaign_flux.R 2021_multiheight` → `data/processed/flux/tree_flux_2021_multiheight.csv`
-2. `Rscript code/03_merge/02_compile_soil_env.R` → `data/processed/environmental/soil_env_by_collar.csv` (now includes `Soil_temp_moisture_2020.xlsx`: 291 records, 22 dates)
-3. `(cd code/01_import && Rscript 03_process_internal_gas.R)` → `data/processed/internal_gas/{sample_data_only,processed_GC_data_internal_conc,internal_gas_calibration_check}.csv`
-4. `Rscript code/01_import/04_process_internal_gas_2024.R` → `data/processed/internal_gas/stem_gas_2024_calibrated.csv`
-5. `(cd code/03_merge && Rscript 04_harmonize_all_data.R)` → `data/processed/integrated/merged_tree_dataset_final.csv` (needs a UTF-8 locale)
-6. `(cd code/05_model && Rscript 01_load_and_prep_data.R && Rscript 02_rf_models.R)` → `data/processed/integrated/rf_workflow_input_data_with_2023.RData`, `outputs/models/*`
-7. `Rscript code/run_all.R` → every output, figure and audit
-8. `Rscript code/zenodo/01_compile_datasets.R` → `data/compiled/*` (then upload `data/`)
+`LC_ALL=en_US.UTF-8 Rscript code/run_all.R --from raw` regenerates `data/processed/`,
+`data/tables/`, `data/compiled/` (with `README_data.md` and `results/`) and every output,
+figure and audit; then upload `data/` (`code/zenodo/04_package_archive.sh`).
 
 ## 4. Analyzer volume (merged 2026-09-30, fa7e721)
 
@@ -103,3 +98,11 @@ isotope summary, Tables 1 and S2-S5). The previous archive's monthly stem file o
 - `flux_stem.csv`, `flux_soil.csv`: `chamber_area_m2` renamed `chamber_area_cm2`. The values were always cm² (goFlux convention; rigid ≈462, semi-rigid ≈4,190); only the name and the dictionary unit were wrong. Fluxes unaffected (2026-10-02).
 
 - New raw input `data/raw/inventory/spatial_data/lidar_3dep_1m_utm18n.tif` (2026-10-02): 1 m bare-earth DEM, Connecticut statewide lidar 2016, exported from the USGS 3DEP ImageServer (elevation.nationalmap.gov `3DEPElevation/ImageServer/exportImage`, bbox −72.1340, 41.9870, −72.1260, 41.9930 WGS84, EPSG:26918, 680 × 680 px, bilinear). Public domain. Used only for the Figure S1 basemap and stream course; it does not enter any analysis.
+
+## 6. Stage-A products stage B reads moved into data/processed/ (2026-10-17)
+
+`data/processed/flux/flux_FINAL.csv` (minimum detectable flux and detection status,
+`02_flux/03_precision_and_detection.R`) and `data/processed/flux/qc_excluded_measurements.csv`
+(the closure screen, `02_flux/02_qc_c0_screen.R`) were written to `outputs/data/`, which is not
+archived, so a run from the processed archive (`run_all.R --from B`) could not build the flux
+tables. They are now part of `data/processed/` and of the processed zip.

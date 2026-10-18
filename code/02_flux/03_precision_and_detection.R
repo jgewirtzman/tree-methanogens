@@ -1,12 +1,13 @@
-source("code/lib/outputs.R")
 #!/usr/bin/env Rscript
 # ==============================================================================
-# 03_precision_and_detection.R
+# 03_precision_and_detection.R -- minimum detectable flux and detection status of
+#                                 every CH4 flux
 # ------------------------------------------------------------------------------
-# THE METHOD. Supersedes rev_mdf_02 through rev_mdf_13, which document the route.
+# Stage A; workdir: repository root. Runs after 02_qc_c0_screen.R and
+# 02b_instrument_precision.R.
 #
-# PRECISION
-#   sigma = MAD(dx) / sqrt(2), where dx is the difference between consecutive 1 Hz
+# PRECISION (computed by 02b_instrument_precision.R)
+#   sigma = MAD(dx) / sqrt(2), where dx is the difference between consecutive logged
 #   readings, taken over the ENTIRE record for each field period.
 #
 #   MAD (median absolute deviation) is a spread measure built on medians rather than
@@ -22,14 +23,13 @@ source("code/lib/outputs.R")
 #     - Moves, breaths and chamber changes create large isolated differences. MAD
 #       tolerates these to ~40% contamination; SD does not (SD/MAD is 6-10x here).
 #
-#   VALIDATION (July 2026, with the earlier constant 1.200 ppb): computed over the whole record it gave 1.200 ppb for the
-#   Height+molecular period, against 1.038 ppb computed independently from
-#   first differences inside manually-clicked closure windows only -- two disjoint
-#   data subsets agreeing to 15%. Measured inside vs outside closures on the same
-#   recordings, the ratio is 0.91, so the estimate does not depend on which part of
-#   the record is used.
+#   Validation: over the whole record the estimate for the Height+molecular period
+#   (1.2 ppb) agrees to 15% with one computed independently from first differences
+#   inside the hand-picked closure windows only (1.04 ppb); inside vs outside closures
+#   on the same recordings the ratio is 0.91, so the estimate does not depend on which
+#   part of the record is used.
 #
-#   Approaches considered and rejected, documented in rev_mdf_02/03/13:
+#   Approaches considered and rejected:
 #     - quietest-5% of 30 s rolling windows: 30 s sits past the Allan minimum (~4 s)
 #       so it captures real concentration change, and selecting an extreme quantile
 #       biases the estimate low by ~23% even on pure white noise.
@@ -41,8 +41,7 @@ source("code/lib/outputs.R")
 #   t is recovered per closure from goFlux's own MDF column (MDF_goFlux = prec/t*flux.term,
 #   t in seconds), so it is exact for every logging interval. nb.obs is the number of
 #   logged samples and is NOT t: the Height+molecular campaign logged every 5 s, so
-#   using nb.obs there overstated its MDF ~4.94x (fixed 2026-09-25; nb.obs is kept
-#   only for the n >= 3 filters).
+#   nb.obs there is 5x smaller than t (nb.obs is used only for the n >= 3 filter).
 #   This is the conventional chamber form. It is CONSERVATIVE: it treats the
 #   detectable change as a single-sample criterion and so discards the averaging
 #   benefit of fitting a slope to t points. Regression theory gives a detection
@@ -50,14 +49,20 @@ source("code/lib/outputs.R")
 #   errors to within 2%. We retain the conventional form deliberately, and report the
 #   regression test (p < 0.05) alongside it.
 #
-# Output: outputs/audit/FINAL_detection.txt, flux_FINAL.csv
+# Measurements in qc_excluded_measurements.csv are left out.
+#
+# Inputs:  outputs/data/instrument_precision.csv (02b), data/processed/flux/qc_excluded_measurements.csv (02)
+#          data/processed/flux/CH4_best_flux_lgr_results_{2021_multiheight,soil,2023_cross_species}.csv
+#          data/processed/flux/semirigid_tree_final_complete_dataset_with_untagged.csv
+# Output:  data/processed/flux/flux_FINAL.csv  every CH4 flux with sigma, t_sec, MDF, detected,
+#          class (read by the stage-B flux tables)
 # ==============================================================================
+source("code/lib/outputs.R")
+source("code/lib/monthly_cols.R")
 suppressMessages({library(dplyr)})
-outdir <- "outputs"
 rule <- function(s) cat("\n",strrep("=",78),"\n ",s,"\n",strrep("=",78),"\n",sep="")
 
-# sigma per field period, computed from the raw analyzer records by
-# 02b_instrument_precision.R (until 2026-10-09 three constants were typed here).
+# sigma per field period (02b_instrument_precision.R)
 .prec <- read.csv(out_path("instrument_precision.csv"), stringsAsFactors = FALSE)
 SIGMA <- setNames(.prec$sigma_ppb, .prec$camp)
 stopifnot(setequal(names(SIGMA), c("Height+molecular", "Cross-species", "Monthly survey")), all(SIGMA > 0))
@@ -68,23 +73,19 @@ G <- bind_rows(
     mutate(camp="Height+molecular", type="stem"),
   read.csv("data/processed/flux/CH4_best_flux_lgr_results_soil.csv",stringsAsFactors=FALSE) %>%
     mutate(camp="Monthly survey", type="soil"),
-  # 2023 cross-species campaign. Same basename as the height+molecular file above
-  # but a different campaign (338 rows vs 441), so it is stored under a distinct name.
   read.csv("data/processed/flux/CH4_best_flux_lgr_results_2023_cross_species.csv",stringsAsFactors=FALSE) %>%
     mutate(camp="Cross-species", type="stem")) %>%
   filter(is.finite(best.flux),is.finite(flux.term),is.finite(nb.obs),nb.obs>2)
-source("code/lib/monthly_cols.R")
 st <- monthly_plain(read.csv("data/processed/flux/semirigid_tree_final_complete_dataset_with_untagged.csv",
                stringsAsFactors=FALSE, check.names=TRUE))
-gc <- function(b){n<-paste0("CH4_",b)
-  if(n %in% names(st)) suppressWarnings(as.numeric(st[[n]])) else rep(NA_real_,nrow(st))}
+gc <- function(b){n<-paste0("CH4_",b); stopifnot(n %in% names(st)); suppressWarnings(as.numeric(st[[n]]))}
 G <- bind_rows(G, data.frame(UniqueID=st$UniqueID, camp="Monthly survey", type="stem",
   best.flux=gc("best.flux"), flux.term=gc("flux.term"), nb.obs=gc("nb.obs"),
   MDF=gc("MDF"), prec=gc("prec"),
   LM.p.val=gc("LM.p.val"), LM.r2=gc("LM.r2"), stringsAsFactors=FALSE)) %>%
   filter(is.finite(best.flux),is.finite(flux.term),is.finite(nb.obs),nb.obs>2) %>%
   distinct(UniqueID,.keep_all=TRUE)
-excl <- read.csv(out_path("qc_excluded_measurements.csv"),stringsAsFactors=FALSE)$UniqueID
+excl <- read.csv("data/processed/flux/qc_excluded_measurements.csv",stringsAsFactors=FALSE)$UniqueID
 G <- G[!(G$UniqueID %in% excl),]
 G$sigma <- SIGMA[G$camp]
 # closure length in seconds, from goFlux's MDF = prec/t*flux.term (t in seconds).
@@ -141,5 +142,5 @@ cat(sprintf("    deepest in the lowest-sigma campaign: %s\n",
 cat(sprintf("    median detected soil uptake %.4f  -> stem uptake is %.1f%% of it\n",
   median(su), 100*abs(median(u))/abs(median(su))))
 cat(sprintf("\n  >>> BOUND = %.4f nmol m-2 s-1 (median detected stem uptake)\n", median(u)))
-write.csv(G, out_path("flux_FINAL.csv"), row.names=FALSE)
-cat("\n  Written: outputs/data/flux_FINAL.csv\n")
+write.csv(G, "data/processed/flux/flux_FINAL.csv", row.names=FALSE)
+cat("\n  Written: data/processed/flux/flux_FINAL.csv\n")

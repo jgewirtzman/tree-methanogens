@@ -1,6 +1,8 @@
 #!/usr/bin/env Rscript
 # ==============================================================================
-# figS18_stem-deterioration.R  (SI, exploratory)
+# figS18_stem-deterioration.R -- Figure S19: stem flux against visible deterioration
+# ------------------------------------------------------------------------------
+# Stage E. Run from the repository root. Exploratory.
 # CH4 flux vs stem condition (2023 cross-species survey), species-controlled.
 # For each ordinal condition metric (bark loss, wounding; FULL 4 categories, not
 # aggregated) we fit continuous LINEAR vs QUADRATIC mixed models
@@ -8,15 +10,16 @@
 # and show the actual fitted curves (+/- 95% CI) over the raw data, with model
 # comparison (AIC, marginal R^2, quadratic-term p). Lets the data adjudicate the
 # shape rather than assuming it. Axis in original flux units (back-transformed).
-# Reads data/tables/flux_stem.csv (bark_missing, wounding) and trees.csv; writes outputs/figures/generated/figS20_stem_deterioration.png
+# Inputs: data/tables/flux_stem.csv (2023_cross_species: bark_missing, wounding; scores
+#   1-3, "dead" = 4) and trees.csv (species), via code/lib/tables_read.R
+# Output: outputs/figures/generated/figS20_stem_deterioration.png
 # ==============================================================================
 suppressMessages({library(ggplot2);library(patchwork);library(lme4);library(lmerTest)})
-options(warn=-1,stringsAsFactors=FALSE)
-asinh10<-function(x) asinh(x/0.1)/log(10)
+source("code/lib/flux_transform.R")   # flux_asinh10()
 ord<-function(v){v<-tolower(trimws(as.character(v)));x<-suppressWarnings(as.numeric(v));x[v=="dead"]<-4;x}
 source("code/lib/tables_read.R")   # 2023 deployments (flux_stem.csv); species from trees.csv
 y<-flux_stem_campaign("2023_cross_species"); y<-y[!is.na(y$CH4_flux_nmol_m2_s),]
-y$fx<-asinh10(y$CH4_flux_nmol_m2_s); y$sp<-as.factor(y$species_code)
+y$fx<-flux_asinh10(y$CH4_flux_nmol_m2_s); y$sp<-as.factor(y$species_code)
 y$bark<-ord(y$bark_missing); y$wound<-ord(y$wounding)
 obrk<-c(-0.2,0,0.05,0.2,1,5); th<-theme_bw(base_size=11)+theme(panel.grid.minor=element_blank())
 R2m<-function(m){ vf<-var(predict(m,re.form=NA)); vr<-sum(as.numeric(VarCorr(m))); ve<-sigma(m)^2; vf/(vf+vr+ve) }
@@ -41,16 +44,16 @@ panel<-function(metric,xlab,catlabs){
     geom_ribbon(data=gq,aes(x,ymin=lo,ymax=hi),alpha=.15,fill="#5e3a06",inherit.aes=FALSE)+
     geom_line(data=gl,aes(x,fit),linetype=2,linewidth=.8,colour="grey25",inherit.aes=FALSE)+
     geom_line(data=gq,aes(x,fit),linewidth=1,colour="#5e3a06",inherit.aes=FALSE)+
-    geom_text(data=nl,aes(x,asinh10(-0.28),label=paste0("n = ",n)),inherit.aes=FALSE,size=2.8,colour="grey35")+
-    annotate("text",min(d$x)-0.3,asinh10(5.5),hjust=0,vjust=1,size=2.8,label=txt)+
+    geom_text(data=nl,aes(x,flux_asinh10(-0.28),label=paste0("n = ",n)),inherit.aes=FALSE,size=2.8,colour="grey35")+
+    annotate("text",min(d$x)-0.3,flux_asinh10(5.5),hjust=0,vjust=1,size=2.8,label=txt)+
     scale_x_continuous(breaks=1:4,labels=catlabs)+
-    scale_y_continuous(breaks=asinh10(obrk),labels=obrk)+coord_cartesian(ylim=asinh10(c(-0.32,6)))+
+    scale_y_continuous(breaks=flux_asinh10(obrk),labels=obrk)+coord_cartesian(ylim=flux_asinh10(c(-0.32,6)))+
     labs(x=xlab,y=expression(CH[4]~flux~(nmol~m^-2~s^-1)))+th
 }
 pA<-panel("bark","Bark loss (decay)",c("healthy","moderate","severe","dead"))
 pB<-panel("wound","Wounding (damage)",c("1","2","3","4"))
 ggsave("outputs/figures/generated/figS20_stem_deterioration.png",
-  # model note (species random intercept, n = 282; robustness) is in the SI caption
+  # model note (species random intercept, n, robustness) is in the SI caption
   (pA | pB+labs(y=NULL))+plot_annotation(tag_levels="a", tag_prefix="(", tag_suffix=")") &
     theme(plot.tag=element_text(size=14, face="bold")),
   width=11,height=5,dpi=300,bg="white")

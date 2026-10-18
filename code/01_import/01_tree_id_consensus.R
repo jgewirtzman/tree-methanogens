@@ -1,151 +1,92 @@
 # ==============================================================================
-# Tree ID Consensus and DBH Mapping
-# ==============================================================================
-# Purpose: Creates comprehensive tree ID mapping and DBH consensus from multiple
-#   field data sources, resolving naming inconsistencies across datasets.
+# 01_tree_id_consensus.R -- tree ID crosswalk and DBH consensus across sources
+# ------------------------------------------------------------------------------
+# Stage A; workdir: this script's folder (code/01_import/). Runs after
+# 02_flux/static/01_prep_auxfile_2021.R, whose dimensions table is one of the sources.
 #
-# Pipeline stage: 01 Tree Data Processing
-# Run after: None (first script in tree data pipeline)
+# Every tree ID in seven sources is normalised (normalize_tree_id(): lower case, one
+# space, "prime" written as an apostrophe, punctuation other than / and ' removed, then
+# the manual corrections in apply_manual_corrections()). One DBH per tree is taken in
+# priority order: the 2021 field datasheets, Trees_DBH.csv, labels.xlsx, the legacy
+# flux_data_TEMP.csv, the 2021 dimensions table (the last DBH where a source has several).
+# Near-identical IDs are listed for manual review (fuzzy matching; nothing is merged
+# on similarity alone).
 #
-# Inputs:
-#   - Gewirtzman_datasheets_fixing_dates.csv
-#   - Trees_DBH.csv
-#   - labels.xlsx
-#   - ddPCR_tree_full_data.csv
-#   - Soil/flux data files
-#
-# Outputs:
-#   - tree_id_comprehensive_mapping.csv
-#   - tree_dbh_consensus_comprehensive.csv
+# Inputs:  data/raw/field_data/static_chamber_field/Gewirtzman_datasheets_fixing_dates.csv
+#          data/raw/dbh/Trees_DBH.csv, data/raw/dbh/labels.xlsx
+#          data/raw/field_data/static_chamber_field/soil_tree_level_means.csv (IDs only)
+#          data/raw/field_data/legacy/flux_data_TEMP.csv
+#          data/raw/ddpcr_raw/ddPCR_tree_full_data.csv (IDs only, latin1)
+#          data/processed/flux/flux_data_with_dimensions_weather_and_final_airtemp.csv
+# Outputs (data/processed/tree_data/):
+#          tree_dbh_consensus_comprehensive.csv     one row per tree with a DBH
+#          tree_dbh_complete_comprehensive.csv      the same plus trees with no DBH
+#          tree_id_comprehensive_mapping.csv        every name variant, by source
+#          trees_multiple_variants_comprehensive.csv
+#          potential_formatting_matches.csv         similarity >= 0.90 (review)
+#          potentially_similar_unmatched_ids.csv    similarity 0.70-0.90 (review; written
+#                                                   only when there are any)
+#          dbh_summary_comprehensive.csv
 # ==============================================================================
 
 library(dplyr)
 library(readr)
 library(openxlsx)
 library(stringr)
-library(RecordLinkage)  # For fuzzy matching
+library(RecordLinkage)  # jarowinkler(), levenshteinDist()
 library(tidyr)
 
-# Functions for tree ID normalization and matching (improved to preserve all meaningful characters)
 normalize_tree_id <- function(id) {
-  # Handle NA and empty values
   result <- ifelse(is.na(id) | id == "", "", as.character(id))
-  
-  # Convert to lowercase
   result <- tolower(result)
-  # Replace various apostrophe formats with standard apostrophe
-  result <- str_replace_all(result, "'|'|'|prime", "'")
-  # Normalize whitespace to single spaces
+  result <- str_replace_all(result, "'|prime", "'")
   result <- str_replace_all(result, "\\s+", " ")
-  # Remove spaces around slashes and apostrophes for consistency
-  result <- str_replace_all(result, "\\s*([/'`])\\s*", "\\1")
-  # Remove ONLY non-alphanumeric punctuation, preserving letters, numbers, apostrophes, and slashes
-  result <- str_replace_all(result, "[^a-z0-9/'\\s]", "")
-  # Trim whitespace
+  result <- str_replace_all(result, "\\s*([/'`])\\s*", "\\1")   # no spaces around / ' `
+  result <- str_replace_all(result, "[^a-z0-9/'\\s]", "")         # keep letters, digits, / ' and spaces
   result <- str_trim(result)
-  
-  # Apply manual corrections based on domain knowledge
-  result <- apply_manual_corrections(result)
-  
-  return(result)
+  apply_manual_corrections(result)
 }
 
-# Function to apply manual corrections based on domain knowledge
+# Corrections from review of the ID variants (typos and naming variants of one tree).
+# One pass: "wpberenice" becomes "wpbernice", and only an ID already spelled
+# "wpbernice" becomes "wp bernice".
 apply_manual_corrections <- function(normalized_id) {
-  # Create mapping of corrections
-  corrections <- list(
-    # ABT 14P variations
-    "abt14p" = "abt 14p",
-    
-    # Bowser variations  
+  corrections <- c(
+    "abt14p"              = "abt 14p",
     "bowser dead red oak" = "bowser",
-    
-    # CUL8R variations
-    "ybcul8r" = "cul8r",
-    
-    # H7/HM7 variations
-    "hm7" = "h7",
-    
-    # Typo corrections
-    "ob501" = "pb501",
-    "wb403" = "wp403",
-    
-    # SF1/SA1 variations
-    "sa1" = "sf1",
-    
-    # Berenice variations
-    "wpberenice" = "wpbernice",
-    
-    # Confirmed formatting matches from user review
-    "wpbernice" = "wp bernice",  # Standardize to spaced version
-    "ab3/5" = "ab 3/5",         # Standardize to spaced version  
-    "ab4/6" = "ab 4/6",         # Standardize to spaced version
-    
-    # Additional confirmed matches from latest review
-    "abt14p" = "abt 14p",       # This was already included but ensuring consistency
-    "ybcul8r" = "cul8r"         # This was already included but ensuring consistency
+    "ybcul8r"             = "cul8r",
+    "hm7"                 = "h7",
+    "ob501"               = "pb501",
+    "wb403"               = "wp403",
+    "sa1"                 = "sf1",
+    "wpberenice"          = "wpbernice",
+    "wpbernice"           = "wp bernice",
+    "ab3/5"               = "ab 3/5",
+    "ab4/6"               = "ab 4/6"
   )
-  
-  # Apply corrections
-  for (i in seq_along(normalized_id)) {
-    if (normalized_id[i] %in% names(corrections)) {
-      normalized_id[i] <- corrections[[normalized_id[i]]]
-    }
-  }
-  
-  return(normalized_id)
+  hit <- normalized_id %in% names(corrections)
+  normalized_id[hit] <- unname(corrections[normalized_id[hit]])
+  normalized_id
 }
 
-# Function to find tree ID column with flexible naming
-find_tree_id_column <- function(df) {
-  # Common variations of tree ID column names
-  possible_names <- c("Tree_ID", "tree_id", "Tree ID", "tree id", "TreeID", "treeid", 
-                      "Tree.ID", "tree.id", "TREE_ID", "TREE.ID", "lab_id", "Lab_ID")
-  
-  # Find which one exists in the dataframe
-  found_col <- intersect(possible_names, names(df))
-  
-  if (length(found_col) > 0) {
-    return(found_col[1])  # Return the first match
-  } else {
-    # If no standard column found, return NULL and we'll handle it manually
-    return(NULL)
-  }
-}
-
-# Function to parse ddPCR tree IDs from Inner.Core.Sample.ID (vectorized)
+# ddPCR tree ID from Inner.Core.Sample.ID: the part before "Wood", then the ID after
+# the species code (e.g. "ACRU_RM1Wood_OuterLab ID: 1a" -> "RM1"); "" if none.
 parse_ddpcr_tree_id <- function(sample_id) {
-  # Handle vectors properly
   result <- character(length(sample_id))
-  
   for (i in seq_along(sample_id)) {
-    if (is.na(sample_id[i]) || sample_id[i] == "") {
-      result[i] <- ""
-    } else {
-      # Split on "Wood" and take the first part
-      # Example: "ACRU_RM1Wood_OuterLab ID: 1a" becomes "ACRU_RM1"
-      parts <- str_split(sample_id[i], "Wood")[[1]]
-      if (length(parts) > 0) {
-        tree_part <- parts[1]
-        # Extract just the tree ID part (everything after the last underscore for species_treeID format)
-        tree_id_match <- str_extract(tree_part, "[A-Za-z]+_([A-Za-z0-9/']+)$")
-        if (!is.na(tree_id_match)) {
-          # Extract just the tree ID (after the underscore)
-          tree_id <- str_extract(tree_id_match, "(?<=_)[A-Za-z0-9/']+$")
-          result[i] <- ifelse(is.na(tree_id), "", tree_id)
-        } else {
-          result[i] <- ""
-        }
-      } else {
-        result[i] <- ""
-      }
-    }
+    if (is.na(sample_id[i]) || sample_id[i] == "") next
+    tree_part <- str_split(sample_id[i], "Wood")[[1]][1]
+    tree_id_match <- str_extract(tree_part, "[A-Za-z]+_([A-Za-z0-9/']+)$")
+    if (is.na(tree_id_match)) next
+    tree_id <- str_extract(tree_id_match, "(?<=_)[A-Za-z0-9/']+$")
+    result[i] <- ifelse(is.na(tree_id), "", tree_id)
   }
-  
-  return(result)
+  result
 }
 
-# Improved similarity function that respects ALL character differences
+# Similarity of two normalised IDs: 0 when their digits differ or their letters differ
+# beyond spacing/punctuation; otherwise the larger of Jaro-Winkler and normalised
+# Levenshtein similarity.
 calculate_similarity_strict <- function(s1, s2) {
   if (is.na(s1) || is.na(s2) || s1 == "" || s2 == "") return(0)
   
@@ -186,110 +127,40 @@ calculate_similarity_strict <- function(s1, s2) {
   return(max(jw_sim, lev_sim))
 }
 
-# Read all data sources
 cat("Reading data files...\n")
-
-# 1. Read the authoritative datasheets file
-datasheets <- read_csv("../../data/raw/field_data/static_chamber_field/Gewirtzman_datasheets_fixing_dates.csv")
-
-# 2. Read the Trees_DBH.csv file
-trees_dbh <- read_csv("../../data/raw/dbh/Trees_DBH.csv")
-
-# 3. Read the Excel labels file
-labels_excel <- read.xlsx("../../data/raw/dbh/labels.xlsx", sheet = "Sheet1")
-
-# 4. Read soil tree level means (no DBH, just for Tree IDs)
-soil_data <- read_csv("../../data/raw/field_data/static_chamber_field/soil_tree_level_means.csv")
-
-# 5. Read flux data TEMP (has DBH data)
-flux_temp <- read_csv("../../data/raw/field_data/legacy/flux_data_TEMP.csv")
-
-# 6. Read ddPCR data (no DBH, just for Tree IDs) - with encoding fix
-cat("Reading ddPCR data with encoding handling...\n")
-tryCatch({
-  ddpcr_data <- read_csv("../../data/raw/ddpcr_raw/ddPCR_tree_full_data.csv",
-                         locale = locale(encoding = "latin1"))
-}, error = function(e) {
-  cat("Error with latin1 encoding, trying UTF-8...\n")
-  tryCatch({
-    ddpcr_data <<- read_csv("../../data/raw/ddpcr_raw/ddPCR_tree_full_data.csv",
-                            locale = locale(encoding = "UTF-8"))
-  }, error = function(e2) {
-    cat("Error with UTF-8, trying cp1252...\n")
-    ddpcr_data <<- read_csv("../../data/raw/ddpcr_raw/ddPCR_tree_full_data.csv",
-                            locale = locale(encoding = "cp1252"))
-  })
-})
-
-# 7. Read flux data with dimensions (has DBH data)
+datasheets      <- read_csv("../../data/raw/field_data/static_chamber_field/Gewirtzman_datasheets_fixing_dates.csv")
+trees_dbh       <- read_csv("../../data/raw/dbh/Trees_DBH.csv")
+labels_excel    <- read.xlsx("../../data/raw/dbh/labels.xlsx", sheet = "Sheet1")
+soil_data       <- read_csv("../../data/raw/field_data/static_chamber_field/soil_tree_level_means.csv")
+flux_temp       <- read_csv("../../data/raw/field_data/legacy/flux_data_TEMP.csv")
+ddpcr_data      <- read_csv("../../data/raw/ddpcr_raw/ddPCR_tree_full_data.csv",
+                            locale = locale(encoding = "latin1"))
 flux_dimensions <- read_csv("../../data/processed/flux/flux_data_with_dimensions_weather_and_final_airtemp.csv")
 
-# Clean and standardize data with enhanced ID matching
-cat("Cleaning and standardizing data...\n")
-
-# Function to prepare ALL data from files with DBH columns (keeps records even without DBH)
-prepare_data_with_dbh_comprehensive <- function(df, source_name, tree_id_col = NULL) {
-  # Auto-detect tree ID column if not specified
-  if (is.null(tree_id_col)) {
-    tree_id_col <- find_tree_id_column(df)
-    if (is.null(tree_id_col)) {
-      stop(paste("Could not find tree ID column in", source_name, "file"))
-    }
-  }
-  
-  # Auto-detect DBH column (could be "DBH", "dbh", "Dbh")
-  dbh_cols <- c("DBH", "dbh", "Dbh", "DBH_cm", "dbh_cm")
-  dbh_col <- intersect(dbh_cols, names(df))
-  if (length(dbh_col) == 0) {
-    stop(paste("Could not find DBH column in", source_name, "file"))
-  }
-  dbh_col <- dbh_col[1]
-  
-  # Auto-detect Plot column
-  plot_cols <- c("Plot", "plot", "PLOT", "Site", "site", "Location", "location")
-  plot_col <- intersect(plot_cols, names(df))
-  if (length(plot_col) == 0) {
-    df$Plot <- "Unknown"
-    plot_col <- "Plot"
-  } else {
-    plot_col <- plot_col[1]
-  }
-  
-  cat("  ", source_name, "- using columns:", tree_id_col, "(Tree ID),", dbh_col, "(DBH),", plot_col, "(Plot)\n")
-  
-  df %>%
-    select(all_of(c(plot_col, tree_id_col, dbh_col))) %>%
-    rename(Plot = all_of(plot_col), Tree_ID_original = all_of(tree_id_col), DBH = all_of(dbh_col)) %>%
-    filter(!is.na(Tree_ID_original), Tree_ID_original != "") %>%  # Only filter out missing Tree IDs
-    mutate(
-      DBH = as.numeric(DBH),  # Convert DBH but don't filter out NAs yet
-      Tree_ID_normalized = normalize_tree_id(Tree_ID_original),
-      source = source_name
-    ) %>%
-    filter(Tree_ID_normalized != "") %>%  # Only filter out trees that couldn't be normalized
+# ---- one record per (plot, ID, DBH) per source ------------------------------------
+# Rows without an ID, or whose ID normalises to "", are dropped; rows without a DBH are
+# kept as IDs (without_dbh).
+prepare_ids <- function(df, source_name, plot_col, tree_id_col, dbh_col = NULL) {
+  cols <- c(plot_col, tree_id_col, dbh_col)
+  out <- df %>%
+    select(all_of(cols)) %>%
+    rename(Plot = all_of(plot_col), Tree_ID_original = all_of(tree_id_col)) %>%
+    filter(!is.na(Tree_ID_original), Tree_ID_original != "")
+  if (!is.null(dbh_col)) out <- out %>% rename(DBH = all_of(dbh_col)) %>% mutate(DBH = as.numeric(DBH))
+  out %>%
+    mutate(Tree_ID_normalized = normalize_tree_id(Tree_ID_original), source = source_name) %>%
+    filter(Tree_ID_normalized != "") %>%
     distinct()
 }
+split_dbh <- function(d) list(with_dbh = d %>% filter(!is.na(DBH)),
+                              without_dbh = d %>% filter(is.na(DBH)) %>% select(-DBH))
 
-# Function for DBH-containing files that separates trees with/without DBH
-prepare_data_with_optional_dbh <- function(df, source_name, tree_id_col = NULL) {
-  all_data <- prepare_data_with_dbh_comprehensive(df, source_name, tree_id_col)
-  
-  # Split into DBH and non-DBH records
-  with_dbh <- all_data %>% filter(!is.na(DBH))
-  without_dbh <- all_data %>% filter(is.na(DBH)) %>% select(-DBH)
-  
-  return(list(with_dbh = with_dbh, without_dbh = without_dbh))
-}
-
-# Special function for ddPCR data parsing
 prepare_ddpcr_data <- function(df, source_name) {
-  cat("  ", source_name, "- parsing Tree IDs from Inner.Core.Sample.ID\n")
-  
   df %>%
     filter(!is.na(Inner.Core.Sample.ID), Inner.Core.Sample.ID != "") %>%
     mutate(
       Tree_ID_original = parse_ddpcr_tree_id(Inner.Core.Sample.ID),
-      Plot = "Unknown",  # ddPCR data doesn't have plot info
+      Plot = "Unknown",  # no plot in the ddPCR sheet
       Tree_ID_normalized = normalize_tree_id(Tree_ID_original),
       source = source_name
     ) %>%
@@ -298,50 +169,12 @@ prepare_ddpcr_data <- function(df, source_name) {
     distinct()
 }
 
-# Prepare data for files WITHOUT DBH (just for collecting Tree IDs)
-prepare_data_no_dbh_auto <- function(df, source_name, tree_id_col = NULL) {
-  # Auto-detect tree ID column if not specified
-  if (is.null(tree_id_col)) {
-    tree_id_col <- find_tree_id_column(df)
-    if (is.null(tree_id_col)) {
-      stop(paste("Could not find tree ID column in", source_name, "file"))
-    }
-  }
-  
-  # Auto-detect Plot column
-  plot_cols <- c("Plot", "plot", "PLOT", "Site", "site", "Location", "location")
-  plot_col <- intersect(plot_cols, names(df))
-  if (length(plot_col) == 0) {
-    df$Plot <- "Unknown"
-    plot_col <- "Plot"
-  } else {
-    plot_col <- plot_col[1]
-  }
-  
-  cat("  ", source_name, "- using columns:", tree_id_col, "(Tree ID),", plot_col, "(Plot)\n")
-  
-  df %>%
-    select(all_of(c(plot_col, tree_id_col))) %>%
-    rename(Plot = all_of(plot_col), Tree_ID_original = all_of(tree_id_col)) %>%
-    filter(!is.na(Tree_ID_original), Tree_ID_original != "") %>%
-    mutate(
-      Tree_ID_normalized = normalize_tree_id(Tree_ID_original),
-      source = source_name
-    ) %>%
-    filter(Tree_ID_normalized != "") %>%
-    distinct()
-}
-
-# Process files with comprehensive approach
-cat("Processing files with DBH data (comprehensive approach):\n")
-datasheets_data <- prepare_data_with_optional_dbh(datasheets, "datasheets")
-trees_dbh_data <- prepare_data_with_optional_dbh(trees_dbh, "trees_dbh")
-labels_data <- prepare_data_with_optional_dbh(labels_excel, "labels")
-flux_temp_data <- prepare_data_with_optional_dbh(flux_temp, "flux_temp")
-flux_dimensions_data <- prepare_data_with_optional_dbh(flux_dimensions, "flux_dimensions")
-
-cat("\nProcessing files without DBH data:\n")
-soil_prep <- prepare_data_no_dbh_auto(soil_data, "soil_data")
+datasheets_data      <- split_dbh(prepare_ids(datasheets,      "datasheets",      "Plot", "Tree_ID", "DBH"))
+trees_dbh_data       <- split_dbh(prepare_ids(trees_dbh,       "trees_dbh",       "Plot", "Tree ID", "DBH"))
+labels_data          <- split_dbh(prepare_ids(labels_excel,    "labels",          "Plot", "Tree.ID", "DBH"))
+flux_temp_data       <- split_dbh(prepare_ids(flux_temp,       "flux_temp",       "Plot", "Tree_ID", "DBH"))
+flux_dimensions_data <- split_dbh(prepare_ids(flux_dimensions, "flux_dimensions", "plot", "tree_id", "dbh"))
+soil_prep  <- prepare_ids(mutate(soil_data, Plot = "Unknown"), "soil_data", "Plot", "Tree_ID")  # no plot column
 ddpcr_prep <- prepare_ddpcr_data(ddpcr_data, "ddpcr_data")
 
 # For files with multiple measurements per tree, take the most recent DBH
@@ -501,11 +334,11 @@ processed_summary <- data.frame(
     0  # ddPCR has no DBH
   ),
   without_dbh = c(
-    if(exists("datasheets_data")) nrow(datasheets_data$without_dbh) else 0,
-    if(exists("trees_dbh_data")) nrow(trees_dbh_data$without_dbh) else 0,
-    if(exists("labels_data")) nrow(labels_data$without_dbh) else 0,
-    if(exists("flux_temp_data")) nrow(flux_temp_data$without_dbh) else 0,
-    if(exists("flux_dimensions_data")) nrow(flux_dimensions_data$without_dbh) else 0,
+    nrow(datasheets_data$without_dbh),
+    nrow(trees_dbh_data$without_dbh),
+    nrow(labels_data$without_dbh),
+    nrow(flux_temp_data$without_dbh),
+    nrow(flux_dimensions_data$without_dbh),
     nrow(soil_prep),
     nrow(ddpcr_prep)
   ),
@@ -526,10 +359,10 @@ for (i in 1:nrow(diagnostic_summary)) {
     processed_count <- processed_summary$total_processed[processed_summary$source == file_name]
     
     if (raw_count != processed_count) {
-      cat("⚠️ ", file_name, ": Raw =", raw_count, "unique IDs, Processed =", processed_count, "trees\n")
+      cat("  CHECK", file_name, ": Raw =", raw_count, "unique IDs, Processed =", processed_count, "trees\n")
       cat("   Difference:", raw_count - processed_count, "trees lost\n")
     } else {
-      cat("✅ ", file_name, ": All", raw_count, "trees captured\n")
+      cat("  ok   ", file_name, ": All", raw_count, "trees captured\n")
     }
   }
 }
@@ -876,34 +709,12 @@ summary_stats <- final_consensus %>%
   )
 write_csv(summary_stats, "../../data/processed/tree_data/dbh_summary_comprehensive.csv")
 
-cat("\nComprehensive files created:\n")
-cat("- tree_dbh_consensus_comprehensive.csv: Final consensus with complete variant tracking\n")
-cat("- tree_dbh_complete_comprehensive.csv: Complete list including missing trees\n")  
-cat("- tree_id_comprehensive_mapping.csv: Master mapping of all variants by source\n")
-cat("- trees_multiple_variants_comprehensive.csv: Trees with multiple variants\n")
-cat("- potential_formatting_matches.csv: Formatting matches for review\n")
-cat("- potentially_similar_unmatched_ids.csv: Similar IDs for review\n")
-cat("- dbh_summary_comprehensive.csv: Enhanced summary statistics\n")
+cat("\nWrote data/processed/tree_data/: tree_dbh_consensus_comprehensive.csv,",
+    "tree_dbh_complete_comprehensive.csv, tree_id_comprehensive_mapping.csv,",
+    "trees_multiple_variants_comprehensive.csv, potential_formatting_matches.csv,",
+    "potentially_similar_unmatched_ids.csv, dbh_summary_comprehensive.csv\n")
 
-cat("\n=== SAMPLE OF FINAL CONSENSUS LIST WITH ALL VARIANTS ===\n")
-print(head(final_consensus %>% select(consensus_tree_id, normalized_id, Plot, DBH, source, 
-                                      starts_with("variant_"), name_variants), 5))
-
-cat("\n=== SAMPLE OF SOURCE-SPECIFIC NAME TRACKING ===\n")
-print(head(final_consensus %>% select(consensus_tree_id, starts_with("name_in_")), 3))
-
-if(nrow(trees_still_missing) > 0) {
-  cat("\n=== TREES STILL MISSING DBH ===\n")
+if (nrow(trees_still_missing) > 0) {
+  cat("\nTrees with no DBH in any source:", nrow(trees_still_missing), "\n")
   print(head(trees_still_missing %>% select(consensus_tree_id, normalized_id, Plot, starts_with("variant_")), 10))
-  cat("... and", max(0, nrow(trees_still_missing) - 10), "more\n")
 }
-
-cat("\n=== COMPREHENSIVE VARIANT TRACKING COMPLETED ===\n")
-cat("The final table now includes:\n")
-cat("- variant_1, variant_2, etc: All name variations found across all sources\n")
-cat("- name_in_datasheets, name_in_trees_dbh, etc: Specific names used in each source\n")
-cat("- This comprehensive mapping will help you match data across files in future analysis\n")
-cat("- Manual corrections applied: ABT 14P, bowser, cul8r, h7, typo fixes, etc.\n")
-cat("- Perfect for future data mapping and quality control\n")
-
-cat("\nAnalysis completed successfully!\n")

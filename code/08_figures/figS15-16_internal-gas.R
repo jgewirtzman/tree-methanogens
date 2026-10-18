@@ -1,44 +1,43 @@
 # ==============================================================================
-# Internal Gas Concentration Plots (Figures S4-S5)
-# ==============================================================================
-# Purpose: Internal gas concentration visualizations showing CH4/CO2 inside
-#   tree stems.
-#
-# Pipeline stage: 4 — Publication Figures
-#
-# Inputs:
-#   - data/tables/ via code/lib/tables_read.R: internal_gas (2021 whole-stem samples),
-#     flux_stem (2021 heights), ddpcr + samples, trees (species), species (names)
+# figS15-16_internal-gas.R -- Figures S16 and S17: internal stem gases
+# ------------------------------------------------------------------------------
+# Stage E. Run from the repository root.
+# Figure S16  internal CH4 by species (quasirandom points coloured by O2; mean +/- SE),
+#             species ordered by mean CH4, pseudo-log axis
+# Figure S17  (a) CO2 against CH4, (b) O2 against CH4, (c) heartwood mcrA against CH4,
+#             (d) stem flux at 50, 125 and 200 cm against CH4; linear fits with R2 and
+#             p; species coloured in phylogenetic order (code/lib/phylo_palette.R)
+# Inputs: data/tables/ via code/lib/tables_read.R: survey_2021_trees() (internal_gas
+#   2021 whole-stem samples, flux_stem 2021 heights, ddpcr + samples, trees, species);
+#   the PhytoPhylo megatree (data/raw/external/phylogeny/PhytoPhylo)
+# Outputs: outputs/figures/original/supplementary/figS7_internal_gas_beeswarm.png  (S16)
+#          outputs/figures/original/supplementary/figS8_internal_gas_profiles.png  (S17)
 # ==============================================================================
 
-library(tidyverse)
-
+suppressPackageStartupMessages({
+  library(tidyverse); library(ggbeeswarm); library(patchwork); library(broom); library(cowplot)
+})
 source("code/lib/tables_read.R")
+source("code/lib/phylo_palette.R")
 tree_all <- survey_2021_trees()   # 2021 survey per tree; species from trees.csv
 
+# Axis labels: ppm below 1%, % above
+format_mixed_labels <- function(x) {
+  pct <- x / 10000
+  ifelse(pct < 1,
+         sprintf("%g ppm", x),      # Show as ppm for values < 1%
+         sprintf("%.1f%%", pct))    # Show as % for values >= 1%
+}
 
-library(ggplot2)
-library(ggridges)
-library(dplyr)
-library(viridis)
-
-
-library(ggplot2)
-library(ggridges)
-library(dplyr)
-library(viridis)
-
-# Prepare data - filter for valid CH4 and O2 concentrations
+# ==============================================================================
+# Figure S16: internal CH4 by species
+# ==============================================================================
 ridge_data <- tree_all %>%
   filter(!is.na(CH4_concentration) & !is.na(O2_concentration) & !is.na(species_id)) %>%
   mutate(Species_Latin = species_name(species_id)) %>%
   filter(!is.na(Species_Latin)) %>%
-  group_by(Species_Latin) %>%
-  #filter(n() > 2) %>%  # Only keep species with >2 observations
-  ungroup() %>%
   mutate(Species_Latin = reorder(Species_Latin, CH4_concentration, mean, na.rm = TRUE))
 
-# Calculate species statistics for mean points
 species_stats <- ridge_data %>%
   group_by(Species_Latin) %>%
   summarise(
@@ -47,172 +46,6 @@ species_stats <- ridge_data %>%
     n = n(),
     .groups = 'drop'
   )
-
-# Create ridgeline plot
-p_ch4_ridges <- ggplot(ridge_data, aes(x = CH4_concentration, y = Species_Latin)) +
-  geom_density_ridges(
-    fill = "lightgray",
-    alpha = 0.6,
-    scale = 1.5,
-    rel_min_height = 0.01,
-    color = "gray30",
-    linewidth = 0.3
-  ) +
-  geom_point(
-    aes(color = O2_concentration),
-    position = position_jitter(width = 0, height = 0.15),
-    size = 1.5,
-    alpha = 0.6
-  ) +
-  geom_pointrange(
-    data = species_stats,
-    aes(x = mean_ch4, 
-        xmin = mean_ch4 - se_ch4, 
-        xmax = mean_ch4 + se_ch4,
-        y = Species_Latin),
-    color = "black",
-    size = 0.75,
-    linewidth = 0.75,
-    fatten = 2,
-    inherit.aes = FALSE
-  ) +
-  scale_color_viridis(
-    name = expression(O[2]~concentration),
-    option = "plasma",
-    labels = function(x) sprintf("%.1f%%", x / 10000),  # Convert ppm to %
-    guide = guide_colorbar(
-      position = "bottom",
-      barwidth = 10,
-      barheight = 0.5,
-      title.position = "top",
-      title.hjust = 0.5
-    )
-  ) +
-  scale_x_continuous(
-    trans = scales::pseudo_log_trans(base = 10, sigma = 1),
-    breaks = c(0, 10, 100, 1000, 10000, 100000),
-    labels = function(x) sprintf("%.1f%%", x / 10000)  # Convert ppm to %
-  ) +
-  labs(
-    x = expression(CH[4]~concentration),
-    y = ""
-  ) +
-  theme_ridges(grid = TRUE) +
-  theme(
-    axis.title.x = element_text(size = 11),
-    axis.text.x = element_text(angle = 45, hjust = 1, size = 9),
-    axis.text.y = element_text(face = "italic", size = 9),
-    legend.position = "bottom",
-    legend.direction = "horizontal",
-    legend.text = element_text(size = 9),
-    legend.title = element_text(size = 10),
-    panel.grid.major.x = element_line(color = "gray90", linewidth = 0.3),
-    panel.grid.minor.x = element_line(color = "gray95", linewidth = 0.2)
-  )
-
-print(p_ch4_ridges)
-
-
-
-library(ggplot2)
-library(dplyr)
-library(viridis)
-
-# Custom labeling function for x-axis
-format_mixed_labels <- function(x) {
-  pct <- x / 10000
-  ifelse(pct < 1,
-         sprintf("%g ppm", x),      # Show as ppm for values < 1%
-         sprintf("%.1f%%", pct))    # Show as % for values >= 1%
-}
-
-p_facet <- ggplot(ridge_data, aes(x = CH4_concentration)) +
-  geom_density(fill = "lightgray", alpha = 0.6) +
-  geom_point(aes(y = 0, color = O2_concentration), 
-             position = position_jitter(height = 0.01),
-             size = 2, alpha = 0.8) +
-  geom_vline(data = species_stats, aes(xintercept = mean_ch4),
-             linetype = "dashed", color = "black", linewidth = 0.5) +
-  scale_color_gradientn(
-    colors = c("#D73027", "#FC8D59", "#FEE090", "#E0F3F8", "#91BFDB", "#4575B4"),
-    values = scales::rescale(c(0, 120000, 150000, 200000, 205000, 220000)),
-    name = expression(O[2]~concentration),
-    labels = function(x) sprintf("%.1f%%", x / 10000)
-  ) +
-  scale_x_continuous(
-    trans = scales::pseudo_log_trans(base = 10, sigma = 1),
-    breaks = c(0, 10, 100, 1000, 10000, 100000),
-    labels = format_mixed_labels
-  ) +
-  facet_wrap(~Species_Latin, ncol = 3, scales = "free_y") +
-  labs(x = expression(CH[4]~concentration), y = "Density") +
-  theme_minimal() +
-  theme(
-    strip.text = element_text(face = "italic", size = 9),
-    axis.text.x = element_text(angle = 45, hjust = 1),
-    legend.position = "bottom"
-  )
-p_facet
-
-
-
-p_violin <- ggplot(ridge_data, aes(x = Species_Latin, y = CH4_concentration)) +
-  geom_violin(fill = "lightgray", alpha = 0.6, scale = "width") +
-  geom_boxplot(width = 0.2, outlier.shape = NA, alpha = 0.5) +
-  geom_jitter(aes(color = O2_concentration), 
-              width = 0.15, size = 2.5, alpha = 0.7) +
-  scale_color_gradientn(
-    colors = c("#D73027", "#FC8D59", "#FEE090", "#E0F3F8", "#91BFDB", "#4575B4"),
-    values = scales::rescale(c(0, 120000, 150000, 200000, 205000, 220000)),
-    name = expression(O[2]~concentration),
-    labels = function(x) sprintf("%.1f%%", x / 10000)
-  ) +
-  scale_y_continuous(
-    trans = scales::pseudo_log_trans(base = 10, sigma = 1),
-    breaks = c(0, 10, 100, 1000, 10000, 100000),
-    labels = format_mixed_labels
-  ) +
-  coord_flip() +
-  labs(y = expression(CH[4]~concentration), x = "") +
-  theme_minimal() +
-  theme(
-    axis.text.y = element_text(face = "italic"),
-    legend.position = "bottom"
-  )
-p_violin
-
-
-library(ggbeeswarm)
-
-p_beeswarm <- ggplot(ridge_data, aes(x = Species_Latin, y = CH4_concentration)) +
-  geom_quasirandom(aes(color = O2_concentration), 
-                   size = 2.5, alpha = 0.75, width = 0.3) +
-  geom_pointrange(data = species_stats,
-                  aes(x = Species_Latin, y = mean_ch4,
-                      ymin = mean_ch4 - se_ch4, ymax = mean_ch4 + se_ch4),
-                  color = "black", size = 0.5, linewidth = 1) +
-  scale_color_gradientn(
-    colors = rev(c("#D73027", "#FC8D59", "#FEE090", "#E0F3F8", "#91BFDB", "#4575B4")),
-    values = scales::rescale(c(0, 170000, 180000, 190000, 200000, 220000)),
-    name = expression(O[2]~concentration),
-    labels = function(x) sprintf("%.1f%%", x / 10000)
-  ) +
-  scale_y_continuous(
-    trans = scales::pseudo_log_trans(base = 10, sigma = 1),
-    breaks = c(0, 10, 100, 1000, 10000, 100000),
-    labels = format_mixed_labels
-  ) +
-  coord_flip() +
-  labs(y = expression(CH[4]~concentration), x = "") +
-  theme_minimal() +
-  theme(
-    axis.text.y = element_text(face = "italic"),
-    legend.position = "bottom"
-  )
-p_beeswarm
-
-
-
 
 p_beeswarm <- ggplot(ridge_data, aes(x = Species_Latin, y = CH4_concentration)) +
   geom_quasirandom(aes(color = O2_concentration), 
@@ -247,33 +80,12 @@ p_beeswarm <- ggplot(ridge_data, aes(x = Species_Latin, y = CH4_concentration)) 
     axis.text.x = element_text(angle = 45, hjust = 1, size = 9),
     legend.position = "bottom"
   )
-p_beeswarm
-
-# Save beeswarm figure (Fig S7)
 ggsave("outputs/figures/original/supplementary/figS7_internal_gas_beeswarm.png",
        p_beeswarm, width = 10, height = 8, dpi = 300)
 
-
-
-
-
-
-
-
-
-
-
-library(ggplot2)
-library(dplyr)
-library(patchwork)
-library(broom)
-library(ape)
-library(phytools)
-library(viridis)
-library(RColorBrewer)
-
-# [Keep all the data preparation code the same up to the plots]
-
+# ==============================================================================
+# Figure S17: internal gases, mcrA and flux
+# ==============================================================================
 # Prepare data for CH4 conc vs CO2 conc
 conc_data <- tree_all %>%
   filter(!is.na(CH4_concentration) & !is.na(CO2_concentration) & !is.na(species_id)) %>%
@@ -316,78 +128,12 @@ flux_conc_data <- tree_all %>%
     height_clean = factor(height_clean, levels = c("50 cm", "125 cm", "200 cm"))
   )
 
-format_mixed_labels <- function(x) {
-  pct <- x / 10000
-  ifelse(pct < 1, sprintf("%g ppm", x), sprintf("%.1f%%", pct))
-}
 
-# --- PHYLOGENETIC COLOR CALCULATION ---
-tree_file <- "data/raw/external/phylogeny/PhytoPhylo"
+# species colours in phylogenetic order; names with "Unknown" grey and last
+phylo <- phylo_species_colours(c(conc_data$Species_Latin, o2_data$Species_Latin,
+                                 flux_conc_data$Species_Latin, mcra_data$Species_Latin))
 
-all_species <- unique(c(conc_data$Species_Latin, o2_data$Species_Latin, 
-                        flux_conc_data$Species_Latin, mcra_data$Species_Latin))
-known_species <- all_species[!grepl("Unknown", all_species)]
-unknown_species <- all_species[grepl("Unknown", all_species)]
-
-phylo_colors <- NULL
-phylo_distance_data <- NULL
-
-if (file.exists(tree_file) && length(known_species) > 1) {
-  tryCatch({
-    tree_scenario1 <- read.tree(tree_file)
-    present_species_clean <- gsub(" ", "_", known_species)
-    tree_species <- intersect(present_species_clean, tree_scenario1$tip.label)
-    
-    if (length(tree_species) > 1) {
-      pruned_tree <- keep.tip(tree_scenario1, tree_species)
-      dist_matrix <- cophenetic(pruned_tree)
-      average_distances <- rowMeans(dist_matrix)
-      
-      distance_df <- data.frame(
-        species_clean = names(average_distances),
-        distance = as.numeric(average_distances)
-      ) %>%
-        mutate(species = gsub("_", " ", species_clean)) %>%
-        arrange(distance) %>%
-        mutate(
-          distance_group = cut(distance, 
-                               breaks = quantile(distance, probs = seq(0, 1, length.out = min(8, length(distance)))), 
-                               include.lowest = TRUE, 
-                               labels = FALSE),
-          color = viridis(max(distance_group, na.rm = TRUE))[distance_group]
-        )
-      
-      phylo_colors <- setNames(distance_df$color, distance_df$species)
-      phylo_distance_data <- distance_df %>%
-        dplyr::select(species, distance, distance_group) %>%
-        arrange(distance)
-    }
-  }, error = function(e) {
-    cat("Warning: Could not calculate phylogenetic distances:", e$message, "\n")
-  })
-}
-
-if (is.null(phylo_colors)) {
-  if(length(known_species) <= 12) {
-    known_colors <- RColorBrewer::brewer.pal(min(max(3, length(known_species)), 12), "Set3")[1:length(known_species)]
-  } else {
-    known_colors <- rainbow(length(known_species))
-  }
-  names(known_colors) <- known_species
-  phylo_colors <- known_colors
-}
-
-unknown_colors <- rep("grey80", length(unknown_species))
-names(unknown_colors) <- unknown_species
-final_colors <- c(phylo_colors, unknown_colors)
-
-legend_order <- if (!is.null(phylo_distance_data)) {
-  c(phylo_distance_data$species, unknown_species)
-} else {
-  c(sort(known_species), unknown_species)
-}
-
-# Calculate correlations - CO2 (MODIFIED: only R² and p-value)
+# Calculate correlations - CO2
 pearson1 <- cor.test(log10(conc_data$CH4_concentration + 1), 
                      log10(conc_data$CO2_concentration + 1), method = "pearson")
 model1 <- lm(log10(CH4_concentration + 1) ~ log10(CO2_concentration + 1), data = conc_data)
@@ -396,7 +142,7 @@ label1 <- sprintf("atop(R^2 == %.3f, p~'%s')",
                   stats1$r.squared,
                   ifelse(pearson1$p.value < 0.001, "< 0.001", sprintf("= %.3f", pearson1$p.value)))
 
-# Calculate correlations - O2 (MODIFIED: only R² and p-value)
+# Calculate correlations - O2
 pearson2 <- cor.test(log10(o2_data$CH4_concentration + 1), 
                      log10(o2_data$O2_concentration + 1), method = "pearson")
 model2 <- lm(log10(CH4_concentration + 1) ~ log10(O2_concentration + 1), data = o2_data)
@@ -405,7 +151,7 @@ label2 <- sprintf("atop(R^2 == %.3f, p~'%s')",
                   stats2$r.squared,
                   ifelse(pearson2$p.value < 0.001, "< 0.001", sprintf("= %.3f", pearson2$p.value)))
 
-# Calculate correlations - mcrA (MODIFIED: only R² and p-value)
+# Calculate correlations - mcrA
 pearson_mcra <- cor.test(log10(mcra_data$mcra_copies), 
                          log10(mcra_data$CH4_concentration + 1), method = "pearson")
 model_mcra <- lm(log10(CH4_concentration + 1) ~ log10(mcra_copies), data = mcra_data)
@@ -414,7 +160,7 @@ label_mcra <- sprintf("atop(R^2 == %.3f, p~'%s')",
                       stats_mcra$r.squared,
                       ifelse(pearson_mcra$p.value < 0.001, "< 0.001", sprintf("= %.3f", pearson_mcra$p.value)))
 
-# Calculate stats for each height (MODIFIED: only R² and p-value)
+# Calculate stats for each height
 flux_stats <- flux_conc_data %>%
   group_by(height_clean) %>%
   do({
@@ -433,9 +179,9 @@ flux_stats <- flux_conc_data %>%
   ungroup()
 
 
-# ---- FORCE IDENTICAL LEVELS + PALETTE ----
-species_levels <- legend_order                  # from your code above
-species_palette <- final_colors[species_levels] # ensure names align
+# ---- one species order and palette for every panel ----
+species_levels <- phylo$order
+species_palette <- phylo$colours[species_levels]
 names(species_palette) <- species_levels
 
 # Coerce Species_Latin to the same factor in EVERY dataset
@@ -444,14 +190,9 @@ o2_data$Species_Latin       <- factor(o2_data$Species_Latin,   levels = species_
 mcra_data$Species_Latin     <- factor(mcra_data$Species_Latin, levels = species_levels)
 flux_conc_data$Species_Latin<- factor(flux_conc_data$Species_Latin, levels = species_levels)
 
-
-library(cowplot)  # add this
-
-# --- keep the factor/palette forcing from the previous message ---
-
-# (Re)build plots exactly as before BUT with legends OFF in all panels
+# Panels without legends; the species legend is taken from (a) and placed at the right
 p1_core <- ggplot(conc_data, aes(x = CO2_concentration, y = CH4_concentration)) +
-  geom_point(aes(color = Species_Latin), size = 2.5, alpha = 0.7, show.legend = TRUE) +  # we'll use this to pull legend
+  geom_point(aes(color = Species_Latin), size = 2.5, alpha = 0.7, show.legend = TRUE) +  # legend source
   geom_smooth(method = "lm", se = TRUE, color = "black", linewidth = 1, show.legend = FALSE) +
   annotate("text", x = -Inf, y = Inf, label = label1, hjust = -0.1, vjust = 1.5, parse = TRUE) +
   scale_color_manual(values = species_palette, limits = species_levels, breaks = species_levels,
@@ -551,7 +292,7 @@ p4 <- ggplot(flux_conc_data, aes(x = CH4_concentration, y = CH4_flux)) +
     strip.text = element_text(face = "bold", size = 11)
   )
 
-# Add tag theme to individual plots for ggplot2 4.x compatibility
+# Tag theme on each plot (ggplot2 4.x)
 tag_theme <- theme(plot.tag = element_text(size = 11, face = "bold"))
 p1 <- p1 + tag_theme
 p2 <- p2 + tag_theme
@@ -568,8 +309,5 @@ core_grid <- ((p1 | p2 | p3) / p4) +
 final_plot <- cowplot::ggdraw() + cowplot::draw_plot(cowplot::plot_grid(core_grid, legend_grob, ncol = 2, rel_widths = c(1, 0.22))) +
   theme(plot.background = element_rect(fill = "white", colour = NA))
 
-print(final_plot)
-
-# Save combined internal gas figure (Fig S8)
 ggsave("outputs/figures/original/supplementary/figS8_internal_gas_profiles.png",
        final_plot, width = 12, height = 7.5, dpi = 300, bg = "white")

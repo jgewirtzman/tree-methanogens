@@ -1,6 +1,8 @@
 # ==============================================================================
-# Felled black oak (QUVE): methane-cycling taxa across tissues (Figure S21)
-# ==============================================================================
+# figS20_black-oak-methanome.R -- Figure S21: methane-cycling taxa across tissues of
+# the felled black oak (QUVE)
+# ------------------------------------------------------------------------------
+# Stage E. Run from the repository root.
 # Heatmap of methanogen, Known methanotroph and Putative methanotroph genera (Table S2
 # classification, include_conditional = TRUE as Fig. 5) in each tissue of the felled oak.
 #

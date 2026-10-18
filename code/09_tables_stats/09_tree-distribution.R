@@ -1,4 +1,3 @@
-source("code/lib/outputs.R")
 # ==============================================================================
 # Tree species distribution: DBH x landscape table + moisture niches
 # ==============================================================================
@@ -14,9 +13,9 @@ source("code/lib/outputs.R")
 #   tree_species_moisture_niche.csv  median VWC per species (niche summary)
 #   tree_distribution_panels.png     DBH-by-landscape + species-VWC niche figure
 # ==============================================================================
+source("code/lib/outputs.R")
 
 suppressPackageStartupMessages({ library(tidyverse) })
-out_dir <- "outputs"; dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
 
 source("code/lib/tables_read.R")
 .sp <- read_table("species")
@@ -82,11 +81,10 @@ p_dbh <- ggplot(tp %>% filter(!is.na(dbh), !is.na(landscape_position)),
   labs(title = "DBH by landscape position", x = NULL, y = "DBH (cm)", color = NULL) +
   theme_bw(base_size = 10)
 
-if (requireNamespace("gridExtra", quietly = TRUE)) {
-  g <- gridExtra::arrangeGrob(p_niche, gridExtra::arrangeGrob(p_comp, p_dbh, ncol = 1), ncol = 2,
-                              widths = c(1.3, 1))
-  ggsave(out_path("tree_distribution_panels.png"), g, width = 13, height = 7, dpi = 140)
-}
+grDevices::pdf(NULL)   # arrangeGrob() measures text on the open device; without one it writes Rplots.pdf
+g <- gridExtra::arrangeGrob(p_niche, gridExtra::arrangeGrob(p_comp, p_dbh, ncol = 1), ncol = 2,
+                            widths = c(1.3, 1))
+ggsave(out_path("tree_distribution_panels.png"), g, width = 13, height = 7, dpi = 140)
 # panel A (species soil-moisture niches) standalone -> SI figure
 # title/subtitle stripped for publication (moves to caption)
 ggsave(out_path("tree_species_moisture_niche.png"),
@@ -107,4 +105,4 @@ cat("=== species x landscape x DBH table (head) ===\n")
 print(as.data.frame(head(dbh_tab, 12)), row.names = FALSE)
 cat("\n=== Species moisture niches (VWC median, wettest first) ===\n")
 print(as.data.frame(niche %>% dplyr::select(species, group, n, vwc_median)), row.names = FALSE)
-cat("\nWrote tables + tree_distribution_panels.png to", out_dir, "\n")
+cat("\nWrote tables (outputs/data) and tree_distribution_panels.png (outputs/figures/generated)\n")

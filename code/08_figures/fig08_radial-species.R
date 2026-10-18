@@ -1,19 +1,19 @@
 # ==============================================================================
-# Species-Level Gene-Flux Correlations (Figures S7, S8, S11)
-# ==============================================================================
-# Purpose: Species-level gene-flux correlation analysis and mixed models.
-#
-# Pipeline stage: 3 — Analysis
-#
-# Inputs:
-#   - data/tables/ via code/lib/tables_read.R (through the two helpers below)
-#
-# UPSTREAM DEPENDENCIES (must be run first, or objects must exist in env):
-#   - helper_radial_gene_plots.R  -> p_mcra_result, p_sum_result, p_overlay
-#   - helper_scale_dependent_gene_patterns.R -> analysis_mcra, analysis_methanotroph,
-#                                 analysis_ratio, cor_area_mcra,
-#                                 cor_area_methanotroph, pearson_ratio,
-#                                 species_comparison_data, y_limit
+# fig08_radial-species.R -- Figure 8 (radial gene distributions and species-level
+#                           gene-flux relationships) and Figure S24 (mcrA vs
+#                           methanotrophs)
+# ------------------------------------------------------------------------------
+# Figure 8
+#   (a-c) species-averaged stem cross-sections: mcrA, pmoA + mmoX, and their log10
+#         ratio (code/07_molecular/helper_radial_gene_plots.R); every cross-section at
+#         the same size
+#   (d-f) species median flux against species median mcrA, pmoA + mmoX and the
+#         mcrA : methanotroph ratio; (g) R2 of the five species-level gene models
+#         (code/07_molecular/helper_scale_dependent_gene_patterns.R)
+# Figure S24: log10 (pmoA + mmoX) against log10 mcrA, per tree and per species.
+# Reads data/tables/ through the two helpers (run from the repository root).
+# Outputs: outputs/figures/original/main/fig8_radial_species_comparison.png,
+#          outputs/figures/original/supplementary/figS14_mcra_vs_methanotroph.png
 # ==============================================================================
 
 library(dplyr)
@@ -24,18 +24,13 @@ library(ggnewscale)
 library(ggrepel)
 library(patchwork)
 
-# Source upstream dependencies (must run from project root)
 source("code/07_molecular/helper_scale_dependent_gene_patterns.R")
 source("code/07_molecular/helper_radial_gene_plots.R")
-FIG8_LAYOUT <- Sys.getenv("FIG8_LAYOUT", "band")   # "side": radial | scatters; "band": radial band on top, scatters in a row below
-RADIAL_NCOL <- if (FIG8_LAYOUT == "band") 10 else 5
-FIG8_EQUAL <- Sys.getenv("FIG8_EQUAL", "yes") == "yes"   # yes: every cross-section drawn at the same size (not scaled to DBH)
-unit_circle <- function(d) if (FIG8_EQUAL) dplyr::mutate(d, x = x / R, y = y / R, R = 1) else d
+RADIAL_NCOL <- 10
+# every cross-section drawn at the same size (not scaled to DBH)
+unit_circle <- function(d) dplyr::mutate(d, x = x / R, y = y / R, R = 1)
 
-# ============================================================
-# FUNCTION TO SPLIT SPECIES NAMES INTO TWO LINES
-# ============================================================
-
+# species names on two lines
 break_species_name <- function(name) {
   parts <- strsplit(name, " ")[[1]]
   if (length(parts) == 2) {
@@ -45,19 +40,9 @@ break_species_name <- function(name) {
 }
 
 # ============================================================
-# RE-CREATE RADIAL PLOTS WITH TWO-LINE SPECIES NAMES
-# Requires: p_mcra_result, p_sum_result, p_overlay from
-#   helper_radial_gene_plots.R
+# (a-c) RADIAL CROSS-SECTIONS
 # ============================================================
-
-if (!exists("p_mcra_result") || !exists("p_sum_result") || !exists("p_overlay")) {
-  cat("WARNING: Radial plot objects (p_mcra_result, p_sum_result, p_overlay) not found.\n")
-  cat("  Run helper_radial_gene_plots.R first, or source it to populate these objects.\n")
-  cat("  Skipping radial plot section.\n\n")
-} else {
-
-# mcrA plot with two-line species names
-p_mcra_data <- p_mcra_result$plot$data
+p_mcra_data <- mcra_cloud
 p_mcra_data$species_label <- sapply(as.character(p_mcra_data$species_label), break_species_name)
 p_mcra_data <- unit_circle(p_mcra_data)
 
@@ -97,8 +82,7 @@ p_mcra <- ggplot(p_mcra_data, aes(x = x, y = y, fill = Clog)) +
     panel.background = element_rect(fill = "white", color = NA)
   )
 
-# Sum plot (pmoA+mmoX) with two-line species names
-p_sum_data <- p_sum_result$plot$data
+p_sum_data <- sum_cloud
 p_sum_data$species_label <- sapply(as.character(p_sum_data$species_label), break_species_name)
 p_sum_data <- unit_circle(p_sum_data)
 
@@ -138,114 +122,33 @@ p_sum <- ggplot(p_sum_data, aes(x = x, y = y, fill = Clog)) +
     panel.background = element_rect(fill = "white", color = NA)
   )
 
-# Overlay plot with two-line species names
-overlay_data_modified <- p_overlay$data
+# (c) one diverging scale: log10(mcrA / (pmoA + mmoX)); red = methanogen-dominated,
+# white = balanced, blue = methanotroph-dominated
+overlay_data_modified <- overlay_cloud
 overlay_data_modified$species_label <- sapply(as.character(overlay_data_modified$species_label), break_species_name)
 overlay_data_modified <- unit_circle(overlay_data_modified)
-
-p_overlay <- ggplot(overlay_data_modified, aes(x = x, y = y)) +
-  geom_raster(aes(fill = Clog_methan), alpha = 0.6, interpolate = TRUE) +
-  scale_fill_gradient(
-    low = "white", 
-    high = "#1E88E5",
-    name = bquote(atop("log"[10], "(" * italic(pmoA) * " + " * italic(mmoX) * ")")),
-    breaks = function(x) {
-      min_val <- min(overlay_data_modified$Clog_methan)
-      max_val <- max(overlay_data_modified$Clog_methan)
-      c(min_val, mean(c(min_val, max_val)), max_val)
-    },
-    labels = function(x) sprintf("%.1f", x)
-  ) +
-  new_scale_fill() +
-  geom_raster(aes(fill = Clog_mcra), alpha = 0.6, interpolate = TRUE) +
-  scale_fill_gradient(
-    low = "white", 
-    high = "#E53935",
-    name = bquote(atop("log"[10], "(" * italic(mcrA) * ")")),
-    breaks = function(x) {
-      min_val <- min(overlay_data_modified$Clog_mcra)
-      max_val <- max(overlay_data_modified$Clog_mcra)
-      c(min_val, mean(c(min_val, max_val)), max_val)
-    },
-    labels = function(x) sprintf("%.1f", x)
-  ) +
-  geom_circle(
-    data = overlay_data_modified %>% dplyr::distinct(species_label, R),
-    aes(x0 = 0, y0 = 0, r = R),
-    inherit.aes = FALSE, color = "black", linewidth = 0.5
-  ) +
-  facet_wrap(~ species_label, ncol = RADIAL_NCOL) +
-  coord_equal() +
+rat <- overlay_data_modified %>% mutate(ratio = Clog_mcra - Clog_methan)
+lim <- max(abs(range(rat$ratio, na.rm = TRUE)))
+p_overlay <- ggplot(rat, aes(x = x, y = y, fill = ratio)) +
+  geom_raster(interpolate = TRUE) +
+  scale_fill_gradient2(low = "#2166ac", mid = "white", high = "#b2182b", midpoint = 0, limits = c(-lim, lim),
+                       name = bquote(atop("log"[10] ~ "(" * italic(mcrA) * " :", "methanotroph)")),
+                       labels = function(x) sub("-", "\u2212", sprintf("%.1f", x))) +
+  geom_circle(data = rat %>% dplyr::distinct(species_label, R), aes(x0 = 0, y0 = 0, r = R),
+              inherit.aes = FALSE, color = "black", linewidth = 0.3) +
+  facet_wrap(~ species_label, ncol = RADIAL_NCOL) + coord_equal() +
   theme_minimal(base_size = 10) +
-  theme(
-    axis.text = element_blank(),
-    axis.title = element_blank(),
-    axis.ticks = element_blank(),
-    panel.grid = element_blank(),
-    strip.text = element_text(face = "italic", size = 8.6), strip.clip = "off",
-    strip.background = element_blank(),
-    legend.position = "right",
-    legend.title = element_text(size = 12),
-    legend.text = element_text(size = 10),
-    legend.key.height = unit(0.6, "cm"),  # Smaller legend
-    legend.key.width = unit(0.4, "cm"),   # Smaller legend
-    legend.title.align = 0,  # Left-align title
-    legend.justification = "left",  # Left-align legend
-    legend.box.spacing = unit(2, "pt"),
-    legend.box = "vertical",  # Stack legends vertically
-    legend.box.just = "left",  # Left-align legend box
-    panel.spacing = unit(0.5, "lines"),
-    panel.background = element_rect(fill = "white", color = NA)
-  )
-
-# Panel (c) as one diverging scale: log10(mcrA / (pmoA + mmoX)), red = methanogen-dominated,
-# white = balanced, blue = methanotroph-dominated. FIG8_C = "overlay" keeps the two-scale overlay.
-if (Sys.getenv("FIG8_C", "ratio") == "ratio") {
-  rat <- overlay_data_modified %>% mutate(ratio = Clog_mcra - Clog_methan)
-  lim <- max(abs(range(rat$ratio, na.rm = TRUE)))
-  p_overlay <- ggplot(rat, aes(x = x, y = y, fill = ratio)) +
-    geom_raster(interpolate = TRUE) +
-    scale_fill_gradient2(low = "#2166ac", mid = "white", high = "#b2182b", midpoint = 0, limits = c(-lim, lim),
-                         name = bquote(atop("log"[10] ~ "(" * italic(mcrA) * " :", "methanotroph)")),
-                         labels = function(x) sub("-", "\u2212", sprintf("%.1f", x))) +
-    geom_circle(data = rat %>% dplyr::distinct(species_label, R), aes(x0 = 0, y0 = 0, r = R),
-                inherit.aes = FALSE, color = "black", linewidth = 0.3) +
-    facet_wrap(~ species_label, ncol = RADIAL_NCOL) + coord_equal() +
-    theme_minimal(base_size = 10) +
-    theme(axis.text = element_blank(), axis.title = element_blank(), axis.ticks = element_blank(),
-          panel.grid = element_blank(), strip.text = element_text(face = "italic", size = 8.6), strip.clip = "off",
-          strip.background = element_blank(), legend.position = "right",
-          legend.title = element_text(size = 12), legend.text = element_text(size = 10),
-          legend.key.height = unit(0.6, "cm"), legend.key.width = unit(0.4, "cm"),
-          legend.justification = "left", panel.spacing = unit(0.5, "lines"),
-          panel.background = element_rect(fill = "white", color = NA))
-}
-
-# Combine radial plots vertically
-combined_plot <- p_mcra / p_sum / p_overlay
-
-}  # end if (radial plot objects exist)
+  theme(axis.text = element_blank(), axis.title = element_blank(), axis.ticks = element_blank(),
+        panel.grid = element_blank(), strip.text = element_text(face = "italic", size = 8.6), strip.clip = "off",
+        strip.background = element_blank(), legend.position = "right",
+        legend.title = element_text(size = 12), legend.text = element_text(size = 10),
+        legend.key.height = unit(0.6, "cm"), legend.key.width = unit(0.4, "cm"),
+        legend.justification = "left", panel.spacing = unit(0.5, "lines"),
+        panel.background = element_rect(fill = "white", color = NA))
 
 # ============================================================
-# SPECIES COMPARISON 2x2 PLOTS
-# Requires: analysis_mcra, analysis_methanotroph, analysis_ratio,
-#   cor_area_mcra, cor_area_methanotroph, pearson_ratio,
-#   species_comparison_data, y_limit from helper_scale_dependent_gene_patterns.R
+# (d-g) SPECIES-LEVEL GENE-FLUX PANELS
 # ============================================================
-
-required_analysis_objs <- c("analysis_mcra", "analysis_methanotroph",
-                            "analysis_ratio", "cor_area_mcra",
-                            "cor_area_methanotroph", "pearson_ratio",
-                            "species_comparison_data", "y_limit")
-missing_objs <- required_analysis_objs[!sapply(required_analysis_objs, exists)]
-
-if (length(missing_objs) > 0) {
-  cat("WARNING: Missing upstream objects for species comparison plots:\n")
-  cat("  ", paste(missing_objs, collapse = ", "), "\n")
-  cat("  Run helper_scale_dependent_gene_patterns.R first to populate these objects.\n")
-  cat("  Skipping species comparison and final figure sections.\n\n")
-} else {
-
 # Panel 1: Species - mcrA
 p_species_mcra_2x2 <- ggplot(analysis_mcra,
                              aes(x = log10(median_mcra + 1), y = median_flux)) +
@@ -312,81 +215,31 @@ p_species_ratio_2x2 <- ggplot(analysis_ratio,
     panel.border = element_rect(color = "black", fill = NA, linewidth = 0.8)
   )
 
-# Panel 4: Model Comparison (with line breaks in x-axis labels)
-p_species_comparison_2x2 <- ggplot(species_comparison_data,
-                                   aes(x = Model, y = R2, fill = Significant)) +
-  geom_col(alpha = 0.8) +
-  geom_text(aes(label = sprintf("%.2f", R2)),
-            vjust = -0.3, size = 5) +
-  scale_fill_manual(values = c("FALSE" = "gray70", "TRUE" = "#285238"),
-                    labels = c("NS", "p < 0.05"),
-                    name = "") +
-  scale_x_discrete(labels = c("mcrA" = expression(italic(mcrA)),
-                              "pmoA" = expression(italic(pmoA)),
+# ============================================================
+# FIGURE 8: cross-sections on top, species panels in a row below
+# ============================================================
+bm <- theme(plot.margin = margin(16, 8, 5, 5), axis.title = element_text(size = 11.5))
+# (g) as horizontal bars: model names read horizontally without adding height under the panel
+g_h <- ggplot(species_comparison_data, aes(x = R2, y = Model, fill = Significant)) +
+  geom_col(alpha = 0.8, width = 0.7) +
+  geom_text(aes(label = sprintf("%.2f", R2)), hjust = -0.15, size = 4) +
+  scale_fill_manual(values = c("FALSE" = "gray70", "TRUE" = "#285238"), labels = c("NS", "p < 0.05"), name = "") +
+  scale_y_discrete(labels = c("mcrA" = expression(italic(mcrA)), "pmoA" = expression(italic(pmoA)),
                               "mmoX" = expression(italic(mmoX)),
-                              "pmoA+mmoX" = expression(italic(pmoA)*"+"*italic(mmoX)),
-                              "Ratio" = "Ratio")) +
-  ylim(0, y_limit) +
-  labs(x = "", y = expression("Model R"^2)) +
+                              "pmoA+mmoX" = expression(italic(pmoA)*"+"*italic(mmoX)), "Ratio" = "Ratio")) +
+  scale_x_continuous(limits = c(0, y_limit), expand = expansion(mult = c(0, 0.02))) +
+  labs(x = expression("Model R"^2), y = NULL) +
   theme_classic(base_size = 11.7) +
-  theme(
-    axis.title = element_text(size = 16),
-    axis.text.y = element_text(size = 14),
-    axis.text.x = element_text(size = 11, angle = 30, hjust = 1),
-    legend.text = element_text(size = 14),
-    legend.title = element_text(size = 14),
-    legend.position = "bottom",
-    legend.box.margin = ggplot2::margin(t = 0, r = 0, b = 0, l = 0),
-    legend.margin = ggplot2::margin(t = 2, r = 0, b = 0, l = 0),
-    plot.margin = ggplot2::margin(t = 5, r = 5, b = 2, l = 5)
-  )
-
-# Create 2x2 layout
-species_2x2_layout <- (p_species_mcra_2x2 | p_species_methanotroph_2x2) /
-  (p_species_ratio_2x2 | p_species_comparison_2x2)
-
-}  # end if (analysis objects exist)
-
-# ============================================================
-# FINAL SIDE-BY-SIDE LAYOUT
-# Requires both combined_plot (radial) and species_2x2_layout
-# ============================================================
-
-if (exists("combined_plot") && exists("species_2x2_layout")) {
-
-own <- function(p, l = 5) wrap_elements(full = p + theme(plot.margin = margin(16, 8, 5, l), axis.title = element_text(size = 11.5)))   # axis labels and titles stay with their own plot; top margin keeps the panel tag clear
-if (FIG8_LAYOUT == "band") {
-  # aligned (not wrapped) so the four plotting panels get equal widths; (g) labels horizontal so its
-  # axis-label row is no taller than the scatters' and does not push their titles down
-  bm <- theme(plot.margin = margin(16, 8, 5, 5), axis.title = element_text(size = 11.5))
-  # (g) as horizontal bars: model names read horizontally without adding height under the panel
-  g_h <- ggplot(species_comparison_data, aes(x = R2, y = Model, fill = Significant)) +
-    geom_col(alpha = 0.8, width = 0.7) +
-    geom_text(aes(label = sprintf("%.2f", R2)), hjust = -0.15, size = 4) +
-    scale_fill_manual(values = c("FALSE" = "gray70", "TRUE" = "#285238"), labels = c("NS", "p < 0.05"), name = "") +
-    scale_y_discrete(labels = c("mcrA" = expression(italic(mcrA)), "pmoA" = expression(italic(pmoA)),
-                                "mmoX" = expression(italic(mmoX)),
-                                "pmoA+mmoX" = expression(italic(pmoA)*"+"*italic(mmoX)), "Ratio" = "Ratio")) +
-    scale_x_continuous(limits = c(0, y_limit), expand = expansion(mult = c(0, 0.02))) +
-    labs(x = expression("Model R"^2), y = NULL) +
-    theme_classic(base_size = 11.7) +
-    theme(axis.text = element_text(size = 12), legend.position = "bottom", legend.text = element_text(size = 12),
-          legend.margin = margin(0, 0, 0, 0))
-  bottom_row <- wrap_plots(p_species_mcra_2x2 + bm, p_species_methanotroph_2x2 + bm,
-                          p_species_ratio_2x2 + labs(y = NULL) + bm, g_h + bm,
-                          nrow = 1, widths = c(1, 1, 1, 1))
-  combined_plot <- combined_plot & theme(legend.key.height = unit(0.26, "cm"), legend.title = element_text(size = 10.5),
-                                         legend.text = element_text(size = 9.5))   # shorter rows: compact colour bars
-  no_strip <- theme(strip.text = element_blank())
-  combined_plot <- p_mcra / (p_sum + no_strip) / (p_overlay + no_strip)   # species named once, above row (a)
-  combined_plot <- combined_plot & theme(legend.key.height = unit(0.26, "cm"), legend.title = element_text(size = 10.5),
-                                         legend.text = element_text(size = 9.5))
-  side_by_side <- wrap_plots(combined_plot, bottom_row, ncol = 1, heights = c(2.6, 2.2))
-} else {
-  species_2x2_layout <- (own(p_species_mcra_2x2) | own(p_species_methanotroph_2x2)) /
-    (own(p_species_ratio_2x2) | own(p_species_comparison_2x2))
-  side_by_side <- (combined_plot | species_2x2_layout) + plot_layout(widths = c(0.64, 1))
-}
+  theme(axis.text = element_text(size = 12), legend.position = "bottom", legend.text = element_text(size = 12),
+        legend.margin = margin(0, 0, 0, 0))
+bottom_row <- wrap_plots(p_species_mcra_2x2 + bm, p_species_methanotroph_2x2 + bm,
+                        p_species_ratio_2x2 + labs(y = NULL) + bm, g_h + bm,
+                        nrow = 1, widths = c(1, 1, 1, 1))
+no_strip <- theme(strip.text = element_blank())
+combined_plot <- p_mcra / (p_sum + no_strip) / (p_overlay + no_strip)   # species named once, above row (a)
+combined_plot <- combined_plot & theme(legend.key.height = unit(0.26, "cm"), legend.title = element_text(size = 10.5),
+                                       legend.text = element_text(size = 9.5))
+side_by_side <- wrap_plots(combined_plot, bottom_row, ncol = 1, heights = c(2.6, 2.2))
 side_by_side <- side_by_side +
   plot_annotation(tag_levels = "a",
                   tag_prefix = "(",
@@ -394,24 +247,117 @@ side_by_side <- side_by_side +
                   theme = theme(plot.tag = element_text(size = 11, face = "bold"))) &
   theme(plot.tag = element_text(size = 14, face = "bold"))
 
-side_by_side
+ggsave("outputs/figures/original/main/fig8_radial_species_comparison.png",
+       side_by_side, width = 14, height = 9.5, dpi = 300, limitsize = FALSE)
+
+# ============================================================
+# FIGURE S24: mcrA vs (pmoA + mmoX), tree and species level
+# ============================================================
+# ------------------------------------------------------------
+# INDIVIDUAL TREE LEVEL: mcrA vs methanotroph_total
+# ------------------------------------------------------------
+
+# Calculate correlation
+cor_tree_mcra_methanotroph <- cor.test(
+  tree_level_complete$log_tree_mcra,
+  tree_level_complete$log_methanotroph
+)
+
+# Create plot (NO trendline - not significant)
+p_tree_mcra_vs_methanotroph <- ggplot(tree_level_complete,
+                                      aes(y = log_methanotroph,
+                                          x = log_tree_mcra,
+                                          color = species)) +
+  geom_point(size = 2.5, alpha = 0.6) +
+  scale_color_manual(values = species_palette, name = "Species") +
+  annotate("label", x = Inf, y = Inf,
+           label = sprintf("r = %.3f\np = %.3f",
+                           cor_tree_mcra_methanotroph$estimate,
+                           cor_tree_mcra_methanotroph$p.value),
+           hjust = 1.1, vjust = 1.1, size = 3.5,
+           fill = "white", alpha = 0.9) +
+  labs(
+    title = "Individual Tree Level",
+    y = expression(log[10]~(pmoA+mmoX)),
+    x = expression(log[10]~mcrA)
+  ) +
+  theme_pub_gene +
+  theme(
+    legend.position = "right",
+    legend.text = element_text(face = "italic", size = 8),
+    legend.title = element_text(size = 9),
+    plot.title = element_text(hjust = 0.5, face = "bold")
+  )
+
+# ------------------------------------------------------------
+# SPECIES LEVEL: median mcrA vs median methanotroph
+# ------------------------------------------------------------
+
+# Combine mcrA and methanotroph data for species-level analysis
+species_mcra_methanotroph <- analysis_mcra %>%
+  dplyr::select(species, species_id, median_mcra, q25_mcra, q75_mcra) %>%
+  left_join(
+    analysis_methanotroph %>% 
+      dplyr::select(species, median_methanotroph, q25_methanotroph, q75_methanotroph),
+    by = "species"
+  )
+
+# Calculate correlation
+cor_species_mcra_methanotroph <- cor.test(
+  log10(species_mcra_methanotroph$median_mcra + 1),
+  log10(species_mcra_methanotroph$median_methanotroph + 1)
+)
+
+# Create plot (NO trendline - not significant)
+p_species_mcra_vs_methanotroph <- ggplot(species_mcra_methanotroph,
+                                         aes(y = log10(median_methanotroph + 1),
+                                             x = log10(median_mcra + 1),
+                                             color = species)) +
+  geom_point(size = 3.5, alpha = 0.85) +
+  scale_color_manual(values = species_palette) +
+  geom_text_repel(aes(label = species), size = 3, fontface = "italic", seed = 42,
+                  box.padding = 0.3, max.overlaps = 20) +
+  annotate("label", x = Inf, y = Inf,
+           label = sprintf("r = %.3f\np = %.3f",
+                           cor_species_mcra_methanotroph$estimate,
+                           cor_species_mcra_methanotroph$p.value),
+           hjust = 1.1, vjust = 1.1, size = 3.5,
+           fill = "white", alpha = 0.9) +
+  labs(
+    title = "Species Level",
+    y = expression(log[10]~median~(pmoA+mmoX)),
+    x = expression(log[10]~median~mcrA)
+  ) +
+  theme_pub_gene +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    legend.position = "none"
+  )
+
+# ------------------------------------------------------------
+# COMBINE AND SAVE
+# ------------------------------------------------------------
+
+# Side-by-side layout with panel labels
+mcra_vs_methanotroph_layout <- (p_tree_mcra_vs_methanotroph |
+  p_species_mcra_vs_methanotroph) +
+  plot_annotation(tag_levels = "a",
+                  tag_prefix = "(",
+                  tag_suffix = ")",
+                  theme = theme(plot.tag = element_text(size = 11, face = "bold")))
+
+ggsave("outputs/figures/original/supplementary/figS14_mcra_vs_methanotroph.png", mcra_vs_methanotroph_layout,
+       width = 13, height = 5.5, dpi = 300)
 
 
-# ggsave("outputs/figures/Figure_Radial_And_Species_Comparison.pdf",
-#        side_by_side,
-#        width = 16,
-#        height = 10,
-#        limitsize = FALSE)
+# Print summary
+cat("\n### mcrA vs METHANOTROPH CORRELATION SUMMARY ###\n")
+cat("\nIndividual Tree Level:\n")
+cat(sprintf("  Pearson r = %.3f\n", cor_tree_mcra_methanotroph$estimate))
+cat(sprintf("  p-value = %.4f\n", cor_tree_mcra_methanotroph$p.value))
+cat(sprintf("  n = %d trees\n", nrow(tree_level_complete)))
 
-ggsave(Sys.getenv("FIG8_OUT", "outputs/figures/original/main/fig8_radial_species_comparison.png"),
-       side_by_side,
-       width = if (FIG8_LAYOUT == "band") 14 else 14,
-       height = if (FIG8_LAYOUT == "band") 9.5 else 8,
-       dpi = 300,
-       limitsize = FALSE)
-
-} else {
-  cat("WARNING: Cannot create final figure - missing combined_plot and/or species_2x2_layout.\n")
-  cat("  Ensure both helper_radial_gene_plots.R and helper_scale_dependent_gene_patterns.R have been run.\n")
-}
-
+cat("\nSpecies Level:\n")
+cat(sprintf("  Pearson r = %.3f\n", cor_species_mcra_methanotroph$estimate))
+cat(sprintf("  p-value = %.4f\n", cor_species_mcra_methanotroph$p.value))
+cat(sprintf("  n = %d species\n", nrow(species_mcra_methanotroph)))

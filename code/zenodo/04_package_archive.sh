@@ -18,12 +18,17 @@ out="${1:-$HOME/zenodo_upload/tree-methanogens}"
 mkdir -p "$out"
 [ -d data/raw ] || { echo "run from the repository root" >&2; exit 1; }
 
+# file size and md5, portable across GNU/Linux and macOS/BSD
+size_of() { wc -c < "$1" | tr -d ' '; }
+if command -v md5sum >/dev/null 2>&1; then md5_of() { md5sum "$1" | cut -d' ' -f1; }
+else md5_of() { md5 -q "$1"; }; fi
+
 manifest() {  # manifest <zip name> <find args...>
   local name="$1"; shift
   echo "path,bytes,md5" > "$out/MANIFEST_${name}.csv"
   find "$@" -type f ! -name .DS_Store ! -name .gitkeep -print0 | sort -z |
     while IFS= read -r -d '' f; do
-      printf '"%s",%s,%s\n' "$f" "$(stat -f %z "$f")" "$(md5 -q "$f")"
+      printf '"%s",%s,%s\n' "$f" "$(size_of "$f")" "$(md5_of "$f")"
     done >> "$out/MANIFEST_${name}.csv"
 }
 

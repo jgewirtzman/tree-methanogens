@@ -1,60 +1,34 @@
 # ==============================================================================
-# Variance Partitioning (Figure 3)
+# fig03_variance-partition.R -- Figure 3: species and environment in stem CH4 flux
+# ------------------------------------------------------------------------------
+# Stage E. Run from the repository root.
+#   (a) flux by species (ridgelines; points coloured by soil VWC; mean +/- SE),
+#       arcsinh axis (code/lib/flux_transform.R)
+#   (b) variance partition of tree-mean flux: unique environment, unique species,
+#       environment x species interaction, unexplained (from the R2 of four OLS fits)
+#   (c) standardized coefficients of the full additive model
+# Input
+#   outputs/data/flux_measurements_tree.csv  every stem deployment of the three
+#                                            campaigns (in_rf_training flags the model's
+#                                            subset; all rows are used here)
+# Output
+#   outputs/figures/generated/fig3_final.png; the partition and R2 ladder to the console
+#
+# Rules
+# - Unit of analysis: the TREE, one row per tree, the mean of its deployments on the
+#   arcsinh scale (flux_asinh()), the scale the models are fitted on and panel (a)
+#   draws. Repeat measurements are averaged rather than treated as independent rows,
+#   so the few trees of the monthly survey do not dominate.
+# - Breast height only: deployments with no height (monthly and 2023 surveys) and the
+#   125 cm deployments of the 2021 multi-height survey. Height is Figure 2's subject.
+# - Growing season only (May-September), so tree means of the monthly survey are
+#   comparable with the single-visit campaigns.
+# - Chamber design is a nuisance covariate in every model.
+# - Species with more than three trees.
+# - OLS on tree means, no tree random effect: with one row per tree it is not
+#   separable from the residual. Between-tree variance the fixed effects do not
+#   explain is "unexplained".
 # ==============================================================================
-# Purpose: Variance partitioning showing relative contributions of species,
-#   moisture, genes, and wood properties to flux.
-#
-# Pipeline stage: 4 — Publication Figures
-#
-# Inputs:
-#   - outputs/data/flux_measurements_tree.csv (every stem deployment; in_rf_training flags the model's subset)
-#
-# The unit of analysis is the TREE. Each tree contributes one row: the mean of its
-# breast-height measurements. Four changes from the previous version, all aimed at
-# partitioning variance on the scale the data live on, over a sample where every
-# component is identified from the whole of it.
-#
-# 1. RESPONSE IS TRANSFORMED. The previous version partitioned raw nmol, where the
-#    top 1% of measurements carry 80% of the total variance and the top 5% carry
-#    95%. That decomposition described about ten extreme fluxes, not the
-#    population, and reported ~83% unexplained as a result. Panel (a) was already
-#    drawn on an arcsinh axis for exactly this reason -- the figure displayed one
-#    scale and analysed another. Both are now arcsinh.
-#
-# 2. ONE ROW PER TREE, AVERAGING REPEATS RATHER THAN DISCARDING THEM. Repeated
-#    measurements are very unevenly distributed: only 41 of 446 trees have more
-#    than one, yet they supply 44% of the measurement-level rows, nearly all from
-#    the 2020 monthly survey. Treating rows as independent therefore let a minority
-#    of trees dominate, and a tree random effect was no better -- it estimated a
-#    36.6% "tree identity" term from those 41 trees and reported it as if it came
-#    from the whole sample. Averaging each tree's measurements uses every one of
-#    them, removes the pseudo-replication, and leaves every component identified
-#    from all 446 trees. Unexplained rises from 40% to 65% as a result; that is the
-#    honest figure, and the earlier one was low because a term fitted on 9% of the
-#    trees was absorbing variance.
-#
-# 3. ALL THREE CAMPAIGNS, FROM MEASUREMENT-LEVEL DATA. The previous version took
-#    2021 from the tree-level wide table, where the environmental columns are
-#    per-tree summaries, and omitted the 2020 monthly campaign entirely.
-#    Soil-temperature spread was 2.5 against 4.0 in the measurement-level data, so
-#    environment was being tested on a fraction of its observed range. It is still
-#    weak with the full range, which makes that a result rather than an artefact.
-#
-# 4. BREAST HEIGHT ONLY, plus a chamber-design covariate -- see the data block.
-#
-# The three campaigns were designed around different axes -- 2020 across time,
-# 2021 across height, 2023 across species. Averaging to the tree, within the
-# growing season, is what lets them be pooled for a question about species and
-# environment: the monthly campaign contributes a better-estimated growing-season
-# mean per tree rather than repeated rows, and its temporal axis stays the subject
-# of Figure 1, as height stays that of Figure 2.
-#
-# Partition is Nakagawa & Schielzeth marginal/conditional R2: marginal is the
-# fixed effects, conditional adds the tree random effect, the remainder is
-# within-stem residual.
-# ==============================================================================
-
-flux_all <- read.csv("outputs/data/flux_measurements_tree.csv")   # the pipeline product, not the archive copy
 
 library(ggplot2)
 library(ggridges)
@@ -63,52 +37,16 @@ library(tidyr)
 library(broom)
 library(patchwork)
 library(viridis)
-library(car)
-library(lme4)
-library(lmerTest)
-
-# Species name mapping
 source("code/lib/tables_read.R")
+source("code/lib/flux_transform.R")
+source("code/lib/geometry.R")   # GYMNOSPERMS
+
+flux_all <- read.csv("outputs/data/flux_measurements_tree.csv")
 species_mapping <- SPECIES_NAMES   # data/tables/species.csv
 
-# ---- one measurement-level table, all three campaigns -----------------------
-# ASINH_SIGMA matches the axis transform panel (a) already uses, so the analysis
-# and the display are on the same scale.
-ASINH_SIGMA <- 0.1
-asinh_t <- function(x) asinh(x / ASINH_SIGMA)
-
-# BREAST HEIGHT ONLY. The measurement-level table mixes the 2021 multi-height
-# campaign (50 / 125 / 200 cm) with campaigns that recorded no height. Height is
-# Figure 2's subject, so including 50 and 200 cm here would put vertical structure
-# into a figure about species and environment, where -- since height is not a term
-# -- it would be absorbed by tree identity and the residual. The unlabelled rows
-# are the monthly and 2023 campaigns, measured at breast height; they are kept, and the 50 cm and 200 cm rows are dropped. This costs
-# little: the partition moves by 1-2 points either way.
-#
-# chamber_type is carried as a nuisance covariate. The campaigns differ ~6-fold in
-# median flux, so pooling designs needs checking; including the
-# term answers it, and it changes the partition by under a point, which says the
-# difference is between the trees measured rather than between chamber designs.
-# GROWING SEASON ONLY (May-September). Averaging a tree's measurements assumes
-# they are comparable, and across the full year they are not: outside the growing
-# season median flux is 0.0019 against 0.0173 nmol m-2 s-1 inside it, roughly
-# ninefold. 411 of the 450 trees were measured only in the growing season, so
-# averaging over all months would drag down the means of the 39 monthly-survey
-# trees relative to everyone else -- a sampling artefact that would read as a
-# tree-level difference. Restricting first makes the means comparable.
-#
-# It costs nothing structural: all 446 trees and all 13 species are retained, only
-# 95 of 726 measurements are dropped, and the partition moves by about 0.2 points.
-# It also costs no environmental range, because the range this figure uses is
-# BETWEEN trees standing in different parts of the moisture and temperature
-# gradient, not within a tree across the year: soil-temperature SD 2.77 -> 2.49,
-# VWC SD 10.28 -> 10.29. The seasonal axis belongs to Figure 1.
 GROWING_SEASON <- 5:9
 
-# ALL deployments, not only the model's training rows (2026-09-30). This file used
-# to contain only the 1,130 training rows; 61 deployments without a tag link were
-# missing, among them 17 low-emitting 2023 ash trees, which made white ash look like
-# the top emitter. Every filter below is counted and printed, so a drop is visible.
+# Every filter below is counted and printed, so a drop is visible.
 cat(sprintf("Figure 3 input: %d deployments (%d outside the model's training set)\n",
             nrow(flux_all), sum(!flux_all$in_rf_training)))
 .step <- function(d, label) { cat(sprintf("  %-46s %5d rows\n", label, nrow(d))); d }
@@ -119,8 +57,8 @@ combined_data <- flux_all %>%
   transmute(
     tree_id,
     Species.Code = species_code,
-    DBH      = dbh_m * 100,                  # m -> cm, as the old wide table held it
-    Air_temp = air_temp_C,                   # measured at the deployment (flux_stem air_temp_C), as the models
+    DBH      = dbh_m * 100,                  # m -> cm
+    Air_temp = air_temp_C,                   # measured at the deployment (flux_stem air_temp_C)
     Soil_temp = soil_temp_C,
     VWC      = soil_moisture_abs * 100,      # m3 m-3 -> %, as panel (a) labels it
     CH4_flux = stem_flux_nmol_m2_s,
@@ -132,11 +70,10 @@ combined_data <- flux_all %>%
   .step("species identified (species.csv)") %>%
   drop_na(CH4_flux, DBH, Air_temp, Soil_temp, VWC, Chamber) %>% .step("complete covariates") %>%
   filter(is.finite(CH4_flux)) %>%
-  mutate(CH4_asinh = asinh_t(CH4_flux))
+  mutate(CH4_asinh = flux_asinh(CH4_flux))
 
-# Average to one row per tree. The mean is taken on the arcsinh scale, the scale
-# the models are fitted on, so a tree's summary is the mean of what is analysed
-# rather than a mean of raw fluxes that the transform would then distort.
+# Average to one row per tree, on the arcsinh scale. Chamber and year: the tree's
+# most frequent value.
 combined_data <- combined_data %>%
   group_by(tree_id) %>%
   summarise(Species_Latin = dplyr::first(Species_Latin),
@@ -145,17 +82,13 @@ combined_data <- combined_data %>%
             Chamber = names(sort(table(Chamber), decreasing = TRUE))[1],
             Year    = names(sort(table(Year),    decreasing = TRUE))[1],
             n_measurements = dplyr::n(), .groups = "drop") %>%
-  mutate(CH4_flux = ASINH_SIGMA * sinh(CH4_asinh)) %>%
+  mutate(CH4_flux = FLUX_COFACTOR * sinh(CH4_asinh)) %>%
   group_by(Species_Latin) %>% filter(n() > 3) %>% ungroup() %>%
   mutate(Species_Latin = reorder(Species_Latin, CH4_flux, mean, na.rm = TRUE))
 
 # Standardize environmental variables
-env_vars <- c("DBH", "Air_temp", "Stem_temp", "Soil_temp", "VWC")
-for(var in env_vars) {
-  if(var %in% names(combined_data)) {
-    combined_data[[paste0(var, "_std")]] <- scale(combined_data[[var]], center = TRUE, scale = TRUE)[,1]
-  }
-}
+for (var in c("DBH", "Air_temp", "Soil_temp", "VWC"))
+  combined_data[[paste0(var, "_std")]] <- scale(combined_data[[var]], center = TRUE, scale = TRUE)[,1]
 
 # Print data summary
 cat("========================================\n")
@@ -175,12 +108,7 @@ cat("\n")
 # FIT ALL MODELS
 # ========================================
 
-# ---- models: OLS on tree means ----------------------------------------------
-# No random effect. With one row per tree, tree identity is saturated and not
-# separable from residual; fitting (1|tree_id) anyway makes lmer assign the whole
-# residual to the random effect and report 0% unexplained, which is an artefact of
-# the saturation rather than a result. Between-tree variance that the fixed effects
-# do not explain belongs in "unexplained" here, and that is what it means.
+# ---- models: OLS on tree means (no tree random effect; see header) -----------
 model_env_only     <- lm(CH4_asinh ~ DBH_std + Air_temp_std + Soil_temp_std + VWC_std + Chamber,
                          data = combined_data)
 model_species_only <- lm(CH4_asinh ~ Species_Latin + Chamber, data = combined_data)
@@ -194,11 +122,8 @@ r2_species     <- summary(model_species_only)$r.squared
 r2_full        <- summary(model_full)$r.squared
 r2_interaction <- summary(model_interaction)$r.squared
 
-# Get reference species
-ref_species <- levels(factor(combined_data$Species_Latin))[1]
-
 # ========================================
-# VARIANCE PARTITIONING - METHOD 2
+# VARIANCE PARTITIONING
 # ========================================
 
 variance_method2 <- data.frame(
@@ -212,12 +137,8 @@ variance_method2 <- data.frame(
   )
 )
 
-# ========================================
-# VARIANCE PARTITIONING - METHOD 3
-# ========================================
-
-# Reported alongside the partition rather than plotted: the R2 ladder, so the
-# components in panel (b) can be traced back to the models they came from.
+# The R2 ladder, printed (not plotted) so the components in panel (b) can be traced
+# back to the models they came from.
 variance_method3 <- data.frame(
   Model  = c("environment only", "species only", "full additive", "with interactions"),
   R2_pct = round(100 * c(r2_env, r2_species, r2_full, r2_interaction), 1)
@@ -310,7 +231,7 @@ p_ridgeline <- ggplot(combined_data, aes(x = CH4_flux, y = Species_Latin)) +
   ) +
   geom_vline(xintercept = 0, linetype = "dashed", color = "gray50", alpha = 0.5) +
   scale_x_continuous(
-    trans = scales::trans_new("arcsinh", function(x) asinh(x/0.1), function(x) 0.1*sinh(x)),
+    trans = flux_asinh_trans(),
     breaks = c(-0.1, 0, 0.1, 1),
     labels = c("\u22120.1", "0", "0.1", "1")
   ) +
@@ -331,7 +252,7 @@ p_ridgeline <- ggplot(combined_data, aes(x = CH4_flux, y = Species_Latin)) +
     plot.margin = margin(5, 2, 5, 5, "pt")
   )
 
-# 2. CREATE VARIANCE PLOT - METHOD 2 (with y-axis on right)
+# 2. CREATE VARIANCE PLOT (y-axis on the right)
 p_var_method2 <- ggplot(variance_method2, aes(x = Component, y = Variance, fill = Component)) +
   geom_bar(stat = "identity", width = 0.6, alpha = 0.6) +
   geom_text(aes(label = paste0(round(Variance, 1), "%")), 
@@ -354,9 +275,7 @@ p_var_method2 <- ggplot(variance_method2, aes(x = Component, y = Variance, fill 
     plot.margin = margin(2, 2, 2, 2, "pt")
   )
 
-# Skip Method 3 plot creation since we're only using Method 2
-
-# 4. CREATE EFFECTS PLOT
+# 3. CREATE EFFECTS PLOT
 p_effects <- ggplot(all_effects, aes(x = estimate, y = reorder(term_clean, estimate))) +
   geom_vline(xintercept = 0, linetype = "dashed", color = "gray50", alpha = 0.5) +
   geom_errorbarh(aes(xmin = conf.low, xmax = conf.high, color = category),
@@ -401,19 +320,17 @@ combined_plot <- (p_ridgeline | (p_var_method2 / p_effects + plot_layout(heights
                   theme = theme(plot.tag = element_text(size = 11, face = "bold"))) &
   theme(plot.tag = element_text(size = 11, face = "bold"))
 
-print(combined_plot)
-
 # ========================================
 # PRINT SUMMARY STATISTICS
 # ========================================
 
 cat("\n\nVARIANCE PARTITIONING RESULTS\n")
 cat("========================================\n")
-cat("\nMETHOD 2 (With Interactions):\n")
+cat("\nPartition (with interactions):\n")
 print(variance_method2)
 cat(sprintf("\nTotal R² with interactions: %.1f%%\n", r2_interaction * 100))
 
-cat("\nMETHOD 3 (Type III SS):\n")
+cat("\nR2 ladder:\n")
 print(variance_method3)
 
 cat("\n\nMODEL R-SQUARED VALUES\n")
@@ -425,11 +342,6 @@ cat(sprintf("With interactions: %.1f%%\n", r2_interaction * 100))
 
 # Save plot
 ggsave("outputs/figures/generated/fig3_final.png", plot = combined_plot, width = 8.2, height = 6.2, dpi = 300, bg = "white")   # near print size
-
-
-
-
-
 
 # ===== EXTRACT STATISTICS FOR SPECIES TRENDS SECTION =====
 
@@ -450,7 +362,7 @@ cat("\nTop 5 species by mean flux:\n")
 print(head(species_summary, 5))
 
 cat("\nGymnosperms:\n")
-print(species_summary %>% filter(Species_Latin %in% c("Pinus strobus", "Tsuga canadensis")))
+print(species_summary %>% filter(Species_Latin %in% GYMNOSPERMS))
 
 # Variance partitioning summary
 cat("\n===== VARIANCE PARTITIONING SUMMARY =====\n")

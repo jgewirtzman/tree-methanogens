@@ -1,26 +1,16 @@
 #!/usr/bin/env Rscript
 # ==============================================================================
-# 14_rf_height_extrapolation.R
+# 14_rf_height_extrapolation.R -- can the forest's height effect be extrapolated above 2 m?
 # ------------------------------------------------------------------------------
-# Can we extrapolate the RF's learned height effect above 2 m, as one more scenario?
-#
-# PART 1  Demonstrates that a random forest CANNOT extrapolate. Beyond the largest
-#         split threshold every tree in the forest returns the same leaf value, so
-#         predicting at 5 m, 10 m or 100 m returns EXACTLY the 2 m prediction. Naively
-#         "extrapolating the RF" is therefore bit-for-bit identical to the constant
-#         scenario -- it is not an independent scenario at all.
-#
-# PART 2  The coherent version. The RF's value is that it learns a height response
-#         CONDITIONED on species, soil moisture, temperature and DBH. We can extract
-#         each inventory tree's own RF-predicted profile across the measured band, fit
-#         a functional form TO THAT PER-TREE PROFILE, and project it. The shape is then
-#         tree-specific and RF-derived, rather than a single stand-mean curve applied
-#         to everybody. This IS a distinct scenario and is what "extrapolating the
-#         learned height effect" can legitimately mean.
-#
-#         Caveat that does not go away: the per-tree shape is still estimated only from
-#         0.5-2.0 m, so projecting it to 25 m is extrapolation however it is dressed.
-#         It belongs alongside the other functional forms as a scenario, not above them.
+# Stage D; run from the repository root.
+# PART 1  A random forest cannot extrapolate: beyond the largest split threshold every
+#         tree returns the same leaf, so predictions at 5, 10 or 100 m equal the 2 m
+#         prediction exactly. "Extrapolating the forest" is the constant scenario.
+# PART 2  The coherent version: each inventory stem's own predicted profile across the
+#         measured band, a functional form fitted to that profile, and projected. The
+#         shape is stem-specific and model-derived, but still estimated from 0.5-2.0 m
+#         only, so projecting it to 25 m is extrapolation (the exp_band_slope form of
+#         06_upscale/07_scaling_full_grid.R).
 #
 # Output: outputs/audit/rf_height_extrapolation.txt
 # ==============================================================================
@@ -29,10 +19,9 @@ suppressMessages({library(ranger); library(dplyr); library(tidyr)})
 source("code/lib/geometry.R")
 source("code/lib/species_levels.R")
 set.seed(42)
-outdir <- "outputs"; dir.create(outdir, showWarnings=FALSE, recursive=TRUE)
 load("outputs/models/RF_MODELS.RData"); load("outputs/models/TRAINING_DATA.RData")
 load("data/processed/integrated/rf_workflow_input_data_with_2023.RData")
-INV <- canonical_inventory(); DR <- rf_workflow_data$PLACEHOLDER_DRIVERS
+INV <- canonical_inventory(); DR <- rf_workflow_data$DRIVERS
 rule <- function(s) cat("\n",strrep("=",78),"\n ",s,"\n",strrep("=",78),"\n",sep="")
 
 d <- tree_train_complete
@@ -110,22 +99,9 @@ for (i in seq_len(nrow(bs)))
   cat(sprintf("    %-24s %7d %10.4f %12.3f\n", bs$sp[i], bs$n[i], bs$slope[i], bs$ratio_2_05[i]))
 
 # --- project each tree's own learned shape and integrate to the canopy --------
-# CANONICAL stems and ground (2026-07-29). This read
-# rf_workflow_data$PLACEHOLDER_INVENTORY over A_PLOT <- 200*200: fg19 only, so the
-# entire bytag survey (961 stems) was missing -- 7,010 stems instead of 8,006 -- over
-# the nominal 40,000 m2 square instead of the 37,200 m2 censused stand. Every
-# per-ground figure below was 7.0% low and every WAI*area 7.5% high, and the stem-area
-# index came out 0.0888 against the canonical 0.11629. The allometry and the DBH repair
-# were also local copies; both now come from geometry.R.
+# canonical stems over the censused stand; heights from the one allometry (geometry.R,
+# applied uniformly: no shrub cap)
 A_PLOT <- STAND_AREA_M2; CONV <- 86400*365.25*16e-6
-GY <- c("Pinus strobus","Tsuga canadensis")
-# Height comes from the single allometry in geometry.R (canonical_inventory() has
-# already applied it), not from a fifth local copy.
-# The 3 m Kalmia shrub cap that stood here is REMOVED: the project rule (2026-07-26)
-# is to apply the published allometry uniformly and
-# document the limitation, because Kalmia is ~2% of woody area and a cap moves the stand
-# total by ~1%. This script was the only place still applying it, so it disagreed with
-# every other estimate of woody area. It also used == rather than %in%.
 S_conic <- pi*INV$dbh*INV$H/2
 for (BS in c(2.7, 4.0)) for (CC in c(1.20, 1.35)) {
   A_w <- S_conic*CC*(1+BS)

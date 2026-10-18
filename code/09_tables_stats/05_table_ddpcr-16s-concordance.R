@@ -1,14 +1,16 @@
 #!/usr/bin/env Rscript
 # ==============================================================================
-# 05_table_ddpcr-16s-concordance.R  (candidate SI TABLE replacing the S05 figure)
-# Same data/definitions as rev_figS21 (taxonomy-based, Fig 5 defs), summarized as
-# a concordance table: per gene x compartment, the 4 detection categories, ddPCR
-# vs 16S detection rates, and the quantitative fit (r, p) where both detect.
+# 05_table_ddpcr-16s-concordance.R -- Table S5: ddPCR and 16S detection in the same samples
+# ------------------------------------------------------------------------------
+# Stage D; run from the repository root. Per gene x compartment: the four detection
+# categories, ddPCR vs 16S detection rates, and the fit (r, p) where both detect. The
+# 16S groups are the taxonomy-based definitions of Figure 5.
 # Reads data/tables/ via code/lib/tables_read.R: asv_table("main") (ASV counts + taxonomy),
 # dna_samples("2021_survey") (16S library -> sample, material; ddPCR copies per uL extract);
 # joined by library_id. Samples: 2021 DNA samples whose 16S library has at least RAREFY_DEPTH
 # (3500) non-organelle reads, the libraries the main 16S analysis keeps (build_phyloseq.R).
-# Writes outputs/data/tbl_ddpcr_16s_concordance.csv + .png
+# Writes outputs/data/tbl_ddpcr_16s_concordance.csv and
+#        outputs/figures/generated/tbl_ddpcr_16s_concordance.png
 # ==============================================================================
 suppressMessages({library(gridExtra);library(grid)}); options(warn=-1,stringsAsFactors=FALSE)
 source("code/lib/tables_read.R"); source("code/lib/build_phyloseq.R")   # RAREFY_DEPTH

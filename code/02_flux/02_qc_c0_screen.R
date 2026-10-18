@@ -1,24 +1,21 @@
-source("code/lib/outputs.R")
-source("code/lib/monthly_cols.R")
 #!/usr/bin/env Rscript
 # ==============================================================================
-# 02_qc_c0_screen.R          TIER 1 HARD QC: chamber contamination screen
+# 02_qc_c0_screen.R -- procedural screen: chamber not at ambient at closure
 # ------------------------------------------------------------------------------
-# Override layer, following the compile_zenodo_semirigid.R pattern: originals
-# under code/ are left untouched; this script annotates the compiled products.
+# Stage A; workdir: repository root.
 #
 # THE RULE
 #   Reject a measurement if its chamber starting concentration C0 exceeds
 #   C0_MULT x the median C0 of its campaign. A chamber that opens far above ambient
 #   was not sampling ambient air at closure -- it was contaminated or carried over
-#   from a previous high-concentration sample. This is a PHYSICAL diagnostic of what
-#   went wrong, not a statistical threshold on the flux value, and so is a legitimate
-#   Tier 1 removal under the framework in the companion ch4-data-filtering project.
-#   Statistical filtering of *plausible* flux values is NOT done here: it biases the
-#   mean upward by 17-135% (that project, sec 5.3.4).
+#   from a previous high-concentration sample. This is a physical diagnostic of what
+#   went wrong, not a statistical threshold on the flux value (the Tier 1 removal of
+#   the framework in the companion ch4-data-filtering project). Plausible flux values
+#   are not filtered statistically: that biases the mean upward by 17-135% (that
+#   project, sec 5.3.4).
 #
 # WHY 1.5x
-#   There is a 4.5-fold GAP in the C0 distribution between the contaminated chambers
+#   There is a 4.5-fold gap in the C0 distribution between the contaminated chambers
 #   and everything else, so the threshold is insensitive across it:
 #       49049 ppb (24.11x)  <- rejected
 #       11687 ppb ( 5.74x)  <- rejected
@@ -26,37 +23,33 @@ source("code/lib/monthly_cols.R")
 #        2570 ppb ( 1.26x)
 #        2304 ppb ( 1.13x)
 #        2274 ppb ( 1.12x)
-#   Any multiplier from ~1.3x to ~5.7x rejects exactly the same two measurements.
-#   1.5x sits in the middle of that plateau. Documented as a choice nonetheless.
-#   Consistency check: the three next-highest C0 chambers (1.12-1.26x, fluxes +25.7,
-#   +11.6, +51.3) all lie in WS_1-1 / WS_1-2, the collars already removed by
+#   Any multiplier from ~1.3x to ~5.7x rejects exactly the same two measurements;
+#   1.5x sits in the middle of that plateau. The three next-highest C0 chambers
+#   (1.12-1.26x) all lie in WS_1-1 / WS_1-2, the collars removed by
 #   OUT_OF_STAND_COLLARS -- mildly elevated C0 and independently excluded.
 #
 # WHAT IT CATCHES
-#   Soil (n=288)            2 measurements, both from the field session of 2020-06-17:
-#                             20200617_2-3-WS_19   C0 49049 ppb (24.1x median)  flux -176.11
-#                             20200617_2-1-WS_18   C0 11687 ppb ( 5.7x median)  flux  +31.60
-#   Height campaign (n=441) 0 measurements. C0 range 1809-2156 ppb; a clean campaign.
+#   Soil (n=288): 2 measurements, both from the field session of 2020-06-17
+#   (20200617_2-3-WS_19, C0 24.1x median; 20200617_2-1-WS_18, 5.7x). Each is far out of
+#   line with its own collar. Height campaign (n=441): none (C0 1809-2156 ppb).
 #
-#   These are exactly the two soil values that lie outside the literature-plausible
-#   range AND survive the OUT_OF_STAND_COLLARS exclusion, and each is far out of line
-#   with its own collar (WS_2-3 median 0.074, WS_2-1 median -0.122). The screen was
-#   derived from chamber physics, not tuned to remove them.
+# COVERAGE
+#   C0 is available only for the soil and 2021 height-campaign fits. The monthly stems
+#   and the 2023 campaign are not screened (qc_c0_screened = FALSE), which is not the
+#   same as passing.
 #
-# COVERAGE GAP -- READ THIS
-#   C0 is only available for the 288 soil and 441 height-campaign measurements. The
-#   static-chamber campaign has no CH4 C0 in the processed outputs, so it CANNOT be
-#   screened this way and its rows are marked qc_c0 = NA (not "pass"). Do not read a
-#   missing value as a clean bill of health.
-#
-# OUTPUTS
-#   outputs/data/qc_excluded_measurements.csv   canonical exclusion list
-#   data/compiled/semirigid_chamber_flux.csv        + qc_pass, qc_reason columns
-#                                                   (rows RETAINED; filter on qc_pass)
+# Inputs:  data/processed/flux/CH4_best_flux_lgr_results_soil.csv
+#          data/processed/flux/CH4_best_flux_lgr_results_2021_multiheight.csv
+#          data/processed/flux/semirigid_tree_final_complete_dataset_with_untagged.csv,
+#          semirigid_tree_final_complete_dataset_soil.csv (summary only)
+# Outputs: data/processed/flux/qc_excluded_measurements.csv  canonical exclusion list (the
+#          qc_pass flag of code/tables/10_flux_stem.R and 11_flux_soil.R; rows are kept)
+#          outputs/data/qc_c0_screened_ids.csv        deployments that were screened
 # ==============================================================================
 
+source("code/lib/outputs.R")
+source("code/lib/monthly_cols.R")
 suppressMessages({library(dplyr)})
-outdir <- "outputs"; dir.create(outdir, showWarnings=FALSE, recursive=TRUE)
 C0_MULT <- 1.5
 
 rule <- function(s) cat("\n",strrep("=",78),"\n ",s,"\n",strrep("=",78),"\n",sep="")
@@ -91,20 +84,16 @@ for (nm in names(SRC)) {
       sprintf("%.1fx->%d", m, sum(d$C0 > m*med, na.rm=TRUE))), collapse="  "), "\n")
 }
 EXCL <- bind_rows(EX)
-write.csv(EXCL, out_path("qc_excluded_measurements.csv"), row.names=FALSE)
-cat(sprintf("\n  Canonical exclusion list: %d measurements -> outputs/data/qc_excluded_measurements.csv\n",
+write.csv(EXCL, "data/processed/flux/qc_excluded_measurements.csv", row.names=FALSE)
+cat(sprintf("\n  Canonical exclusion list: %d measurements -> data/processed/flux/qc_excluded_measurements.csv\n",
             nrow(EXCL)))
 
-# --- record what was screened; the archive compiler annotates from these ---------
-# This used to rewrite data/compiled/semirigid_chamber_flux.csv in place, so two
-# scripts wrote one file (this and 01_compile_datasets.R). It now writes its own
-# outputs; 01_compile_datasets.R adds qc_pass / qc_reason / qc_c0_screened.
-rule("RECORDING screened deployments for the archive compiler")
+# --- record what was screened ---------------------------------------------------
+rule("SCREENED DEPLOYMENTS")
 screened <- unique(unlist(lapply(SRC, function(p) read.csv(p, stringsAsFactors=FALSE)$UniqueID)))
 write.csv(data.frame(UniqueID = screened), out_path("qc_c0_screened_ids.csv"), row.names = FALSE)
-# annotate IN MEMORY for the summary below. Reads the processed monthly-survey files,
-# not the archive: data/compiled/ is built after this stage, so reading it here gave
-# the previous run's rows.
+# annotate in memory for the summary below (the processed monthly-survey files;
+# data/compiled/ is built later)
 .zt <- monthly_plain(read.csv("data/processed/flux/semirigid_tree_final_complete_dataset_with_untagged.csv", stringsAsFactors=FALSE, check.names=FALSE))
 .zs <- read.csv("data/processed/flux/semirigid_tree_final_complete_dataset_soil.csv", stringsAsFactors=FALSE, check.names=FALSE)
 Z <- rbind(
@@ -125,12 +114,6 @@ cat(sprintf("
  nrow(Z), sum(Z$qc_pass), sum(!Z$qc_pass),
  paste(Z$unique_id[!Z$qc_pass], collapse=", "),
  sum(Z$qc_c0_screened), 100*mean(Z$qc_c0_screened)))
-cat("
-  Rows are RETAINED with a flag rather than deleted: this file is the public archive,
-  and an excluded measurement that is visible and explained is more useful than one
-  that silently vanished. Downstream analyses must filter on qc_pass.
-")
-
 # --- effect on the soil flux distribution -------------------------------------
 rule("EFFECT")
 s <- Z[Z$measurement_type=="soil" & is.finite(Z$CH4_best_flux_nmol_m2_s),]
@@ -155,12 +138,4 @@ cat("
   numbers. Direction is certain (the sink becomes shallower); magnitude is not.
 ")
 
-# --- guard for downstream ------------------------------------------------------
-cat(sprintf("
-  Downstream scripts should assert the flag exists, e.g.
-      stopifnot(\"qc_pass\" %%in%% names(d))
-      d <- d[d$qc_pass, ]
-  so that re-running the ORIGINAL compiler (which does not add qc_pass) fails loudly
-  instead of silently reverting this screen.
-"))
 cat("\nDone.\n")

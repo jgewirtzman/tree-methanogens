@@ -1,17 +1,23 @@
 # ==============================================================================
-# Calculate Chamber Dimensions
-# ==============================================================================
-# Purpose: Calculates chamber surface area and volume from stem diameter
-#   measurements using Siegenthaler et al. (2016) with wraparound correction.
+# 01_calc_chamber_dims.R -- semi-rigid stem chambers: area and volume from the chamber sheets
+# ------------------------------------------------------------------------------
+# Stage A; workdir: this script's folder (code/02_flux/semirigid/).
 #
-# Pipeline stage: 01 Flux Processing (semirigid)
-# Run after: None (first script in semirigid pipeline)
+# For every row of the monthly chamber sheets (Tree_fluxes_<month>.xlsx, one sheet per
+# chamber), the chamber's surface area on the stem and its headspace volume, by
+# Siegenthaler et al. (2016): an annulus sector of the stem (diameter D, sleeve
+# thickness T, chamber length L and height H; sector fraction K = L / (pi (D + 2T)),
+# capped at 1 where the chamber wraps the whole stem) minus the measured wedges. The
+# sheet's own Sc / Vc are kept beside the corrected values for comparison.
 #
-# Inputs:
-#   - Chamber dimension measurement files (from data/raw/lgr/semirigid_2020-2021/)
+# The deployment geometry used for the fluxes is computed from the same sheets by
+# code/lib/stem_chamber_geometry.R (02_join_flux_geometry.R); these workbooks are the
+# per-row record of the correction.
 #
-# Outputs:
-#   - Corrected chamber geometry files (to corrected/ subdirectory)
+# Inputs:  data/raw/flux_chamber_corrections/Chamber vol corr/Tree_fluxes_{june,july,
+#          august,september,october,december}.xlsx
+# Outputs: data/processed/flux/chamber_geometry/Tree_fluxes_<month>_corrected.xlsx
+#          data/processed/flux/chamber_geometry/combined_corrected_results.xlsx
 # ==============================================================================
 
 library(readxl)
@@ -21,13 +27,8 @@ library(stringr)
 library(readr)
 library(purrr)
 
-# Configuration
-# Raw chamber sheets are read from data/raw and never written there (2026-10-01: the
-# output used to go to a corrected/ folder inside the raw directory, at a path that no
-# longer existed).
 input_dir  <- "../../../data/raw/flux_chamber_corrections/Chamber vol corr"
 output_dir <- "../../../data/processed/flux/chamber_geometry"
-dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
 dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
 
 files <- c(
@@ -39,10 +40,10 @@ files <- c(
   "Tree_fluxes_december.xlsx"
 )
 
-# Helper functions
 num <- function(x) suppressWarnings(readr::parse_number(as.character(x)))
 
-# Fixed column finder - tests each pattern individually
+# first column whose name matches one of the patterns, tried in order (the sheets'
+# headers differ slightly between months)
 find_col <- function(df, patterns) {
   for (pattern in patterns) {
     matches <- str_detect(names(df), regex(pattern, ignore_case = TRUE))
@@ -53,7 +54,7 @@ find_col <- function(df, patterns) {
   return(NULL)
 }
 
-# Main geometry calculation function
+# Area and volume per sheet row (see header)
 calculate_chamber_geometry <- function(df) {
   
   # Column name patterns
@@ -71,8 +72,7 @@ calculate_chamber_geometry <- function(df) {
   # Find columns
   cols <- map(col_patterns, ~find_col(df, .x))
   
-  # Check for required columns
-  required <- c("Dstem", "T", "L", "H")
+  required <- c("Dstem", "T", "L", "H", "Swedges", "Vwedges", "Sc_orig", "Vc_orig")
   missing <- required[sapply(required, function(x) is.null(cols[[x]]))]
   
   if (length(missing) > 0) {
@@ -90,29 +90,10 @@ calculate_chamber_geometry <- function(df) {
   valid_inputs <- is.finite(Dstem_cm) & is.finite(T_cm) & is.finite(L_cm) & is.finite(H_cm) &
     (Dstem_cm > 0) & (T_cm > 0) & (L_cm > 0) & (H_cm > 0)
   
-  # Handle wedge dimensions
-  if (!is.null(cols$Swedges) && !is.null(cols$Vwedges)) {
-    # Use measured wedge values from spreadsheet
-    Swedges_cm2 <- num(df[[cols$Swedges]])
-    Vwedges_cm3 <- num(df[[cols$Vwedges]])
-    wedge_source <- "measured"
-  } else {
-    # Calculate wedge dimensions from physical specifications
-    # From paper: 1.5 cm thick, 3 cm wide, 2 wedges per chamber
-    wedge_thickness_cm <- 1.5
-    wedge_width_cm <- 3.0
-    n_wedges <- 2
-    
-    # Wedge volume: thickness × width × height for each wedge
-    Vwedges_cm3 <- n_wedges * wedge_thickness_cm * wedge_width_cm * H_cm
-    
-    # Wedge surface area: width × height for each wedge (contact with stem)
-    Swedges_cm2 <- n_wedges * wedge_width_cm * H_cm
-    
-    wedge_source <- "calculated_from_specs"
-  }
-  
-  # Handle any remaining NA values
+  # measured wedge area and volume from the sheet (a blank cell counts as no wedge)
+  Swedges_cm2 <- num(df[[cols$Swedges]])
+  Vwedges_cm3 <- num(df[[cols$Vwedges]])
+  wedge_source <- "measured"
   Swedges_cm2[!is.finite(Swedges_cm2)] <- 0
   Vwedges_cm3[!is.finite(Vwedges_cm3)] <- 0
   
@@ -168,35 +149,24 @@ calculate_chamber_geometry <- function(df) {
     volume_per_area_ratio = volume_per_area_ratio
   )
   
-  # Compare with original spreadsheet values if available
-  if (!is.null(cols$Sc_orig)) {
-    Sc_orig <- num(df[[cols$Sc_orig]])
-    results <- results %>%
-      mutate(
-        Sc_cm2_original = Sc_orig,
-        Sc_difference = Sc_cm2_corrected - Sc_orig,
-        Sc_rel_error_pct = ifelse(is.finite(Sc_orig) & (Sc_orig != 0),
-                                  100 * (Sc_orig - Sc_cm2_corrected) / Sc_cm2_corrected,
-                                  NA_real_)
-      )
-  }
-  
-  if (!is.null(cols$Vc_orig)) {
-    Vc_orig <- num(df[[cols$Vc_orig]])
-    results <- results %>%
-      mutate(
-        Vc_cm3_original = Vc_orig,
-        Vc_difference = Vc_cm3_corrected - Vc_orig,
-        Vc_rel_error_pct = ifelse(is.finite(Vc_orig) & (Vc_orig != 0),
-                                  100 * (Vc_orig - Vc_cm3_corrected) / Vc_cm3_corrected,
-                                  NA_real_)
-      )
-  }
-  
-  return(results)
+  # the sheet's own values, for comparison
+  Sc_orig <- num(df[[cols$Sc_orig]])
+  Vc_orig <- num(df[[cols$Vc_orig]])
+  results %>%
+    mutate(
+      Sc_cm2_original = Sc_orig,
+      Sc_difference = Sc_cm2_corrected - Sc_orig,
+      Sc_rel_error_pct = ifelse(is.finite(Sc_orig) & (Sc_orig != 0),
+                                100 * (Sc_orig - Sc_cm2_corrected) / Sc_cm2_corrected,
+                                NA_real_),
+      Vc_cm3_original = Vc_orig,
+      Vc_difference = Vc_cm3_corrected - Vc_orig,
+      Vc_rel_error_pct = ifelse(is.finite(Vc_orig) & (Vc_orig != 0),
+                                100 * (Vc_orig - Vc_cm3_corrected) / Vc_cm3_corrected,
+                                NA_real_)
+    )
 }
 
-# Generate summary statistics
 generate_summary <- function(all_results) {
   cat("\n", paste(rep("=", 60), collapse=""), "\n", sep = "")
   cat("TREE CHAMBER GEOMETRY ANALYSIS SUMMARY\n")
@@ -233,21 +203,16 @@ generate_summary <- function(all_results) {
       round(min(all_results$Vc_cm3_corrected, na.rm = TRUE), 1), "to",
       round(max(all_results$Vc_cm3_corrected, na.rm = TRUE), 1), "\n\n")
   
-  if ("Sc_rel_error_pct" %in% names(all_results)) {
-    cat("Surface area error analysis (original vs. corrected):\n")
-    cat("  Mean relative error:", round(mean(all_results$Sc_rel_error_pct, na.rm = TRUE), 1), "%\n")
-    cat("  Error range:",
-        round(min(all_results$Sc_rel_error_pct, na.rm = TRUE), 1), "% to",
-        round(max(all_results$Sc_rel_error_pct, na.rm = TRUE), 1), "%\n\n")
-  }
-  
-  if ("Vc_rel_error_pct" %in% names(all_results)) {
-    cat("Volume error analysis (original vs. corrected):\n")
-    cat("  Mean relative error:", round(mean(all_results$Vc_rel_error_pct, na.rm = TRUE), 1), "%\n")
-    cat("  Error range:",
-        round(min(all_results$Vc_rel_error_pct, na.rm = TRUE), 1), "% to",
-        round(max(all_results$Vc_rel_error_pct, na.rm = TRUE), 1), "%\n\n")
-  }
+  cat("Surface area, sheet vs corrected (relative difference):\n")
+  cat("  Mean:", round(mean(all_results$Sc_rel_error_pct, na.rm = TRUE), 1), "%\n")
+  cat("  Range:",
+      round(min(all_results$Sc_rel_error_pct, na.rm = TRUE), 1), "% to",
+      round(max(all_results$Sc_rel_error_pct, na.rm = TRUE), 1), "%\n\n")
+  cat("Volume, sheet vs corrected (relative difference):\n")
+  cat("  Mean:", round(mean(all_results$Vc_rel_error_pct, na.rm = TRUE), 1), "%\n")
+  cat("  Range:",
+      round(min(all_results$Vc_rel_error_pct, na.rm = TRUE), 1), "% to",
+      round(max(all_results$Vc_rel_error_pct, na.rm = TRUE), 1), "%\n\n")
   
   # Validation warnings
   negative_volumes     <- sum(all_results$Vc_cm3_corrected < 0, na.rm = TRUE)
@@ -263,98 +228,35 @@ generate_summary <- function(all_results) {
   cat(paste(rep("=", 60), collapse=""), "\n", sep = "")
 }
 
-# Process individual file
+# One workbook: every non-empty sheet with its corrected geometry appended
 process_file <- function(file_path) {
   file_name <- basename(file_path)
   cat("\nProcessing:", file_name, "\n")
-  
-  if (!file.exists(file_path)) {
-    warning("  File not found: ", file_path)
-    return(NULL)
-  }
-  
-  tryCatch({
-    # Read Excel file
-    sheet_names <- excel_sheets(file_path)
-    
-    # Process each sheet
-    all_sheets <- map(sheet_names, function(sheet) {
-      df <- read_excel(file_path, sheet = sheet, col_types = "text")  # Read as text to avoid type conflicts
-      
-      # Remove completely empty rows
-      df <- df[!apply(is.na(df) | df == "", 1, all), , drop = FALSE]
-      
-      if (nrow(df) == 0) {
-        message("  (Empty sheet skipped): ", sheet)
-        return(NULL)
-      }
-      
-      # Calculate geometry
-      results <- calculate_chamber_geometry(df)
-      
-      # Safely combine original data with results
-      # Using cbind instead of bind_cols to avoid column name conflicts
-      combined <- cbind(df, results)
-      return(combined)
-    })
-    
-    names(all_sheets) <- sheet_names
-    all_sheets <- compact(all_sheets)  # Remove NULL sheets
-    
-    if (length(all_sheets) == 0) {
-      warning("  No usable data in ", file_name)
+  sheet_names <- excel_sheets(file_path)
+  all_sheets <- map(sheet_names, function(sheet) {
+    df <- read_excel(file_path, sheet = sheet, col_types = "text")
+    df <- df[!apply(is.na(df) | df == "", 1, all), , drop = FALSE]   # drop empty rows
+    if (nrow(df) == 0) {
+      message("  (empty sheet skipped): ", sheet)
       return(NULL)
     }
-    
-    # Write corrected file
-    output_file <- file.path(output_dir, paste0(tools::file_path_sans_ext(file_name), "_corrected.xlsx"))
-    write_xlsx(all_sheets, output_file)
-    cat("  Corrected file written:", output_file, "\n")
-    
-    # Return combined data for summary with standardized column types
-    result <- bind_rows(all_sheets, .id = "sheet")
-    result$source_file <- file_name
-    return(result)
-    
-  }, error = function(e) {
-    warning("  Error processing ", file_name, ": ", e$message)
-    return(NULL)
+    cbind(df, calculate_chamber_geometry(df))
   })
+  names(all_sheets) <- sheet_names
+  all_sheets <- compact(all_sheets)
+  stopifnot(length(all_sheets) > 0)
+  output_file <- file.path(output_dir, paste0(tools::file_path_sans_ext(file_name), "_corrected.xlsx"))
+  write_xlsx(all_sheets, output_file)
+  cat("  Written:", output_file, "\n")
+  result <- bind_rows(all_sheets, .id = "sheet")
+  result$source_file <- file_name
+  result
 }
 
-# Main execution function
-run_chamber_analysis <- function(file_list = files, input_directory = input_dir) {
-  cat("Tree Chamber Geometry Calculator\n")
-  cat("Based on Siegenthaler et al. (2016)\n")
-  cat("Input directory:", input_directory, "\n")
-  cat("Output directory:", output_dir, "\n")
-  
-  # Build full file paths
-  file_paths <- file.path(input_directory, file_list)
-  
-  # Process all files
-  all_results <- map(file_paths, process_file) %>%
-    compact() %>%
-    bind_rows(.id = "file_index")
-  
-  if (nrow(all_results) == 0) {
-    stop("No valid data processed from any files")
-  }
-  
-  # Generate summary
-  generate_summary(all_results)
-  
-  # Save combined results
-  combined_output <- file.path(output_dir, "combined_corrected_results.xlsx")
-  write_xlsx(list(all_data = all_results), combined_output)
-  cat("\nCombined results saved:", combined_output, "\n")
-  
-  return(all_results)
-}
-
-# Execute analysis
-cat("Fixed Tree chamber geometry calculator loaded.\n")
-cat("Run with: results <- run_chamber_analysis()\n")
-
-# Uncomment to run immediately:
- results <- run_chamber_analysis()
+cat("Chamber geometry (Siegenthaler et al. 2016)\n")
+all_results <- map(file.path(input_dir, files), process_file) %>%
+  bind_rows(.id = "file_index")
+generate_summary(all_results)
+combined_output <- file.path(output_dir, "combined_corrected_results.xlsx")
+write_xlsx(list(all_data = all_results), combined_output)
+cat("\nCombined results written:", combined_output, "\n")

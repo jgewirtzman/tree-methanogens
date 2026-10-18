@@ -10,7 +10,7 @@ flux_stem,date,date,,NN,2020-01-01;2023-12-31,Local date of start_time,10_flux_s
 flux_stem,start_time,character,,NN,,"Chamber closure in real local time, ISO 8601 with the America/New_York offset of that date (e.g. 2023-06-12T11:32:00-04:00). Monthly and 2021: goFlux start.time (analyzer clock = local time). 2023: start.time minus that day's analyzer clock offset (outputs/audit/flux_2023_clock_offsets.csv). Felled oak: real_start from the field sheet",goFlux start.time; field records
 flux_stem,window_start,character,,,,"Start of the hand-picked fitting window (start.time_corr), same clock correction and format as start_time; NA for the felled oak (window not archived)",data/raw/flux_windows/
 flux_stem,window_end,character,,,,End of the hand-picked fitting window (end.time_corr); format as window_start,data/raw/flux_windows/
-flux_stem,closure_s,numeric,s,,0;3600,Length of the fitted window as used for the minimum detectable flux (flux_FINAL t_sec; window_end - window_start + 1 s); NA for the felled oak,outputs/data/flux_FINAL.csv
+flux_stem,closure_s,numeric,s,,0;3600,Length of the fitted window as used for the minimum detectable flux (flux_FINAL t_sec; window_end - window_start + 1 s); NA for the felled oak,data/processed/flux/flux_FINAL.csv
 flux_stem,chamber_area_cm2,numeric,cm2,,50;10000,Stem surface area enclosed by the chamber (goFlux Area); NA for the felled oak,goFlux input files
 flux_stem,system_volume_L,numeric,L,,0.1;20,Chamber + tubing + analyzer volume (goFlux Vtot); NA for the felled oak,goFlux input files
 flux_stem,geometry_source,character,,,,"Where chamber_area_cm2 and system_volume_L come from. Monthly survey (code/lib/stem_chamber_geometry.R): sheet (the chamber sheet's row for that stem x month x chamber); sheet (chamber not recorded on the flux sheet); computed (chamber sheet dimensions) -- the formula on the stem diameter and the chamber used that day; computed (chamber dimensions not found: mean of chambers 1-6) -- chambers 7-9. 2021 and 2023: rigid chamber, measured area and volume. NA for the felled oak",02_flux/semirigid/02_join_flux_geometry.R; rescue/01_untagged_auxfile.R
@@ -28,16 +28,16 @@ flux_stem,CH4_HM_flux_nmol_m2_s,numeric,nmol m-2 s-1,,-200;250,Hutchinson-Mosier
 flux_stem,CH4_quality,character,,,,goFlux quality.check flags (empty = none),goFlux output
 flux_stem,CO2_flux_umol_m2_s,numeric,umol m-2 s-1,NN,-5;50,CO2 flux per m2 of bark (goFlux best.flux),goFlux output
 flux_stem,CO2_model,character,,,,Model chosen for CO2 (NA for the untagged monthly deployments),goFlux output
-flux_stem,CH4_MDF_nmol_m2_s,numeric,nmol m-2 s-1,NN,0;1,Minimum detectable CH4 flux (field-period analyzer precision; felled oak: goFlux's own MDF),outputs/data/flux_FINAL.csv
-flux_stem,analyzer_sigma_ppb,numeric,ppb,,0;10,Analyzer CH4 precision for the field period (02b_instrument_precision.R); NA for the felled oak,outputs/data/flux_FINAL.csv
-flux_stem,detected,logical,,,,|CH4 flux| > MDF; NA for the felled oak,outputs/data/flux_FINAL.csv
-flux_stem,detection_class,character,,,,"emission, uptake or below detection; NA for the felled oak",outputs/data/flux_FINAL.csv
+flux_stem,CH4_MDF_nmol_m2_s,numeric,nmol m-2 s-1,NN,0;1,Minimum detectable CH4 flux (field-period analyzer precision; felled oak: goFlux's own MDF),data/processed/flux/flux_FINAL.csv
+flux_stem,analyzer_sigma_ppb,numeric,ppb,,0;10,Analyzer CH4 precision for the field period (02b_instrument_precision.R); NA for the felled oak,data/processed/flux/flux_FINAL.csv
+flux_stem,detected,logical,,,,|CH4 flux| > MDF; NA for the felled oak,data/processed/flux/flux_FINAL.csv
+flux_stem,detection_class,character,,,,"emission, uptake or below detection; NA for the felled oak",data/processed/flux/flux_FINAL.csv
 flux_stem,dbh_recorded_cm,numeric,cm,,0;200,DBH written on the field sheet for the deployment (2023 only; NA otherwise),2023 field sheet
 flux_stem,bark_missing,character,,,,"2023 condition score as recorded (1-3, or dead); NA otherwise, and for two cells time-formatted in the sheet (""0:00:00"", score not recoverable; see notes)",2023 field sheet
 flux_stem,wounding,character,,,,"2023 wounding/holes score as recorded (1-3, or dead); NA otherwise",2023 field sheet
 flux_stem,moss_lichen_cover,character,,,,"2023 moss/lichen cover score as recorded (1-3, or dead); NA otherwise",2023 field sheet
-flux_stem,qc_pass,logical,,NN,,Passed the chamber-closure screen: not in outputs/data/qc_excluded_measurements.csv (02_qc_c0_screen.R),outputs/data/qc_excluded_measurements.csv
-flux_stem,qc_reason,character,,,,Why the closure screen failed (NA when passed),outputs/data/qc_excluded_measurements.csv
+flux_stem,qc_pass,logical,,NN,,Passed the chamber-closure screen: not in data/processed/flux/qc_excluded_measurements.csv (02_qc_c0_screen.R),data/processed/flux/qc_excluded_measurements.csv
+flux_stem,qc_reason,character,,,,Why the closure screen failed (NA when passed),data/processed/flux/qc_excluded_measurements.csv
 flux_stem,dead_stem,logical,,NN,,"Deployment on a dead stem: the tree is dead in trees.csv (dead, the one rule in 04_trees.R) and the deployment is on or after its dead_from date",data/tables/trees.csv
 flux_stem,untagged_rescue,logical,,NN,,Untagged monthly stem whose flux was computed from hand-picked windows (code/02_flux/rescue/),10_flux_stem.R
 flux_stem,in_rf_training,logical,,NN,,"In the stem random-forest training set: passed the closure screen, not dead, not the 2021 root-crown deployment, not the felled oak",10_flux_stem.R
@@ -51,7 +51,7 @@ flux_soil,date,date,,NN,2020-01-01;2021-12-31,Local date of the deployment,soil 
 flux_soil,start_time,character,,NN,,Chamber closure: goFlux start.time (analyzer clock = local time) as ISO 8601 local time with the America/New_York offset of that date,goFlux start.time
 flux_soil,window_start,character,,NN,,Start of the hand-picked fitting window (start.time_corr); format as start_time,data/raw/flux_windows/
 flux_soil,window_end,character,,NN,,End of the hand-picked fitting window (end.time_corr); format as start_time,data/raw/flux_windows/
-flux_soil,closure_s,numeric,s,,0;3600,Length of the fitted window as used for the minimum detectable flux (flux_FINAL t_sec); NA for the two deployments that failed the closure screen,outputs/data/flux_FINAL.csv
+flux_soil,closure_s,numeric,s,,0;3600,Length of the fitted window as used for the minimum detectable flux (flux_FINAL t_sec); NA for the two deployments that failed the closure screen,data/processed/flux/flux_FINAL.csv
 flux_soil,chamber_area_cm2,numeric,cm2,NN,50;10000,Collar area (goFlux Area),goFlux input file
 flux_soil,system_volume_L,numeric,L,NN,0.1;30,Chamber + collar headspace + tubing + analyzer volume (goFlux Vtot),goFlux input file
 flux_soil,chamber_temp_C,numeric,degC,,-20;45,"Temperature used in the flux calculation (goFlux Tcham: met-tower hourly mean air temperature of the hour containing the start, true time)",goFlux input file
@@ -66,12 +66,12 @@ flux_soil,CH4_HM_flux_nmol_m2_s,numeric,nmol m-2 s-1,,-250;250,Hutchinson-Mosier
 flux_soil,CH4_quality,character,,,,goFlux quality.check flags (empty = none),goFlux output
 flux_soil,CO2_flux_umol_m2_s,numeric,umol m-2 s-1,NN,-5;50,CO2 flux per m2 of ground (goFlux best.flux),goFlux output
 flux_soil,CO2_model,character,,,,Model chosen for CO2,goFlux output
-flux_soil,CH4_MDF_nmol_m2_s,numeric,nmol m-2 s-1,,0;1,Minimum detectable CH4 flux; NA for the two deployments that failed the closure screen,outputs/data/flux_FINAL.csv
-flux_soil,analyzer_sigma_ppb,numeric,ppb,,0;10,Analyzer CH4 precision for the field period,outputs/data/flux_FINAL.csv
-flux_soil,detected,logical,,,,|CH4 flux| > MDF,outputs/data/flux_FINAL.csv
-flux_soil,detection_class,character,,,,"emission, uptake or below detection",outputs/data/flux_FINAL.csv
-flux_soil,qc_pass,logical,,NN,,Passed the chamber-closure screen (02_qc_c0_screen.R),outputs/data/qc_excluded_measurements.csv
-flux_soil,qc_reason,character,,,,Why the closure screen failed (NA when passed),outputs/data/qc_excluded_measurements.csv
+flux_soil,CH4_MDF_nmol_m2_s,numeric,nmol m-2 s-1,,0;1,Minimum detectable CH4 flux; NA for the two deployments that failed the closure screen,data/processed/flux/flux_FINAL.csv
+flux_soil,analyzer_sigma_ppb,numeric,ppb,,0;10,Analyzer CH4 precision for the field period,data/processed/flux/flux_FINAL.csv
+flux_soil,detected,logical,,,,|CH4 flux| > MDF,data/processed/flux/flux_FINAL.csv
+flux_soil,detection_class,character,,,,"emission, uptake or below detection",data/processed/flux/flux_FINAL.csv
+flux_soil,qc_pass,logical,,NN,,Passed the chamber-closure screen (02_qc_c0_screen.R),data/processed/flux/qc_excluded_measurements.csv
+flux_soil,qc_reason,character,,,,Why the closure screen failed (NA when passed),data/processed/flux/qc_excluded_measurements.csv
 flux_soil,in_rf_training,logical,,NN,,In the soil random-forest training set: passed the closure screen and the collar is in the stand (collars.in_stand),outputs/data/flux_measurements_soil.csv (checked)
 flux_soil,exclusion_reason,character,,,,Why the deployment is not in training (NA when it is),11_flux_soil.R
 flux_soil,notes,character,,,,Field notes as recorded,soil flux file

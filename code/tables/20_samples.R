@@ -1,5 +1,4 @@
 #!/usr/bin/env Rscript
-source("code/lib/outputs.R")
 # ==============================================================================
 # 20_samples.R -- samples.csv (data/tables/): one row per physical DNA sample
 # ------------------------------------------------------------------------------
@@ -32,6 +31,7 @@ source("code/lib/outputs.R")
 #
 # Writes data/tables/samples.csv, outputs/audit/samples_build.txt
 # ==============================================================================
+source("code/lib/outputs.R")
 suppressPackageStartupMessages(library(tidyverse))
 source("code/lib/tree_mentions.R")          # ncbi_tree_id(), S21, OAK, FELLED_OAK_ID
 OUT <- "data/tables"

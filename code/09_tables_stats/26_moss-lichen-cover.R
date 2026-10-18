@@ -1,5 +1,4 @@
 #!/usr/bin/env Rscript
-source("code/lib/outputs.R")
 # ==============================================================================
 # 26_moss-lichen-cover.R -- moss and lichen cover at the chamber vs stem CH4 flux
 # (Methods S2, "Moss and lichen cover"; Discussion, bark paragraph)
@@ -13,6 +12,7 @@ source("code/lib/outputs.R")
 # with at least 10 scored trees.
 # Output: outputs/audit/moss_lichen_flux.txt
 # ==============================================================================
+source("code/lib/outputs.R")
 suppressPackageStartupMessages(library(tidyverse))
 
 # 2023 deployments on live stems (data/tables/flux_stem.csv: flux, dead_stem and the

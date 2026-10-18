@@ -1,21 +1,25 @@
-source("code/lib/outputs.R")
 # ==============================================================================
-# Fig 4: methanogen (mcrA) and methanotroph (pmoA + mmoX) gene abundance
-#   (a) by species and compartment, for the species in the gene-flux analyses
-#       (Results §9, Fig 8: at least five trees with genes and flux; the set is taken
-#       from code/07_molecular/helper_scale_dependent_gene_patterns.R)
-#   (b) mcrA against pmoA + mmoX for every sample, with a 1:1 line
-# Also writes the all-species version with pmoA and mmoX separate (SI figure).
+# fig04_gene-abundance.R -- Figure 4 and Figure S8: methanogen and methanotroph genes
+# ------------------------------------------------------------------------------
+# Stage E. Run from the repository root.
+# Figure 4
+#   (a) mcrA and pmoA + mmoX by species and compartment, for the species in the
+#       gene-flux analyses (at least five trees with genes and flux; the set is
+#       analysis_mcra$species from code/07_molecular/helper_scale_dependent_gene_patterns.R)
+#   (b) mcrA against pmoA + mmoX for every sample, with a 1:1 line; mcrA non-detects
+#       in their own strip
+# Figure S8: all species, mcrA, pmoA and mmoX separately.
 #
-# UNITS: the ddpcr_*_loose columns are copies g^-1 from data/tables/ddpcr.csv (copies_per_g,
-# converted once in code/tables/21_ddpcr.R with code/lib/ddpcr_constants.R:
-# Conc x (25/2.5) x elution (75 wood, 100 soil) x (800/250) / mass). Basis: DRY for wood
-# (freeze-dried cores); soil uses fresh sample mass (ddpcr.mass_basis).
+# Units: copies g-1 (ddpcr_*_loose of survey_2021_trees(): data/tables/ddpcr.csv
+# copies_per_g, converted in code/tables/21_ddpcr.R with code/lib/ddpcr_constants.R).
+# Basis: dry mass for wood (freeze-dried cores), fresh mass for soil (ddpcr.mass_basis).
 # pmoA + mmoX is the sum where both genes were measured; NA where either is missing.
-# Points in (a) are means of log10 among positive samples (as in the text) +- SE;
-# hollow points mark compartments where fewer than half of samples were positive.
+# Points in (a) are means of log10 among positive samples +- SE; hollow points mark
+# compartments where fewer than half of samples were positive.
+# Inputs: data/tables/ via code/lib/tables_read.R (survey_2021_trees()); the helper above
 # Outputs: outputs/figures/generated/fig4_final.png, figS_gene-abundance-species.png
 # ==============================================================================
+source("code/lib/outputs.R")
 suppressPackageStartupMessages({ library(tidyverse); library(cowplot); library(patchwork); library(ggside) })
 
 source("code/lib/tables_read.R")
@@ -115,13 +119,11 @@ right <- plot_grid(pb, legend_of(pa), ncol = 1, rel_heights = c(1, 0.32), labels
                    label_size = 13, label_fontface = "bold")
 fig <- plot_grid(pa, right, ncol = 2, rel_widths = c(1.15, 1), labels = c("(a)", ""), label_size = 13, label_fontface = "bold") +
   theme(plot.background = element_rect(fill = "white", colour = NA))
-OUT_FIG4 <- if (exists("OUT_FIG4")) OUT_FIG4 else out_path("fig4_final.png")
-ggsave(OUT_FIG4, fig, width = 10.5, height = 5, dpi = 300, bg = "white")   # near print size
+ggsave(out_path("fig4_final.png"), fig, width = 10.5, height = 5, dpi = 300, bg = "white")   # near print size
 
-# ---------- SI: all species, mcrA, pmoA and mmoX separately ----------
+# ---------- Figure S8: all species, mcrA, pmoA and mmoX separately ----------
 ps <- dot_plot(species_dots(wide, c("mcrA", "pmoA", "mmoX")))
 si <- plot_grid(ps, legend_of(ps), ncol = 1, rel_heights = c(1, 0.12)) +
   theme(plot.background = element_rect(fill = "white", colour = NA))
-OUT_SI <- if (exists("OUT_SI")) OUT_SI else out_path("figS_gene-abundance-species.png")
-ggsave(OUT_SI, si, width = 12, height = 8, dpi = 300, bg = "white")
+ggsave(out_path("figS_gene-abundance-species.png"), si, width = 12, height = 8, dpi = 300, bg = "white")
 cat("Wrote Fig 4 and the all-species SI figure\n")

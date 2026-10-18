@@ -1,16 +1,11 @@
 #!/usr/bin/env Rscript
 # ==============================================================================
-# 00_soil_temp_climatology.R  --  multi-year monthly soil temperature
+# 00_soil_temp_climatology.R -- multi-year monthly soil temperature
 # ------------------------------------------------------------------------------
-# Puts soil temperature on the same footing as moisture and air temperature: a
-# multi-year monthly climatology rather than the mean of whenever we happened to
-# visit.
-#
-# WHAT WAS THERE BEFORE. 01_load_and_prep_data.R built soil_temp_C_mean by
-# averaging campaign measurements per month (TREE_JULY + TREE_YEAR + SOIL_YEAR).
-# That series has 27 to 624 observations a month, JANUARY AND MARCH ARE ABSENT
-# ENTIRELY and get linearly interpolated, and each month's value is the
-# temperature on the few days somebody was in the field.
+# Stage B (reads tables only; runs before the model). A multi-year monthly
+# climatology of soil temperature, on the same footing as moisture and air
+# temperature, rather than the mean of the days someone was in the field (campaign
+# readings cover 27-624 observations a month, none in January or March).
 #
 # WHY NOT THE TOWER. The station logs Tsoil_Avg, but it is not measuring
 # soil: r = 0.993 with air temperature, damping ratio 1.03, zero lag at daily
@@ -33,13 +28,10 @@
 #
 # THE OBSERVATIONS are data/tables/soil_readings.csv: every soil temperature read at a
 # collar (monthly campaign 2020-21), a tree hole (2021 survey) or a tree (2023 field
-# sheet). (Until 2026-10-16 they were the model's training rows, whose soil
-# temperature had itself been gap-filled from a monthly mean: circular.) The script
-# reads tables only, so it runs in stage B before the model: 05_model/01 uses its
-# monthly values as the soil-temperature driver, for training rows without a reading
-# and for the stand predictions alike.
+# sheet). 05_model/01 uses the monthly values as the soil-temperature driver of the
+# stand predictions (DRIVERS); training rows keep their own readings (NA if none).
 #
-# TWO THINGS THAT KEEP THIS HONEST.
+# Two safeguards:
 #
 #   (1) Fitted on DATE MEANS, not individual observations. The readings come from
 #       a few dozen distinct dates, so observation-level
@@ -47,9 +39,7 @@
 #       were read that day and report an R2 inflated by within-date replication.
 #
 #   (2) Window selected by LEAVE-ONE-DATE-OUT cross-validation, not by in-sample
-#       R2. Choosing among 10 candidate windows on the same points that report the
-#       fit is exactly the selection bias this project has been correcting
-#       elsewhere.
+#       R2 (choosing among 10 windows on the points that report the fit would bias it).
 #
 # Output: outputs/tables/soil_temp_climatology_monthly.csv
 #         outputs/tables/soil_temp_daily.csv  (daily air, trailing air and fitted soil

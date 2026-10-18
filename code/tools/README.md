@@ -7,9 +7,8 @@
 | `rebuild_closure_windows.R` | Run once (2026-10-01). Recovered the hand-picked windows for the monthly stems and the 2023 campaign, which had never been saved, from the stored fits (every window to machine precision), and wrote `flux_model_choices.csv` (all now in `data/raw/flux_windows/`). Not needed again unless those stored fits change. |
 | `repick_failed_2021_windows.R` | Interactive continuation of a 2021 picking session: re-picks the five deployments whose windows failed and writes `data/raw/flux_windows/lgr_manual_identification_2021_multiheight_final.csv`, the 2021 record. Needs the session's objects (`ow.lgr3.complete`, `manID_batches`). |
 | `migrate_campaign_filenames.R` | Once, on a data archive older than 2026-09-30, to rename the flux files to the per-campaign names (it identifies files by content). |
-| `mmo_capacity_screen.R` | Queries NCBI. Writes `outputs/data/mmo_capacity_screen.csv`; needs network access and drifts as NCBI grows. Table S5 is the committed 2026-09-30 run, `code/lib/mmo_capacity_screen_table_S5_2026-09-30.csv`; copy a new run there to update it. |
-| `ddpcr_check_completeness.R`, `ddpcr_confirm_import.R` | Checks run inside an interactive session after the ddPCR import and harmonisation (they read objects left in memory, `merged_data_final` and `ddpcr_full`); not standalone. |
-| `harvest_dictionary.R` | Once, to seed `code/zenodo/column_dictionary.csv` from hand-written column notes. The dictionary is then edited directly. |
+| `mmo_capacity_screen.R` | Queries NCBI. Writes `outputs/data/mmo_capacity_screen.csv`; needs network access and drifts as NCBI grows. Table S3 is the committed 2026-09-30 run, `code/lib/mmo_capacity_screen_table_S3_2026-09-30.csv`; copy a new run there to update it. |
+| `write_parameter_record.R` | After a full run, refreshes the generated headline block of the authors' private parameter record (`code/revision/notes/scaling_parameters.md`, not in this repository); exits if the file is absent. |
 
 **Re-picking closure windows.** Saved windows in `data/raw/flux_windows/` are inputs and no
 script overwrites them. To re-pick, run a goFlux script interactively with `FLUX_REPICK=1`;

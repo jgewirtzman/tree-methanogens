@@ -1,5 +1,4 @@
 #!/usr/bin/env Rscript
-source("code/lib/outputs.R")
 # ==============================================================================
 # 23_16s.R -- 16S amplicon tables (data/tables/)
 # ------------------------------------------------------------------------------
@@ -29,19 +28,13 @@ source("code/lib/outputs.R")
 #        asv_counts_16S_felled_oak, asv_taxonomy_16S_felled_oak}.csv,
 #        outputs/audit/samples_16S_build.txt
 # ==============================================================================
+source("code/lib/outputs.R")
 suppressPackageStartupMessages(library(tidyverse))
 source("code/lib/tree_ids.R")
 OUT <- "data/tables"
 SAMPLES <- read.csv(file.path(OUT, "samples.csv"), stringsAsFactors = FALSE)
 RANKS <- c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species")
 
-to_sample_id <- function(x) {   # tree spelling + compartment [+ lab ID] -> samples.sample_id
-  m <- str_match(x, "^(.*?)(Inner|Outer|Mineral|Organic)([0-9]+[a-e])?$")
-  tree <- gsub("star", "*", gsub("prime", "'", gsub("slash", "/", m[, 2])))
-  tid <- ifelse(tree == "RO7/8", "RO7slash8", ncbi_tree_id(tree))          # soil between RO7 and RO8
-  y <- paste0(tid, m[, 3], coalesce(m[, 4], ""))
-  ifelse(!is.na(m[, 1]) & y %in% SAMPLES$sample_id, y, NA_character_)
-}
 
 # ==============================================================================
 # 1. MAIN RUN
@@ -56,7 +49,7 @@ S21 <- SAMPLES %>% filter(campaign == "2021_survey")
 L1 <- M %>%
   mutate(library_id = `#SampleID`,
          by_lab = S21$sample_id[match(lab_id, S21$lab_id)],
-         by_name = to_sample_id(paste0(seq_id, core_type)),
+         by_name = to_sample_id(paste0(seq_id, core_type), SAMPLES$sample_id),
          sample_id = coalesce(by_lab, by_name),
          library_type = case_when(grepl("^Zymo", library_id) ~ "mock",
                                   is.na(sample_id) ~ "other",

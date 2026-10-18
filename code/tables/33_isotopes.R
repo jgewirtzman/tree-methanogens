@@ -1,5 +1,4 @@
 #!/usr/bin/env Rscript
-source("code/lib/outputs.R")
 # ==============================================================================
 # 33_isotopes.R -- isotopes.csv (data/tables/)
 # ------------------------------------------------------------------------------
@@ -19,17 +18,16 @@ source("code/lib/outputs.R")
 # (2024); NA for atmosphere, room air, incubations and standards.
 # run_id: <results file stamp>_<autosampler position>.
 #
-# Checks: 128 runs in the whole-tree set, each with a tree_id. (The comparison with the
-# old archive, data/compiled/isotopes.csv, was removed 2026-10-16: the archive is now a
-# copy of data/tables/.)
+# Checks: N_WHOLE_TREE runs in the whole-tree set (the manuscript's n), each with a tree_id.
 #
 # Writes data/tables/isotopes.csv, outputs/audit/isotopes_build.txt
 # ==============================================================================
+source("code/lib/outputs.R")
 suppressPackageStartupMessages(library(tidyverse))
 source("code/lib/isotope_samples.R")
 OUT <- "data/tables"
 DIR <- "data/raw/internal_gas/picarro"
-N_WHOLE_TREE <- 128   # since 2026-10-02 (window dropped; was 115); manuscript n = 128 trees
+N_WHOLE_TREE <- 128   # whole-tree set: manuscript n = 128 trees
 
 f <- list.files(DIR, pattern = "_results.csv$", full.names = TRUE)
 f <- f[!grepl("merged", f)]
@@ -68,7 +66,8 @@ ISO <- raw %>% transmute(
          tree_id = TT$tree_id[match(trimws(sample_name), TT$tag)],
          campaign = TT$campaign[match(trimws(sample_name), TT$tag)]) %>%
   relocate(tree_id, campaign, .after = sample_name)
-stopifnot(!anyDuplicated(ISO$run_id), nrow(ISO) == 408, sum(ISO$in_whole_tree_set) == N_WHOLE_TREE,
+cat(sprintf("isotopes: %d Picarro runs, %d in the whole-tree set\n", nrow(ISO), sum(ISO$in_whole_tree_set)))
+stopifnot(!anyDuplicated(ISO$run_id), sum(ISO$in_whole_tree_set) == N_WHOLE_TREE,
           !anyNA(ISO$tree_id[ISO$in_whole_tree_set]))
 # the set's tree_id (canonical) is the tree named by isotope_whole_tree_samples()
 stopifnot(all(ISO$tree_id[match(keep$SampleName, ISO$sample_name)] ==

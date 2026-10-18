@@ -1,25 +1,14 @@
 #!/usr/bin/env Rscript
 # ==============================================================================
-# 04_rf_grouped_cv.R
+# 04_rf_grouped_cv.R -- held-out skill of the two forests, folds grouped by unit
 # ------------------------------------------------------------------------------
-# The honest skill of the two locked forests, with folds grouped by the sampling
-# unit rather than by row.
+# Stage B; run from the repository root. Out-of-bag R2 is not grouped: a bootstrap
+# sample that omits a row still contains the same tree measured at other heights or
+# in other months, so OOB scores the stem forest partly on trees it has seen. Here
+# folds hold out whole trees (stem forest) or whole collars (soil forest): repeated
+# 5-fold CV of the fitted specification (nothing is refitted or changed).
 #
-# WHY. The headline was TreeRF$r.squared = 0.243, an OUT-OF-BAG figure. OOB is not
-# grouped: a bootstrap sample that omits row i still contains the SAME PHYSICAL
-# TREE measured at two other heights or eleven other months. The 1,130 tree rows
-# come from only 478 distinct trees -- 290 trees give one row, 143 give three (the
-# height campaign), 19 give ten, one gives thirteen -- so OOB is scoring the model
-# partly on trees it has already seen.
-#
-# The repo already knew this on the SOIL side: 02_rf_models.R:940-963 documents
-# dropping the collar-static predictors precisely because OOB 0.659 against a
-# collar-grouped 0.451 exposed collar memorisation. The tree model never got the
-# same treatment in its headline number, and that is what this script supplies.
-#
-# It does NOT refit or change either model. It scores the locked specification.
-#
-# Output: outputs/data/rf_grouped_cv.csv   (read by 03_budget_canonical.R)
+# Output: outputs/data/rf_grouped_cv.csv   (read by 06_upscale/03_budget_canonical.R)
 #         outputs/audit/rf_grouped_cv.txt
 # ==============================================================================
 source("code/lib/rf_spec.R")   # RF_NUM_TREES, RF_THREADS
@@ -80,13 +69,13 @@ stopifnot(identical(colnames(X_tree), TreeRF$forest$independent.variable.names),
           nrow(X_tree) == TreeRF$num.samples, nrow(X_soil) == SoilRF$num.samples)
 
 # --- tree: group by tree_id ---------------------------------------------------
-RES <- grouped_cv(X_tree, tree_train_complete$y_asinh, tree_train_complete$tree_id,
+RES <- grouped_cv(X_tree, tree_train_complete$y_flux, tree_train_complete$tree_id,
                   TreeRF, "TreeRF", "tree_id")
 
 # --- soil: group by collar ----------------------------------------------------
 sc <- intersect(c("collar_id","site_id","site","collar"), names(soil_train_complete))
 if (length(sc)) {
-  RES <- rbind(RES, grouped_cv(as.data.frame(X_soil), soil_train_complete$y_asinh,
+  RES <- rbind(RES, grouped_cv(as.data.frame(X_soil), soil_train_complete$y_flux,
                                soil_train_complete[[sc[1]]], SoilRF, "SoilRF", sc[1]))
 } else {
   cat("NOTE: no collar identifier found in soil_train_complete; soil row omitted\n")

@@ -1,5 +1,4 @@
 #!/usr/bin/env Rscript
-source("code/lib/outputs.R")
 # ==============================================================================
 # 21_ddpcr.R -- ddpcr.csv (data/tables/): one row per sample x gene x assay x plate
 # ------------------------------------------------------------------------------
@@ -34,14 +33,14 @@ source("code/lib/outputs.R")
 #
 # Checks (stop on failure): every analysed row of processed_ddpcr_data.csv is
 # reproduced (Conc, droplets, positives); compartment medians equal
-# 09_tables_stats/06_copies-per-gram.R's. (The check against the tree-level means of
-# merged_tree_dataset_final.csv was removed 2026-10-16 when that file was retired.)
+# 09_tables_stats/06_copies-per-gram.R's.
 # Writes data/tables/ddpcr.csv, outputs/audit/ddpcr_build.txt
 # ==============================================================================
+source("code/lib/outputs.R")
 suppressPackageStartupMessages(library(tidyverse))
 source("code/lib/ddpcr_constants.R")
 OUT <- "data/tables"
-LOD_COPIES_PER_WELL <- 3; MIN_DROPLETS <- 5000
+MIN_DROPLETS <- 5000
 SAMPLES <- read.csv(file.path(OUT, "samples.csv"), stringsAsFactors = FALSE)
 
 # ==============================================================================
@@ -128,7 +127,7 @@ DD <- bind_rows(W, WB) %>% left_join(S, by = "sample_id") %>%
          mat = ifelse(material == "soil", "Soil", "Wood"),
          copies_per_g = ifelse(qc_pass, ddpcr_copies_per_g(conc_loose, extraction_mass_mg, mat), NA),
          mass_basis = case_when(material == "soil" ~ "fresh", material == "wood" ~ "dry", TRUE ~ NA_character_),
-         below_lod = ifelse(qc_pass, conc_loose * DDPCR_WELL_UL < LOD_COPIES_PER_WELL, NA))
+         below_lod = ifelse(qc_pass, conc_loose * DDPCR_WELL_UL < DDPCR_LOD_COPIES_PER_WELL, NA))
 stopifnot(all(DD$material %in% c("wood", "soil")), !anyNA(DD$mass_basis))
 DDPCR <- DD %>%
   transmute(sample_id, gene, assay, plate_id, ddpcr_well, accepted_droplets,

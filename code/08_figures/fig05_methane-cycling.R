@@ -1,51 +1,37 @@
 # ==============================================================================
-# Fig 5 FINAL. Copy of code/08_figures/08c with ONE change: loads the
-# current methanotroph definitions, in which family-level Methylacidiphilaceae
-# is Putative not Known (genus Methylacidiphilum stays Known); the original is not
-# edited. Output: outputs/figures/generated/fig5_final.png
-# ==============================================================================
-# Combined Methanogen + Methanotroph Composition (4-panel layout)
-# ==============================================================================
-# Purpose: Combines the methanogen and methanotroph 16S composition figures
-#   into a single 4-panel layout:
-#     (a) Methanogen relative abundance
-#     (b) Methanogen taxonomic composition
-#     (c) Methanotroph relative abundance
-#     (d) Methanotroph taxonomic composition
-#
-# Pipeline stage: 4 — Publication Figures
-#
-# Inputs:
-#   Same as 08_methanogen_16s_composition.R and 08b_methanotroph_16s_composition.R
-#
-# Outputs:
-#   - fig5_combined_methane_cycling_composition.png
-#
-# Required packages: phyloseq, tidyverse, patchwork, viridis
+# fig05_methane-cycling.R -- Figure 5: methanogens and methanotrophs in the 16S data
+# ------------------------------------------------------------------------------
+# Stage E. Run from the repository root.
+#   (a) methanogen relative abundance by species and compartment (mean +/- SE)
+#   (b) methanogen family composition, families shaded by methanogenic pathway
+#   (c) methanotroph relative abundance, Known and Putative stacked (error bar on
+#       the total)
+#   (d) methanotroph family composition, Known and Putative separately
+# Methanogens: the families of code/lib/methanogen_families.R. Methanotrophs: the
+# Known / Putative classification of code/lib/load_methanotroph_definitions.R
+# (include_conditional = TRUE).
+# Inputs: the 16S phyloseq object (code/lib/build_16s_phyloseq(): data/tables/
+#   asv_counts_16S, asv_taxonomy_16S, samples_16S, samples, trees; organelles removed),
+#   rarefied with rarefy_16s(); species names from data/tables/species.csv
+# Output: outputs/figures/generated/fig5_final.png
 # ==============================================================================
 
-# Load required libraries
 library(phyloseq)
 library(tidyverse)
 library(patchwork)
 library(viridis)
-
-# ==============================================================================
-# STEP 1: Build phyloseq object (shared for both methanogen and methanotroph)
-# ==============================================================================
-
-
-# 16S phyloseq assembly: single definition in code/lib/build_phyloseq.R.
-# All nine copies of this ~45-line block produced an identical object
-# (71,511 taxa / 587 samples / 6,427,747 counts) before consolidation.
 source("code/lib/build_phyloseq.R")
-.ps16   <- build_16s_phyloseq()
-no_mito <- .ps16$ps
+source("code/lib/tables_read.R")
+source("code/lib/methanogen_families.R")
+source("code/lib/load_methanotroph_definitions.R")
 
+# ==============================================================================
+# STEP 1: 16S relative abundance (rarefied), survey wood and soil samples
+# ==============================================================================
+
+no_mito <- build_16s_phyloseq()$ps
 taxa_names(no_mito) <- paste0("ASV", seq(ntaxa(no_mito)))
-set.seed(46814)
-ps.rare <- rarefy_even_depth(no_mito, sample.size = 3500)
-colnames(tax_table(ps.rare)) <- c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species")
+ps.rare <- rarefy_16s(no_mito)
 ps.ra <- transform_sample_counts(ps.rare, function(x) x / sum(x) * 100)
 
 # Filter samples
@@ -66,21 +52,12 @@ otu_df <- as.data.frame(otu_table(ps.filt))
 tax_df <- as.data.frame(tax_table(ps.filt))
 samp_meta <- data.frame(sample_data(ps.filt))
 
-# ==============================================================================
-# STEP 2: Species mapping (shared)
-# ==============================================================================
-
-source("code/lib/tables_read.R")
 species_mapping <- SPECIES_ABBREV   # "A. rubrum", from data/tables/species.csv
 
-compartment_colors <- c("Heartwood" = "#a6611a", "Sapwood" = "#dfc27d",
-                          "Mineral Soil" = "#80cdc1", "Organic Soil" = "#018571")
-
 # ==============================================================================
-# STEP 3: Methanogen calculations
+# STEP 2: Methanogen abundance, total and per family
 # ==============================================================================
 
-source("code/lib/methanogen_families.R")
 methanogen_families <- METHANOGEN_FAMILIES
 
 mg_asvs <- rownames(tax_df)[tax_df$Family %in% methanogen_families]
@@ -88,19 +65,14 @@ samp_meta$methanogen_pct <- colSums(otu_df[mg_asvs, , drop = FALSE], na.rm = TRU
 
 for (fam in methanogen_families) {
   fam_asvs <- rownames(tax_df)[which(tax_df$Family == fam)]
-  if (length(fam_asvs) > 0) {
-    samp_meta[[paste0("mg_", fam)]] <- colSums(otu_df[fam_asvs, , drop = FALSE], na.rm = TRUE)[rownames(samp_meta)]
-  } else {
-    samp_meta[[paste0("mg_", fam)]] <- 0
-  }
+  samp_meta[[paste0("mg_", fam)]] <- colSums(otu_df[fam_asvs, , drop = FALSE], na.rm = TRUE)[rownames(samp_meta)]
 }
 
 # ==============================================================================
-# STEP 4: Methanotroph calculations (using canonical definitions)
+# STEP 3: Methanotroph abundance (Known, Putative), total and per family x status
 # ==============================================================================
 
-source("code/lib/load_methanotroph_definitions.R")
-mt_defs <- load_methanotroph_defs()  # Methylacidiphilaceae family Known->Putative
+mt_defs <- load_methanotroph_defs()
 
 # Classify each ASV as Known, Putative, or NA
 tax_df$mt_status <- classify_methanotrophs(tax_df, mt_defs, include_conditional = TRUE)
@@ -117,28 +89,20 @@ samp_meta$methanotroph_pct <- colSums(otu_df[all_mt_asvs, , drop = FALSE], na.rm
 samp_meta$mt_known_pct     <- colSums(otu_df[known_asvs, , drop = FALSE], na.rm = TRUE)[rownames(samp_meta)]
 samp_meta$mt_putative_pct  <- colSums(otu_df[putative_asvs, , drop = FALSE], na.rm = TRUE)[rownames(samp_meta)]
 
-# Assign display family (using the ASV's Family) + status for grouping
+# per family x status: columns mt_<status>_<family>
 tax_df$mt_family <- NA_character_
 tax_df$mt_family[!is.na(tax_df$mt_status)] <- tax_df$Family[!is.na(tax_df$mt_status)]
-
-# Build per-family per-status abundance columns
-mt_asvs_all <- rownames(tax_df)[!is.na(tax_df$mt_status)]
-mt_fam_status <- unique(tax_df[mt_asvs_all, c("mt_family", "mt_status")])
-mt_fam_status <- mt_fam_status[order(mt_fam_status$mt_status, mt_fam_status$mt_family), ]
-
-mt_display_families <- sort(unique(tax_df$mt_family[!is.na(tax_df$mt_family)]))
-
-for (dfam in mt_display_families) {
-  dfam_asvs <- rownames(tax_df)[which(tax_df$mt_family == dfam)]
-  if (length(dfam_asvs) > 0) {
-    samp_meta[[paste0("mt_", dfam)]] <- colSums(otu_df[dfam_asvs, , drop = FALSE], na.rm = TRUE)[rownames(samp_meta)]
-  } else {
-    samp_meta[[paste0("mt_", dfam)]] <- 0
-  }
+mt_fam_status_unique <- unique(tax_df[!is.na(tax_df$mt_status), c("mt_family", "mt_status")])
+for (i in seq_len(nrow(mt_fam_status_unique))) {
+  fam <- mt_fam_status_unique$mt_family[i]
+  stat <- mt_fam_status_unique$mt_status[i]
+  fam_stat_asvs <- rownames(tax_df)[which(tax_df$mt_family == fam & tax_df$mt_status == stat)]
+  samp_meta[[paste0("mt_", stat, "_", fam)]] <- colSums(otu_df[fam_stat_asvs, , drop = FALSE],
+                                                        na.rm = TRUE)[rownames(samp_meta)]
 }
 
 # ==============================================================================
-# STEP 5: Prepare plot data
+# STEP 4: Prepare plot data
 # ==============================================================================
 
 plot_data <- samp_meta
@@ -150,7 +114,7 @@ sp_order <- sort(unique(plot_data$species_label))
 plot_data$species_label <- factor(plot_data$species_label, levels = sp_order)
 
 # ==============================================================================
-# STEP 6: Panel (a) — Methanogen relative abundance
+# Panel (a) — Methanogen relative abundance
 # ==============================================================================
 
 summary_mg_a <- plot_data %>%
@@ -158,10 +122,6 @@ summary_mg_a <- plot_data %>%
   summarize(mean_pct = mean(methanogen_pct, na.rm = TRUE),
             se_pct = sd(methanogen_pct, na.rm = TRUE) / sqrt(n()),
             .groups = "drop")
-
-# ==============================================================================
-# Panel (a) — Methanogen relative abundance
-# ==============================================================================
 
 # solid fill — compartment is already given by the facet strip (no ambiguous colour mapping)
 p_mg_a <- ggplot(summary_mg_a, aes(x = species_label, y = mean_pct)) +
@@ -201,38 +161,19 @@ summary_mg_b <- mg_comp %>%
          proportion = if_else(total > 0, mean_abund / total * 100, 0)) %>%
   ungroup()
 
-# Methanogen family colours. MG_STYLE: "pathway" (families shaded by methanogenic pathway),
-# "other" (the two wood families kept, the rest pooled), "alphabetical" (one viridis ramp)
-MG_STYLE <- Sys.getenv("MG_STYLE", "pathway")
+# Methanogen family colours, shaded by methanogenic pathway (H2, methyl, acetate)
 mg_pathway <- c(Methanobacteriaceae = "H", Methanocellaceae = "H", Methanocorpusculaceae = "H",
                 Methanomicrobiaceae = "H", Methanoregulaceae = "H",
                 Methanomassiliicoccaceae = "M", Methanomethyliaceae = "M",
                 Methanosaetaceae = "A", Methanosarcinaceae = "A")
-if (MG_STYLE == "pathway") {
-  fams <- intersect(names(mg_pathway), methanogen_families)
-  mg_families_sorted <- c(fams, setdiff(sort(methanogen_families), fams))
-  pal <- c(Methanobacteriaceae = "#F4C430", Methanocellaceae = "#E8973A", Methanocorpusculaceae = "#D4733A",
-           Methanomicrobiaceae = "#B5562C", Methanoregulaceae = "#8C3B1E",
-           Methanomassiliicoccaceae = "#3FA796", Methanomethyliaceae = "#1F6E63",
-           Methanosaetaceae = "#8E6BBF", Methanosarcinaceae = "#5B3F8C")
-  mg_colors <- pal[mg_families_sorted]
-  mg_colors[is.na(mg_colors)] <- "grey70"; names(mg_colors) <- mg_families_sorted
-  mg_labels <- setNames(paste0(mg_families_sorted, c(H = " (H\u2082)", M = " (methyl)", A = " (acetate)")[mg_pathway[mg_families_sorted]]),
-                        mg_families_sorted)
-} else if (MG_STYLE == "other") {
-  keep <- c("Methanobacteriaceae", "Methanomassiliicoccaceae")
-  others <- setdiff(sort(methanogen_families), keep)
-  summary_mg_b <- summary_mg_b %>% mutate(Family = if_else(Family %in% keep, Family, "Other")) %>%
-    group_by(species_label, compartment, Family) %>% summarise(proportion = sum(proportion), .groups = "drop")
-  mg_families_sorted <- c(keep, "Other")
-  mg_colors <- c(Methanobacteriaceae = "#FDE725B3", Methanomassiliicoccaceae = "#35B779B3", Other = "grey65")
-  mg_labels <- c(Methanobacteriaceae = "Methanobacteriaceae", Methanomassiliicoccaceae = "Methanomassiliicoccaceae",
-                 Other = paste0("Other (", length(others), " families)"))
-} else {
-  mg_families_sorted <- sort(methanogen_families)
-  mg_colors <- setNames(viridis(length(mg_families_sorted), option = "D", direction = -1, alpha = 0.7), mg_families_sorted)
-  mg_labels <- setNames(mg_families_sorted, mg_families_sorted)
-}
+stopifnot(setequal(names(mg_pathway), methanogen_families))
+mg_families_sorted <- names(mg_pathway)
+mg_colors <- c(Methanobacteriaceae = "#F4C430", Methanocellaceae = "#E8973A", Methanocorpusculaceae = "#D4733A",
+               Methanomicrobiaceae = "#B5562C", Methanoregulaceae = "#8C3B1E",
+               Methanomassiliicoccaceae = "#3FA796", Methanomethyliaceae = "#1F6E63",
+               Methanosaetaceae = "#8E6BBF", Methanosarcinaceae = "#5B3F8C")
+mg_labels <- setNames(paste0(mg_families_sorted, c(H = " (H\u2082)", M = " (methyl)", A = " (acetate)")[mg_pathway[mg_families_sorted]]),
+                      mg_families_sorted)
 summary_mg_b$Family <- factor(summary_mg_b$Family, levels = mg_families_sorted)
 
 p_mg_b <- ggplot(summary_mg_b, aes(x = species_label, y = proportion, fill = Family)) +
@@ -313,32 +254,6 @@ p_mt_a <- ggplot(summary_mt_a, aes(x = species_label, y = mean_pct, fill = fill_
 # Panel (d) — Methanotroph family composition (Known families first, then Putative)
 # ==============================================================================
 
-# Build per-sample abundance by family + status
-mt_fam_status_unique <- unique(tax_df[!is.na(tax_df$mt_status),
-                                       c("mt_family", "mt_status")])
-
-for (i in seq_len(nrow(mt_fam_status_unique))) {
-  fam <- mt_fam_status_unique$mt_family[i]
-  stat <- mt_fam_status_unique$mt_status[i]
-  col_name <- paste0("mt_", stat, "_", fam)
-  fam_stat_asvs <- rownames(tax_df)[which(tax_df$mt_family == fam &
-                                            tax_df$mt_status == stat)]
-  if (length(fam_stat_asvs) > 0) {
-    samp_meta[[col_name]] <- colSums(otu_df[fam_stat_asvs, , drop = FALSE],
-                                     na.rm = TRUE)[rownames(samp_meta)]
-  } else {
-    samp_meta[[col_name]] <- 0
-  }
-}
-
-# Rebuild plot_data with new columns
-plot_data <- samp_meta
-plot_data$species_label <- species_mapping[plot_data$species.x]
-plot_data <- plot_data %>% filter(!is.na(species_label))
-plot_data$compartment <- factor(plot_data$compartment,
-                                 levels = c("Heartwood", "Sapwood", "Mineral Soil", "Organic Soil"))
-plot_data$species_label <- factor(plot_data$species_label, levels = sp_order)
-
 mt_fam_stat_cols <- grep("^mt_(Known|Putative)_", colnames(plot_data), value = TRUE)
 
 mt_comp <- plot_data %>%
@@ -400,7 +315,7 @@ p_mt_b <- ggplot(summary_mt_b, aes(x = species_label, y = proportion, fill = Fam
         plot.margin = margin(0, 10, 5, 10))
 
 # ==============================================================================
-# STEP 10: Combine all panels vertically with shared x-axis
+# Combine all panels vertically with shared x-axis
 # ==============================================================================
 
 # Vertical stack: a (methanogen abundance) / b (methanogen composition) /
@@ -417,9 +332,6 @@ fig_combined <- p_mg_a / p_mg_b / p_mt_a / p_mt_b +
   plot_layout(heights = c(1, 1.2, 1, 1.2)) +
   plot_annotation(tag_levels = "a", tag_prefix = "(", tag_suffix = ")")
 
-print(fig_combined)
+ggsave("outputs/figures/generated/fig5_final.png", fig_combined, width = 10.5, height = 9.5, dpi = 300, bg = "white")   # near print size
 
-OUT5 <- Sys.getenv("FIG5_OUT", "outputs/figures/generated/fig5_final.png")
-ggsave(OUT5, fig_combined, width = 10.5, height = 9.5, dpi = 300, bg = "white")   # near print size
-
-cat("Wrote outputs/figures/generated/fig5_final.png (revised methanotroph defs: Methylacidiphilaceae family -> Putative)\n")
+cat("Wrote outputs/figures/generated/fig5_final.png\n")

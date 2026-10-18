@@ -1,11 +1,10 @@
-source("code/lib/rf_spec.R")   # RF_NUM_TREES, RF_THREADS
-source("code/lib/outputs.R")
 #!/usr/bin/env Rscript
 # ==============================================================================
-# 05_surface_area_model.R
+# 05_surface_area_model.R -- stand woody-surface-area model and vertical distributions
 # ------------------------------------------------------------------------------
-# An explicit, documented woody-surface-area model for the stand upscaling, and the
-# vertical distribution scenarios that go with it.
+# Stage C (non-fatal audit); run from the repository root. Decomposes the imported
+# woody area into bole and branch, compares vertical distributions of that area, and
+# shows when the distribution matters for the whole-surface flux.
 #
 # ------------------------------------------------------------------------------
 # THE AREA MODEL
@@ -33,8 +32,7 @@ source("code/lib/outputs.R")
 # VERTICAL DISTRIBUTION SCENARIOS  (area density a(z), normalised to integrate to 1)
 # ------------------------------------------------------------------------------
 #   uniform      a(z) = const on [0,H]
-#                The simplest assumption and the one behind the manuscript's headline
-#                scaling. Not physically motivated; it is the "no information" case.
+#                The "no information" case; not physically motivated.
 #
 #   conic        a(z) proportional to (H - z)
 #                Bole only, main stem tapering linearly to a point at H. This is a real
@@ -51,9 +49,6 @@ source("code/lib/outputs.R")
 #                imported WAI constrains its shape within the crown -- a peaked
 #                (e.g. Gaussian) profile would be an invention.
 #
-# NOTE: an earlier version of this analysis used a Gaussian crown profile centred at
-# 0.75H. That shape had no empirical basis and has been removed.
-#
 # ------------------------------------------------------------------------------
 # WHEN THE DISTRIBUTION MATTERS
 # ------------------------------------------------------------------------------
@@ -61,38 +56,23 @@ source("code/lib/outputs.R")
 # area above 2 m; a(z) cancels. The vertical distribution enters only when flux is
 # allowed to vary with height. This is reported explicitly below.
 #
-# Output: outputs/audit/surface_area_model.txt
-#         outputs/figures/generated/fig_surface_area_distribution.png
+# Output: outputs/figures/generated/fig_surface_area_distribution.png (and the log)
 # ==============================================================================
+source("code/lib/rf_spec.R")   # RF_NUM_TREES, RF_THREADS
+source("code/lib/outputs.R")
 
 suppressMessages({library(dplyr); library(ggplot2); library(tidyr); library(ranger)})
 source("code/lib/geometry.R")
 source("code/lib/species_levels.R")
 set.seed(42)
-outdir <- "outputs"; dir.create(outdir, showWarnings = FALSE, recursive = TRUE)
 
 load("outputs/models/RF_MODELS.RData"); load("outputs/models/TRAINING_DATA.RData")
-load("data/processed/integrated/rf_workflow_input_data_with_2023.RData")
-INV <- canonical_inventory()
-
-# CANONICAL stems and ground (2026-07-29). This read
-# rf_workflow_data$PLACEHOLDER_INVENTORY over A_PLOT <- 200*200: fg19 only, so the
-# entire bytag survey (961 stems) was missing -- 7,010 stems instead of 8,006 -- over
-# the nominal 40,000 m2 square instead of the 37,200 m2 censused stand. Every
-# per-ground figure below was 7.0% low and every WAI*area 7.5% high, and the stem-area
-# index came out 0.0888 against the canonical 0.11629. The allometry and the DBH repair
-# were also local copies; both now come from geometry.R.
+INV <- canonical_inventory()   # in-stand stems, heights and band areas (geometry.R)
 A_PLOT <- STAND_AREA_M2; WAI <- 3.07; CONV <- 86400*365.25*16e-6
 CANOPY_H <- 20            # m, assumed; varied in the sensitivity grid
 CROWN_BASE_FRAC <- 0.5    # crown base at half canopy height
 rule <- function(s) cat("\n", strrep("=",78), "\n ", s, "\n", strrep("=",78), "\n", sep="")
 
-# fix_dbh() and the local band definition removed: canonical_inventory() already
-# returns repaired diameters plus band_m (0.75 m for Kalmia, a shrub; 2 m otherwise)
-# and A_band_m2. Re-repairing repaired data with species == "..." rather than %in%
-# turned the 41 NA-species stems into NA diameters, which is why this reported 7,998
-# stems and an NA band area.
-sum_piD <- sum(pi*INV$dbh)
 A_band  <- sum(INV$A_band_m2)
 
 # ==============================================================================
@@ -162,9 +142,7 @@ for (fn in names(flux_forms)) {
 cat("
   Read the first row: under a CONSTANT flux above 2 m every distribution gives exactly
   1.0000 -- the vertical distribution cancels completely. It only matters once flux is
-  allowed to vary with height, and then it matters a great deal. This is the argument
-  for making the constant-flux case the headline value: it is the one number in this
-  analysis that is INSENSITIVE to the assumption we are least able to defend.
+  allowed to vary with height, and then it matters a great deal.
 ")
 
 # ==============================================================================

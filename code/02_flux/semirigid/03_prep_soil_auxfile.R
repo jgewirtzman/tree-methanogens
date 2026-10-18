@@ -1,247 +1,104 @@
 # ==============================================================================
-# Prepare Soil Flux Auxiliary File
-# ==============================================================================
-# Purpose: Prepares goFlux auxiliary metadata file for soil flux measurements.
+# 03_prep_soil_auxfile.R -- goFlux auxiliary file for the monthly soil-collar fluxes
+# ------------------------------------------------------------------------------
+# Stage A; workdir: this script's folder (code/02_flux/semirigid/).
 #
-# Pipeline stage: 01 Flux Processing (semirigid)
-# Run after: None (independent of tree pipeline)
+# One row per soil deployment on the field sheet that has a file name and a valid
+# sampling time. UniqueID = date_plot-letter_file (e.g. 20200615_2Jan-U_13).
 #
-# Inputs:
-#   - soilflux_total.csv (from iPad data)
-#   - ymf_clean_sorted.csv (from data/raw/weather/; logger clock, see Tcham below)
-#
-# Outputs:
-#   - auxfile_goFlux_soilflux_with_weather.csv
-#
+# Area: SOIL_COLLAR_AREA_CM2 (25.43 cm interior diameter). Vtot as written here uses the
+# pre-correction chamber volume SOIL_CHAMBER_VOLUME_PRECORRECTION_L (17.75 L: cap 14.42 L
+# + collar headspace 3.33 L) + tubing + analyzer. No fit uses this Vtot: every soil fit
+# (04_goflux_soils.R, 05_fix_december.R, 03_merge/01_fix_soil_flux.R) sets Vtot to
+# SOIL_VTOT_L (7.53 L collar headspace; code/lib/chamber_constants.R).
 # Tcham: station hourly mean air temperature of the hour containing the start, in true
 #   time (logger clock converted by code/lib/weather_time.R, the rule of
 #   code/tables/06_weather.R), within 24 h; every deployment must have one (the build
-#   stops otherwise; no default). Pcham: 101.325 kPa.
+#   stops otherwise). Pcham: 101.325 kPa.
+#
+# Inputs:  data/raw/field_data/ipad_data/Cleaned data/soilflux_total.csv
+#          data/raw/weather/ymf_clean_sorted.csv
+# Outputs (data/processed/flux/):
+#          auxfile_goFlux_soilflux_with_weather.csv  (read by the soil fits)
+#          auxfile_goFlux_soilflux_with_weather.txt  (tab-separated copy)
+#          auxfile_goFlux_soilflux_with_weather_formatted.csv  (+ start.time as text;
+#          the base of the assembled soil tables)
 # ==============================================================================
 
 library(dplyr)
 library(readr)
 library(lubridate)
 
-source("../../lib/chamber_constants.R")  # ANALYZER_VOLUME_CM3
+source("../../lib/chamber_constants.R")  # SOIL_COLLAR_AREA_CM2, SOIL_CHAMBER_VOLUME_PRECORRECTION_L, TUBING_CM3, ANALYZER_VOLUME_CM3
 source("../../lib/weather_time.R")       # read_station_air(), station_air_at()
 
-# Read the CSV file with explicit column types to prevent auto-parsing
 flux_data <- read_csv("../../../data/raw/field_data/ipad_data/Cleaned data/soilflux_total.csv",
                       col_types = cols(
                         Date = col_character(),
                         Site = col_character(),
-                        `Plot Tag` = col_character(),  # Force as character
+                        `Plot Tag` = col_character(),
                         `Plot letter` = col_character(),
                         `Person sampling` = col_character(),
-                        `Time of sampling` = col_character(),  # Keep as character initially
+                        `Time of sampling` = col_character(),
                         `File name` = col_character(),
                         Notes = col_character()
                       ))
 
-# Station air temperature, keyed by true time
 station_air <- read_station_air("../../../data/raw/weather/ymf_clean_sorted.csv")
 cat("Station air temperature:", nrow(station_air), "hourly records\n")
 
-cat("=== SOIL FLUX CHAMBER SPECIFICATIONS ===\n")
-cat("Chamber surface area: 507.7 cm² (from 10.01\" interior diameter)\n")
-cat("Chamber volume: 17.75 L (cap + collar headspace)\n")
-cat("Tubing: 1/8\" ID × 12 ft\n")
-cat("System volume:", ANALYZER_VOLUME_CM3, "cm³\n\n")
+total_system_volume_cm3 <- SOIL_CHAMBER_VOLUME_PRECORRECTION_L * 1000 + TUBING_CM3 + ANALYZER_VOLUME_CM3
+cat("Area:", SOIL_COLLAR_AREA_CM2, "cm2 | Vtot written:", round(total_system_volume_cm3 / 1000, 3),
+    "L (pre-correction chamber volume; the fits use SOIL_VTOT_L =", round(SOIL_VTOT_L, 3), "L)\n")
+cat("Field sheet rows:", nrow(flux_data), "| without a file name:", sum(is.na(flux_data$`File name`)), "\n")
 
-# Define chamber geometry constants
-CHAMBER_SURFACE_AREA_CM2 <- 507.7  # Based on 25.43 cm interior diameter
-CHAMBER_VOLUME_L <- 17.75  # Cap (14.42 L) + collar headspace (3.33 L)
-
-# Calculate system volumes
-tubing_volume_cm3 <- pi * (1/16)^2 * 12 * 12 * 16.387  # ≈ 29.0 cm³
-system_volume_cm3 <- ANALYZER_VOLUME_CM3  # analyzer internal volume (lab convention, see lib)
-total_system_volume_cm3 <- CHAMBER_VOLUME_L * 1000 + tubing_volume_cm3 + system_volume_cm3
-
-cat("=== VOLUME CALCULATIONS ===\n")
-cat("Chamber volume:", CHAMBER_VOLUME_L, "L\n")
-cat("Tubing volume:", round(tubing_volume_cm3, 1), "cm³\n")
-cat("System volume:", system_volume_cm3, "cm³\n")
-cat("Total system volume:", round(total_system_volume_cm3, 1), "cm³ =", 
-    round(total_system_volume_cm3/1000, 3), "L\n\n")
-
-# Check for problematic data
-cat("=== DATA QUALITY CHECKS ===\n")
-cat("Total rows in dataset:", nrow(flux_data), "\n")
-
-# Check for missing file names
-missing_files <- sum(is.na(flux_data$`File name`))
-cat("Missing file names:", missing_files, "\n")
-
-# Check time format variations
-cat("Time format examples:\n")
-time_examples <- flux_data %>%
-  filter(!is.na(`Time of sampling`)) %>%
-  select(`Time of sampling`) %>%
-  distinct() %>%
-  head(15)
-print(time_examples)
-
-# Convert date format from M/D/YY to YYYY-MM-DD
 flux_data <- flux_data %>%
-  mutate(
-    # Convert date format (handles M/D/YY format)
-    Date_parsed = mdy(Date),  # This handles formats like 4/24/21
-    Date_formatted = format(Date_parsed, "%Y-%m-%d")
-  )
-
-cat("\nDate conversion check:\n")
-date_check <- flux_data %>%
-  select(Date, Date_parsed, Date_formatted) %>%
-  head(5)
-print(date_check)
-
-# Create auxfile for goFlux
-cat("\n=== CREATING AUXFILE FOR GOFLUX ===\n")
+  mutate(Date_parsed = mdy(Date),                       # M/D/YY
+         Date_formatted = format(Date_parsed, "%Y-%m-%d"))
 
 auxfile <- flux_data %>%
-  # Filter out rows with missing file names (can't process without gas data)
-  filter(!is.na(`File name`)) %>%
-  
-  # Create unique identifier and process datetime
+  filter(!is.na(`File name`)) %>%                       # no gas record without a file
   mutate(
-    # Handle time conversion from HHMM format
+    # sampling time HHMM (possibly with decimals) -> HH:MM:00; invalid times -> NA
     numeric_time = as.numeric(`Time of sampling`),
     time_int = floor(numeric_time),
     hours = floor(time_int / 100),
     minutes = time_int %% 100,
-    
-    # Format time as HH:MM:SS
     formatted_time = case_when(
-      hours >= 0 & hours <= 23 & minutes >= 0 & minutes <= 59 ~ 
+      hours >= 0 & hours <= 23 & minutes >= 0 & minutes <= 59 ~
         sprintf("%02d:%02d:00", hours, minutes),
       TRUE ~ NA_character_
     ),
-    
-    # Create datetime string and convert to POSIXct
     datetime_string = case_when(
       !is.na(formatted_time) ~ paste(Date_formatted, formatted_time),
       TRUE ~ NA_character_
     ),
-    start.time = as.POSIXct(datetime_string, 
-                            format = "%Y-%m-%d %H:%M:%S", 
-                            tz = "UTC"),
-    
-    # Create unique ID with clear format
-    # Format: MEASUREDATE_PLOT-LETTER_FILE (e.g., "20200615_2Jan-U_13")
-    UniqueID = paste0(gsub("-", "", Date_formatted), "_", 
-                      `Plot Tag`, "-", `Plot letter`, "_", 
+    start.time = as.POSIXct(datetime_string, format = "%Y-%m-%d %H:%M:%S", tz = "UTC"),
+    UniqueID = paste0(gsub("-", "", Date_formatted), "_",
+                      `Plot Tag`, "-", `Plot letter`, "_",
                       `File name`),
-    
-    # Set chamber geometry (same for all measurements)
-    Area = CHAMBER_SURFACE_AREA_CM2,  # cm²
-    Vtot = total_system_volume_cm3 / 1000  # Convert to L
+    Area = SOIL_COLLAR_AREA_CM2,             # cm2
+    Vtot = total_system_volume_cm3 / 1000    # L
   ) %>%
-  
-  # Remove rows with missing critical data before merging with weather
   filter(!is.na(start.time), !is.na(Area), !is.na(Vtot)) %>%
-  
-  # Station air temperature of the hour containing the start (true time)
   mutate(Tcham = station_air_at(start.time, station_air), Pcham = 101.325)
-stopifnot(!anyNA(auxfile$Tcham))   # station air temperature within 24 h for every deployment; no default
+stopifnot(!anyNA(auxfile$Tcham))   # station air temperature within 24 h for every deployment
 
-# goFlux columns (no defaults)
 auxfile <- auxfile %>%
-  
-  # Select columns needed for goFlux
   select(UniqueID, start.time, Area, Vtot, Tcham, Pcham,
-         Date = Date_formatted, Site, `Plot Tag`, `Plot letter`, 
+         Date = Date_formatted, Site, `Plot Tag`, `Plot letter`,
          `Person sampling`, `File name`, Notes) %>%
-  
-  # Remove any rows with missing start.time (already filtered above, but safety check)
-  filter(!is.na(start.time)) %>%
-  
-  # Arrange chronologically
   arrange(start.time)
 
-# DATETIME AND WEATHER VERIFICATION
-cat("\n=== DATETIME AND WEATHER VERIFICATION ===\n")
-cat("Sample of start.time values:\n")
-print(head(auxfile$start.time, 10))
-cat("Class of start.time column:", class(auxfile$start.time), "\n")
-cat("Timezone:", attr(auxfile$start.time, "tzone"), "\n")
-
-# Weather data integration summary
-weather_matched <- sum(!is.na(auxfile$Tcham))
-
-cat("\n=== WEATHER DATA INTEGRATION ===\n")
-cat("Measurements with weather station data:", weather_matched, "\n")
-cat("Weather data coverage:", round(100 * weather_matched / nrow(auxfile), 1), "%\n")
-
-# Display results
-cat("Auxfile created successfully!\n")
-cat("Final dataset contains", nrow(auxfile), "measurements\n")
-cat("Date range:", as.character(range(auxfile$start.time)), "\n")
-
-# Show first few rows
-cat("\nFirst 6 rows of auxfile:\n")
-print(head(auxfile))
-
-# Check for any remaining issues
-cat("\n=== FINAL QUALITY CHECKS ===\n")
-cat("Missing start.time:", sum(is.na(auxfile$start.time)), "\n")
-cat("Missing Area:", sum(is.na(auxfile$Area)), "\n")
-cat("Missing Vtot:", sum(is.na(auxfile$Vtot)), "\n")
+cat("Deployments:", nrow(auxfile), "| dates:", length(unique(auxfile$Date)),
+    "| range:", as.character(range(auxfile$start.time)), "\n")
 cat("Duplicate UniqueIDs:", sum(duplicated(auxfile$UniqueID)), "\n")
+cat("Rows not in the auxfile (no file name or no valid time):", nrow(flux_data) - nrow(auxfile), "\n")
 
-# Show measurement distribution by date
-cat("\nMeasurements by date:\n")
-date_summary <- auxfile %>%
-  count(Date, sort = TRUE)
-print(date_summary)
-
-# Show time distribution
-cat("\nMeasurements by hour:\n")
-time_summary <- auxfile %>%
-  mutate(hour = hour(start.time)) %>%
-  count(hour, sort = TRUE)
-print(time_summary)
-
-# Save the auxfile with weather integration
-write.table(auxfile, "../../../data/processed/flux/auxfile_goFlux_soilflux_with_weather.txt", 
+write.table(auxfile, "../../../data/processed/flux/auxfile_goFlux_soilflux_with_weather.txt",
             sep = "\t", row.names = FALSE, quote = FALSE)
-
 write_csv(auxfile, "../../../data/processed/flux/auxfile_goFlux_soilflux_with_weather.csv")
-
-# Create a version with readable datetime formatting
 auxfile_readable <- auxfile %>%
   mutate(start.time_formatted = format(start.time, "%Y-%m-%d %H:%M:%S %Z"))
-
 write_csv(auxfile_readable, "../../../data/processed/flux/auxfile_goFlux_soilflux_with_weather_formatted.csv")
-
-cat("\n=== FILES SAVED ===\n")
-cat("Main auxfile: auxfile_goFlux_soilflux_with_weather.txt\n")
-cat("CSV version: auxfile_goFlux_soilflux_with_weather.csv\n")
-cat("Readable version: auxfile_goFlux_soilflux_with_weather_formatted.csv\n")
-
-cat("\n=== CHAMBER SPECIFICATIONS APPLIED ===\n")
-cat("Surface Area (Area):", CHAMBER_SURFACE_AREA_CM2, "cm²\n")
-cat("Total Volume (Vtot):", round(auxfile$Vtot[1], 3), "L\n")
-cat("  - Chamber volume:", CHAMBER_VOLUME_L, "L\n")
-cat("  - Tubing volume:", round(tubing_volume_cm3, 1), "cm³\n")
-cat("  - System volume:", system_volume_cm3, "cm³\n")
-
-cat("\n=== READY FOR GOFLUX! ===\n")
-cat("Your auxfile contains:\n")
-cat("- UniqueID: Unique identifier for each measurement\n")
-cat("- start.time: POSIXct datetime (YYYY-MM-DD HH:MM:SS UTC)\n")
-cat("- Area: Chamber surface area (507.7 cm²)\n")
-cat("- Vtot: Total system volume (~17.77 L)\n")
-cat("- Tcham: Chamber temperature from Yale-Myers weather station (°C)\n")
-cat("- Pcham: Chamber pressure from weather data or default (kPa)\n")
-cat("- Original metadata preserved for reference\n")
-
-# Show any excluded data
-excluded_count <- nrow(flux_data) - nrow(auxfile)
-if(excluded_count > 0) {
-  cat("\nNOTE:", excluded_count, "rows excluded due to missing file names\n")
-  excluded_data <- flux_data %>%
-    filter(is.na(`File name`)) %>%
-    select(Date, `Plot Tag`, `Plot letter`, `Time of sampling`)
-  print(head(excluded_data))
-}
+cat("Wrote data/processed/flux/auxfile_goFlux_soilflux_with_weather{.csv,.txt,_formatted.csv}\n")

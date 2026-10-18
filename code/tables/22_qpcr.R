@@ -1,5 +1,4 @@
 #!/usr/bin/env Rscript
-source("code/lib/outputs.R")
 # ==============================================================================
 # 22_qpcr.R -- qpcr.csv (data/tables/): sequencing-facility qPCR, one row per
 # sample x target
@@ -19,20 +18,12 @@ source("code/lib/outputs.R")
 # listed in the audit.
 # Writes data/tables/qpcr.csv, outputs/audit/qpcr_build.txt
 # ==============================================================================
+source("code/lib/outputs.R")
 suppressPackageStartupMessages(library(tidyverse))
 source("code/lib/tree_ids.R")
 OUT <- "data/tables"
 SAMPLES <- read.csv(file.path(OUT, "samples.csv"), stringsAsFactors = FALSE)
 
-# facility / library name -> sample_id
-# (names already spelled out -- AB3slash5, BB10prime, WA103star -- are spelled back first)
-to_sample_id <- function(x) {
-  m <- str_match(x, "^(.*?)(Inner|Outer|Mineral|Organic)([0-9]+[a-e])?$")
-  tree <- gsub("star", "*", gsub("prime", "'", gsub("slash", "/", m[, 2])))
-  tid <- ifelse(tree == "RO7/8", "RO7slash8", ncbi_tree_id(tree))          # soil between RO7 and RO8
-  y <- ifelse(is.na(m[, 1]), x, paste0(tid, m[, 3], coalesce(m[, 4], "")))
-  ifelse(y %in% SAMPLES$sample_id, y, NA_character_)
-}
 
 # ---- 16S ----------------------------------------------------------------------------
 Q <- read.csv("data/raw/16s/16s_w_metadata.csv", check.names = FALSE, colClasses = "character") %>%
@@ -51,7 +42,7 @@ IBO <- read.csv("data/raw/external/tree-microbiome/bo_its_load.csv", check.names
 
 A <- bind_rows(Q, I21 %>% select(-x16), IBO) %>%
   filter(!is.na(raw), raw != "") %>%
-  mutate(sample_id = to_sample_id(name),
+  mutate(sample_id = to_sample_id(name, SAMPLES$sample_id),
          undetected = grepl("^undetected$", raw, ignore.case = TRUE),
          copies_per_uL_extract = suppressWarnings(as.numeric(raw)))
 stopifnot(all(!is.na(A$copies_per_uL_extract) | A$undetected))
@@ -64,7 +55,7 @@ if (anyDuplicated(k)) { print(QPCR[k %in% k[duplicated(k)], ]); stop("qpcr: samp
 write_csv(QPCR, file.path(OUT, "qpcr.csv"), na = "")
 
 # ---- check: the 16S values carried in tree_data_methanogen_group.csv are the facility's
-chk <- I21 %>% filter(!is.na(x16), x16 != "") %>% mutate(sample_id = to_sample_id(name)) %>%
+chk <- I21 %>% filter(!is.na(x16), x16 != "") %>% mutate(sample_id = to_sample_id(name, SAMPLES$sample_id)) %>%
   left_join(QPCR %>% filter(target == "16S") %>% select(sample_id, q16 = copies_per_uL_extract), by = "sample_id")
 bad16 <- chk %>% filter(is.na(q16) | abs(as.numeric(x16) - q16) > 1e-9)
 
@@ -77,7 +68,7 @@ if (nrow(bad16)) print(as.data.frame(bad16), row.names = FALSE)
 cat(sprintf("\nFacility rows not linked to a sample (left out): %d\n", nrow(unlinked)))
 print(as.data.frame(unlinked %>% select(name, target, raw, source)), row.names = FALSE)
 cat("\nSamples with a 16S library but no 16S qPCR value:\n")
-L16 <- I21 %>% mutate(sample_id = to_sample_id(name)) %>% filter(!is.na(sample_id), !sample_id %in% QPCR$sample_id[QPCR$target == "16S"])
+L16 <- I21 %>% mutate(sample_id = to_sample_id(name, SAMPLES$sample_id)) %>% filter(!is.na(sample_id), !sample_id %in% QPCR$sample_id[QPCR$target == "16S"])
 print(L16$sample_id)
 options(op); sink()
 cat(readLines(out_path("qpcr_build.txt", "audit")), sep = "\n")

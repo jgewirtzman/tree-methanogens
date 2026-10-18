@@ -1,17 +1,16 @@
-source("code/lib/outputs.R")
 #!/usr/bin/env Rscript
 # ==============================================================================
-# 04_wai_bottomup.R
+# 04_wai_bottomup.R -- bottom-up woody area index of the stand, and three checks
 # ------------------------------------------------------------------------------
-# Four questions, with sources.
-#
-#   PART 1  Height allometry: per-tree heights from DBH, from a published exponent.
-#   PART 2  Bottom-up WAI from our own inventory using Whittaker & Woodwell (1967)
-#           surface-area relations, compared with their published forest values and
-#           with the Gauci et al. (2024) WAI of 3.07.
-#   PART 3  Height-flux forms: what did power / exponential / linear / asymptotic
-#           actually buy us, and can three heights distinguish them at all?
-#   PART 4  Does the RF need explicit interactions? Tested, not asserted.
+# Stage C; run from the repository root.
+#   PART 1  Height allometry: per-stem heights from DBH (code/lib/geometry.R).
+#   PART 2  Bottom-up WAI from the inventory with Whittaker & Woodwell (1967)
+#           surface-area relations, against their published forest values and the
+#           Gauci et al. (2024) WAI of 3.07. Written to outputs/data/wai_bottomup.csv,
+#           which 07_scaling_full_grid.R reads.
+#   PART 3  Height-flux forms against the felled oak, the only data above 2 m.
+#   PART 4  Does the forest gain from explicit moisture x height interactions?
+# Log only, apart from wai_bottomup.csv.
 #
 # ------------------------------------------------------------------------------
 # SOURCES
@@ -35,28 +34,15 @@ source("code/lib/outputs.R")
 #
 # Gauci V et al. (2024) Nature 631:796-800.  WAI = 3.07 m2 m-2 for temperate forest.
 # ==============================================================================
+source("code/lib/outputs.R")
 
 suppressMessages({library(dplyr); library(ggplot2); library(tidyr); library(ranger)})
 set.seed(42)
-outdir <- "outputs"; dir.create(outdir, showWarnings=FALSE, recursive=TRUE)
 source("code/lib/geometry.R")
 load("outputs/models/RF_MODELS.RData"); load("outputs/models/TRAINING_DATA.RData")
-load("data/processed/integrated/rf_workflow_input_data_with_2023.RData")
-# CANONICAL stems and ground. This read rf_workflow_data$PLACEHOLDER_INVENTORY over
-# A_PLOT <- 200*200: fg19 only, so the whole bytag survey (961 stems) was missing,
-# 7,010 stems instead of 8,006, divided by the nominal 40,000 m2 square instead of
-# the 37,200 m2 censused stand. Both errors push the WAI DOWN, and this script is the
-# sole producer of the bottom-up WAI that 07_scaling_full_grid.R consumes, where it
-# multiplies ~70% of the headline estimate. The trio it emitted (1.69/2.11/2.57) is
-# 32% low; on the canonical inventory the same recipe gives 2.23/2.82/3.40.
-INV <- canonical_inventory()
+INV <- canonical_inventory()   # in-stand stems; DBH as built by 08_inventory_build.R
 A_PLOT <- STAND_AREA_M2
 rule <- function(s) cat("\n",strrep("=",78),"\n ",s,"\n",strrep("=",78),"\n",sep="")
-
-# fix_dbh() removed: it was the over-correcting species-specific DBH repair stack
-# that 08_inventory_build.R replaced with one documented rule. canonical_inventory()
-# returns diameters already unit-checked and typo-repaired, and H from the single
-# allometry in geometry.R.
 
 # ==============================================================================
 rule("PART 1  HEIGHT ALLOMETRY (per stem, not one canopy height)")
@@ -65,28 +51,25 @@ rule("PART 1  HEIGHT ALLOMETRY (per stem, not one canopy height)")
 # so that a large canopy stem reaches the observed Yale-Myers canopy height: this uses
 # the published EXPONENT (shape) with a site-specific SCALE, rather than importing
 # both from a region that may differ.
-GYMNO <- c("Pinus strobus","Tsuga canadensis")
-INV$b_exp   <- ifelse(INV$species %in% GYMNO, 0.60, 0.53)
+INV$b_exp   <- ifelse(INV$species %in% GYMNOSPERMS, ALLOM_B_GYMNO, ALLOM_B_ANGIO)
 D_ANCHOR <- quantile(INV$dbh[INV$dbh > 0.10], 0.95, na.rm=TRUE)   # large canopy stem
 cat(sprintf("\n  anchor DBH (95th pct of stems >10 cm) = %.1f cm\n", 100*D_ANCHOR))
 cat(sprintf("  %-22s %8s %8s %8s %8s\n","canopy anchor H_c","a(ang)","median H","mean H","max H"))
 HEIGHT_SCENARIOS <- c(20,25,30)
 for (Hc in HEIGHT_SCENARIOS) {
-  a_ang <- (Hc-1.37)/D_ANCHOR^0.53
-  H <- 1.37 + ifelse(INV$species %in% GYMNO,
-                     (Hc-1.37)/D_ANCHOR^0.60, a_ang) * INV$dbh^INV$b_exp
+  a_ang <- (Hc-1.37)/D_ANCHOR^ALLOM_B_ANGIO
+  H <- 1.37 + ifelse(INV$species %in% GYMNOSPERMS,
+                     (Hc-1.37)/D_ANCHOR^ALLOM_B_GYMNO, a_ang) * INV$dbh^INV$b_exp
   cat(sprintf("  %-22s %8.2f %8.1f %8.1f %8.1f\n",
               sprintf("H_c = %d m", Hc), a_ang, median(H), mean(H), max(H)))
 }
-# One allometry, defined in geometry.R. It was copy-pasted verbatim into five
-# scripts, and because its scale coefficient is anchored on the 95th percentile of
-# whichever stem list the script loaded, the duplicates silently disagreed.
+# the one allometry, code/lib/geometry.R
 H_CANOPY <- CANOPY_H_M
 INV$H <- stem_height_m(INV$dbh_m, INV$species, canopy_h = H_CANOPY)
 cat(sprintf("
-  Using H_c = %d m. Because H scales as D^0.53, SUBCANOPY STEMS GET SUBCANOPY HEIGHTS:
-  median stem height %.1f m against a %d m canopy -- the point you raised. A single
-  canopy height applied to all %d stems would overstate total woody area by %.0f%%.
+  Using H_c = %d m. Because H scales as D^0.53, subcanopy stems get subcanopy heights:
+  median stem height %.1f m against a %d m canopy. A single canopy height applied to
+  all %d stems would overstate total woody area by %.0f%%.
 ", H_CANOPY, median(INV$H), H_CANOPY, nrow(INV),
    100*(sum(pi*INV$dbh*H_CANOPY)/sum(pi*INV$dbh*INV$H) - 1)))
 
@@ -114,10 +97,7 @@ for (cc in CONIC_CORR) {
 wai_lo <- S_conic*CONIC_CORR[1]*(1+BRANCH_STEM[1])/A_PLOT
 wai_hi <- S_conic*CONIC_CORR[2]*(1+BRANCH_STEM[2])/A_PLOT
 
-# EXPORT, so 07_scaling_full_grid.R reads these instead of carrying its own copy.
-# The grid used to hardcode `1.69 bottom-up, low` / `2.11 bottom-up, this stand` /
-# `2.57 bottom-up, high` as literals, so correcting this producer would not have
-# reached the headline at all. One producer per quantity.
+# exported for 07_scaling_full_grid.R
 WAI_OUT <- data.frame(
   label = c("bottom-up, low", "bottom-up, this stand", "bottom-up, high"),
   wai   = c(wai_lo, (wai_lo + wai_hi)/2, wai_hi),
@@ -126,8 +106,8 @@ WAI_OUT <- data.frame(
                   BRANCH_STEM[1], BRANCH_STEM[2]),
   n_stems = nrow(INV), stand_area_m2 = A_PLOT, stringsAsFactors = FALSE)
 write.csv(WAI_OUT, out_path("wai_bottomup.csv"), row.names = FALSE)
-cat(sprintf("\n  written: %s/wai_bottomup.csv  (%.2f / %.2f / %.2f from %d stems)\n",
-            outdir, wai_lo, (wai_lo+wai_hi)/2, wai_hi, nrow(INV)))
+cat(sprintf("\n  written: outputs/data/wai_bottomup.csv  (%.2f / %.2f / %.2f from %d stems)\n",
+            wai_lo, (wai_lo+wai_hi)/2, wai_hi, nrow(INV)))
 
 cat(sprintf("
   ---------------------------------------------------------------------------
@@ -138,21 +118,9 @@ cat(sprintf("
     W&W published, Brookhaven oak-pine (open)      ~1.50
     Gauci et al. 2024, temperate forest            3.07
   ---------------------------------------------------------------------------
-  READ THIS BEFORE QUOTING THE COMPARISON. Both statements that used to stand here
-  are now false, because the bottom-up trio was recomputed on the canonical inventory
-  (8,006 stems over the 37,200 m2 censused stand, not 7,010 over the nominal 40,000)
-  and rose about 32%%:
-
-    * that our bottom-up estimate brackets the W&W published temperate-deciduous
-      value (2.00-2.20) -- it no longer brackets it, the range now sits ENTIRELY
-      ABOVE it;
-    * that the Gauci value sits at or above the top of that range, so the budget uses
-      the HIGH end -- 3.07 now sits INSIDE our own range, between the mid and the
-      high. It is no longer an upper bound and the budget is not using the high end.
-
-  Note also that agreement with W&W's published value was never independent evidence:
-  our estimate is built FROM their taper correction and branch:stem ratios, so any
-  resemblance corroborates the arithmetic, not the value.
+  Agreement with W&W's published value is not independent evidence: the estimate is
+  built from their taper correction and branch:stem ratios, so any resemblance
+  corroborates the arithmetic, not the value.
   The stand is 65%% conifer by basal area while those ratios come from deciduous and
   pitch-pine stands, which is the standing limitation.
 ", wai_lo, wai_hi))
@@ -214,7 +182,7 @@ base <- data.frame(species=factor(d$species_clean), dbh_m=d$dbh_m,
   air_temp_C=d$air_temp_C,
   height_cm=ifelse(is.na(d$measurement_height_cm),125,d$measurement_height_cm))
 variants <- list(
-  `base (current, 7 predictors)` = base,
+  `base (6 predictors, incl. air temperature)` = base,
   `+ moisture x height`     = transform(base, mh = soil_moisture_at_tree*height_cm),
   `+ moisture x height, deeper (node 2)` = transform(base, mh = soil_moisture_at_tree*height_cm),
   `+ mois x ht, + soilT x ht` = transform(base, mh = soil_moisture_at_tree*height_cm,

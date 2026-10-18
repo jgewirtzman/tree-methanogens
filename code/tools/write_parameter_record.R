@@ -1,21 +1,18 @@
 #!/usr/bin/env Rscript
 # ==============================================================================
-# 21_write_parameter_record.R
+# write_parameter_record.R -- refresh the headline block of the private parameter record
 # ------------------------------------------------------------------------------
-# Regenerates the HEADLINE block of a parameter-record file (scaling_parameters.md)
-# from the canonical outputs, replacing everything between the two marker lines, so
-# the headline numbers cannot drift from outputs/. It writes ONLY between the
-# markers; the hand-written sections are untouched.
+# A tool, not a pipeline step: it writes only to the authors' private notes
+# (code/revision/notes/scaling_parameters.md, not in this repository). It replaces the
+# block between the two marker lines with the headline numbers read from the canonical
+# outputs; the hand-written sections are untouched. Without the record file it exits.
 #
-# The record file is not part of this repository; without it the script exits
-# cleanly. Nothing here writes to the tracked tree.
-#
-# Usage:  Rscript code/09_tables_stats/21_write_parameter_record.R
+# Usage (after a full run):  Rscript code/tools/write_parameter_record.R
 # ==============================================================================
 source("code/lib/geometry.R")
 
 MD    <- "code/revision/notes/scaling_parameters.md"
-BEGIN <- "<!-- BEGIN GENERATED: headline -- 21_write_parameter_record.R -->"
+BEGIN <- "<!-- BEGIN GENERATED: headline -- write_parameter_record.R -->"
 END   <- "<!-- END GENERATED -->"
 # A clone without the record file: nothing to update, and not a failure.
 if (!file.exists(MD)) { cat("parameter record not in this checkout; nothing to update\n"); quit(status = 0) }
@@ -37,7 +34,7 @@ nonup <- G[G$flux != "linear_bounded_median", ]
 L <- c(
 BEGIN,
 "",
-sprintf("*Generated %s by `21_write_parameter_record.R`. Do not edit by hand -- edits",
+sprintf("*Generated %s by `write_parameter_record.R`. Do not edit by hand -- edits",
         format(Sys.Date(), "%Y-%m-%d")),
 "between the markers are overwritten. Every value is read from `outputs/`.*",
 "",

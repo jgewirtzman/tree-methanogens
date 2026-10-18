@@ -1,35 +1,16 @@
 #!/usr/bin/env Rscript
 # ==============================================================================
-# 07_rf_predictor_selection.R
+# 07_rf_predictor_selection.R -- predictor selection for the stem forest
 # ------------------------------------------------------------------------------
-# Predictor selection for the CURRENT TreeRF specification. Supersedes
-# rf_predictor_selection.R and rf_predictor_significance.R for the
-# readmission question.
-#
-# WHY A NEW PASS. Every earlier predictor test in this repo was run against a
-# specification that no longer exists:
-#   * soil temperature was a 10-value step function of month; it now carries 182
-#     distinct per-measurement values (paired soil, 2026-07-29), so any earlier
-#     verdict on "temperature" was a verdict on month wearing temperature's name;
-#   * the 2021 campaign carried a single fabricated date, so month and the monthly
-#     drivers were wrong for 46% of that campaign's rows;
-#   * the species ladder was not reaching the inventory.
-# Those tests are void, not merely dated.
-#
-# WHY THE OLD SCORING WAS WRONG TOO. rf_predictor_selection.R used NO held-out
-# data at all (20 in-sample refits against random reference columns), and
-# rf_predictor_significance.R scored a binomial test on how many of 30 SEEDS
-# beat a shadow -- a statement about the fitting procedure's reproducibility, not
-# about the data, which drives its p-value to zero as NRUN grows.
-#
-# HOW THIS SCORES. Two numbers, because the model has two jobs:
-#   1. grouped CV R2, folds assigned by TREE. 1,130 rows come from 478 trees, so an
-#      ungrouped fold puts the same stem in train and test and inflates skill ~2x.
-#   2. the SUM ratio: mean held-out prediction / mean observed. The quantity the
-#      paper reports is a stand total, and a predictor can improve per-stem R2 while
-#      making the aggregate worse.
-# Both with a standard error across repeats, so differences can be read against
-# their own noise instead of ranked on the third decimal.
+# Stage D; run from the repository root. Each candidate predictor set is scored on
+# two numbers, because the model has two jobs:
+#   1. grouped CV R2, folds assigned by tree (an ungrouped fold puts the same stem in
+#      train and test and inflates skill about twofold);
+#   2. the sum ratio, mean held-out prediction / mean observed: the paper reports a
+#      stand total, and a predictor can improve per-stem R2 while making the
+#      aggregate worse.
+# Both with a standard error across repeats, so differences are read against their
+# own noise.
 #
 # Output: outputs/data/rf_predictor_selection_current.csv / .txt
 # ==============================================================================
@@ -43,7 +24,7 @@ load("outputs/models/TRAINING_DATA.RData")
 # was dominated by fold noise; differences must be read against the SE, not ranked.
 NREP <- 30; NFOLD <- 5
 X0  <- as.data.frame(X_tree)
-y   <- tree_train_complete$y_asinh
+y   <- tree_train_complete$y_flux
 grp <- as.character(tree_train_complete$tree_id)
 mo  <- tree_train_complete$month
 stopifnot(identical(colnames(X0), TreeRF$forest$independent.variable.names))

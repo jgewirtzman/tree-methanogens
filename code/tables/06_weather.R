@@ -1,5 +1,4 @@
 #!/usr/bin/env Rscript
-source("code/lib/outputs.R")
 # ==============================================================================
 # 06_weather.R -- weather.csv (data/tables/)
 # ------------------------------------------------------------------------------
@@ -55,11 +54,10 @@ source("code/lib/outputs.R")
 #   water balance (04_drivers/01_wb_reference_et.R, which sets wind to the
 #   FAO-56 default).
 #
-# (The check against the old archive, data/compiled/environmental_timeseries.csv, was
-# removed 2026-10-16: the archive is now a copy of data/tables/.)
 # Writes data/tables/weather.csv, outputs/audit/weather_build.txt,
 #   outputs/audit/weather_screened.csv
 # ==============================================================================
+source("code/lib/outputs.R")
 suppressPackageStartupMessages(library(tidyverse))
 source("code/lib/weather_time.R")
 OUT <- "data/tables"

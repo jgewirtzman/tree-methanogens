@@ -1,7 +1,7 @@
-source("code/lib/outputs.R")
 # ==============================================================================
-# figS05_16s-ddpcr-association.R
+# figS05_16s-ddpcr-association.R -- Figure S5: 16S group abundance against ddPCR genes
 # ------------------------------------------------------------------------------
+# Stage E. Run from the repository root.
 # Does the 16S abundance of each classified group track the functional gene
 # measured by ddPCR in the SAME sample? A check on the 16S classification, not a
 # test of function: relative abundance and a gene ratio can co-vary with habitat as
@@ -16,18 +16,20 @@ source("code/lib/outputs.R")
 #   multiple   Benjamini-Hochberg across every test drawn in the figure
 #   cells with fewer than 5 samples where the group is present are not tested
 #
-# Groups follow the capacity rule set: a taxon counts if it
-# carries methane monooxygenase genes; tiers Known / Putative / listed-not-counted, classified by code/lib/load_methanotroph_definitions.R.
-# Reads data/tables/ via code/lib/tables_read.R: asv_table("main") (ASV counts + taxonomy)
+# Groups follow the capacity rule: a taxon counts as a methanotroph if it carries
+# methane monooxygenase genes; tiers Known / Putative (code/lib/load_methanotroph_definitions.R)
+# and genera listed but not counted.
+# Reads data/tables/ via code/lib/tables_read.R: asv_reads("main") (non-organelle ASV counts + taxonomy)
 # and dna_samples("2021_survey") (16S library -> sample and compartment; ddPCR copies per uL
 # extract; facility 16S qPCR copies per uL extract). 16S and ddPCR are joined by library_id.
 # Samples: 2021 DNA samples whose 16S library has at least RAREFY_DEPTH (3500) non-organelle
 # reads, the libraries the main 16S analysis keeps (code/lib/build_phyloseq.R).
 #
-# Outputs: figSI_16s_ddpcr_association.png, 16s_ddpcr_association.csv
+# Outputs: outputs/figures/generated/figSI_16s_ddpcr_association.png,
+#          outputs/data/16s_ddpcr_association.csv
 # ==============================================================================
 suppressMessages({library(dplyr); library(ggplot2)})
-options(warn = -1)
+source("code/lib/outputs.R")
 # rho and dagger glyphs need a UTF-8 character locale; under the C locale (non-interactive
 # shells) they are silently dropped from the PNG.
 invisible(Sys.setlocale("LC_CTYPE", "en_US.UTF-8"))

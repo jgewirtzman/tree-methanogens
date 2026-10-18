@@ -1,7 +1,7 @@
 # ==============================================================================
-# Species-level aggregation: OLS vs SMA/RMA robustness
-# ==============================================================================
-# Purpose: tests whether averaging across individuals is justified and not circular,
+# 17_species-aggregation-rma.R -- species-level aggregation: OLS vs SMA/RMA
+# ------------------------------------------------------------------------------
+# Stage D. Purpose: tests whether averaging across individuals is justified and not circular,
 #   and whether species-level slopes are attenuated by regression dilution
 #   (ecological correlation). Demonstrates that the species-level gene-flux relationships
 #   are robust to using a Model II (standardized major axis / reduced major axis)
@@ -25,13 +25,9 @@
 # Run from project root:  Rscript code/09_tables_stats/17_species-aggregation-rma.R
 # ==============================================================================
 
-suppressPackageStartupMessages({
-  library(tidyverse)
+suppressPackageStartupMessages(library(tidyverse))
 source("code/lib/outputs.R")
-})
 
-out_dir <- "outputs"
-dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
 
 # ------------------------------------------------------------------------------
 # SMA / RMA helper (Warton et al. 2006, Biol. Rev., eqs. 4-5; McArdle 1988)
@@ -172,8 +168,7 @@ if (n_sig < nrow(jack)) {
 }
 cat("\n--- Variance partition ---\n")
 cat(paste(vp, collapse = "\n"), "\n")
-cat("\nOutputs written to", out_dir, "\n")
+cat("\nOutputs written to outputs/\n")
 sink()
 
-cat("Done. See", out_dir, "for outputs.\n")
 print(as.data.frame(slope_table), row.names = FALSE)

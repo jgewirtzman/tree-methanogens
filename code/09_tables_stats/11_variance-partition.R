@@ -1,31 +1,22 @@
-source("code/lib/outputs.R")
 # ==============================================================================
-# Variance partition: reconcile the published Figure 3 with the revised one
-# ==============================================================================
-# The manuscript reports ~82.9% unexplained; the revised Figure 3's value is
-# printed in row 4 of the output (read it there, do not copy it here).
-# This script computes both from the same data so the change can be attributed to
-# specific decisions rather than asserted, and states which decision moves what.
-#
-# It replaces an earlier reconciliation that answered a different question (82.9%
-# vs 91.3%, which turned out to be unexplained-from-the-interaction-model versus
-# unexplained-from-a-species-only model -- different quantities, not a
-# contradiction). That question is settled and its script cited
-# 04_variance_partition.R, now archived.
-#
-# The four decisions, applied cumulatively:
+# 11_variance-partition.R -- variance partition of stem flux (Fig 3), step by step
+# ------------------------------------------------------------------------------
+# From the published partition (raw flux, every measurement) to the revised Figure 3,
+# one decision at a time, so each change in the shares can be attributed:
 #   1. response on the arcsinh scale rather than raw nmol
 #   2. breast height only (drop the 50 and 200 cm rows)
 #   3. growing season only (May-September)
 #   4. the tree as the unit of analysis, averaging each tree's measurements
-#
+# Shares: environment, species, interaction and unexplained, from nested OLS R2.
+# Input: outputs/data/flux_measurements_tree.csv (every stem deployment)
 # Output: outputs/audit/variance_partition_review.txt
 # ==============================================================================
+source("code/lib/outputs.R")
+source("code/lib/flux_transform.R")   # flux_asinh(), FLUX_COFACTOR
 suppressPackageStartupMessages({ library(dplyr); library(tidyr) })
 
 SP <- c("ACRU","ACSA","BEAL","BELE","BEPA","FAGR","FRAM","PIST","QURU","TSCA",
         "CAOV","KALA","PRSE","QUAL","QUVE","SAAL")
-SIGMA <- 0.1
 GROWING_SEASON <- 5:9
 
 # Every stem deployment, not only the model's training rows (see in_rf_training).
@@ -57,7 +48,7 @@ partition <- function(d, response) {
 }
 
 raw    <- function(x) x
-arcsin <- function(x) asinh(x / SIGMA)
+arcsin <- flux_asinh
 
 steps <- list()
 steps[["0. published: raw scale, all heights, all months, per measurement"]] <-
@@ -74,7 +65,7 @@ tree_means <- D %>% filter(is.na(H) | H == 125, month %in% GROWING_SEASON) %>%
   group_by(tree_id) %>%
   summarise(sp = dplyr::first(sp), across(c(DBH, Air, SoilT, VWC, Y), mean),
             chamber = names(sort(table(chamber), decreasing = TRUE))[1], .groups = "drop") %>%
-  mutate(CH4 = SIGMA * sinh(Y), month = NA_integer_, H = NA_real_)
+  mutate(CH4 = FLUX_COFACTOR * sinh(Y), month = NA_integer_, H = NA_real_)
 steps[["4. + tree as unit (current Figure 3)"]] <- partition(tree_means, arcsin)
 
 sink(out_path("variance_partition_review.txt"))
@@ -89,9 +80,7 @@ for (nm in names(steps)) {
   cat(sprintf("%-52s %6d %6d %6.1f %8.1f %8.1f %7.1f\n",
               nm, v["n"], v["trees"], v["env"], v["species"], v["interaction"], v["unexplained"]))
 }
-# The reading is computed from the table, not typed: an earlier hand-written version
-# said the tree-as-unit step RAISED unexplained variance by ~12 points when the
-# table showed it falling, and called the height step negligible when it moved ~7.
+# The reading is computed from the table.
 u  <- sapply(steps, function(v) v[["unexplained"]]); sp <- sapply(steps, function(v) v[["species"]])
 mv <- function(i) { d <- u[i + 1] - u[i]; sprintf("%s it %.1f points", if (d < 0) "lowers" else "raises", abs(d)) }
 cat("\nReading the table (changes in unexplained variance, computed):\n")

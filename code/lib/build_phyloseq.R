@@ -1,17 +1,8 @@
 # ==============================================================================
-# Single definition of the 16S phyloseq object.
-#
-# WHY THIS EXISTS. Nine scripts each rebuilt this object from the same five raw
-# files with their own ~45-line copy of the assembly: the same hardcoded OTU
-# column split (1:589 counts, 590:596 taxonomy), the same seq_id patches, the
-# same single-fastq override, the same duplicate-RowName drop, the same
-# mitochondria/chloroplast removal. Before consolidating, all nine preambles were
-# executed in isolation and their objects fingerprinted: every one produced
-# 71,511 taxa / 587 samples / 6,427,747 counts with identical taxa and sample
-# names -- 1 distinct object out of 9. They had not drifted. The point of moving
-# them here is that they cannot start.
-#
-# Since 2026-10-16 it is built from the canonical tables (see SOURCES below).
+# build_phyloseq.R -- the single definition of the 16S phyloseq object, the
+# organelle rule and the rarefaction (depth 3,500, seed 46814)
+# ------------------------------------------------------------------------------
+# Built from the canonical tables (see SOURCES below).
 #
 # Usage:
 #   source("code/lib/build_phyloseq.R")
@@ -19,7 +10,7 @@
 #   no_mito  <- ps16$ps          # unrarefied, mito/chloroplast removed
 #   ps.ra    <- rarefy_16s(no_mito)
 # Scripts that also need the intermediates take them from the same list:
-#   phylo_tree <- ps16$tree      # 08d, rev_faprotax_dump_HW_SW, manuscript_statistics
+#   phylo_tree <- ps16$tree      # the ASV phylogeny
 #   ddpcr      <- ps16$ddpcr     # manuscript_statistics
 # ==============================================================================
 
@@ -44,7 +35,7 @@ pop_taxa <- function(physeq, badTaxa) {
   phyloseq::prune_taxa(allTaxa, physeq)
 }
 
-# SOURCES (2026-10-16): the canonical tables only, plus the 16S tree.
+# SOURCES: the canonical tables only, plus the 16S tree.
 #   asv_counts_16S, asv_taxonomy_16S   counts and SILVA ranks (main run)
 #   samples_16S                        library -> sample_id (main run)
 #   samples, trees                     sample -> tree, position, material; tree -> species
@@ -58,8 +49,6 @@ pop_taxa <- function(physeq, badTaxa) {
 # "MISC" for libraries with no survey sample), core_type (Inner, Outer, Mineral,
 # Organic), species.x (trees.csv species_code), material (Wood, Soil), the ddPCR
 # columns and X16S_per_ul; plus library_id, sample_id, tree_id, library_type.
-# (Until 2026-10-16 this read the raw ddPCR metadata, core sheet, qPCR sheet, OTU table
-# and mapping file and joined them on seq_id + core_type.)
 build_16s_phyloseq <- function() {
   stopifnot(requireNamespace("phyloseq", quietly = TRUE))
   source("code/lib/ddpcr_constants.R", local = TRUE)      # DDPCR_WELL_UL

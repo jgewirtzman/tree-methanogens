@@ -3,7 +3,7 @@
 # campaign-named flux files (2026-09-30)
 # ------------------------------------------------------------------------------
 # The three tree goFlux scripts used to write shared filenames; they now write
-# per-campaign names (see assemble_campaign_flux.R). A data/ folder restored from
+# per-campaign names (see helper_assemble_campaign_flux.R). A data/ folder restored from
 # an archive made before that change still holds the old names. This script renames
 # each old file to the campaign its CONTENT belongs to -- read from the deployment
 # dates in UniqueID, or the table's own columns -- never from the old name alone,
@@ -13,7 +13,7 @@
 # reported and left alone. Run from the repo root:
 #   Rscript code/tools/migrate_campaign_filenames.R
 # then, if tree_flux_2021_multiheight.csv is absent:
-#   Rscript code/02_flux/assemble_campaign_flux.R 2021_multiheight
+#   Rscript code/02_flux/helper_assemble_campaign_flux.R 2021_multiheight
 # ==============================================================================
 fd <- Sys.getenv("FLUX_DIR", "data/processed/flux")   # override for testing
 campaign_of <- function(f) {

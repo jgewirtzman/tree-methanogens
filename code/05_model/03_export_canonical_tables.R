@@ -2,22 +2,11 @@
 # ==============================================================================
 # 03_export_canonical_tables.R -- write the model's merged tables as CSV
 #
-# The flux data reaches the model through 01_load_and_prep_data.R: one row per
-# data/tables/flux_stem.csv deployment (measurement_id) of the 2021 multi-height,
-# 2023 cross-species and 2020-2021 semi-rigid monthly campaigns, with the tree's
-# trees.csv species, DBH and position and the deployment's environmental drivers.
-#
-# That merged table existed only inside outputs/models/TRAINING_DATA.RData, so
-# every other consumer rebuilt its own version from the component files:
-# 02_campaign_counts.R reads five, 04_variance_partition.R reads two and
-# covers 2023 only, and the Zenodo archive was compiled from a different subset
-# again -- it carried the 2020-2021 semi-rigid and 2023 campaigns but not the
-# 2021 rigid one, so 328 of the 1,130 measurements the model uses had no
-# archived source and the model could not be refit from the archive.
-#
-# This script does not merge anything. It loads what the model was actually
-# fitted on and writes it out, so there is one measurement-level flux table with
-# one producer.
+# Stage B. Writes out the rows the forests were fitted on, plus every other stem
+# deployment with its exclusion reason, so there is one measurement-level flux table
+# with one producer (read by fig03 and 11_variance-partition.R). It merges nothing:
+# the training rows are 01_load_and_prep_data.R's (flux_stem deployments with trees.csv
+# species, DBH and position and the conditions at the deployment).
 #
 # Run after 02_rf_models.R, from the repository root:
 #   Rscript code/05_model/03_export_canonical_tables.R
@@ -38,23 +27,11 @@ e <- new.env(); load(NEED, envir = e)
 tree <- get("tree_train_complete", envir = e)
 soil <- get("soil_train_complete", envir = e)
 
-# Prediction columns are model output, not measurements; they are reproduced by
-# refitting and would otherwise read as observed data in the archive.
-drop_pred <- function(d) d[, !names(d) %in%
-  c("pred_asinh", "pred_flux", "pred_flux_nmol", "y_asinh", "obs_flux_nmol"), drop = FALSE]
-
+# Model columns are not measurements: the response (y_flux, the chamber-harmonised
+# flux) and the out-of-bag prediction (pred_flux) are reproduced by refitting.
+drop_pred <- function(d) d[, !names(d) %in% c("pred_flux", "y_flux"), drop = FALSE]
 tree_out <- drop_pred(tree)
 soil_out <- drop_pred(soil)
-
-# UNIT MISNOMER, corrected at the archive boundary. stem_flux_umol_m2_s and
-# soil_flux_umol_m2_s hold nmol m-2 s-1, not umol; 20_manuscript_statistics.R:1447
-# records this for the equivalent Phi_* columns. Verified against the budget:
-# the mean stem flux read as nmol gives 6.0 mg CH4 m-2 ground yr-1 against the
-# canonical 4.912, while reading it as umol gives 6,005 -- three orders out.
-# Internally the misnomer is survivable because the comment sits beside the code.
-# In a published dataset it is not: nothing travels with the column but its name.
-names(tree_out)[names(tree_out) == "stem_flux_umol_m2_s"] <- "stem_flux_nmol_m2_s"
-names(soil_out)[names(soil_out) == "soil_flux_umol_m2_s"] <- "soil_flux_nmol_m2_s"
 
 # ---- every stem measurement, flagged -- not only the modelled ones -------------
 # Every stem deployment of the three surveys in data/tables/flux_stem.csv is listed,

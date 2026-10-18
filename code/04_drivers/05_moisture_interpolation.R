@@ -1,19 +1,12 @@
 #!/usr/bin/env Rscript
 # ==============================================================================
-# 05_moisture_interpolation.R
+# 05_moisture_interpolation.R -- which interpolator builds the soil-moisture pattern?
 # ------------------------------------------------------------------------------
-# Which interpolator should build the soil-moisture SHAPE?
-#
-# The pipeline uses akima::interp() at its default linear = TRUE, which fits flat
-# triangles between survey points. That is why the Figure 9 soil panel shows
-# planar facets meeting at visible creases, worst near the hull edge where the
-# triangles get long and thin. No comparison was ever recorded: the file
-# earlier interpolation script (03_interpolation_methods.R, since removed) was titled a comparison of Akima, TPS
-# and GAM, and contains TPS and GAM implementations, but they were written to
-# extend the surface beyond the convex hull rather than chosen on accuracy.
+# Stage C (non-fatal comparison behind 04_moisture_surface.R's choice of a thin-plate
+# spline; akima's linear interpolation fits flat triangles between survey points).
 #
 # WHAT THE SURFACE HAS TO DO, and it is not what a naive CV rewards. Since
-# 02_predict_soil_surface.R now uses a fixed pattern times a monthly level, the
+# 02_predict_soil_surface.R uses a fixed pattern times a monthly level, the
 # interpolator sets only the RELATIVE spatial pattern; the mean is imposed by the
 # climatology. So the surface must get the large-scale wet/dry structure right
 # and be smooth enough not to invent features -- matching any individual survey

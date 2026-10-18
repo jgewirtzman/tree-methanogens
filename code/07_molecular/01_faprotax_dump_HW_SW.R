@@ -1,20 +1,17 @@
 # ==============================================================================
-# Helper: dump FAPROTAX HW/SW (Inner/Outer) for ALL functions.
-# Replicates the phyloseq build + FAPROTAX calc of code/08_figures/08d verbatim,
-# then writes the full per-function heartwood/sapwood table used by panel (b) of
-# the hydrogenotrophy synthesis figure (does not modify 08d).
+# 01_faprotax_dump_HW_SW.R -- FAPROTAX functions in heartwood and sapwood (Fig 6b)
+# ------------------------------------------------------------------------------
+# Stage D; run from the repository root. The FAPROTAX calculation of
+# 08_figures/figS10_faprotax.R (same phyloseq object and rarefaction), written out for
+# every function: the per-function heartwood/sapwood table panel (b) of Figure 6 reads.
 # Output: outputs/data/FAPROTAX_all_functions_HW_SW.csv
 # ==============================================================================
 suppressPackageStartupMessages({library(phyloseq);library(microeco);library(tidyverse)})
 
-# 16S phyloseq assembly: single definition in code/lib/build_phyloseq.R.
-# All nine copies of this ~45-line block produced an identical object
-# (71,511 taxa / 587 samples / 6,427,747 counts) before consolidation.
 source("code/lib/build_phyloseq.R")
 .ps16   <- build_16s_phyloseq()
 no_mito <- .ps16$ps
-phylo_tree <- .ps16$tree
-taxa_names(no_mito)<-paste0("ASV",seq(ntaxa(no_mito))); set.seed(46814); ps.rare<-rarefy_even_depth(no_mito,sample.size=3500)
+taxa_names(no_mito)<-paste0("ASV",seq(ntaxa(no_mito))); ps.rare<-rarefy_16s(no_mito)
 ps.ra<-transform_sample_counts(ps.rare,function(x) x/sum(x)*100); colnames(tax_table(ps.ra))<-c("Kingdom","Phylum","Class","Order","Family","Genus","Species")
 ps.wood<-subset_samples(ps.ra,material=="Wood")
 for(i in 1:7) tax_table(ps.wood)[,i]<-paste0(c("k__","p__","c__","o__","f__","g__","s__")[i],tax_table(ps.wood)[,i])

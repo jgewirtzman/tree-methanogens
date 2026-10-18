@@ -1,4 +1,3 @@
-source("code/lib/outputs.R")
 #!/usr/bin/env Rscript
 # ==============================================================================
 # 13_height_form_crossvalidation.R
@@ -40,10 +39,10 @@ source("code/lib/outputs.R")
 # Output: outputs/audit/height_form_crossvalidation.txt
 #         outputs/figures/generated/fig_height_form_cv.png
 # ==============================================================================
+source("code/lib/outputs.R")
 
 suppressMessages({library(dplyr); library(ggplot2); library(tidyr)})
 set.seed(42)
-outdir <- "outputs"; dir.create(outdir, showWarnings=FALSE, recursive=TRUE)
 load("outputs/models/TRAINING_DATA.RData")
 
 pair <- tree_train_complete %>%

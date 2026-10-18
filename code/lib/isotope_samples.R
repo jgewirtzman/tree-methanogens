@@ -4,25 +4,17 @@
 # Applied once, by code/tables/33_isotopes.R, which reads the raw Picarro runs and flags
 # the set in data/tables/isotopes.csv (in_whole_tree_set; tree_id via tree_tags,
 # species via trees.csv). Analyses read that table (code/lib/tables_read.R), never this
-# file. Until 2026-10-01 each analysis selected samples its own way, and the paper quoted two sets that disagreed
-# (n = 125, median -63.7 vs n = 130, median -63.0):
-#   - three scripts kept only samples whose name matched a species in the ddPCR
-#     metadata, dropping three real hemlocks (H6, H7, H304) and both redo runs;
-#   - the canonical script kept a room-air vial ("ROOM AIR H8_NA": its name does
-#     not start with "Amb") and counted WA104 twice (original and redo both pass
-#     the 1.5 ppm floor).
+# file.
 #
 # Rules: whole-tree single-borehole samples from every Picarro results run;
 # exclude atmosphere and room air, incubations (V*), the paired heartwood/sapwood
 # tissue set (names ending H/S), calibration standards; CH4 >= 1.5 ppm (reliable
-# delta13C). No delta13C window is applied (2026-10-02): extreme values are handled
+# delta13C). No delta13C window is applied: extreme values are handled
 # by robust (MM) regression in the source estimate, medians and rank statistics
 # elsewhere, with a Tukey 3 x IQR exclusion reported as a sensitivity check
 # (12_isotopes-canonical.R). Where a "_Redo" exists, the redo replaces the original -- the same
-# rule 03_process_internal_gas.R applies to the GC data. (Species is not attached here:
-# since 2026-10-16 it comes from trees.csv through the table, not from the raw ddPCR
-# metadata or the processed gas table. The atmosphere-vial selector, which nothing
-# called, is removed; tables_read.R reads the atmosphere vials from isotopes.csv.)
+# rule 03_process_internal_gas.R applies to the GC data. Species is not attached here
+# (it comes from trees.csv through the table).
 # ==============================================================================
 suppressPackageStartupMessages({ library(dplyr); library(readr); library(purrr); library(stringr) })
 

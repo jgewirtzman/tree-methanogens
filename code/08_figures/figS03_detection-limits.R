@@ -1,23 +1,21 @@
-source("code/lib/outputs.R")
 #!/usr/bin/env Rscript
 # ==============================================================================
-# figS03_detection-limits.R
+# figS03_detection-limits.R -- Figure S3: detection limits and negative stem fluxes
 # ------------------------------------------------------------------------------
-# SI figure set for precision, detection, and the stem-uptake question.
-#
-#   a  measured flux against its own detection limit, by campaign
-#   b  flux distributions with detection class
-#   c  detected uptake prevalence against instrument precision, by campaign
-#   d  effect of each screening criterion on retained n and apparent uptake
-#
-# Uses the final method: sigma = MAD(dx)/sqrt(2) per field period,
-# MDF = z*sigma/t*flux.term at 90%.
+# Stage E. Run from the repository root.
+#   (a) |flux| against its own minimum detectable flux (MDF), by campaign and type
+#   (b) stem flux distributions by detection class
+#   (c) stem measurements detected as uptake against instrument precision, by campaign
+#   (d) effect of each screening criterion on retained n, uptake share and mean flux
+# Precision sigma = MAD(dx)/sqrt(2) per field period; MDF = z*sigma/t*flux.term at 90%
+# (code/02_flux/03_precision_and_detection.R, which sets flux, MDF, sigma and class).
+# Inputs: data/tables/flux_stem.csv and flux_soil.csv, every surveyed deployment with a
+#   detection limit (the felled oak has none; nor have the two soil deployments that
+#   failed the closure screen)
+# Output: outputs/figures/generated/fig_SI_detection.png; the criterion table to the console
 # ==============================================================================
 suppressMessages({library(dplyr);library(ggplot2);library(tidyr);library(patchwork)})
-outdir <- "outputs"
-# every surveyed deployment with a detection limit: data/tables/flux_stem.csv (the felled
-# oak has none) and flux_soil.csv (the two soil deployments that failed the closure screen
-# have none); fluxes, MDF, sigma and class as 02_flux/03_precision_and_detection.R set them
+source("code/lib/outputs.R")
 source("code/lib/tables_read.R")
 CAMP <- c(`2021_multiheight`="Height+molecular", `2023_cross_species`="Cross-species", monthly_2020_2021="Monthly survey")
 .g <- function(d, type) data.frame(camp=unname(CAMP[d$campaign]), type=type, best.flux=d$CH4_flux_nmol_m2_s,

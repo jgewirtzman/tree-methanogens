@@ -1,5 +1,4 @@
 #!/usr/bin/env Rscript
-source("code/lib/outputs.R")
 # ==============================================================================
 # 25_plant-traits.R -- species traits vs the stem methane-cycling community
 # (Results §9, Methods S5, Fig S25 via code/08_figures/figS28_plant-traits.R)
@@ -46,6 +45,7 @@ source("code/lib/outputs.R")
 # Writes outputs/data/traits_included.csv, outputs/data/traits_correlations.csv,
 #        outputs/audit/plant_traits.txt
 # ==============================================================================
+source("code/lib/outputs.R")
 suppressPackageStartupMessages({ library(tidyverse); library(vegan); library(pls) })
 set.seed(42)
 

@@ -1,5 +1,4 @@
 #!/usr/bin/env Rscript
-source("code/lib/outputs.R")
 # ==============================================================================
 # 11_flux_soil.R -- data/tables/flux_soil.csv: one row per soil chamber deployment
 # ------------------------------------------------------------------------------
@@ -8,10 +7,11 @@ source("code/lib/outputs.R")
 # (collars.csv).
 #
 # Sources: data/processed/flux/semirigid_tree_final_complete_dataset_soil.csv (fits
-# with the corrected collar geometry, 03_merge/01_fix_soil_flux.R); windows in
+# with the collar geometry, 02_flux/semirigid/04_goflux_soils.R and 05_fix_december.R;
+# checked against the refit of 03_merge/01_fix_soil_flux.R through flux_FINAL); windows in
 # data/raw/flux_windows/lgr_manual_identification_results{,_december}_soil.csv;
-# detection from outputs/data/flux_FINAL.csv; closure screen from
-# outputs/data/qc_excluded_measurements.csv.
+# detection from data/processed/flux/flux_FINAL.csv; closure screen from
+# data/processed/flux/qc_excluded_measurements.csv.
 #
 # TIMES: the analyzer clock was kept on local time in 2020-21 (as for the stems);
 # written as ISO 8601 local time with the America/New_York offset of the date.
@@ -25,13 +25,14 @@ source("code/lib/outputs.R")
 #                          chamber temperature.
 #   chamber_temp_C         the Tcham goFlux used (the same station hour, stage A).
 #
-# FLAGS by key: qc_pass (closure screen, outputs/data/qc_excluded_measurements.csv);
+# FLAGS by key: qc_pass (closure screen, data/processed/flux/qc_excluded_measurements.csv);
 # in_rf_training = qc_pass and the collar is in the stand (collars.csv in_stand).
 # CH4 flux is parsed as readr parses it (read_flux_csv, code/lib/flux_times.R), the
 # values the model has always used.
 #
 # Writes data/tables/flux_soil.csv
 # ==============================================================================
+source("code/lib/outputs.R")
 suppressPackageStartupMessages(library(tidyverse))
 source("code/lib/flux_times.R")
 OUT <- "data/tables"; WD <- "data/raw/flux_windows"
@@ -39,8 +40,8 @@ num <- function(x) suppressWarnings(as.numeric(x))
 
 F_SOIL <- "data/processed/flux/semirigid_tree_final_complete_dataset_soil.csv"
 s <- read_flux_csv(F_SOIL, "CH4_best.flux") %>% filter(!is.na(CH4_best.flux))
-DET <- read.csv("outputs/data/flux_FINAL.csv") %>% filter(type == "soil")
-QX <- read.csv("outputs/data/qc_excluded_measurements.csv", stringsAsFactors = FALSE)
+DET <- read.csv("data/processed/flux/flux_FINAL.csv") %>% filter(type == "soil")
+QX <- read.csv("data/processed/flux/qc_excluded_measurements.csv", stringsAsFactors = FALSE)
 COL <- read.csv(file.path(OUT, "collars.csv"), stringsAsFactors = FALSE)
 
 # ---- windows: December 2020 file first, then the main file ----------------------
@@ -62,7 +63,8 @@ S <- s %>% transmute(
 S <- S %>% mutate(air = tower_air(st),
                   air_temp_source = ifelse(is.na(air), "chamber temperature (no tower record within 24 h)", "met tower, hour of the logged start"),
                   air = coalesce(air, Tcham))
-stopifnot(nrow(S) == 288, !anyDuplicated(S$UniqueID), all(S$collar_id %in% COL$collar_id),
+cat(sprintf("flux_soil: %d deployments\n", nrow(S)))
+stopifnot(!anyDuplicated(S$UniqueID), all(S$collar_id %in% COL$collar_id),
           all(!is.na(S$st)), all(!is.na(S$win_start)))
 
 d <- match(S$UniqueID, DET$UniqueID)

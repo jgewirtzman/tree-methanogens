@@ -1,5 +1,4 @@
 #!/usr/bin/env Rscript
-source("code/lib/outputs.R")
 # ==============================================================================
 # 32_internal_gas.R -- internal_gas.csv (data/tables/)
 # ------------------------------------------------------------------------------
@@ -37,14 +36,12 @@ source("code/lib/outputs.R")
 # RO_unidentified_2024 and BB11_or_BB4_2024. species_recorded: the species code on
 # the 2021 sample sheet (Species.ID), as written; NA for the other campaigns.
 #
-# Checks: (the comparison of the 2021 and 2024 rows with the old archive,
-# data/compiled/internal_gas.csv, was removed 2026-10-16: the archive is now a copy of
-# data/tables/); the felled-oak
-# values equal those of the fig07 / 20_manuscript_statistics.R code, run verbatim
+# Checks: the felled-oak values equal those of the fig07 / 20_manuscript_statistics.R code, run verbatim
 # (to 1e-12, relative: the two fits differ only in floating-point summation order).
 #
 # Writes data/tables/internal_gas.csv, outputs/audit/internal_gas_build.txt
 # ==============================================================================
+source("code/lib/outputs.R")
 suppressPackageStartupMessages(library(tidyverse))
 OUT <- "data/tables"
 G21 <- "data/processed/internal_gas/sample_data_only.csv"

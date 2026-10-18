@@ -1,29 +1,24 @@
-source("code/lib/outputs.R")
 # ==============================================================================
-# 19_gene-rf.R -- do gene abundances predict tree-level flux out of sample?
+# 19_gene-rf.R -- do gene abundances predict tree-level flux out of sample? (Methods S4)
 # ------------------------------------------------------------------------------
-# Replaces the gene random forests that stood in the SI tree-level methods until 2026-10-01
-# ("49.9% of variance", "46.2%", H-statistics), which no script in the pipeline
-# reproduced. Those were out-of-bag or in-sample figures on ~120 trees with many
-# predictors; the question that matters is narrower and testable: beyond species
-# and environment, do the genes improve prediction of a held-out tree's flux?
-#
-# Unit: one row per tree (the 121 trees with mcrA, pmoA, mmoX and flux; the table
-# behind Fig. S21 and Methods S2). Response: tree-mean flux on the arcsinh scale
-# (cofactor 0.1), as in Fig. S21. Environment: DBH and soil VWC at the tree.
-# Genes: log10 area-weighted mcrA, pmoA, mmoX.
+# Beyond species and environment, do the genes improve prediction of a held-out
+# tree's flux?
+# Unit: one row per tree with mcrA, pmoA, mmoX and flux (the table behind Fig. S22).
+# Response: tree-mean flux, arcsinh (cofactor 0.1, log10 units), as in Fig. S22.
+# Environment: DBH and soil VWC at the tree. Genes: log10 area-weighted mcrA, pmoA, mmoX.
 # Skill: repeated 5-fold cross-validation (30 repeats), R2 = 1 - SSE/SST on the
 # held-out trees, with the same folds for every model so differences are paired.
 # Outputs: outputs/data/gene_rf_cv.csv, outputs/audit/gene_rf_cv.txt
 # ==============================================================================
+source("code/lib/outputs.R")
 suppressWarnings(suppressMessages(source("code/07_molecular/helper_scale_dependent_gene_patterns.R")))
 suppressPackageStartupMessages({ library(dplyr); library(ranger) })
 
-asf <- function(x) asinh(x / 0.1) / log(10)
+source("code/lib/flux_transform.R")   # flux_asinh10()
 # DBH (trees.csv) and soil VWC at the tree (code/lib/soil_fill.R attach_soil(), unit "tree")
 env <- survey_2021_trees(soil = TRUE) %>% transmute(tree_id, dbh, vwc = VWC_mean)
 D <- tree_level_complete %>%
-  transmute(tree_id, species = factor(species), y = asf(CH4_flux),
+  transmute(tree_id, species = factor(species), y = flux_asinh10(CH4_flux),
             lmcra = log10(mcrA + 1), lpmoa = log10(pmoA + 1), lmmox = log10(mmoX + 1)) %>%
   left_join(env, by = "tree_id") %>%
   filter(complete.cases(.))

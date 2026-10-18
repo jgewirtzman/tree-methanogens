@@ -25,7 +25,7 @@ RESULTS <- c(
   # tables
   "table1_campaign_counts.csv"   = "outputs/data/campaign_counts.csv",
   "tableS2_known_putative_taxa.csv" = "outputs/data/known_putative_taxa_table.csv",
-  "tableS3_mmo_capacity_screen.csv" = "code/lib/mmo_capacity_screen_table_S5_2026-09-30.csv",  # committed NCBI run
+  "tableS3_mmo_capacity_screen.csv" = "outputs/data/table_S3_mmo_capacity_screen.csv",
   "tableS5_ddpcr_16s_concordance.csv" = "outputs/data/tbl_ddpcr_16s_concordance.csv",
   "tableS6_dbh_by_species_campaign.csv" = "outputs/data/dbh_by_species_campaign.csv",
   # PICRUSt2 pathway associations (Fig 6c, Figs S13-S15)

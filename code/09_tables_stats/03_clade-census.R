@@ -1,4 +1,3 @@
-source("code/lib/outputs.R")
 # ==============================================================================
 # 03_clade-census.R
 # ------------------------------------------------------------------------------
@@ -14,6 +13,7 @@ source("code/lib/outputs.R")
 #
 # Edits nothing. Output: outputs/audit/clade_census.txt
 # ==============================================================================
+source("code/lib/outputs.R")
 suppressMessages({library(phyloseq); library(dplyr)})
 source("code/lib/build_phyloseq.R"); source("code/lib/load_methanotroph_definitions.R")
 defs <- load_methanotroph_defs()
@@ -26,7 +26,7 @@ TX_ALL <- data.frame(tax_table(ps), stringsAsFactors = FALSE)
 names(TX_ALL)[1:7] <- c("Kingdom","Phylum","Class","Order","Family","Genus","Species")
 reads_all <- taxa_sums(ps)
 
-set.seed(46814); pr <- suppressMessages(rarefy_even_depth(ps, sample.size = 3500, verbose = FALSE))
+pr <- suppressMessages(rarefy_16s(ps))
 sd <- data.frame(sample_data(pr))
 sd$comp <- c(Inner="Heartwood", Outer="Sapwood", Mineral="Mineral", Organic="Organic")[sd$core_type]
 keep <- !is.na(sd$comp) & !is.na(sd$species.x) & sd$species.x != ""

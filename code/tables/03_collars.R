@@ -1,5 +1,4 @@
 #!/usr/bin/env Rscript
-source("code/lib/outputs.R")
 # ==============================================================================
 # 03_collars.R -- data/tables/collars.csv: one row per soil collar
 # ------------------------------------------------------------------------------
@@ -12,6 +11,7 @@ source("code/lib/outputs.R")
 # plot coordinates is reported alongside as a check.
 # Writes data/tables/collars.csv
 # ==============================================================================
+source("code/lib/outputs.R")
 suppressPackageStartupMessages(library(tidyverse))
 source("code/lib/geometry.R"); source("code/lib/soil_collars.R")
 OUT <- "data/tables"; dir.create(OUT, showWarnings = FALSE, recursive = TRUE)

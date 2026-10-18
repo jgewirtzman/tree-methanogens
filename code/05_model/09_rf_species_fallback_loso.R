@@ -1,40 +1,14 @@
 #!/usr/bin/env Rscript
 # ==============================================================================
-# 09_rf_species_fallback_loso.R
+# 09_rf_species_fallback_loso.R -- predicting a species the model never learned
 # ------------------------------------------------------------------------------
-# How should the model predict a stem whose species it never learned?
+# Stage D; run from the repository root. Leave-one-species-out: hold out every
+# measurement of one species, fit on the rest, predict the held-out species -- the
+# situation an unmeasured inventory species presents. Three schemes:
 #
-# THE PROBLEM. species_clean lumps any species with fewer than 10 measurements
-# into a single SPECIES_OTHER level. In this inventory that level receives 1,971
-# stems -- 24.6% of the count -- but only 3.7% of the 0-2 m band area, because
-# 1,898 of them are Kalmia latifolia, an understory shrub. The bucket behind that
-# level holds 19 measurements: Quercus velutina 6, Carya ovata 3, Kalmia 3,
-# Sassafras albidum 3, Betula populifolia 2, Carya laciniosa 1, unknown 1. So
-# 1,898 mountain-laurel shrubs inherit a prediction that is 84% canopy hardwood,
-# and they come out 44% HIGHER than trained species (median 0.280 vs 0.195
-# nmol m-2 s-1) -- the reddest patches on the Figure 9 map.
-#
-# It also is not uniformly trivial in area: Quercus velutina is 19 stems but
-# 2.52 m2 of basal area, 1.5% of the stand, and it IS measured (it is the felled
-# black oak) -- just below the threshold that would give it its own level.
-#
-# THREE CANDIDATE SCHEMES, compared by leave-one-species-out: hold out every
-# measurement of one species, fit on the rest, predict the held-out species. That
-# is exactly the situation an unmeasured inventory species presents.
-#
-#   pooled        assign the held-out species to SPECIES_OTHER (current behaviour)
-#   genus         assign it to a genus-level factor when the genus is measured,
-#                 else SPECIES_OTHER
-#   species_free  drop species from the predictor set entirely and predict from
-#                 size and environment alone
-#
-# The species-free scheme is the honest null: for a species you never measured,
-# predict from what you did measure about it -- diameter, height, moisture,
-# temperature -- rather than borrowing a congener's identity.
-#
-# The earlier rf_leave_one_species_out.R is superseded: it used the asinh
-# response and feature matrix from before the model lock, and read a traits table
-# from an absolute path outside this repository, so it cannot reproduce.
+#   pooled        the held-out species goes to SPECIES_OTHER
+#   genus         to a genus-level factor when the genus is measured, else SPECIES_OTHER
+#   species_free  species dropped from the predictors; size and environment only
 #
 # Output: outputs/data/species_fallback_loso.csv / .txt
 # ==============================================================================

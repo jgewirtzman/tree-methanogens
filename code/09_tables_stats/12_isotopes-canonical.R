@@ -1,4 +1,3 @@
-source("code/lib/outputs.R")
 # ==============================================================================
 # ISOTOPES — FINAL settled workflow
 # ==============================================================================
@@ -23,9 +22,9 @@ source("code/lib/outputs.R")
 #    dominated -> eps_C is an APPARENT, corroborating fractionation).
 #  * Single delta-13C only (no dD-CH4): a stated limitation.
 # ==============================================================================
+source("code/lib/outputs.R")
 
 suppressPackageStartupMessages({ library(tidyverse); library(gridExtra) })
-out <- "outputs"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
 
 # ---- 1. LOAD + QC ------------------------------------------------------------
 source("code/lib/tables_read.R")   # isotopes.csv: whole-tree set flagged by the rule in code/lib/isotope_samples.R
@@ -97,6 +96,7 @@ p_conv_eps <- ggplot(wt, aes(ch4_ppm, eps_C)) + geom_point(alpha=.5, size=1.3) +
   coord_cartesian(ylim=c(-50,120)) +
   labs(title="(c) apparent fractionation convergence", subtitle=sprintf("plateau eps_C ~ %.0f-%.0f permil", eps_src_atm, eps_src_keel),
        x="internal CH4 (ppm, log)", y=expression(epsilon[C]~"(permil)")) + theme_bw(base_size=10)
+grDevices::pdf(NULL)   # arrangeGrob() measures text on the open device; without one it writes Rplots.pdf
 ggsave(out_path("ISOTOPES_fig1_source.png"), arrangeGrob(p_keel, p_conv_ch4, p_conv_eps, nrow=1),
        width=13.5, height=4.3, dpi=150)
 

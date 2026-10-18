@@ -1,5 +1,4 @@
 #!/usr/bin/env Rscript
-source("code/lib/outputs.R")
 # ==============================================================================
 # 01_species.R -- data/tables/species.csv: one row per species code used anywhere
 # ------------------------------------------------------------------------------
@@ -16,6 +15,7 @@ source("code/lib/outputs.R")
 # with trait_species.csv; gymnosperm agrees with geometry.R.
 # Writes data/tables/species.csv
 # ==============================================================================
+source("code/lib/outputs.R")
 suppressPackageStartupMessages(library(tidyverse))
 source("code/lib/tree_ids.R"); source("code/lib/geometry.R"); source("code/lib/species_levels.R")
 OUT <- "data/tables"; dir.create(OUT, showWarnings = FALSE, recursive = TRUE)

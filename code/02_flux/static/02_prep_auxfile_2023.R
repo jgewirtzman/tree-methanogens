@@ -1,31 +1,39 @@
 # ==============================================================================
-# Prepare Static Chamber Auxiliary File (2023)
-# ==============================================================================
-# Purpose: Prepares goFlux auxiliary file for 2023 static chamber measurements.
+# 02_prep_auxfile_2023.R -- goFlux auxiliary file for the 2023 cross-species
+#                           static-chamber campaign
+# ------------------------------------------------------------------------------
+# Stage A; workdir: this script's folder (code/02_flux/static/).
 #
-# Pipeline stage: 01 Flux Processing (static)
-# Run after: None
+# Each deployment on the 2023 field sheet gets its chamber's surface area (by chamber
+# series, the letter of the chamber ID; chamber "6" is a D chamber), the series' mean
+# measured chamber volume, and the tubing and analyzer volumes (Vtot = chamber + tubing
+# + analyzer; no drierite). additional_vol.csv lists 70 cm3 for the LGR cell, goFlux's
+# example value for the larger benchtop UGGA; the microportable used here is
+# ANALYZER_VOLUME_CM3 (code/lib/chamber_constants.R).
 #
-# Inputs:
-#   - 2023 field data and dimension files
+# Tcham: the sheet's air temperature (degF converted), else the stem temperature
+#   measured at the deployment (every deployment has one or the other). Pcham: 101.325 kPa.
+# UniqueID: date_TreeTag_starttime. The end time 21:31:15 on the sheet is a typo for
+#   12:35:15. obs_length_seconds is the sheet's own closure length (start to end), kept
+#   as recorded; the closure windows are the hand-picked ones (data/raw/flux_windows/),
+#   and obs.win() is given its search length as an argument (04_goflux_trees_2023.R).
+# vwc_mean: mean of the three soil-moisture readings, "Saturated" counted as 60 %
+#   (the probe maximum).
 #
-# Outputs:
-#   - ymf2023_goflux_auxfile.csv
+# Inputs:  data/raw/field_data/static_chamber_field/Compiled YMF Data 2023 - Sheet1.csv
+#          data/raw/field_data/static_chamber_dims/{surface_area,additional_vol,simplified_volume}.csv
+# Outputs: data/processed/flux/ymf2023_goflux_auxfile.csv
 # ==============================================================================
 
 library(dplyr)
 library(readr)
-library(lubridate)
 library(stringr)
 library(purrr)
 
 source("../../lib/chamber_constants.R")  # ANALYZER_VOLUME_CM3
 
 # Function to create goFlux-compatible auxfile from YMF 2023 data
-create_ymf2023_auxfile <- function(data_path, 
-                                   surface_area_file,
-                                   additional_vol_file,
-                                   simplified_vol_file = NULL) {
+create_ymf2023_auxfile <- function(data_path, surface_area_file, additional_vol_file, simplified_vol_file) {
   
   cat("=== Loading YMF 2023 Data ===\n")
   
@@ -39,11 +47,7 @@ create_ymf2023_auxfile <- function(data_path,
   surface_area <- read_csv(surface_area_file, show_col_types = FALSE)
   additional_vol <- read_csv(additional_vol_file, show_col_types = FALSE)
   
-  if (!is.null(simplified_vol_file) && file.exists(simplified_vol_file)) {
-    simplified_vol <- read_csv(simplified_vol_file, show_col_types = FALSE)
-  } else {
-    simplified_vol <- NULL
-  }
+  simplified_vol <- read_csv(simplified_vol_file, show_col_types = FALSE)
   
   # Process surface area data
   cat("\n=== Processing Surface Area Data ===\n")
@@ -77,36 +81,26 @@ create_ymf2023_auxfile <- function(data_path,
       analyzer_cell_volume_cm3 = ifelse(analyzer_name == "LGR", ANALYZER_VOLUME_CM3,
                                         as.numeric(analyzer_cell)),
       tubing_volume_cm3 = as.numeric(tubing),
-      filter_volume_cm3 = 0  # No drierite used
+      filter_volume_cm3 = 0
     ) %>%
     select(analyzer_name, analyzer_cell_volume_cm3, tubing_volume_cm3, filter_volume_cm3)
   
   print(analyzer_volumes)
   
-  # Process chamber volumes if available
+  # mean measured chamber volume per series
   cat("\n=== Processing Chamber Volume Data ===\n")
-  if (!is.null(simplified_vol)) {
-    names(simplified_vol) <- gsub("\\n|\\r", "_", names(simplified_vol))
-    names(simplified_vol) <- gsub("\\s+", "_", names(simplified_vol))
-    
-    chamber_volumes <- simplified_vol %>%
-      filter(!is.na(`Chamber_Alt_ID`) & !is.na(`Total_Volume_(mL)`)) %>%
-      mutate(
-        chamber_series = `Chamber_Alt_ID`,
-        chamber_volume_cm3 = as.numeric(`Total_Volume_(mL)`)
-      ) %>%
-      filter(!is.na(chamber_volume_cm3) & chamber_series %in% c("A", "B", "C", "D")) %>%
-      group_by(chamber_series) %>%
-      summarise(
-        avg_chamber_volume_cm3 = mean(chamber_volume_cm3, na.rm = TRUE),
-        .groups = 'drop'
-      )
-    
-    print(chamber_volumes)
-  } else {
-    chamber_volumes <- NULL
-    cat("No chamber volume data - using estimates\n")
-  }
+  names(simplified_vol) <- gsub("\\n|\\r", "_", names(simplified_vol))
+  names(simplified_vol) <- gsub("\\s+", "_", names(simplified_vol))
+  chamber_volumes <- simplified_vol %>%
+    filter(!is.na(`Chamber_Alt_ID`) & !is.na(`Total_Volume_(mL)`)) %>%
+    mutate(
+      chamber_series = `Chamber_Alt_ID`,
+      chamber_volume_cm3 = as.numeric(`Total_Volume_(mL)`)
+    ) %>%
+    filter(!is.na(chamber_volume_cm3) & chamber_series %in% c("A", "B", "C", "D")) %>%
+    group_by(chamber_series) %>%
+    summarise(avg_chamber_volume_cm3 = mean(chamber_volume_cm3, na.rm = TRUE), .groups = "drop")
+  print(chamber_volumes)
   
   # Create chamber mapping for 2023 data
   cat("\n=== Processing Chamber Mapping ===\n")
@@ -132,27 +126,9 @@ create_ymf2023_auxfile <- function(data_path,
   chamber_dimensions <- chamber_mapping %>%
     left_join(surface_area_clean, by = "chamber_series")
   
-  # Join with volumes
-  if (!is.null(chamber_volumes)) {
-    chamber_dimensions <- chamber_dimensions %>%
-      left_join(chamber_volumes, by = "chamber_series") %>%
-      rename(chamber_volume_cm3 = avg_chamber_volume_cm3)
-  } else {
-    # Use estimated volumes based on relative surface areas
-    b_surface_area <- surface_area_clean$surface_area_cm2[surface_area_clean$chamber_series == "B"]
-    estimated_b_volume <- 590
-    
-    chamber_dimensions <- chamber_dimensions %>%
-      mutate(
-        chamber_volume_cm3 = case_when(
-          chamber_series == "B" ~ estimated_b_volume,
-          chamber_series == "C" ~ estimated_b_volume * (surface_area_cm2 / b_surface_area),
-          chamber_series == "D" ~ estimated_b_volume * (surface_area_cm2 / b_surface_area),
-          chamber_series == "A" ~ estimated_b_volume * (surface_area_cm2 / b_surface_area),
-          TRUE ~ NA_real_
-        )
-      )
-  }
+  chamber_dimensions <- chamber_dimensions %>%
+    left_join(chamber_volumes, by = "chamber_series") %>%
+    rename(chamber_volume_cm3 = avg_chamber_volume_cm3)
   
   print(chamber_dimensions)
   
@@ -221,8 +197,7 @@ create_ymf2023_auxfile <- function(data_path,
       air_temp_C = (air_temp_F - 32) * 5/9,
       stem_temp_C = as.numeric(`Stem Temp (°C)`),
       
-      # Calculate mean VWC from the three VWC columns
-      # Handle "Saturated" as probe maximum (~60% for most probes)
+      # mean of the three VWC readings; "Saturated" = 60 % (probe maximum)
       vwc_1_raw = `VWC 1 (%)`,
       vwc_2_raw = `VWC 2 (%)`,
       vwc_3_raw = `VWC 3 (%)`,
@@ -276,11 +251,6 @@ create_ymf2023_auxfile <- function(data_path,
       Tcham = ifelse(!is.na(air_temp_C), air_temp_C, stem_temp_C),
       Tcham_source = ifelse(!is.na(air_temp_C), "field sheet air temperature", "field sheet stem temperature (no air temperature)"),
       Pcham = 101.325
-      # No obs.length column: the closure windows are the hand-picked ones
-      # (data/raw/flux_windows/), and goFlux obs.win() is given its search length as an
-      # argument (04_goflux_trees_2023.R); obs_length_seconds keeps the sheet's own
-      # closure length (start to end time) as recorded. (Until 2026-10-17 a missing or
-      # zero length was filled with 600 s.)
     ) %>%
     filter(!is.na(datetime_start))  # Keep only valid measurements
   stopifnot(!anyNA(auxfile$Tcham))
@@ -323,13 +293,7 @@ create_ymf2023_auxfile <- function(data_path,
   return(auxfile)
 }
 
-# Execute the function
-cat("Creating auxfile for YMF 2023 data...\n\n")
-
-# Update these paths to your file locations
 base_path <- "../../../data/raw/field_data"
-
-# Create the auxfile
 auxfile_2023 <- create_ymf2023_auxfile(
   data_path = "../../../data/raw/field_data/static_chamber_field/Compiled YMF Data 2023 - Sheet1.csv",
   surface_area_file = file.path(base_path, "static_chamber_dims/surface_area.csv"),
@@ -337,12 +301,5 @@ auxfile_2023 <- create_ymf2023_auxfile(
   simplified_vol_file = file.path(base_path, "static_chamber_dims/simplified_volume.csv")
 )
 
-# Save the auxfile
 write_csv(auxfile_2023, "../../../data/processed/flux/ymf2023_goflux_auxfile.csv")
-cat("\n=== Auxfile saved to: ymf2023_goflux_auxfile.csv ===\n")
-
-# Display sample
-cat("\nSample of auxfile (first 3 rows, key columns):\n")
-print(auxfile_2023 %>% 
-        select(UniqueID, start.time, Area, Vtot, Tcham, obs_length_seconds, `Chamber ID`, `Tree Tag`) %>%
-        head(3))
+cat("\nWrote data/processed/flux/ymf2023_goflux_auxfile.csv:", nrow(auxfile_2023), "deployments\n")

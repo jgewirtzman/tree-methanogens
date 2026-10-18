@@ -1,8 +1,7 @@
-source("code/lib/outputs.R")
 # ==============================================================================
-# 07_mass-basis-sensitivity.R
+# 07_mass-basis-sensitivity.R -- gene copies per gram, dry vs wet basis
 # ------------------------------------------------------------------------------
-# Gene copies per gram on a dry vs wet basis. Wood was freeze-dried
+# Stage D; run from the repository root. Gene copies per gram on a dry vs wet basis. Wood was freeze-dried
 # before weighing (dry basis); soil was weighed field-moist (fresh basis). How much
 # does the choice of a common basis change the results?
 #
@@ -16,12 +15,11 @@ source("code/lib/outputs.R")
 # dry vs fresh; paired heartwood:sapwood contrast. Ratios of two genes from one
 # extract (e.g. mcrA:methanotroph) are basis-invariant and are not re-tested.
 #
-# Result (2026-09-30): heartwood exceeds soil 14-30x on every basis (never two
-# orders of magnitude); species ranking rho = 0.72 dry vs fresh, because core water
-# content spans 10-74%; heartwood:sapwood unchanged. Recommendation: dry basis.
+# The results are in the output; the paper uses the dry basis for wood.
 #
 # Output: outputs/audit/mass_basis_sensitivity.txt
 # ==============================================================================
+source("code/lib/outputs.R")
 suppressMessages(library(dplyr))
 L    <- function(x) log10(x + 1)
 source("code/lib/tables_read.R")

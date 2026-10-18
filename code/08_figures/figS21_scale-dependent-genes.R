@@ -1,30 +1,26 @@
+# ==============================================================================
+# figS21_scale-dependent-genes.R -- Figure S22: gene-flux relationships across scales
+# ------------------------------------------------------------------------------
+# Stage E. Run from the repository root.
+# Four columns, one flux scale (arcsinh, cofactor 0.1, log10 units, as Figs 1-3);
+# every aggregate is transform-then-aggregate on both axes, so median vs mean
+# reflects aggregation rather than raw right skew.
+#   M1  Individual          individual log-gene, individual arcsinh flux
+#   M3  Aggregate predictor species-median log-gene, individual arcsinh flux
+#   M2  Species median      per species, median of (log-gene, arcsinh flux)
+#   M2m Species mean        per species, mean of (log-gene, arcsinh flux)
+# Rows: mcrA, pmoA, mmoX, pmoA+mmoX, ratio; bottom row: R2 bars. Each panel reports
+# slope, R2 and p of the gene-only model on the plotted response.
+# Data: code/07_molecular/helper_scale_dependent_gene_patterns.R (tables only).
+# Output: outputs/figures/generated/figS11_final.png (assembled as Figure S22)
+# ==============================================================================
 source("code/lib/outputs.R")
-# ==============================================================================
-# S11 rebuilt: 4-column scale-dependent gene-flux figure.
-# ALL columns on a common arcsinh flux scale (asinh(x/0.1)/log10; cofactor matches Fig 1/2/3),
-# and aggregation is TRANSFORM-THEN-AGGREGATE on both axes, so the median-vs-mean
-# comparison reflects real aggregation, not raw right-skew sensitivity.
-#   M1 Individual         : individual log-gene, individual arcsinh-flux
-#   M3 Aggregate predictor: species-MEDIAN log-gene, INDIVIDUAL arcsinh-flux    [bridge]
-#   M2 Species-median     : per species, MEDIAN of (log-gene, arcsinh-flux)
-#   M2m Species-mean      : per species, MEAN of (log-gene, arcsinh-flux)       [robustness]
-# Rows = 5 predictors (mcrA, pmoA, mmoX, pmoA+mmoX, ratio). Bottom row = R2 bars.
-# Every panel reports slope + R2 + p from a GENE-ONLY simple model on the plotted
-# (arcsinh) response, so stats match the drawn line and R2 bars are the gene's R2.
-#
-# Sources the original generator for data/theme/palette/pseudolog only; builds ALL
-# panels fresh. ORIGINAL UNTOUCHED; its two re-rendered outputs git-restored by the
-# wrapper. Tags a..t (row-major) + u,v,w,x bars.
-# Output: outputs/figures/generated/figS11_final.png
-# ==============================================================================
 suppressWarnings(suppressMessages(
   source("code/07_molecular/helper_scale_dependent_gene_patterns.R")
 ))
 suppressPackageStartupMessages({ library(tidyverse); library(patchwork); library(grid) })
-out <- "outputs"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
-COFAC <- 0.1                             # arcsinh cofactor — matches Fig 1/2/3; conclusions robust across 0.05-2 (sweep)
-asf <- function(x) asinh(x / COFAC) / log(10)
-ybrk <- asf(c(0, 0.1, 1))
+source("code/lib/flux_transform.R")   # flux_asinh10(), cofactor 0.1 (conclusions robust across 0.05-2)
+ybrk <- flux_asinh10(c(0, 0.1, 1))
 
 PRED <- tibble(
   key   = c("mcrA", "pmoA", "mmoX", "methanotroph", "ratio"),
@@ -38,12 +34,12 @@ xlab_mn <- list(mcrA=expression(Mean~log[10]~italic(mcrA)), pmoA=expression(Mean
 # per-individual log-gene + arcsinh flux
 TL <- tree_level_complete %>% mutate(
   lg_mcra=log10(mcrA+1), lg_pmoa=log10(pmoA+1), lg_mmox=log10(mmoX+1),
-  lg_meth=log10(methanotroph_total+1), lg_ratio=log_ratio, af=asf(CH4_flux))
+  lg_meth=log10(methanotroph_total+1), lg_ratio=log_ratio, af=flux_asinh10(CH4_flux))
 # species aggregates: transform THEN aggregate (median & mean of each transformed value)
 gene_agg <- TL %>% group_by(species, species_id) %>%
   summarise(across(c(lg_mcra, lg_pmoa, lg_mmox, lg_meth, lg_ratio), list(med=~median(.x, na.rm=TRUE), mean=~mean(.x, na.rm=TRUE)), .names="{.col}_{.fn}"),
             n_trees=n(), .groups="drop")
-flux_agg <- flux_all %>% mutate(af=asf(CH4_flux)) %>% group_by(species, species_id) %>%
+flux_agg <- flux_all %>% mutate(af=flux_asinh10(CH4_flux)) %>% group_by(species, species_id) %>%
   summarise(med_af=median(af, na.rm=TRUE), mean_af=mean(af, na.rm=TRUE), n_flux=n(), .groups="drop")
 spp <- gene_agg %>% inner_join(flux_agg, by=c("species","species_id")) %>% filter(n_trees>=5, n_flux>=5)
 

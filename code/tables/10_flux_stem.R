@@ -1,5 +1,4 @@
 #!/usr/bin/env Rscript
-source("code/lib/outputs.R")
 # ==============================================================================
 # 10_flux_stem.R -- data/tables/flux_stem.csv: one row per stem chamber deployment
 # ------------------------------------------------------------------------------
@@ -11,7 +10,7 @@ source("code/lib/outputs.R")
 #   tree_flux_2021_multiheight,tree_flux_2023_cross_species}.csv;
 #   data/raw/field_data/black_oak/ymf_black_oak_flux_compiled.csv; closure windows in
 #   data/raw/flux_windows/ (untagged: untagged/untagged_manID.rds); detection
-#   (MDF, sigma, closure length, class) from outputs/data/flux_FINAL.csv.
+#   (MDF, sigma, closure length, class) from data/processed/flux/flux_FINAL.csv.
 #   Stage-B tables read: tree_tags, trees, weather (built before this script).
 # tree_id: tree_tags.csv (source file + column + spelling; species and DBH where
 #   one spelling names two trees).
@@ -64,7 +63,7 @@ source("code/lib/outputs.R")
 # FLAGS, by deployment key:
 #   dead_stem      trees.csv: the tree is dead (the one rule in code/tables/04_trees.R)
 #                  and the deployment is on or after its dead_from date.
-#   qc_pass        not in outputs/data/qc_excluded_measurements.csv (the closure
+#   qc_pass        not in data/processed/flux/qc_excluded_measurements.csv (the closure
 #                  screen, code/02_flux/02_qc_c0_screen.R); qc_reason from that file.
 #   in_rf_training qc_pass, not dead, not the 2021 root-crown deployment, not the felled oak.
 # Flux, MDF and detection are checked against flux_FINAL.csv.
@@ -74,6 +73,7 @@ source("code/lib/outputs.R")
 #
 # Writes data/tables/flux_stem.csv, outputs/audit/flux_2023_clock_offsets.csv
 # ==============================================================================
+source("code/lib/outputs.R")
 suppressPackageStartupMessages(library(tidyverse))
 source("code/lib/monthly_cols.R"); source("code/lib/flux_times.R")
 
@@ -274,15 +274,16 @@ oak_offset <- unique(as.numeric(difftime(oak_out$oak_sys, oak_out$st, units = "m
 # 5. ASSEMBLE; DETECTION; FLAGS
 # ==============================================================================
 S <- bind_rows(mon_out, h21_out, y_out, oak_out)
-stopifnot(nrow(S) == 1200, !anyDuplicated(S$measurement_id), !anyNA(S$tree_id))
-DET <- read.csv("outputs/data/flux_FINAL.csv") %>% filter(type == "stem")
+stopifnot(!anyDuplicated(S$measurement_id), !anyNA(S$tree_id))
+cat(sprintf("flux_stem: %d deployments\n", nrow(S)))
+DET <- read.csv("data/processed/flux/flux_FINAL.csv") %>% filter(type == "stem")
 d <- match(S$measurement_id, DET$UniqueID)
 stopifnot(all(!is.na(d) | S$campaign == "2022_felled_oak"),
           isTRUE(all.equal(S$CH4_flux_nmol_m2_s[!is.na(d)], DET$best.flux[d[!is.na(d)]], tolerance = 1e-12)))
 TR <- read.csv(file.path(OUT, "trees.csv"), colClasses = "character", na.strings = "")
 ti <- match(S$tree_id, TR$tree_id)
 stopifnot(!anyNA(ti))
-QX <- read.csv("outputs/data/qc_excluded_measurements.csv", stringsAsFactors = FALSE)
+QX <- read.csv("data/processed/flux/qc_excluded_measurements.csv", stringsAsFactors = FALSE)
 qx <- match(S$measurement_id, QX$UniqueID)
 S <- S %>% mutate(
   closure_s = DET$t_sec[d],

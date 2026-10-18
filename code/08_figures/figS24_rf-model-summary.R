@@ -1,48 +1,22 @@
 #!/usr/bin/env Rscript
 # ==============================================================================
-# figS24_rf-model-summary.R  --  SI: what the two random forests learned
+# figS24_rf-model-summary.R -- Figure S26: the stem and soil random forests
 # ------------------------------------------------------------------------------
-# REPLACES two figures that disagreed with each other:
-#   - figS15_rf_predictions.png (08_rf_publication_plots.R), which fed SI S21
-#   - fig_model_findings.png (fig_model_findings.R), which was generated on
-#     every run but never assembled into the manuscript
-# It keeps the older figure's LAYOUT -- observed-against-predicted, importance,
-# partial dependence, for both models -- and the newer figure's METHOD.
-#
-# WHY THE METHOD HAD TO CHANGE. The superseded panel used ranger's default
-# IMPURITY importance. Impurity gain counts variance reduction at splits and is
-# well known to favour continuous, high-cardinality predictors; permutation
-# importance measures the increase in held-out error when a predictor is
-# shuffled, which is what "the model relies on this" means. The two metrics give
-# opposite answers on these data:
-#
-#   predictor              impurity %   permutation %
-#   SoilRF  soil moisture        9.0        44.0
-#           air temperature      2.1        22.7
-#           soil temperature    88.0        18.7
-#
-# The old SI panel therefore told the reader the SOIL model was a temperature
-# model. It is a moisture model. That also contradicted the paper's own
-# position that air temperature is a monthly mean and so is not identifiable
-# separately from season.
-#
-# GROUPING. Soil and air temperature correlate at r = 0.92 across training rows. Shuffling one leaves
-# the other as a proxy, so ordinary permutation mutually suppresses both. They
-# are permuted TOGETHER under one shared permutation, which asks the only
-# question with an answer: how much does the model rely on temperature at all.
-# Measured out-of-sample (fit on 70%, permute and score on 30%) so the baseline
-# and permuted error are on the same footing.
-#
-# The monthly-prediction panels of the old figure are dropped: the seasonal cycle
-# is already Figure 9(c), and its June/September dips are RF split-threshold
-# artifacts rather than seasonality, so repeating them here invited over-reading.
-#
-# The old figure's DBH partial-dependence axis was labelled "DBH (within-species
-# z-score)" (08_rf_publication_plots.R:892) while plotting dbh_m in metres --
-# a stale label from the dropped 34-predictor specification. dbh_within_z is not
-# a predictor of the frozen model.
-#
-# Output: outputs/figures/generated/figS21_rf_model_summary.png
+# Stage E. Run from the repository root.
+#   (a, b) observed against out-of-bag predicted flux (stems, soils), hexbin density,
+#          1:1 line; CCC and R2 on the out-of-bag predictions, grouped-CV R2
+#          (outputs/data/rf_grouped_cv.csv), n. Equal axes, so 1:1 sits at 45 degrees.
+#   (c, d) permutation importance on held-out data, share of the total, +/- 1 SE over
+#          50 random 70/30 splits (20 permutations each). Importance is permutation,
+#          not ranger's impurity importance, which favours continuous predictors.
+#          Each split refits a forest with the fitted model's min.node.size and mtry
+#          but 800 trees (the fitted models have 10,000; code/lib/rf_spec.R).
+#   (e, f) partial dependence for the predictors, 2nd-98th percentile, with a rug of
+#          the observed values (the tails rest on few measurements).
+# Inputs: outputs/models/RF_MODELS.RData (TreeRF, SoilRF) and TRAINING_DATA.RData
+#   (05_model/02_rf_models.R); outputs/data/rf_grouped_cv.csv (05_model/04_rf_grouped_cv.R)
+# Output: outputs/figures/generated/figS21_rf_model_summary.png; importance shares to
+#   the console
 # ==============================================================================
 source("code/lib/outputs.R")
 suppressMessages({library(dplyr); library(ranger); library(ggplot2)
@@ -51,31 +25,34 @@ source("code/lib/rf_spec.R")   # RF_THREADS
 set.seed(42)
 load("outputs/models/RF_MODELS.RData"); load("outputs/models/TRAINING_DATA.RData")
 
-# Original figure's palette, kept deliberately: tree green / soil brown are used
-# across the SI, and the hexbin count scale is magma on a log10 scale.
+# tree green / soil brown, as across the SI; hexbin counts magma on a log10 scale
 TREE_COL <- "#2E7D32"; SOIL_COL <- "#8B4513"
 
 Xt <- as.data.frame(X_tree); yt <- tree_train_complete$stem_flux_corrected
-Xs <- as.data.frame(X_soil); ys <- soil_train_complete$y_asinh[seq_len(nrow(Xs))]
+Xs <- as.data.frame(X_soil); ys <- soil_train_complete$y_flux
+stopifnot(length(yt) == nrow(Xt), length(ys) == nrow(Xs),
+          length(TreeRF$predictions) == nrow(Xt), length(SoilRF$predictions) == nrow(Xs))
 
-# ---- grouped permutation importance, held out --------------------------------
+# ---- permutation importance, held out ------------------------------------------
+# A group of predictors is permuted with ONE shared permutation (each group is one
+# predictor in the current models). 50 splits: with 10 the stem shares moved by up to
+# 7 points between seeds; the split, not the forest size, is the noise.
 GROUPS <- list(
   TreeRF = list(species = "species", diameter = "dbh_m",
                 `soil moisture` = "soil_moisture_at_tree",
-                temperature = "soil_temp_C",   # air temperature dropped from both forests 2026-10-17
+                temperature = "soil_temp_C",
                 `measurement height` = "height_cm"),
   SoilRF = list(`soil moisture` = "soil_moisture_at_site",
-                temperature = "soil_temp_C",   # air temperature dropped from both forests 2026-10-17
+                temperature = "soil_temp_C",
                 month = "month"))
+stopifnot(setequal(unlist(GROUPS$TreeRF), names(Xt)), setequal(unlist(GROUPS$SoilRF), names(Xs)))
 
-# 50 random 70/30 splits, not 10: with 10 the stem shares moved by up to 7 points between
-# seeds (height 12-18%); the split, not the forest size, is the noise (2026-10-01).
-gimp <- function(X, y, groups, lab, nsplit = 50, nrep = 20) {
+gimp <- function(fit, X, y, groups, lab, nsplit = 50, nrep = 20) {
   k <- is.finite(y) & complete.cases(X); X <- X[k, , drop = FALSE]; y <- y[k]
   R <- replicate(nsplit, {
     tr <- sample(nrow(X), floor(0.7 * nrow(X)))
     m  <- ranger(x = X[tr, , drop = FALSE], y = y[tr], num.trees = 800,
-                 min.node.size = 5, mtry = max(1, floor(sqrt(ncol(X)))), num.threads = RF_THREADS,
+                 min.node.size = fit$min.node.size, mtry = fit$mtry, num.threads = RF_THREADS,
                  seed = sample.int(1e6, 1))
     Xh <- X[-tr, , drop = FALSE]; yh <- y[-tr]
     base <- mean((yh - predict(m, Xh, num.threads = RF_THREADS)$predictions)^2)
@@ -91,8 +68,8 @@ gimp <- function(X, y, groups, lab, nsplit = 50, nrep = 20) {
     mutate(share = imp / sum(imp), share_se = se / sum(imp))
 }
 
-IMP_T <- gimp(Xt, yt, GROUPS$TreeRF, "TreeRF")
-IMP_S <- gimp(Xs, ys, GROUPS$SoilRF, "SoilRF")
+IMP_T <- gimp(TreeRF, Xt, yt, GROUPS$TreeRF, "TreeRF")
+IMP_S <- gimp(SoilRF, Xs, ys, GROUPS$SoilRF, "SoilRF")
 
 imp_panel <- function(D, ttl, col) {
   D <- D %>% arrange(share) %>% mutate(label = factor(label, levels = label))
@@ -111,40 +88,24 @@ imp_panel <- function(D, ttl, col) {
 pc_ <- imp_panel(IMP_T, "(c)", TREE_COL)
 pd_ <- imp_panel(IMP_S, "(d)", SOIL_COL)
 
-# ---- observed against predicted, calibrated ----------------------------------
-# Per-species calibration, UNCLAMPED, matching 01_predict_tree_flux.R.
+# ---- observed against out-of-bag predicted ------------------------------------
 ccc <- function(o, p) {
   2 * cov(o, p) / (var(o) + var(p) + (mean(o) - mean(p))^2)
 }
-d <- tree_train_complete
-calT <- data.frame(sp = as.character(d$species_clean), o = d$stem_flux_corrected,
-                   p = TreeRF$predictions) %>%
-  filter(is.finite(o), is.finite(p)) %>%
-  group_by(sp) %>% mutate(r = ifelse(mean(p) > 0, mean(o) / mean(p), 1)) %>%
-  ungroup() %>% mutate(pc = p * r)
-calS <- data.frame(o = ys, p = SoilRF$predictions) %>% filter(is.finite(o), is.finite(p))
+obsT <- data.frame(o = yt, p = TreeRF$predictions) %>% filter(is.finite(o), is.finite(p))
+obsS <- data.frame(o = ys, p = SoilRF$predictions) %>% filter(is.finite(o), is.finite(p))
 
-R2G <- local({
-  f <- "outputs/data/rf_grouped_cv.csv"
-  if (!file.exists(f)) return(c(NA_real_, NA_real_))
-  g <- read.csv(f, stringsAsFactors = FALSE)
-  c(g$grouped_r2[g$model == "TreeRF"][1], g$grouped_r2[g$model == "SoilRF"][1])
-})
+g <- read.csv("outputs/data/rf_grouped_cv.csv", stringsAsFactors = FALSE)
+R2G <- c(g$grouped_r2[g$model == "TreeRF"], g$grouped_r2[g$model == "SoilRF"])
+stopifnot(length(R2G) == 2, is.finite(R2G))
 
 obs_panel <- function(D, o, p, ttl, col, r2g) {
   r2 <- 1 - sum((D[[o]] - D[[p]])^2) / sum((D[[o]] - mean(D[[o]]))^2)
-  # Stats annotated inside the panel, top-left, as in the original.
-  # Plain "R2", not a superscript-2 glyph: the original wrote "R²" here and the
-  # device font dropped it, so the shipped SI panel read "R.. = 0.236". ASCII
-  # renders on every device.
+  cat(sprintf("%s: CCC = %.3f, R2 (out-of-bag) = %.3f, R2 (grouped CV) = %.3f, n = %d\n",
+              ttl, ccc(D[[o]], D[[p]]), r2, r2g, nrow(D)))
   lab <- sprintf("CCC = %.2f\nR\u00b2 = %.2f (out-of-bag)\nR\u00b2 = %.2f (grouped CV)\nn = %d",
                  ccc(D[[o]], D[[p]]), r2, r2g, nrow(D))
-  # EQUAL AXES. With independent x and y ranges (here roughly 0-2.5 against
-  # 0-6.2) a true slope-1 line renders as a shallow diagonal through the cloud
-  # and reads as a fitted regression -- so the panel appeared to show a model
-  # tracking the data when it actually shows large fluxes being under-predicted.
-  # A shared range makes 1:1 sit at 45 degrees, and the under-prediction becomes
-  # visible instead of ambiguous. It is a real result, not an artifact to hide.
+  # equal axes: 1:1 at 45 degrees, so under-prediction of large fluxes is visible
   rng <- range(c(D[[o]], D[[p]]), finite = TRUE)
   ggplot(D, aes(.data[[p]], .data[[o]])) +
     geom_hex(bins = 40) +
@@ -164,15 +125,10 @@ obs_panel <- function(D, o, p, ttl, col, r2g) {
           legend.title = element_text(size = 7.5), legend.text = element_text(size = 6.8),
           plot.title = element_text(face = "bold", size = 13))
 }
-pa_ <- obs_panel(calT, "o", "pc", "(a)", TREE_COL, R2G[1])
-pb_ <- obs_panel(calS, "o", "p",  "(b)", SOIL_COL, R2G[2])
+pa_ <- obs_panel(obsT, "o", "p", "(a)", TREE_COL, R2G[1])
+pb_ <- obs_panel(obsS, "o", "p", "(b)", SOIL_COL, R2G[2])
 
 # ---- partial dependence ------------------------------------------------------
-# Air and soil temperature are shown SEPARATELY here even though importance pools
-# them: the pooling exists because permutation cannot apportion a shared effect
-# between collinear predictors, which is a different question from the shape of
-# each marginal response. Read the two temperature curves as one driver seen
-# twice, not as two independent effects.
 pdp <- function(m, dat, xv, n = 40) {
   q <- quantile(dat[[xv]], c(.02, .98), na.rm = TRUE)
   g <- seq(q[1], q[2], length.out = n)
@@ -182,8 +138,7 @@ pdp <- function(m, dat, xv, n = 40) {
 PD_LAB <- c(soil_moisture_at_tree = "Soil moisture (m\u00b3/m\u00b3)",
             soil_moisture_at_site = "Soil moisture (m\u00b3/m\u00b3)",
             soil_temp_C = "Soil temperature (\u00b0C)",
-            air_temp_C  = "Air temperature (\u00b0C)",
-            dbh_m = "DBH (m)",                       # was mislabelled a z-score
+            dbh_m = "DBH (m)",
             height_cm = "Measurement height (cm)",
             month = "Month")
 
@@ -191,20 +146,10 @@ pd_grid <- function(m, X, vars, ttl, col) {
   D <- bind_rows(lapply(vars, function(v)
     pdp(m, X, v) %>% mutate(var = PD_LAB[[v]])))
   D$var <- factor(D$var, levels = unname(PD_LAB[vars]))
-  # Rug of the OBSERVED values behind each curve. Partial dependence is drawn
-  # across the 2nd-98th percentile, so the tails rest on very few measurements
-  # and a bare curve gives no way to tell a supported region from a sparse one.
-  # This paper's central caveat is extrapolation -- roughly half to over 90% of the
-  # whole-surface estimate sits above 2 m, where nothing was measured -- so showing where data actually
-  # exist belongs on every one of these panels.
+  # rug of the observed values behind each curve
   RUG <- bind_rows(lapply(vars, function(v)
     data.frame(x = X[[v]], var = PD_LAB[[v]])))
   RUG$var <- factor(RUG$var, levels = unname(PD_LAB[vars]))
-  # NOTE: the original drew a shaded ribbon here as ymin = y*0.9, ymax = y*1.1 --
-  # a hardcoded +/-10% of the fitted value, not an interval estimated from
-  # anything. It reads as a confidence band and is not one, so it is omitted
-  # rather than reproduced. A real band would need per-point spread across trees;
-  # say the word and it can be computed instead of drawn.
   ggplot(D, aes(x, y)) +
     geom_rug(data = RUG, aes(x = x), inherit.aes = FALSE,
              alpha = 0.14, length = unit(0.025, "npc"), colour = col) +

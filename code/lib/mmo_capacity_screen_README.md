@@ -17,10 +17,13 @@ needs network and the Bioconductor package `pwalign`).
   PmoA, or >=55% id over >=300 aa to MmoX.
 - Positive controls: Methylocapsa (pMMO), Methylocella (sMMO).
 
-## Table S5 snapshot
+## Table S3 snapshot
 
-`mmo_capacity_screen_table_S5_2026-09-30.csv` is the output of the same tool, run
+`mmo_capacity_screen_table_S3_2026-09-30.csv` is the output of the same tool, run
 2026-09-30 with pwalign 1.2.0 (identities are pwalign PID1, so they read lower than the
-Biopython figures above; every verdict is the same). It is Table S5 of the SI, so the
-figure assembler and `zenodo/02_compile_results.R` read it from here; `run_all.R` does
-not query NCBI.
+Biopython figures above; every verdict is the same). `best_pid_*_50aa` is the best
+identity among alignments of at least 50 amino acids; its `verified_mmo` column says
+whether any record passed the subunit threshold above. `run_all.R` does not query
+NCBI: `09_tables_stats/27_table-s3-mmo-screen.R` builds SI Table S3 from this file,
+the verdicts in `mmo_capacity_screen_2026-09-30.csv` and the Table S2 tiers
+(`outputs/data/table_S3_mmo_capacity_screen.csv`).

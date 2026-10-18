@@ -1,18 +1,14 @@
 #!/usr/bin/env Rscript
 # ==============================================================================
-# 02_moisture_climatology.R
+# 02_moisture_climatology.R -- monthly plot-wide soil moisture, 2019-2022
 # ------------------------------------------------------------------------------
-# Monthly plot-wide soil moisture, averaged over 2019-2022 instead of tied to the
-# single campaign year. Feeds 02_predict_soil_surface.R.
+# Stage C. Monthly plot-wide soil moisture averaged over 2019-2022 instead of tied
+# to the single campaign year. Feeds 01_predict_tree_flux.R and
+# 02_predict_soil_surface.R.
 #
-# THE PROBLEM. The soil campaign ran one year (2020-06 to 2021-05) and that year
-# had the second-driest Jun-Sep in the record (210 mm against 437 mm in 2021).
-# The SoilRF learned a moisture x temperature interaction, so driving the
-# seasonal upscaling from that one year's pairing bakes a drought into every
-# month. The previous route -- a per-month affine rescaling of the December
-# transect field, with alpha and beta fitted separately per month on 3-28
-# observations at R2 = 0.02-0.31 -- also produced a curve that is not a
-# climatology at all: it jumps from 0.113 in November to 0.355 in December.
+# Why: the soil campaign ran one year (2020-06 to 2021-05), and that year had the
+# second-driest Jun-Sep in the record (210 mm against 437 mm in 2021), so driving
+# the seasonal scaling from it would bake a drought into every month.
 #
 # THE METHOD, in three steps.
 #

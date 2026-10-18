@@ -1,619 +1,142 @@
 # ==============================================================================
-# Semirigid Soil Flux Calculation (goFlux)
-# ==============================================================================
-# Purpose: Main semirigid soil flux calculation using goFlux package on LGR3
-#   data.
+# 04_goflux_soils.R -- monthly soil-collar CO2 and CH4 fluxes (goFlux)
+# ------------------------------------------------------------------------------
+# Stage A; workdir: this script's folder (code/02_flux/semirigid/).
 #
-# Pipeline stage: 01 Flux Processing (semirigid)
-# Run after: 03_prep_soil_auxfile.R
+# Fits goFlux (linear and Hutchinson-Mosier) to each deployment's hand-picked closure
+# window and selects the model with best.flux(); the model selected when the data were
+# processed is then applied from flux_model_choices.csv (code/lib/flux_windows.R).
+# Every collar has one geometry: Area = SOIL_COLLAR_AREA_CM2 and Vtot = SOIL_VTOT_L
+# (code/lib/chamber_constants.R), not the values stored in the auxfile or the windows.
+# Tcham is the auxfile's (station air in true time), not the value saved with the windows.
 #
-# Inputs:
-#   - Raw LGR3 soil data files
-#   - auxfile_goFlux_soilflux_with_weather.csv (from 03_prep_soil_auxfile.R)
+# Closure windows: data/raw/flux_windows/lgr_manual_identification_results_soil.csv.
+# Only when it is absent, or with FLUX_REPICK=1 in an interactive session, are the raw
+# LGR3 records read and the picker (goFlux::click.peak2) opened; the new windows go to
+# data/processed/flux/repicked/ (code/lib/flux_windows.R, code/tools/README.md).
+# Diagnostic plots only with FLUX_PLOTS=1.
 #
-# Outputs:
-#   - semirigid_tree_final_complete_dataset_soil.csv
-#   - Soil flux result CSVs
+# 05_fix_december.R then replaces the December 2020 rows, and 03_merge/01_fix_soil_flux.R
+# re-fits CH4 (writing CH4_flux / CH4_best_flux again).
+#
+# Inputs:  data/raw/flux_windows/lgr_manual_identification_results_soil.csv
+#          data/raw/flux_windows/flux_model_choices.csv
+#          data/processed/flux/auxfile_goFlux_soilflux_with_weather.csv (Tcham)
+#          data/processed/flux/auxfile_goFlux_soilflux_with_weather_formatted.csv (table base)
+#          [re-pick only] data/raw/lgr/semirigid_2020-2021/ (raw LGR3 records)
+# Outputs (data/processed/flux/):
+#          {CO2,CH4}_flux_lgr_results_soil.csv        goFlux results
+#          {CO2,CH4}_best_flux_lgr_results_soil.csv   best.flux results
+#          semirigid_tree_final_complete_dataset_soil.csv  auxfile + CO2_/CH4_ best-flux columns
 # ==============================================================================
 
 library(goFlux)
 library(dplyr)
 library(readr)
 
-source("../../lib/chamber_constants.R")  # ANALYZER_VOLUME_CM3
-
-# =============================================================================
-# DEFINE CORRECT CHAMBER GEOMETRY UPFRONT
-# =============================================================================
-
-cat("=== CHAMBER GEOMETRY CONFIGURATION ===\n")
-
-# UPDATE THESE VALUES WITH YOUR CORRECT CHAMBER SPECIFICATIONS
-CORRECT_CHAMBER_SURFACE_AREA_CM2 <- 507.7  # Based on 25.43 cm interior diameter
-CORRECT_CHAMBER_VOLUME_L <- 7.53  # UPDATE THIS TO YOUR CORRECT VALUE!
-
-# Calculate system volumes
-correct_tubing_volume_cm3 <- pi * (1/16)^2 * 12 * 12 * 16.387  # ≈ 29.0 cm³
-correct_system_volume_cm3 <- ANALYZER_VOLUME_CM3  # Analyzer volume (lab convention, see lib)
-correct_total_system_volume_cm3 <- CORRECT_CHAMBER_VOLUME_L * 1000 + 
-  correct_tubing_volume_cm3 + 
-  correct_system_volume_cm3
-CORRECT_VTOT_L <- correct_total_system_volume_cm3 / 1000  # Convert to L
-
-cat("Chamber Geometry:\n")
-cat("- Surface Area:", CORRECT_CHAMBER_SURFACE_AREA_CM2, "cm²\n")
-cat("- Chamber Volume:", CORRECT_CHAMBER_VOLUME_L, "L\n")
-cat("- Total System Volume (Vtot):", round(CORRECT_VTOT_L, 3), "L\n\n")
-
-# =============================================================================
-# STEP 1: LOAD AND PREPARE LGR3 DATA
-# =============================================================================
-
-cat("=== STEP 1: LOADING LGR3 DATA ===\n")
-
-# Set data path
-data_path <- '../../../data/raw/lgr/semirigid_2020-2021'
-
-# Check for zip files that need extraction
-zip_files <- list.files(data_path, recursive = TRUE, pattern = "\\.zip$", full.names = TRUE)
-cat("Found", length(zip_files), "zip files\n")
-
-# Extract zip files to temporary directory
-temp_extract_dir <- tempfile("lgr3_extract_")
-dir.create(temp_extract_dir, recursive = TRUE)
-
-cat("Extracting zip files...\n")
-for(zip_file in zip_files) {
-  tryCatch({
-    unzip(zip_file, exdir = temp_extract_dir, overwrite = TRUE)
-    cat("Extracted:", basename(zip_file), "\n")
-  }, error = function(e) {
-    cat("Error with", basename(zip_file), ":", e$message, "\n")
-  })
-}
-
-# Combine existing and extracted files
-existing_data_files <- list.files(data_path, recursive = TRUE, pattern = "\\.txt$", full.names = TRUE)
-existing_data_files <- existing_data_files[file.size(existing_data_files) > 0]
-
-new_txt_files <- list.files(temp_extract_dir, recursive = TRUE, pattern = "\\.txt$", full.names = TRUE)
-
-# Create complete data directory
-complete_lgr3_dir <- tempfile("lgr3_complete_")
-dir.create(complete_lgr3_dir, recursive = TRUE)
-
-# Copy all files
-file.copy(existing_data_files, complete_lgr3_dir)
-file.copy(new_txt_files, complete_lgr3_dir)
-
-cat("Total files prepared:", length(list.files(complete_lgr3_dir, pattern = "\\.txt$")), "\n")
-
-# Import complete LGR3 dataset
-cat("Importing LGR3 data...\n")
-unlink("RData", recursive = TRUE)  # import2RData(merge = TRUE) merges every file already in ./RData
-lgr3_data_complete <- import2RData(
-  path = complete_lgr3_dir,
-  instrument = "UGGA",
-  date.format = "mdy",
-  timezone = "UTC",
-  keep_all = FALSE,
-  prec = c(0.35, 0.9, 200),
-  merge = TRUE
-)
-
-# Clean up temporary directories
-unlink(temp_extract_dir, recursive = TRUE)
-unlink(complete_lgr3_dir, recursive = TRUE)
-
-cat("LGR3 data loaded:", dim(lgr3_data_complete), "\n")
-
-# =============================================================================
-# STEP 2: PREPARE AUXFILE AND CREATE OBSERVATION WINDOWS
-# =============================================================================
-
-cat("\n=== STEP 2: PREPARING AUXFILE ===\n")
-
-# Check timezone
-lgr3_data_tz <- attr(lgr3_data_complete$POSIX.time, "tzone")
-if(is.null(lgr3_data_tz)) lgr3_data_tz <- ""
-cat("LGR3 data timezone:", ifelse(lgr3_data_tz == "", "UTC (default)", lgr3_data_tz), "\n")
-
-# Load auxfile WITH CORRECT VOLUME
-lgr3_auxfile <- read_csv('../../../data/processed/flux/auxfile_goFlux_soilflux_with_weather.csv', show_col_types = FALSE) %>%
-  mutate(
-    start.time = as.POSIXct(start.time, tz = ifelse(lgr3_data_tz == "", "UTC", lgr3_data_tz)),
-    # UPDATE VOLUME TO CORRECT VALUE
-    Vtot = CORRECT_VTOT_L,
-    Area = CORRECT_CHAMBER_SURFACE_AREA_CM2
-  )
-
-cat("Auxfile loaded:", nrow(lgr3_auxfile), "measurements\n")
-cat("Using correct Vtot:", round(CORRECT_VTOT_L, 3), "L\n")
-
-# Create observation windows
-cat("Creating observation windows...\n")
-ow.lgr3.complete <- obs.win(
-  inputfile = lgr3_data_complete,
-  auxfile = lgr3_auxfile,
-  gastype = "CO2dry_ppm",
-  obs.length = 300,
-  shoulder = 300
-)
-
-# Check window quality
-window_sizes <- sapply(ow.lgr3.complete, nrow)
-good_windows <- which(window_sizes >= 30)
-
-# Assign names
-unique_ids <- sapply(ow.lgr3.complete, function(x) unique(x$UniqueID)[1])
-names(ow.lgr3.complete) <- unique_ids
-
-cat("Total observation windows:", length(ow.lgr3.complete), "\n")
-cat("Good windows (>=30 obs):", length(good_windows), "\n")
-
-# =============================================================================
-# STEP 3: MANUAL IDENTIFICATION
-# =============================================================================
-
-cat("\n=== STEP 3: MANUAL IDENTIFICATION ===\n")
+source("../../lib/chamber_constants.R")  # SOIL_VTOT_L, SOIL_COLLAR_AREA_CM2
 source("../../lib/flux_windows.R")
+# Date-times are written with microseconds, the setting goFlux's raw-data import
+# (import.UGGA) leaves behind; set here so the tables do not depend on whether the raw
+# records were read in this session.
+options(digits.secs = 6)
+
+data_path <- "../../../data/raw/lgr/semirigid_2020-2021"
 MC_PATH <- window_path("flux_model_choices.csv")
 WIN <- window_path("lgr_manual_identification_results_soil.csv")
-# Saved hand-picked windows are the record; the picker below runs only without them
-# (or with FLUX_REPICK=1, interactively). See code/lib/flux_windows.R.
+
+lgr3_auxfile <- read_csv("../../../data/processed/flux/auxfile_goFlux_soilflux_with_weather.csv",
+                         show_col_types = FALSE) %>%
+  mutate(Vtot = SOIL_VTOT_L, Area = SOIL_COLLAR_AREA_CM2)
+cat("Soil auxfile:", nrow(lgr3_auxfile), "deployments | Area", SOIL_COLLAR_AREA_CM2,
+    "cm2 | Vtot", round(SOIL_VTOT_L, 3), "L\n")
+
+# ---- closure windows ------------------------------------------------------------------
 if (use_saved_windows(WIN)) {
-  # chamber temperature from the current auxfile (station air in true time), not the
-  # value saved with the windows
-  manID.lgr3 <- load_windows(WIN) %>% mutate(Vtot = CORRECT_VTOT_L, Area = CORRECT_CHAMBER_SURFACE_AREA_CM2,
-                                             Tcham = lgr3_auxfile$Tcham[match(UniqueID, lgr3_auxfile$UniqueID)])
+  manID.lgr3 <- load_windows(WIN) %>%
+    mutate(Vtot = SOIL_VTOT_L, Area = SOIL_COLLAR_AREA_CM2,
+           Tcham = lgr3_auxfile$Tcham[match(UniqueID, lgr3_auxfile$UniqueID)])
   stopifnot(!anyNA(manID.lgr3$Tcham))
-  stopifnot(isTRUE(all.equal(CORRECT_VTOT_L, SOIL_VTOT_L)), CORRECT_CHAMBER_SURFACE_AREA_CM2 == SOIL_COLLAR_AREA_CM2)
 } else {
-
-# Check if manual ID already exists
-if(file.exists(WIN)) {
-  cat("Found existing manual identification file!\n")
-  cat("Do you want to:\n")
-  cat("1. Use existing manual identification (skip click.peak2)\n")
-  cat("2. Redo manual identification (run click.peak2 again)\n")
-  cat("Enter 1 or 2: ")
-  
-  choice <- readline()
-  
-  if(choice == "1") {
-    cat("Loading existing manual identification...\n")
-    manID.lgr3 <- read_csv(WIN, 
-                           show_col_types = FALSE)
-    
-    # Update volume in loaded data
-    manID.lgr3 <- manID.lgr3 %>%
-      mutate(
-        Vtot = CORRECT_VTOT_L,
-        Area = CORRECT_CHAMBER_SURFACE_AREA_CM2
-      )
-    
-    cat("Loaded", nrow(manID.lgr3), "measurements with corrected volume\n")
-  } else {
-    cat("Proceeding with new manual identification...\n")
-    # Run manual identification in batches
-    batch_size <- 20
-    total_measurements <- length(good_windows)
-    num_batches <- ceiling(total_measurements / batch_size)
-    
-    cat("Processing", total_measurements, "measurements in", num_batches, "batches\n")
-    
-    manID_batches <- list()
-    
-    for(batch_num in 1:num_batches) {
-      start_idx <- (batch_num - 1) * batch_size + 1
-      end_idx <- min(batch_num * batch_size, total_measurements)
-      batch_windows <- good_windows[start_idx:end_idx]
-      
-      cat("\n=== Processing Batch", batch_num, "of", num_batches, "===\n")
-      cat("Measurements", start_idx, "to", end_idx, "\n")
-      
-      # Process this batch
-      manID_batch <- click.peak2(
-        ow.lgr3.complete,
-        seq = batch_windows,
-        gastype = "CO2dry_ppm",
-        sleep = 3,
-        plot.lim = c(200, 5000),
-        save.plots = paste0("../../../data/processed/flux/lgr3_batch_", batch_num, "_plots")
-      )
-      
-      # Store the batch result
-      manID_batches[[batch_num]] <- manID_batch
-      
-      # Force close graphics devices
-      while(dev.cur() > 1) dev.off()
-      
-      cat("Batch", batch_num, "complete. Processed", nrow(manID_batch), "measurements\n")
-      
-      if(batch_num < num_batches) {
-        cat("Press Enter to continue to next batch...\n")
-        readline()
-      }
-    }
-    
-    # Combine all batches
-    successful_batches <- manID_batches[!sapply(manID_batches, is.null)]
-    manID.lgr3 <- do.call(rbind, successful_batches)
-    
-    cat("\nManual identification complete! Total:", nrow(manID.lgr3), "measurements\n")
-  }
-} else {
-  # No existing file, must run click.peak2
-  cat("No existing manual identification found. Running click.peak2...\n")
-  
-  batch_size <- 20
-  total_measurements <- length(good_windows)
-  num_batches <- ceiling(total_measurements / batch_size)
-  
-  cat("Processing", total_measurements, "measurements in", num_batches, "batches\n")
-  
+  # interactive re-pick: raw LGR3 records (loose .txt files and .zip archives) ->
+  # observation windows -> click.peak2 in batches of 20
+  temp_extract_dir <- tempfile("lgr3_extract_"); dir.create(temp_extract_dir, recursive = TRUE)
+  for (zip_file in list.files(data_path, recursive = TRUE, pattern = "\\.zip$", full.names = TRUE))
+    unzip(zip_file, exdir = temp_extract_dir, overwrite = TRUE)
+  txt_files <- list.files(data_path, recursive = TRUE, pattern = "\\.txt$", full.names = TRUE)
+  txt_files <- c(txt_files[file.size(txt_files) > 0],
+                 list.files(temp_extract_dir, recursive = TRUE, pattern = "\\.txt$", full.names = TRUE))
+  complete_lgr3_dir <- tempfile("lgr3_complete_"); dir.create(complete_lgr3_dir, recursive = TRUE)
+  file.copy(txt_files, complete_lgr3_dir)
+  unlink("RData", recursive = TRUE)  # import2RData(merge = TRUE) merges every file already in ./RData
+  lgr3_data_complete <- import2RData(path = complete_lgr3_dir, instrument = "UGGA", date.format = "mdy",
+                                     timezone = "UTC", keep_all = FALSE, prec = c(0.35, 0.9, 200), merge = TRUE)
+  unlink(c(temp_extract_dir, complete_lgr3_dir), recursive = TRUE)
+  tz <- attr(lgr3_data_complete$POSIX.time, "tzone"); if (is.null(tz) || tz == "") tz <- "UTC"
+  ow.lgr3.complete <- obs.win(inputfile = lgr3_data_complete,
+                              auxfile = mutate(lgr3_auxfile, start.time = as.POSIXct(start.time, tz = tz)),
+                              gastype = "CO2dry_ppm", obs.length = 300, shoulder = 300)
+  names(ow.lgr3.complete) <- sapply(ow.lgr3.complete, function(x) unique(x$UniqueID)[1])
+  good_windows <- which(sapply(ow.lgr3.complete, nrow) >= 30)
+  n_batches <- ceiling(length(good_windows) / 20)
   manID_batches <- list()
-  
-  for(batch_num in 1:num_batches) {
-    start_idx <- (batch_num - 1) * batch_size + 1
-    end_idx <- min(batch_num * batch_size, total_measurements)
-    batch_windows <- good_windows[start_idx:end_idx]
-    
-    cat("\n=== Processing Batch", batch_num, "of", num_batches, "===\n")
-    cat("Measurements", start_idx, "to", end_idx, "\n")
-    
-    # Process this batch
-    manID_batch <- click.peak2(
-      ow.lgr3.complete,
-      seq = batch_windows,
-      gastype = "CO2dry_ppm",
-      sleep = 3,
-      plot.lim = c(200, 5000),
-      save.plots = paste0("../../../data/processed/flux/lgr3_batch_", batch_num, "_plots")
-    )
-    
-    # Store the batch result
-    manID_batches[[batch_num]] <- manID_batch
-    
-    # Force close graphics devices
-    while(dev.cur() > 1) dev.off()
-    
-    cat("Batch", batch_num, "complete. Processed", nrow(manID_batch), "measurements\n")
-    
-    if(batch_num < num_batches) {
-      cat("Press Enter to continue to next batch...\n")
-      readline()
-    }
+  for (batch_num in seq_len(n_batches)) {
+    batch_windows <- good_windows[((batch_num - 1) * 20 + 1):min(batch_num * 20, length(good_windows))]
+    cat("\nBatch", batch_num, "of", n_batches, "\n")
+    manID_batches[[batch_num]] <- click.peak2(ow.lgr3.complete, seq = batch_windows, gastype = "CO2dry_ppm",
+                                              sleep = 3, plot.lim = c(200, 5000),
+                                              save.plots = paste0("../../../data/processed/flux/lgr3_batch_", batch_num, "_plots"))
+    while (dev.cur() > 1) dev.off()
+    if (batch_num < n_batches) { cat("Press Enter for the next batch...\n"); readline() }
   }
-  
-  # Combine all batches
-  successful_batches <- manID_batches[!sapply(manID_batches, is.null)]
-  manID.lgr3 <- do.call(rbind, successful_batches)
-  
-  cat("\nManual identification complete! Total:", nrow(manID.lgr3), "measurements\n")
+  manID.lgr3 <- do.call(rbind, manID_batches)
+  write_csv(manID.lgr3, repick_path(basename(WIN)))
 }
 
-# Save manual identification results (with correct volume)
-write_csv(manID.lgr3, repick_path(basename(WIN)))
-}
-
-# =============================================================================
-# STEP 4: FLUX CALCULATIONS
-# =============================================================================
-
-cat("\n=== STEP 4: FLUX CALCULATIONS ===\n")
-
-# Calculate CO2 fluxes
-cat("Calculating CO2 fluxes with Vtot =", round(CORRECT_VTOT_L, 3), "L...\n")
-CO2_flux_lgr3 <- goFlux(
-  dataframe = manID.lgr3,
-  gastype = "CO2dry_ppm",
-  H2O_col = "H2O_ppm",
-  warn.length = 60
-)
-
-# Calculate CH4 fluxes if available
-if("CH4dry_ppb" %in% names(manID.lgr3)) {
-  cat("Calculating CH4 fluxes...\n")
-  CH4_flux_lgr3 <- goFlux(
-    dataframe = manID.lgr3,
-    gastype = "CH4dry_ppb",
-    H2O_col = "H2O_ppm",
-    warn.length = 60
-  )
-  cat("CH4 flux calculation complete:", nrow(CH4_flux_lgr3), "measurements\n")
-} else {
-  cat("CH4dry_ppb column not found - skipping CH4 flux calculation\n")
-}
-
-# Save flux results
+# ---- fluxes ---------------------------------------------------------------------------
+CO2_flux_lgr3 <- goFlux(dataframe = manID.lgr3, gastype = "CO2dry_ppm", H2O_col = "H2O_ppm", warn.length = 60)
+CH4_flux_lgr3 <- goFlux(dataframe = manID.lgr3, gastype = "CH4dry_ppb", H2O_col = "H2O_ppm", warn.length = 60)
 write_csv(CO2_flux_lgr3, "../../../data/processed/flux/CO2_flux_lgr_results_soil.csv")
-if(exists("CH4_flux_lgr3")) {
-  write_csv(CH4_flux_lgr3, "../../../data/processed/flux/CH4_flux_lgr_results_soil.csv")
-}
+write_csv(CH4_flux_lgr3, "../../../data/processed/flux/CH4_flux_lgr_results_soil.csv")
 
-cat("CO2 flux calculation complete:", nrow(CO2_flux_lgr3), "measurements\n\n")
-
-# =============================================================================
-# STEP 5: BEST FLUX ANALYSIS
-# =============================================================================
-
-cat("=== STEP 5: BEST FLUX ANALYSIS ===\n")
-
-# Run best.flux on CO2 results
-CO2_best_lgr3 <- best.flux(
-  flux.result = CO2_flux_lgr3,
-  criteria = c("MAE", "RMSE", "AICc", "SE", "g.factor", "kappa", 
-               "MDF", "nb.obs", "intercept", "p-value"),
-  intercept.lim = NULL,
-  g.limit = 2,
-  p.val = 0.05,
-  k.ratio = 1,
-  warn.length = 60
-)
-CO2_best_lgr3 <- apply_model_choices(CO2_best_lgr3, "CO2", MC_PATH)
-
-# Run best.flux on CH4 results if available
-if(exists("CH4_flux_lgr3")) {
-  CH4_best_lgr3 <- best.flux(
-    flux.result = CH4_flux_lgr3,
-    criteria = c("MAE", "RMSE", "AICc", "SE", "g.factor", "kappa", 
-                 "MDF", "nb.obs", "intercept", "p-value"),
-    intercept.lim = NULL,
-    g.limit = 2,
-    p.val = 0.05,
-    k.ratio = 1,
-    warn.length = 60
-  )
-  CH4_best_lgr3 <- apply_model_choices(CH4_best_lgr3, "CH4", MC_PATH)
-}
-
-# Quality summary
-quality_summary <- CO2_best_lgr3 %>%
-  summarise(
-    clean_measurements = sum(quality.check == "OK", na.rm = TRUE),
-    flagged_measurements = sum(quality.check != "OK", na.rm = TRUE),
-    below_MDF = sum(grepl("MDF", quality.check), na.rm = TRUE),
-    high_g_factor = sum(grepl("g.factor", quality.check), na.rm = TRUE),
-    poor_fit = sum(grepl("MAE|RMSE|SE", quality.check), na.rm = TRUE)
-  )
-
-cat("Quality Assessment:\n")
-cat("- Clean measurements:", quality_summary$clean_measurements, "\n")
-cat("- Flagged measurements:", quality_summary$flagged_measurements, "\n")
-cat("  - Below MDF:", quality_summary$below_MDF, "\n")
-cat("  - High g-factor:", quality_summary$high_g_factor, "\n")  
-cat("  - Poor fit:", quality_summary$poor_fit, "\n\n")
-
-# Save best flux results
+best_flux <- function(flux_result)
+  best.flux(flux.result = flux_result,
+            criteria = c("MAE", "RMSE", "AICc", "SE", "g.factor", "kappa", "MDF", "nb.obs", "intercept", "p-value"),
+            intercept.lim = NULL, g.limit = 2, p.val = 0.05, k.ratio = 1, warn.length = 60)
+CO2_best_lgr3 <- apply_model_choices(best_flux(CO2_flux_lgr3), "CO2", MC_PATH)
+CH4_best_lgr3 <- apply_model_choices(best_flux(CH4_flux_lgr3), "CH4", MC_PATH)
 write_csv(CO2_best_lgr3, "../../../data/processed/flux/CO2_best_flux_lgr_results_soil.csv")
-if(exists("CH4_best_lgr3")) {
-  write_csv(CH4_best_lgr3, "../../../data/processed/flux/CH4_best_flux_lgr_results_soil.csv")
-}
+write_csv(CH4_best_lgr3, "../../../data/processed/flux/CH4_best_flux_lgr_results_soil.csv")
 
-# =============================================================================
-# STEP 6: CREATE PLOTS
-# =============================================================================
+cat("\nCO2 quality: OK", sum(CO2_best_lgr3$quality.check == "OK", na.rm = TRUE),
+    "| flagged", sum(CO2_best_lgr3$quality.check != "OK", na.rm = TRUE), "\n")
 
-cat("=== STEP 6: CREATING PLOTS ===\n")
+# ---- diagnostic plots (FLUX_PLOTS=1 only) ---------------------------------------------
+plot_args <- list(shoulder = 30, plot.legend = c("MAE", "AICc", "k.ratio", "g.factor"),
+                  plot.display = c("MDF", "prec", "nb.obs", "flux.term"),
+                  quality.check = TRUE, best.model = TRUE, p.val.disp = "round")
+all_plots_lgr3 <- c(
+  do.call(maybe_flux_plot, c(list(flux.results = CO2_best_lgr3, dataframe = manID.lgr3, gastype = "CO2dry_ppm"), plot_args)),
+  do.call(maybe_flux_plot, c(list(flux.results = CH4_best_lgr3, dataframe = manID.lgr3, gastype = "CH4dry_ppb"), plot_args)))
+maybe_flux2pdf(plot.list = all_plots_lgr3, outfile = "../../../data/processed/flux/LGR3_flux_plots_complete_soil.pdf",
+               width = 11.6, height = 8.2)
 
-# Fix any missing model values before plotting
-CO2_best_lgr3 <- CO2_best_lgr3 %>%
-  mutate(
-    model = case_when(
-      is.na(model) ~ "LM",
-      TRUE ~ model
-    )
-  )
-
-# Create CO2 flux plots
-CO2_plots_lgr3 <- maybe_flux_plot(
-  flux.results = CO2_best_lgr3,
-  dataframe = manID.lgr3,
-  gastype = "CO2dry_ppm",
-  shoulder = 30,
-  plot.legend = c("MAE", "AICc", "k.ratio", "g.factor"),
-  plot.display = c("MDF", "prec", "nb.obs", "flux.term"),
-  quality.check = TRUE,
-  best.model = TRUE,
-  p.val.disp = "round"
-)
-
-# Create CH4 plots if available
-if(exists("CH4_best_lgr3")) {
-  CH4_best_lgr3 <- CH4_best_lgr3 %>%
-    mutate(
-      model = case_when(
-        is.na(model) ~ "LM",
-        TRUE ~ model
-      )
-    )
-  
-  CH4_plots_lgr3 <- maybe_flux_plot(
-    flux.results = CH4_best_lgr3,
-    dataframe = manID.lgr3,
-    gastype = "CH4dry_ppb",
-    shoulder = 30,
-    plot.legend = c("MAE", "AICc", "k.ratio", "g.factor"),
-    plot.display = c("MDF", "prec", "nb.obs", "flux.term"),
-    quality.check = TRUE,
-    best.model = TRUE,
-    p.val.disp = "round"
-  )
-  
-  all_plots_lgr3 <- c(CO2_plots_lgr3, CH4_plots_lgr3)
-} else {
-  all_plots_lgr3 <- CO2_plots_lgr3
-}
-
-# Save plots to PDF
-maybe_flux2pdf(
-  plot.list = all_plots_lgr3,
-  outfile = "../../../data/processed/flux/LGR3_flux_plots_complete_soil.pdf",
-  width = 11.6,
-  height = 8.2
-)
-cat("Plots saved successfully\n\n")
-
-
-
-library(gridExtra)
-library(grid)
-
-# Custom function to replace flux2pdf
-save_flux_plots <- function(plot_list, outfile, width = 11.6, height = 8.2) {
-  if (!length(plot_list)) return(invisible())   # plots skipped (FLUX_PLOTS unset)
-  
-  pdf(outfile, width = width, height = height)
-  
-  # Process plots one by one
-  for(i in 1:length(plot_list)) {
-    
-    # Try to extract UniqueID from the plot if available
-    # This might not work with the new structure, so we'll use index as backup
-    plot_id <- paste("Plot", i, "of", length(plot_list))
-    
-    # Create title and footnote
-    title <- textGrob(plot_id, gp = gpar(fontsize = 16))
-    footnote <- textGrob(paste("page", i, "of", length(plot_list)), 
-                         gp = gpar(fontface = 3, fontsize = 12), hjust = 1)
-    
-    # Arrange plot with title and footnote
-    grid.arrange(plot_list[[i]], 
-                 top = title, 
-                 bottom = footnote)
-  }
-  
-  dev.off()
-  cat("PDF saved to:", outfile, "\n")
-}
-
-# Use the custom function
-save_flux_plots(
-  plot_list = all_plots_lgr3,
-  outfile = "../../../outputs/figures/LGR3_flux_plots_complete_soil.pdf",
-  width = 11.6,
-  height = 8.2
-)
-
-# =============================================================================
-# STEP 7: CREATE FINAL DATASET
-# =============================================================================
-
-cat("=== STEP 7: CREATING FINAL DATASET ===\n")
-
-# Load original auxfile data
-original_data <- read_csv('../../../data/processed/flux/auxfile_goFlux_soilflux_with_weather_formatted.csv',
-                          show_col_types = FALSE)
-
-# Update volume in auxfile for consistency
-original_data <- original_data %>%
-  mutate(
-    Vtot = CORRECT_VTOT_L,
-    Area = CORRECT_CHAMBER_SURFACE_AREA_CM2
-  )
-
-# Add CO2_ prefix to all flux columns except UniqueID
-co2_results <- CO2_best_lgr3 %>%
-  rename_with(~ paste0("CO2_", .), -UniqueID)
-
-# Add CH4 results if they exist
-if(exists("CH4_best_lgr3")) {
-  ch4_results <- CH4_best_lgr3 %>%
-    rename_with(~ paste0("CH4_", .), -UniqueID)
-}
-
-# Merge everything together
-final_dataset <- original_data %>%
-  left_join(co2_results, by = "UniqueID")
-
-# Add CH4 if it exists
-if(exists("ch4_results")) {
-  final_dataset <- final_dataset %>%
-    left_join(ch4_results, by = "UniqueID")
-}
-
-# Save the final dataset
+# ---- assembled table ------------------------------------------------------------------
+final_dataset <- read_csv("../../../data/processed/flux/auxfile_goFlux_soilflux_with_weather_formatted.csv",
+                          show_col_types = FALSE) %>%
+  mutate(Vtot = SOIL_VTOT_L, Area = SOIL_COLLAR_AREA_CM2) %>%
+  left_join(CO2_best_lgr3 %>% rename_with(~ paste0("CO2_", .), -UniqueID), by = "UniqueID") %>%
+  left_join(CH4_best_lgr3 %>% rename_with(~ paste0("CH4_", .), -UniqueID), by = "UniqueID")
 write_csv(final_dataset, "../../../data/processed/flux/semirigid_tree_final_complete_dataset_soil.csv")
 
-# (Removed 2026-10-01: two copies of the auxfile were written here to bare filenames,
-# i.e. into this code folder, and nothing read them. The auxfile itself is written by
-# 03_prep_soil_auxfile.R.)
-
-# =============================================================================
-# STEP 8: FLUX SUMMARY STATISTICS
-# =============================================================================
-
-cat("=== STEP 8: FLUX SUMMARY STATISTICS ===\n")
-
-# CO2 flux statistics
-co2_stats <- CO2_best_lgr3 %>%
-  summarise(
-    n = n(),
-    mean_flux = mean(flux.term, na.rm = TRUE),
-    median_flux = median(flux.term, na.rm = TRUE),
-    sd_flux = sd(flux.term, na.rm = TRUE),
-    min_flux = min(flux.term, na.rm = TRUE),
-    max_flux = max(flux.term, na.rm = TRUE),
-    q25 = quantile(flux.term, 0.25, na.rm = TRUE),
-    q75 = quantile(flux.term, 0.75, na.rm = TRUE)
-  )
-
-cat("\nCO2 Flux Statistics (nmol/m²/s):\n")
-cat("- Mean:", round(co2_stats$mean_flux, 2), "\n")
-cat("- Median:", round(co2_stats$median_flux, 2), "\n")
-cat("- SD:", round(co2_stats$sd_flux, 2), "\n")
-cat("- Range:", round(co2_stats$min_flux, 2), "to", round(co2_stats$max_flux, 2), "\n")
-cat("- IQR:", round(co2_stats$q25, 2), "to", round(co2_stats$q75, 2), "\n")
-
-# CH4 flux statistics if available
-if(exists("CH4_best_lgr3")) {
-  ch4_stats <- CH4_best_lgr3 %>%
-    summarise(
-      n = n(),
-      mean_flux = mean(flux.term, na.rm = TRUE),
-      median_flux = median(flux.term, na.rm = TRUE),
-      sd_flux = sd(flux.term, na.rm = TRUE),
-      min_flux = min(flux.term, na.rm = TRUE),
-      max_flux = max(flux.term, na.rm = TRUE),
-      q25 = quantile(flux.term, 0.25, na.rm = TRUE),
-      q75 = quantile(flux.term, 0.75, na.rm = TRUE)
-    )
-  
-  cat("\nCH4 Flux Statistics (nmol/m²/s):\n")
-  cat("- Mean:", round(ch4_stats$mean_flux, 2), "\n")
-  cat("- Median:", round(ch4_stats$median_flux, 2), "\n")
-  cat("- SD:", round(ch4_stats$sd_flux, 2), "\n")
-  cat("- Range:", round(ch4_stats$min_flux, 2), "to", round(ch4_stats$max_flux, 2), "\n")
-  cat("- IQR:", round(ch4_stats$q25, 2), "to", round(ch4_stats$q75, 2), "\n")
+flux_stats <- function(d, gas, digits) {
+  q <- quantile(d$flux.term, c(0.25, 0.75), na.rm = TRUE)
+  cat(sprintf("\n%s flux.term: n %d | mean %s | median %s | range %s to %s | IQR %s to %s\n", gas, nrow(d),
+              round(mean(d$flux.term, na.rm = TRUE), digits), round(median(d$flux.term, na.rm = TRUE), digits),
+              round(min(d$flux.term, na.rm = TRUE), digits), round(max(d$flux.term, na.rm = TRUE), digits),
+              round(q[1], digits), round(q[2], digits)))
 }
-
-# =============================================================================
-# SUMMARY
-# =============================================================================
-
-cat("\n=== LGR3 PROCESSING COMPLETE ===\n")
-cat("Chamber specifications applied:\n")
-cat("- Surface Area:", CORRECT_CHAMBER_SURFACE_AREA_CM2, "cm²\n")
-cat("- Total System Volume:", round(CORRECT_VTOT_L, 3), "L\n\n")
-
-cat("Final dataset created with", nrow(final_dataset), "rows and", ncol(final_dataset), "columns\n")
-
-cat("\nAll files saved with correct volume (", round(CORRECT_VTOT_L, 3), "L):\n")
-cat("- data/processed/flux/semirigid_tree_final_complete_dataset_soil.csv\n")
-cat("- data/processed/flux/CO2_best_flux_lgr_results_soil.csv\n")
-if(exists("CH4_best_lgr3")) {
-  cat("- data/processed/flux/CH4_best_flux_lgr_results_soil.csv\n")
-}
-cat("- data/processed/flux/LGR3_flux_plots_complete_soil.pdf\n")
-cat("- auxfile_goFlux_soilflux_with_weather.txt\n")
-cat("- auxfile_goFlux_soilflux_with_weather_formatted.csv\n")
-cat("- closure windows: data/raw/flux_windows/ (saved) or data/processed/flux/repicked/ (re-pick)\n")
-
-cat("\nSummary:\n")
-cat("- Total measurements processed:", nrow(final_dataset), "\n")
-cat("- Clean measurements:", quality_summary$clean_measurements, "\n")
-cat("- Flagged measurements:", quality_summary$flagged_measurements, "\n")
-
-cat("\n✓ All flux values calculated with correct volume from the start\n")
-cat("✓ All files saved with consistent, correct chamber specifications\n")
+flux_stats(CO2_best_lgr3, "CO2", 2)
+flux_stats(CH4_best_lgr3, "CH4", 2)
+cat("\nWrote data/processed/flux/: {CO2,CH4}_flux_lgr_results_soil.csv, {CO2,CH4}_best_flux_lgr_results_soil.csv,",
+    "semirigid_tree_final_complete_dataset_soil.csv (", nrow(final_dataset), "rows )\n")

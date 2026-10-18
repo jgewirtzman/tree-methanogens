@@ -1,24 +1,18 @@
-source("code/lib/outputs.R")
 # ==============================================================================
-# Gene copies per gram (real mass) + dry/wet weight basis
-# ==============================================================================
-# Unit basis (dry vs wet; "copies per gram") and Fig 7b
-# (copies per uL depends on elution volume & extraction mass -> use copies/g).
-#
-# An earlier version of the pipeline converted with a FIXED 100 mg proxy mass. This uses the ACTUAL per-sample mass
-# (samples.extraction_mass_mg) and the conversion in code/lib/ddpcr_constants.R:
+# 06_copies-per-gram.R -- gene copies per gram of sample (Fig 7b basis)
+# ------------------------------------------------------------------------------
+# Stage D; run from the repository root. Copies per uL depend on the elution volume
+# and the extracted mass, so abundances are reported per gram, from each sample's own
+# extraction mass (samples.extraction_mass_mg) and code/lib/ddpcr_constants.R:
 #     copies g-1 = Conc x (25/2.5) x elution (75 wood, 100 soil) x (800/250) / mass (g)
-# and converts to a DRY-weight basis for wood using per-tree tissue moisture.
-#
-# KEY consequence: wood mass ~100 mg (proxy was ~right) but soil ~250 mg, so the
-# fixed proxy OVERESTIMATED soil copies/g ~2.5x. The real correction LOWERS soil
-# and thus STRENGTHENS the "wood exceeds soil by ~2 orders of magnitude" result.
-#
-# Run from the repository root: Rscript code/09_tables_stats/06_copies-per-gram.R
+# Also reported: the same with a fixed 100 mg proxy mass (soil extractions were
+# ~250 mg, so the proxy overstates soil copies per g ~2.5x), and wood on a dry basis
+# from each tree's tissue moisture.
+# Outputs: outputs/data/copies_per_g_compartment.csv, outputs/audit/copies_per_g_summary.txt
 # ==============================================================================
+source("code/lib/outputs.R")
 
 suppressPackageStartupMessages({ library(tidyverse) })
-out_dir <- "outputs"; dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
 source("code/lib/ddpcr_constants.R")   # copies g-1 = Conc x (25/2.5) x elution (75 wood, 100 soil) x (800/250) / mass (g), as code/tables/21_ddpcr.R
 
 # per DNA sample (data/tables/ddpcr.csv + samples.csv via dna_samples(); mean over the

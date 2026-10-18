@@ -1,65 +1,51 @@
-source("code/lib/outputs.R")
 #!/usr/bin/env Rscript
 # ==============================================================================
-# figS26_scaling-heatmap.R
+# figS26_scaling-heatmap.R -- Figure S29: whole-woody-surface stem emission across the
+# scaling grid
 # ------------------------------------------------------------------------------
-# Summary view of the scaling sensitivity grid.
-#
-#   a  flux form x WAI, median over the area shapes -- the two axes carrying the
-#      headline range
-#   b  flux form x BRANCH placement, median over WAI and bole. Branch placement is
-#      the least intuitive of the geometry assumptions and its effect is invisible
-#      in (a), where it is collapsed into the cell. Bole shape and WAI get no panel
-#      of their own: bole shape is negligible (see d) and WAI is a simple
-#      multiplier that (a) already shows.
-#   c  LEVERAGE as first-order variance indices. The grid is a complete factorial,
-#      so this decomposition is exact rather than approximate: for each assumption
-#      the variance of its group means over the total variance is the share of
-#      spread attributable to it alone, and the remainder is interaction. This
-#      replaces a max-minus-min "fold change", which is undefined here because the
-#      grid spans zero.
-#
-# Diverging colour centred on zero throughout: with the bounded negative form the
-# tree term can be a net sink, so sign matters and a sequential scale would hide it.
-# (2026-10-02: the all-combinations heatmap and the titles were removed; the full
-# grid is outputs/data/scaling_full_grid.csv and the archive.) Counts are read from the grid, never typed -- they had
-# previously drifted to "280 combinations" and "7 flux forms" against a grid with
-# 240 and 6, the same failure as the hardcoded "216" in the Figure 9 caption.
+# Stage E. Run from the repository root.
+#   (a) median total for each flux form above 2 m x woody area index, over the area
+#       shapes
+#   (b) median total for each flux form x branch-area placement, over WAI and bole
+#       shape (branch placement is collapsed into the cells of (a))
+#   (c) leverage: for each assumption, the range of the total across its own levels
+#       with every other assumption held fixed, over all combinations of the others
+#       (box). A variance share is not used: it would rank WAI, which doubles the
+#       answer, at a few percent.
+# Diverging colour centred on zero: with the uptake form the stem term can be a net
+# sink. Counts are read from the grid, never typed.
+# Input: outputs/data/scaling_full_grid.csv (06_upscale/07_scaling_full_grid.R)
+# Outputs: outputs/figures/generated/fig_scaling_heatmap.png,
+#          outputs/data/scaling_leverage.csv (both leverage statistics, for the text)
 # ==============================================================================
 suppressMessages({library(dplyr); library(ggplot2); library(tidyr); library(patchwork)})
-outdir <- "outputs"
+source("code/lib/outputs.R")
 R <- read.csv(out_path("scaling_full_grid.csv"), stringsAsFactors = FALSE)
 
 FO <- c("constant","exp_band_slope","power","exponential","linear_floored",
         "linear_bounded_median")
+stopifnot(setequal(FO, unique(R$flux)))
 R$flux <- factor(R$flux, levels = rev(FO))
-# linear_bounded_median is CONTRADICTED by the only direct evidence above 2 m: all
-# four climbed-tree measurements there are positive (0.031-0.354 nmol m-2 s-1),
-# each larger in magnitude than the (median detected stem uptake) sink it assumes, and the profile's only
-# negative value is at 0.5 m where the flux routine flags it below detection.
-# Retained because n = 1 tree cannot exclude uptake in other species or conditions,
-# but marked so it is not read as an equal member of the set.
-CONTRADICTED <- "linear_bounded_median"
+# linear_bounded_median (linear into uptake) is contradicted by the only direct evidence
+# above 2 m: every climbed-tree measurement there is positive and larger than the sink it
+# assumes. Kept, because one tree cannot exclude uptake elsewhere, but marked "*".
 R$WAI    <- factor(R$WAI,    levels = sort(unique(R$WAI)))
 R$branch <- factor(R$branch, levels = sort(unique(R$branch)))
 R$bole   <- factor(R$bole,   levels = sort(unique(R$bole)))
 
-N_COMB <- nrow(R); N_WAI <- nlevels(R$WAI); N_BOLE <- nlevels(R$bole)
-N_BRANCH <- nlevels(R$branch); N_FLUX <- nlevels(R$flux)
-N_SHAPE <- N_BOLE * N_BRANCH
-MEAS <- unique(round(R$measured_mg, 2))[1]
+N_COMB <- nrow(R)
 LIM  <- max(abs(R$total_mg)) * c(-1, 1)
-star <- function(v) ifelse(v == CONTRADICTED, paste0(v, " *"), as.character(v))
 
 DIV <- scale_fill_gradient2(low = "#2166ac", mid = "white", high = "#b2182b",
                             midpoint = 0, limits = LIM,
                             name = expression("mg CH"[4]*" m"^-2*" yr"^-1))
-# readable names for the grid's codes (2026-10-02); * marks the form the climbed tree contradicts
+# readable names for the grid's codes; * marks the form the climbed tree contradicts
 FLUX_LAB <- c(constant = "Constant", exp_band_slope = "Per-stem exponential", power = "Power",
               exponential = "Exponential", linear_floored = "Linear, floored at zero",
               linear_bounded_median = "Linear into uptake *")
 BRANCH_LAB <- c(uniform_all = "Uniform, whole stem", uniform_top50 = "Uniform, upper half",
                 gaussian_50 = "Gaussian at 50% height", gaussian_75 = "Gaussian at 75% height")
+stopifnot(setequal(names(FLUX_LAB), FO), setequal(names(BRANCH_LAB), levels(R$branch)))
 WAI_LAB <- function(v) gsub(" \\((.*)\\)", ", \\1", sub("^([0-9.]+) (.*)$", "\\1\n\\2", v))
 th <- theme_minimal(base_size = 11) +
   theme(panel.grid = element_blank(),
@@ -83,10 +69,6 @@ pb <- ggplot(B, aes(branch, flux, fill = m)) +
   labs(x = "Branch-area placement", y = NULL) + th
 
 # ---- c: leverage, the range each assumption spans with the others held fixed -----
-# (a variance share was rejected: the flux axis takes 89% and WAI, which doubles the
-#  answer, reads as 3%). For each assumption, hold every other fixed and take the
-# range across its own levels; over every combination of the others this gives a
-# distribution of ranges, shown as a box.
 FACT <- c("flux","WAI","branch","bole")
 LEV <- bind_rows(lapply(FACT, function(v) {
   others <- setdiff(FACT, v)

@@ -1,39 +1,27 @@
 # ==============================================================================
-# PICRUSt2 MetaCyc Pathway–Gene Association Heatmaps (Figure 6 + Supplementary)
-# ==============================================================================
-# Purpose: Visualizes MetaCyc pathways significantly associated with functional
-#   gene abundances (mcrA, pmoA, mmoX). Uses pre-computed results from the
-#   plastid-filtered, no-mcrA-ASV analysis pipeline.
-#
-# Pipeline stage: 4 — Publication Figures
-#
-# The primary figure (Fig 6) shows mcrA-associated pathways using the no-mcrA-
-#   ASV analysis: pathway abundances reconstructed after removing methanogen
-#   contributions, then tested for association with mcrA via LMER. This reveals
-#   community-level functional shifts associated with methanogens beyond the
-#   methanogens themselves.
-#
-# Supplementary figures show associations for all genes:
-#   - mcrA (all ASVs): includes methanogen pathway contributions
-#   - mcrA (no-mcrA ASVs): excludes methanogen pathway contributions
-#   - pmoA: particulate methane monooxygenase
-#   - mmoX: soluble methane monooxygenase
-#
-# Inputs (02_picrust_pathway_associations.R, run earlier in the pipeline):
-#   - outputs/data/picrust/pathway_associations_mcra_all.csv
-#   - outputs/data/picrust/pathway_associations_mcra_no_mcra_otus.csv
-#   - outputs/data/picrust/pathway_associations_pmoa.csv
-#   - outputs/data/picrust/pathway_associations_mmox.csv
-#   - outputs/data/picrust/pathway_associations_combined.csv
-#   - data/tables/picrust_pathways.csv  (pathway abundances, non-organelle ASVs; display)
-#   - sample metadata from data/tables/ (survey_16s_meta(), code/lib/tables_read.R)
-#
-# Outputs:
-#   - outputs/figures/original/main/fig6_picrust_mcra_no_mcra_heatmap.png
-#   - outputs/figures/original/supplementary/figS4_picrust_mcra_all_heatmap.png
-#   - outputs/figures/original/supplementary/figS5_picrust_pmoa_heatmap.png
-#
-# Required packages: tidyverse, pheatmap
+# figS11-13_picrust-heatmaps.R -- Figures S13, S14, S15: MetaCyc pathways associated
+# with mcrA and pmoA
+# ------------------------------------------------------------------------------
+# Stage E. Run from the repository root.
+# Row-scaled relative abundance of PICRUSt2 MetaCyc pathways associated with the gene
+# (LMER, code/07_molecular/02_picrust_pathway_associations.R) across 2021 wood samples
+# ordered by the gene; pathways ordered by t. Pathway abundances are reconstructed
+# without the gene-carrying ASVs ("no_mcra_otus", "no_pmoa_otus").
+#   Figure S13  mcrA, FDR < 0.001, pathways with < 10% of their abundance from
+#               mcrA-carrying ASVs (community-level shifts, not methanogen housekeeping)
+#   Figure S14  mcrA, FDR < 0.01, all; row bar: > 50% from mcrA-carrying ASVs
+#   Figure S15  pmoA, FDR < 0.01, all; row bar: > 50% from pmoA-carrying ASVs
+# Inputs
+#   outputs/data/picrust/pathway_associations_mcra_no_mcra_otus.csv,
+#     pathway_associations_combined.csv (mean_percent_from_mcra),
+#     pathway_associations_pmoa_no_pmoa_otus.csv,
+#     pathway_associations_pmoa_combined.csv (mean_percent_from_pmoa)
+#   data/tables/picrust_pathways.csv  pathway abundances of the non-organelle ASVs
+#   survey_16s_meta() (code/lib/tables_read.R): ddPCR and 16S qPCR per sample
+# Outputs
+#   outputs/figures/original/main/fig6_picrust_mcra_no_mcra_heatmap.png          (S13)
+#   outputs/figures/original/supplementary/figS4_picrust_mcra_all_heatmap.png    (S14)
+#   outputs/figures/original/supplementary/figS5_picrust_pmoa_heatmap.png        (S15)
 # ==============================================================================
 
 library(tidyverse)
@@ -49,8 +37,7 @@ meta$log16S <- log10(1 + meta$X16S_per_ul)
 
 # Pathway abundances for the display matrix: data/tables/picrust_pathways.csv, the
 # summed PICRUSt2 contributions of the non-organelle ASVs per library (the abundances
-# the associations are tested on; until 2026-10-17 the display read PICRUSt2's
-# unstratified table, which includes the organelle ASVs)
+# the associations are tested on). Libraries with > 10,000; pathways in > 20 libraries.
 HTML_ENT <- c("&alpha;" = "\u03b1", "&beta;" = "\u03b2", "&gamma;" = "\u03b3", "&delta;" = "\u03b4", "&omega;" = "\u03c9", "&amp;" = "&")
 abundance <- read_table("picrust_pathways") %>%
   dplyr::select(library_id, pathway, abundance) %>%
@@ -71,27 +58,12 @@ heatmap_colors <- colorRampPalette(c("#3b4cc0", "#7092d5", "#c5d5ea",
                                       "#f7f7f7",
                                       "#f5c5a3", "#e8845a", "#b40426"))(100)
 
-## Annotation color schemes (harmonious, matching taxonomy heatmap)
-ann_colors_mcra <- list(
-  Compartment = c(Heartwood = "#5D4037", Sapwood = "#BCAAA4"),
-  `log10(mcrA)` = colorRampPalette(c("#f0f0f0", "#7b9fc2", "#1a3a5c"))(100),
-  `mcrA assoc.` = c("FDR < 0.01" = "#b71c1c", "FDR < 0.05" = "#ef9a9a",
-                     "NS" = "#f0f0f0")
-)
-
-ann_colors_pmoa <- list(
-  Compartment = c(Heartwood = "#5D4037", Sapwood = "#BCAAA4"),
-  `log10(pmoA)` = colorRampPalette(c("#f0f0f0", "#7b9fc2", "#1a3a5c"))(100),
-  `pmoA assoc.` = c("FDR < 0.01" = "#b71c1c", "FDR < 0.05" = "#ef9a9a",
-                     "NS" = "#f0f0f0")
-)
-
-ann_colors_mmox <- list(
-  Compartment = c(Heartwood = "#5D4037", Sapwood = "#BCAAA4"),
-  `log10(mmoX)` = colorRampPalette(c("#f0f0f0", "#7b9fc2", "#1a3a5c"))(100),
-  `mmoX assoc.` = c("FDR < 0.01" = "#b71c1c", "FDR < 0.05" = "#ef9a9a",
-                     "NS" = "#f0f0f0")
-)
+## Annotation colours (as the family heatmaps, Figures S10-S11)
+ann_colors_for <- function(gene_label) setNames(list(
+  c(Heartwood = "#5D4037", Sapwood = "#BCAAA4"),
+  colorRampPalette(c("#f0f0f0", "#7b9fc2", "#1a3a5c"))(100),
+  c("FDR < 0.01" = "#b71c1c", "FDR < 0.05" = "#ef9a9a", "NS" = "#f0f0f0")),
+  c("Compartment", paste0("log10(", gene_label, ")"), paste0(gene_label, " assoc.")))
 
 # ==============================================================================
 # STEP 3: Heatmap generation function
@@ -139,10 +111,7 @@ make_pathway_heatmap <- function(pvals_file, meta_df, gene_col, gene_label,
         n_before, "->", nrow(sig), "pathways\n")
   }
 
-  if (nrow(sig) == 0) {
-    cat("No significant pathways at FDR <", fdr_threshold, "— skipping heatmap\n")
-    return(invisible(NULL))
-  }
+  if (nrow(sig) == 0) stop("no pathways at FDR < ", fdr_threshold, " for ", gene_label, call. = FALSE)
 
   rownames(sig) <- sig$pathway
   cat("Pathways in heatmap:", nrow(sig), "\n")
@@ -196,7 +165,9 @@ make_pathway_heatmap <- function(pvals_file, meta_df, gene_col, gene_label,
   ## Annotation bar + legend + margins need ~1.0 in
   fig_height <- max(4, nrow(sig) * cellheight / 72 + 1.0)
 
-  ## Generate heatmap (with device protection to prevent corruption)
+  ## Generate the heatmap. On error, close every device this call may have left open and
+  ## delete the half-written file, then stop: a later script must not draw into an open
+  ## device, and the assembler must not copy a stale PNG.
   tryCatch({
     png(output_file, width = fig_width, height = fig_height,
         units = "in", res = 300)
@@ -223,12 +194,6 @@ make_pathway_heatmap <- function(pvals_file, meta_df, gene_col, gene_label,
     dev.off()
     cat("Saved:", output_file, "\n")
   }, error = function(e) {
-    # Close EVERY device this call may have left open, not just the top one, and
-    # delete the half-written file. A silent failure here is what put the
-    # moisture map into fig6_picrust_mcra_no_mcra_heatmap.png: the device stayed
-    # open on this path and a later script drew into it. The error must also
-    # propagate -- a figure that failed to draw cannot report success, or the
-    # assembler copies the stale/wrong PNG and file.exists() calls it fine.
     while (dev.cur() != 1L) try(dev.off(), silent = TRUE)
     if (file.exists(output_file)) unlink(output_file)
     stop("failed generating ", output_file, ": ", conditionMessage(e), call. = FALSE)
@@ -243,20 +208,15 @@ make_pathway_heatmap <- function(pvals_file, meta_df, gene_col, gene_label,
 
 results_dir <- "outputs/data/picrust"
 
-## --- Figure 6: mcrA (no-mcrA ASVs) — MAIN TEXT ---
-## FDR < 0.001 with mcrA-ASV contribution < 10% (~45 pathways).
-## The contribution filter removes archaeal housekeeping pathways dominated
-## by methanogen ASVs (e.g., archaetidylinositol, CDP-archaeol, mevalonate),
-## retaining community-level functional shifts. The relaxed FDR (vs. 1e-4)
-## captures ecologically informative pathways like homolactic fermentation,
-## mannan degradation, aerobic respiration I, and sulfate assimilation that
-## narrowly missed the stricter threshold.
+## --- Figure S13: mcrA (no-mcrA ASVs), FDR < 0.001, mcrA-ASV contribution < 10% ---
+## The contribution filter removes archaeal housekeeping pathways dominated by
+## methanogen ASVs (e.g. archaetidylinositol, CDP-archaeol, mevalonate).
 make_pathway_heatmap(
   pvals_file = file.path(results_dir, "pathway_associations_mcra_no_mcra_otus.csv"),
   meta_df = meta,
   gene_col = "mcra_probe_loose",
   gene_label = "mcrA",
-  ann_colors = ann_colors_mcra,
+  ann_colors = ann_colors_for("mcrA"),
   output_file = "outputs/figures/original/main/fig6_picrust_mcra_no_mcra_heatmap.png",
   fdr_threshold = 0.001,
   max_gene_contrib = 0.10,
@@ -266,16 +226,14 @@ make_pathway_heatmap(
   fontsize_row = 7
 )
 
-## --- Supplementary: mcrA (no-mcrA ASVs, full FDR < 0.01 set) ---
-## Includes row annotation bar flagging pathways where >50% of predicted
-## abundance comes from mcrA-carrying ASVs. Cell borders added for
-## readability with 109 pathways.
+## --- Figure S14: mcrA (no-mcrA ASVs), FDR < 0.01 ---
+## Row bar: pathways with > 50% of predicted abundance from mcrA-carrying ASVs.
 make_pathway_heatmap(
   pvals_file = file.path(results_dir, "pathway_associations_mcra_no_mcra_otus.csv"),
   meta_df = meta,
   gene_col = "mcra_probe_loose",
   gene_label = "mcrA",
-  ann_colors = ann_colors_mcra,
+  ann_colors = ann_colors_for("mcrA"),
   output_file = "outputs/figures/original/supplementary/figS4_picrust_mcra_all_heatmap.png",
   fdr_threshold = 0.01,
   contrib_file = file.path(results_dir, "pathway_associations_combined.csv"),
@@ -288,15 +246,14 @@ make_pathway_heatmap(
   fontsize_row = 6
 )
 
-## --- Supplementary: pmoA (no-pmoA ASVs, no contribution filter) ---
-## Matches mcrA supplementary logic: contrib bar for >50% from pmoA ASVs,
-## cell borders for readability.
+## --- Figure S15: pmoA (no-pmoA ASVs), FDR < 0.01 ---
+## Row bar: pathways with > 50% of predicted abundance from pmoA-carrying ASVs.
 make_pathway_heatmap(
   pvals_file = file.path(results_dir, "pathway_associations_pmoa_no_pmoa_otus.csv"),
   meta_df = meta,
   gene_col = "pmoa_loose",
   gene_label = "pmoA",
-  ann_colors = ann_colors_pmoa,
+  ann_colors = ann_colors_for("pmoA"),
   output_file = "outputs/figures/original/supplementary/figS5_picrust_pmoa_heatmap.png",
   fdr_threshold = 0.01,
   contrib_file = file.path(results_dir, "pathway_associations_pmoa_combined.csv"),
@@ -308,34 +265,5 @@ make_pathway_heatmap(
   cellheight = 12,
   fontsize_row = 8
 )
-
-## --- mmoX (currently 0 significant pathways at any threshold) ---
-## Kept for completeness; no figure is produced.
-sig_mmox <- make_pathway_heatmap(
-  pvals_file = file.path(results_dir, "pathway_associations_mmox.csv"),
-  meta_df = meta,
-  gene_col = "mmox_loose",
-  gene_label = "mmoX",
-  ann_colors = ann_colors_mmox,
-  output_file = "outputs/figures/original/supplementary/picrust_mmox_heatmap.png",
-  fdr_threshold = 0.01,
-  cellheight = 12,
-  fontsize_row = 8
-)
-
-if (is.null(sig_mmox)) {
-  cat("\nRetrying mmoX at FDR < 0.05...\n")
-  make_pathway_heatmap(
-    pvals_file = file.path(results_dir, "pathway_associations_mmox.csv"),
-    meta_df = meta,
-    gene_col = "mmox_loose",
-    gene_label = "mmoX",
-    ann_colors = ann_colors_mmox,
-    output_file = "outputs/figures/original/supplementary/picrust_mmox_heatmap.png",
-    fdr_threshold = 0.05,
-    cellheight = 12,
-    fontsize_row = 8
-  )
-}
 
 cat("\nAll heatmaps complete.\n")

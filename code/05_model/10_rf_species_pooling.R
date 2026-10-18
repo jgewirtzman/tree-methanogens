@@ -1,26 +1,19 @@
 #!/usr/bin/env Rscript
 # ==============================================================================
-# 10_rf_species_pooling.R
+# 10_rf_species_pooling.R -- how much should a rarely measured species be pooled?
 # ------------------------------------------------------------------------------
-# How much should a rarely-measured species be pooled with others?
-#
-# This is a BIAS-VARIANCE question and it is NOT the one leave-one-species-out
-# answers. LOSO asks how to predict a species with ZERO records; the answer there
-# was that nothing works (all schemes negative R2). Here the species HAS records,
-# just few, and the question is whether to trust them, pool them away, or shrink
-# between the two. Kalmia latifolia has 3 records averaging 0.0350 nmol m-2 s-1
-# while the pooled bucket it used to sit in averages 0.0941, and it carries 1,898
-# inventory stems -- so the choice is worth resolving on evidence.
-#
-# Evaluated by repeated stratified k-fold cross-validation over OBSERVATIONS,
-# with the rare-species rows reported separately, because an overall RMSE is
-# dominated by the abundant species and will always favour pooling.
-#
-# Reported for each scheme:
-#   overall RMSE / R2       does it predict the dataset as a whole
-#   rare-species RMSE       does it predict the species this is actually about
-#   rare-species BIAS       signed; the brief is to err toward unbiased
-#   stand tree budget       what it does to the number that ends up in the paper
+# Stage D; run from the repository root. A bias-variance question, distinct from the
+# leave-one-species-out test (09): here the species has records, just few, and the
+# question is whether to trust them, pool them away, or shrink between the two (e.g.
+# Kalmia latifolia: 3 records, carried to ~1,900 inventory stems). The pooling
+# schemes are compared by repeated stratified k-fold cross-validation over
+# observations, with the rare-species rows reported separately (an overall RMSE is
+# dominated by the abundant species and always favours pooling):
+#   overall RMSE / R2       the dataset as a whole
+#   rare-species RMSE       the species the question is about
+#   rare-species BIAS       signed
+#   stand tree budget       the effect on the number in the paper
+# The taxonomic ladder of 02_rf_models.R ("genus_then_pool") is the scheme adopted.
 #
 # Output: outputs/data/species_pooling_cv.csv / .txt
 # ==============================================================================

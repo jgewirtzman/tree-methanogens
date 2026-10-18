@@ -1,5 +1,4 @@
 #!/usr/bin/env Rscript
-source("code/lib/outputs.R")
 # ==============================================================================
 # 05_soil_readings.R -- soil_readings.csv (data/tables/)
 # ------------------------------------------------------------------------------
@@ -80,6 +79,7 @@ source("code/lib/outputs.R")
 # Writes data/tables/soil_readings.csv, outputs/audit/soil_readings_build.txt,
 #   outputs/audit/soil_readings_soilmoisture_total.csv
 # ==============================================================================
+source("code/lib/outputs.R")
 suppressPackageStartupMessages({ library(tidyverse); library(readxl) })
 OUT <- "data/tables"
 SRC_T <- "data/raw/field_data/static_chamber_field/Soils_Data_filled.csv"

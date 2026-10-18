@@ -1,5 +1,4 @@
 #!/usr/bin/env Rscript
-source("code/lib/outputs.R")
 # ==============================================================================
 # 07_species_traits.R -- canonical tables: species traits from archived TRY and GWDD
 # records (Methods S5; read by code/09_tables_stats/25_plant-traits.R and Fig S25)
@@ -36,6 +35,7 @@ source("code/lib/outputs.R")
 #          contributing dataset, with record IDs: TRY ObsDataID, GWDD id)
 #        outputs/audit/species_traits.txt
 # ==============================================================================
+source("code/lib/outputs.R")
 suppressPackageStartupMessages(library(tidyverse))
 
 OUT <- "data/tables"

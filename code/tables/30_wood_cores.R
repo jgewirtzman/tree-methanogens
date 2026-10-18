@@ -1,5 +1,4 @@
 #!/usr/bin/env Rscript
-source("code/lib/outputs.R")
 # ==============================================================================
 # 30_wood_cores.R -- wood_cores.csv (data/tables/)
 # ------------------------------------------------------------------------------
@@ -16,7 +15,6 @@ source("code/lib/outputs.R")
 #   - two fresh masses differ, both typos corrected in the wide sheet only
 #     (WAX1 outer 0.3349 -> 0.8349 g; AB6' outer 6.3458 -> 0.6346 g; the long
 #     sheet's Percent_Change matches its own typo).
-#   (code/lib/build_phyloseq.R used to read it, merged on core_type; it now reads the tables.)
 #
 # CORES. Three trees were cored twice (WA14, WA102, YB9: two rows each in the
 # sheet). core_id = <tree_id>-<n>, n = 1, 2 in sheet order; key core_id + position. Analyses average a tree's cores
@@ -37,11 +35,9 @@ source("code/lib/outputs.R")
 #     sections excluded. Masses and length stay as recorded.
 # Rows: every section with any recorded length, mass or derived value.
 #
-# (The check against merged_tree_dataset_final.csv was removed 2026-10-16 when that
-# file was retired.)
-#
 # Writes data/tables/wood_cores.csv, outputs/audit/wood_cores_build.txt
 # ==============================================================================
+source("code/lib/outputs.R")
 suppressPackageStartupMessages(library(tidyverse))
 OUT <- "data/tables"
 SRC <- "data/raw/tree_cores/Tree Core Sectioning Data.csv"

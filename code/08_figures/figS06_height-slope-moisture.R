@@ -1,7 +1,10 @@
-source("code/lib/outputs.R")
 # ==============================================================================
-# Does the flux-decline-with-height correspond to soil moisture?
-# ==============================================================================
+# figS06_height-slope-moisture.R -- Figure S6: height slope of stem flux against soil moisture
+# ------------------------------------------------------------------------------
+# Stage E. Run from the repository root.
+#   (a) per-tree slope of flux with height (per m, as Fig. 2b) against soil VWC, for
+#       trees measured at three or more heights; B. alleghaniensis in red
+#   (b) B. alleghaniensis: flux at the lowest measured height against soil VWC
 # A decline in stem CH4 flux with height does not by itself imply a soil source.
 # Tests whether the B. alleghaniensis height trend reflects wetter soil: are the
 # highest B. alleghaniensis fluxes found in the wettest soil?
@@ -10,13 +13,18 @@ source("code/lib/outputs.R")
 # and attenuating with height, then a STEEPER (more negative) height slope should
 # occur in WETTER soils (more soil CH4 source). We test per-tree height slope vs VWC.
 #
-# Outputs: outputs/figures/generated/height_slope_vs_moisture.png, height_slope_moisture_summary.txt
+# For comparison the summary also reports the cross-species correlation of Figure 2:
+# the per-species height coefficient (lmer, as fig02_height-flux.R) against the
+# species mean of log10(mineral-soil mcrA + 1).
+# Inputs: data/tables/ via code/lib/tables_read.R: survey_2021_trees(soil = TRUE) (flux by
+#   height from flux_stem.csv; VWC at the tree, code/lib/soil_fill.R; soil mcrA) and
+#   flux_stem.csv (2021_multiheight deployments)
+# Outputs: outputs/figures/generated/height_slope_vs_moisture.png,
+#          outputs/audit/height_slope_moisture_summary.txt
 # ==============================================================================
 
-suppressPackageStartupMessages({ library(tidyverse); library(patchwork) })
-out_dir <- "outputs"; dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
-
-
+suppressPackageStartupMessages({ library(tidyverse); library(patchwork); library(lme4) })
+source("code/lib/outputs.R")
 source("code/lib/tables_read.R")
 # 2021 survey per tree: flux by height (flux_stem.csv), species (trees.csv), landscape
 # position, soil VWC at the tree (attach_soil(), code/lib/soil_fill.R)
@@ -38,13 +46,27 @@ slopes <- long %>% group_by(tree_id, species_id, VWC_mean, landscape_position) %
 
 # ---- Correlations: per-tree slope vs VWC -------------------------------------
 ct_all  <- cor.test(slopes$height_slope, slopes$VWC_mean, method = "pearson")
-ct_sp_r <- cor.test(rank(slopes$height_slope), rank(slopes$VWC_mean))  # spearman-ish
 
 # species-level: median slope vs median VWC
 sp_lvl <- slopes %>% group_by(species) %>%
   filter(n() >= 3) %>%
   summarise(n = n(), med_slope = median(height_slope), med_vwc = median(VWC_mean), .groups = "drop")
 ct_species <- if (nrow(sp_lvl) > 3) cor.test(sp_lvl$med_slope, sp_lvl$med_vwc) else NULL
+
+# ---- Cross-species: Figure 2's height coefficient vs soil mcrA -------------------
+# per species (Kalmia excluded; species with >= 3 trees measured at more than one
+# height): lmer(flux ~ height_cm + (1 | tree)); deployments at 50, 125 and 200 cm
+hd <- flux_stem_campaign("2021_multiheight") %>%
+  filter(!is.na(CH4_flux_nmol_m2_s), !is.na(height_cm), species_code != "KALA")
+height_coef <- hd %>% group_by(species = species_code) %>%
+  filter(sum(tapply(height_cm, tree_id, n_distinct) > 1) >= 3) %>%
+  summarise(coef = fixef(lmer(CH4_flux_nmol_m2_s ~ height_cm + (1 | tree_id), data = pick(everything())))[["height_cm"]],
+            .groups = "drop")
+sp_mcra <- tp %>% filter(species_id %in% unique(hd$species_code)) %>% group_by(species = species_id) %>%
+  summarise(mean_VWC = mean(VWC_mean, na.rm = TRUE),
+            log_mcra = log10(mean(ddpcr_mcra_probe_Mineral_loose, na.rm = TRUE) + 1), .groups = "drop")
+sp_env <- height_coef %>% inner_join(sp_mcra, by = "species") %>% filter(!is.na(mean_VWC))
+ct_mcra <- cor.test(sp_env$coef, sp_env$log_mcra)
 
 # ---- Figures -----------------------------------------------------------------
 p1 <- ggplot(slopes, aes(VWC_mean, height_slope)) +
@@ -92,8 +114,10 @@ if (nrow(birch) > 2) {
   cat("  -> if positive & significant, highest birch fluxes ARE in wettest soil (supports\n")
   cat("     transport); if not, this check does not support a soil source.\n")
 } else cat("  n too small for a birch-only correlation.\n")
+cat(sprintf("\nCross-species (Figure 2): r(height coefficient, log10 mineral-soil mcrA + 1) = %.2f, p = %.4f (n = %d species)\n",
+            ct_mcra$estimate, ct_mcra$p.value, nrow(sp_env)))
 cat("\nINTERPRETATION: if the per-tree slope-vs-VWC correlation is weak, height-decline\n")
 cat("alone does not establish a soil source; the cross-species height-effect vs soil-\n")
-cat("methanogen correlation (r=-0.76) is the stronger evidence.\n")
+cat(sprintf("methanogen correlation (r = %.2f) is the stronger evidence.\n", ct_mcra$estimate))
 sink()
 cat(readLines(out_path("height_slope_moisture_summary.txt")), sep="\n")

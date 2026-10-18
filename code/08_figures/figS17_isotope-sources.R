@@ -1,20 +1,23 @@
-source("code/lib/outputs.R")
 # ==============================================================================
-# SI extended-isotope source composite (4 panels, 2x2).
-# Design:       CH4 Keeling      | CO2 Keeling
-#               d13CH4 convergence | eps_C convergence
-# (Miller-Tans dropped: leverage-biased, redundant with Keeling.)
-# Data load replicated verbatim from ISOTOPES_final.R (settled QC).
+# figS17_isotope-sources.R -- Figure S18: source signatures of internal CH4 and CO2
+# ------------------------------------------------------------------------------
+# Stage E. Run from the repository root.
+#   (a) CH4 Keeling plot, MM robust regression (as 09_tables_stats/12_isotopes-canonical.R);
+#       open points: robustness weight < 0.5
+#   (b) CO2 Keeling plot, OLS
+#   (c) d13C-CH4 against CH4 (loess), with the atmosphere-corrected source
+#   (d) eps_C against CH4 (loess), with the band of the source-based eps_C estimates
+# Inputs: data/tables/isotopes.csv (isotope_whole_tree(): the whole-tree set, rule in
+#   code/lib/isotope_samples.R); outputs/data/ISOTOPES_summary.csv (12_isotopes-canonical.R)
 # Output: outputs/figures/generated/SI_isotopes_source_composite.png
 # ==============================================================================
 suppressPackageStartupMessages({ library(tidyverse); library(patchwork) })
-out <- "outputs"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
+source("code/lib/outputs.R")
 RED <- "#b2182b"; BLU <- "#2166ac"
 
-# ---- data (verbatim from ISOTOPES_final.R) -----------------------------------
-source("code/lib/tables_read.R")   # isotopes.csv: whole-tree set flagged by the rule in code/lib/isotope_samples.R
-# reference values READ from 12_isotopes-canonical.R; panels (c) and (d) typed -70 and
-# 54-64 by hand, and the band outlived the reconciliation that moved eps_C to ~51-53
+# ---- data ---------------------------------------------------------------------
+source("code/lib/tables_read.R")
+# reference values read from 12_isotopes-canonical.R, never typed
 .IS <- with(read.csv("outputs/data/ISOTOPES_summary.csv"), setNames(value, quantity))
 ATM_SRC <- .IS[["atm_corrected_source"]]
 EPS_LO <- min(.IS[["eps_C_source_atm"]], .IS[["eps_C_source_keeling"]])
@@ -45,20 +48,20 @@ pa <- ggplot(d, aes(1/ch4_ppm, d13CH4)) +
   annotate("point", x = 0, y = s_kc, color = RED, size = 2.8) +
   res_lab(sprintf("Intercept %.0f\u2030 (95%% CI %.0f to %.0f)", s_kc, ci_kc[1], ci_kc[2]), right = TRUE) +
   labs(x = expression(1/CH[4]~"(ppm"^-1*")"), y = expression(delta^13*"C-CH"[4]~"(\u2030)")) + th
-# ---- d13CH4 convergence ------------------------------------------------------
+# ---- (c) d13CH4 convergence --------------------------------------------------
 pc <- pt(d, ch4_ppm, d13CH4) +
   geom_smooth(method = "loess", se = TRUE, color = "black", fill = "grey80", linewidth = 0.7) +
   geom_hline(yintercept = ATM_SRC, linetype = "dashed", color = RED, linewidth = 0.6) +
   scale_x_log10() +
   res_lab(sprintf("Plateau %.0f\u2030 (two-endmember mixing)", ATM_SRC), right = TRUE) +
   labs(x = expression(CH[4]~"(ppm)"), y = expression(delta^13*"C-CH"[4]~"(\u2030)")) + th
-# ---- (d) CO2 Keeling ---------------------------------------------------------
+# ---- (b) CO2 Keeling ---------------------------------------------------------
 pd <- pt(wt, 1/co2_ppm, d13CO2) +
   geom_smooth(method = "lm", formula = y~x, color = "black", fill = "grey80", linewidth = 0.7) +
   annotate("point", x = 0, y = s_ko, color = BLU, size = 2.8) +
   res_lab(sprintf("Intercept %.0f\u2030 (95%% CI %.0f to %.0f)", s_ko, ci_ko[1], ci_ko[2])) +
   labs(x = expression(1/CO[2]~"(ppm"^-1*")"), y = expression(delta^13*"C-CO"[2]~"(\u2030)")) + th
-# ---- eps_C convergence -------------------------------------------------------
+# ---- (d) eps_C convergence ---------------------------------------------------
 pf <- pt(wt, ch4_ppm, eps_C) +
   annotate("rect", xmin = 1, xmax = Inf, ymin = EPS_LO, ymax = EPS_HI, fill = RED, alpha = 0.10) +
   geom_smooth(method = "loess", se = TRUE, color = "black", fill = "grey80", linewidth = 0.7) +

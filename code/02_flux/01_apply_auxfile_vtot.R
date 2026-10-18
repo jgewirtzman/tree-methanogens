@@ -1,35 +1,32 @@
 #!/usr/bin/env Rscript
 # ==============================================================================
 # 01_apply_auxfile_vtot.R -- carry a changed system volume (Vtot) through the stored
-# goFlux results without repeating the interactive window selection.
+#                            goFlux results without re-fitting
 # ------------------------------------------------------------------------------
-# WHY THIS EXISTS (2026-09-30). The analyzer volume in Vtot was corrected from
-# 70 to 28 cm3 (code/lib/chamber_constants.R). The auxfile scripts pick that up
-# on a rerun, but the goFlux scripts that turn an auxfile into fluxes begin with
-# click.peak2(), and the saved window selections survive for only two of the
-# five campaigns. goFlux does not need rerunning for a volume change, though:
+# Stage A; workdir: repository root. Runs after every goFlux script and the rescue.
+#
+# Compares the Vtot each campaign's assembled table was fitted with ("state") against
+# the Vtot its auxfile now holds ("target"; for the soil collars, SOIL_VTOT_L in
+# code/lib/chamber_constants.R). In a run from raw data they agree and nothing is
+# written. If they differ by one constant offset (a change of the analyzer volume,
+# ANALYZER_VOLUME_CM3), every flux-unit column of every stored result is rescaled by
+# Vtot_new / Vtot_old instead of re-fitting:
 #
 #   flux = (fitted slope, ppb s-1) x flux.term,   flux.term = Vtot*P*(1-H2O)/(R*T*Area)
 #
 # The fits are made on concentration, so a new Vtot rescales flux.term and every
-# quantity in flux units by Vtot_new/Vtot_old and leaves the rest alone (slopes,
-# C0, r2, AICc, k, g.fact, the model chosen by best.flux, quality.check). Checked
-# against a real goFlux + best.flux rerun from the saved windows of the 2021
-# multi-height (441) and soil (288) campaigns: best.flux, MDF and flux.term agree
-# to < 2e-9 and the standard errors to < 2e-6 (relative), with the same model and
-# quality flags on every row. A rerun under the installed goFlux (0.2.0) also
-# moves 195 of the 441 stored 2021 fluxes by up to 0.15 % with no volume change
-# at all, so rescaling is the only way to change the volume and nothing else.
+# quantity in flux units and leaves the rest alone (slopes, C0, r2, AICc, k, g.fact,
+# the model chosen by best.flux, quality.check). Checked against a goFlux + best.flux
+# re-fit from the saved windows of the 2021 multi-height (441) and soil (288)
+# campaigns: best.flux, MDF and flux.term agree to < 2e-9 and the standard errors to
+# < 2e-6 (relative), with the same model and quality flags on every row.
+# Any other difference between state and target stops the script (re-fit instead).
+# Everything is computed before anything is written.
 #
-# Run from the repo root AFTER the auxfile scripts:
-#   (cd code/02_flux/semirigid && Rscript 03_prep_tree_auxfile.R && Rscript 03_prep_soil_auxfile.R)
-#   (cd code/02_flux/static    && Rscript 01_prep_auxfile_2021.R && Rscript 02_prep_auxfile_2023.R)
-#   Rscript code/02_flux/01_apply_auxfile_vtot.R
-#
-# Old Vtot is whatever the campaign's assembled table holds; new Vtot is what its
-# regenerated auxfile holds (for the untagged stems, also rerun the archived
-# rev_rescue_untagged_prep.R with its output pointed at outputs/data/). A campaign whose two already agree is left alone, so
-# the script is safe to rerun. Everything is computed before anything is written.
+# Inputs:  data/processed/flux/ assembled tables and auxfiles (CAMPAIGNS below), the
+#          goFlux result files (csv_files below), untagged_rescue/untagged_monthly_fluxes.csv
+#          and untagged_auxfile.csv
+# Outputs: the same files, rewritten only when a Vtot changed
 # ==============================================================================
 suppressMessages({ library(readr); library(dplyr) })
 source("code/lib/chamber_constants.R")
@@ -40,15 +37,12 @@ RESC <- "data/processed/flux/untagged_rescue"   # the rescued untagged stems (02
 num  <- function(x) suppressWarnings(as.numeric(x))
 rd   <- function(f) read_csv(f, col_types = cols(.default = "c"), na = character(), progress = FALSE)
 
-# Soil collars: the soil fits use one fixed geometry (SOIL_VTOT_L, chamber_constants.R),
-# so the target is that constant, not the auxfile.
-
 # --- campaign -> where its old (state) and new (target) Vtot live ---------------
 CAMPAIGNS <- list(
   semirigid_tree = list(state  = file.path(FLUX, "semirigid_tree_final_complete_dataset.csv"),
                         target = file.path(FLUX, "auxfile_goFlux_with_weather.csv")),
   soil           = list(state  = file.path(FLUX, "semirigid_tree_final_complete_dataset_soil.csv"),
-                        target = SOIL_VTOT_L),
+                        target = SOIL_VTOT_L),     # the soil fits' one collar geometry, not the auxfile
   `2021_multiheight`   = list(state  = file.path(FLUX, "tree_flux_2021_multiheight.csv"),
                               target = file.path(FLUX, "goflux_auxfile.csv")),
   `2023_cross_species` = list(state  = file.path(FLUX, "tree_flux_2023_cross_species.csv"),
@@ -72,11 +66,10 @@ if (length(dV) && diff(range(dV)) > 1e-6)
   stop("state and target Vtot differ by more than one constant offset (", paste(signif(range(dV), 6), collapse = " to "),
        " cm3): something other than the analyzer volume changed. Rerun goFlux for that campaign instead.", call. = FALSE)
 
-# The rescued untagged monthly stems (their flux table carries the auxfile's UniqueIDs
-# since 2026-10-17, 02_flux/rescue/02_untagged_fluxes.R). Take the offset found above
-# and require every result to be a volume the regenerated auxfile holds. (That auxfile is regenerated by 02_flux/rescue/01_untagged_auxfile.R;
-# untagged_fluxes.csv and untagged_manID.rds predate the corrected geometry and
-# are left alone.)
+# The untagged monthly stems (02_flux/rescue/): their flux table carries the auxfile's
+# UniqueIDs. Take the offset found above and require every result to be a volume the
+# auxfile holds. (The picked windows, untagged_manID.rds, are an input and are not
+# rewritten.)
 un  <- rd(file.path(RESC, "untagged_monthly_fluxes.csv")) %>% transmute(UniqueID, V_old = num(Vtot), campaign = "untagged")
 aux <- round(num(rd(file.path(RESC, "untagged_auxfile.csv"))$Vtot), 9)
 off <- if (length(dV)) mean(dV) / 1000 else 0
@@ -139,26 +132,14 @@ csv_files <- c(
     "tree_flux_2021_multiheight.csv", "tree_flux_2023_cross_species.csv",
     "semirigid_tree_final_complete_dataset.csv")),
   file.path(RESC, "untagged_monthly_fluxes.csv"))
-csv_files <- csv_files[file.exists(csv_files)]
+stopifnot(all(file.exists(csv_files)))
 new <- setNames(lapply(csv_files, function(f) rescale(rd(f), f)), csv_files)
 
-# The monthly table with the rescued untagged stems. Its tagged rows carry a
-# UniqueID; the 45 untagged rows were appended without one, in the row order of
-# untagged_monthly_fluxes.csv (02_flux/rescue/03_merge_untagged_monthly.R), and
-# hold only CH4_best.flux (CH4_best.flux.x/.y in files written before 2026-10-01;
-# monthly_plain() reads either). Match them by position and prove it by value.
+# The monthly table with the untagged stems (03_merge_untagged_monthly.R): every row,
+# tagged or untagged, carries its UniqueID, so it rescales like the tables above.
 f_wu <- file.path(FLUX, "semirigid_tree_final_complete_dataset_with_untagged.csv")
-wu <- monthly_plain(rescale(rd(f_wu), f_wu))
-um_old <- rd(file.path(RESC, "untagged_monthly_fluxes.csv")); um_new <- new[[file.path(RESC, "untagged_monthly_fluxes.csv")]]
-k <- which(wu$UniqueID == "NA" | wu$UniqueID == "")
-stopifnot(length(k) == nrow(um_old),
-          isTRUE(all.equal(num(wu$CH4_best.flux[k]), num(um_old$CH4_best.flux))))
-wu$CH4_best.flux[k] <- um_new$CH4_best.flux
-cat(sprintf("  %-62s %5d untagged rows matched by position\n", "", length(k)))
-new[[f_wu]] <- wu
+new[[f_wu]] <- monthly_plain(rescale(rd(f_wu), f_wu))
 
 # --- write -----------------------------------------------------------------------
 for (f in names(new)) write_csv(new[[f]], f, na = "NA", progress = FALSE)
 cat(sprintf("\nRewrote %d tables at analyzer volume %g cm3.\n", length(new), ANALYZER_VOLUME_CM3))
-cat("Downstream, in order: code/tables/ (10_flux_stem.R, 11_flux_soil.R), 05_model/01_load_and_prep_data.R,\n",
-    " 05_model/02_rf_models.R, code/run_all.R, zenodo/01_compile_datasets.R, check_consistency.R\n", sep = "")

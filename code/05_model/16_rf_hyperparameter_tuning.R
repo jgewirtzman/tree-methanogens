@@ -23,9 +23,6 @@
 # Outer folds: NREP repeats x 5 folds, drawn as in 04_rf_grouped_cv.R (seed 1000 + rep).
 # R2 is computed per repeat and averaged, as there.
 #
-# Replaces code/archive/revision/rev_rf_hyperparameters.R (July 2026; removed from the
-# repo), which used species-stratified row folds, the July predictor set and response.
-#
 # Writes outputs/data/rf_hyperparameters.csv, outputs/audit/rf_hyperparameters.txt
 # ==============================================================================
 source("code/lib/outputs.R"); source("code/lib/rf_spec.R")   # RF_THREADS
@@ -88,8 +85,8 @@ tune <- function(X, y, grp, rf, label) {
 }
 
 cat("Nested grouped CV of mtry x min.node.size\n")
-TR <- tune(X_tree, tree_train_complete$y_asinh, tree_train_complete$tree_id, TreeRF, "TreeRF")
-SO <- tune(X_soil, soil_train_complete$y_asinh, soil_train_complete$site_id, SoilRF, "SoilRF")
+TR <- tune(X_tree, tree_train_complete$y_flux, tree_train_complete$tree_id, TreeRF, "TreeRF")
+SO <- tune(X_soil, soil_train_complete$y_flux, soil_train_complete$site_id, SoilRF, "SoilRF")
 
 SUM <- rbind(TR$summary, SO$summary)
 write.csv(merge(rbind(TR$grid, SO$grid), SUM, by = "model"), out_path("rf_hyperparameters.csv"), row.names = FALSE)

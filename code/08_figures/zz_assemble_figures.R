@@ -1,12 +1,16 @@
 # ==============================================================================
-# Assemble the numbered manuscript figure set.
-# Copies each final figure into outputs/figures/{main,SI,photos}/ with its
-# manuscript number + slug. Sources: the figure generators write to outputs/;
-# a few unchanged figures come from the original pipeline's outputs/figures/
-# (run code/make_figures.R to (re)create those). Run after the generators
-# (see run_all.R). Idempotent.
-#
-# SI order = order of first citation in the manuscript text (set 2026-10-01).
+# zz_assemble_figures.R -- number and copy every figure and table of the manuscript
+# ------------------------------------------------------------------------------
+# Stage E, last (after every figure generator; code/pipeline.csv). Run from the
+# repository root. Idempotent.
+# Copies each final figure into outputs/figures/{main,SI}/ and each table into
+# outputs/figures/tables/, named by manuscript number + slug, and writes
+# outputs/figures/MANIFEST.md from the maps below. Sources are the outputs of the
+# stage E generators (outputs/figures/generated/ and outputs/figures/original/),
+# the stage D tables and two static files (photographs; the NCBI screen table).
+# SI figures are numbered in order of first citation in the manuscript text.
+# A missing source is reported (and counted); a source older than the start of the
+# current pipeline run is listed as stale.
 # ==============================================================================
 mainD <- "outputs/figures/main"; siD <- "outputs/figures/SI"
 photoD <- "outputs/figures/photos"; tableD <- "outputs/figures/tables"
@@ -23,14 +27,12 @@ MAIN <- c(
   "Figure_4_gene-abundance"              = "outputs/figures/generated/fig4_final.png",
   "Figure_5_methane-cycling-composition" = "outputs/figures/generated/fig5_final.png",
   "Figure_6_hydrogenotrophy"             = "outputs/figures/generated/fig_hydrogenotrophy.png",
-  "Figure_7_decay-methanogenesis"        = "outputs/figures/generated/fig7_decay_methanogenesis.png",  # NEW expanded Fig 7 (folds old felled-oak)
-  "Figure_8_radial-species"              = "outputs/figures/original/main/fig8_radial_species_comparison.png",  # written by fig08_radial-species.R (regenerated every run)
+  "Figure_7_decay-methanogenesis"        = "outputs/figures/generated/fig7_decay_methanogenesis.png",
+  "Figure_8_radial-species"              = "outputs/figures/original/main/fig8_radial_species_comparison.png",
   "Figure_9_ch4-budget"                  = "outputs/figures/generated/fig_budget_maps.png")
 
-# SI — numbered in order of first citation in the main text (renumbered 2026-10-03).
-# New S08: gene abundance by species, all species (fig04_gene-abundance.R); S08-S28 -> S09-S29.
-# Merged: old S06+S07 (pmoA/mmoX) -> S09, built in figS08_pmoa-mmox.R; the two
-# chamber photos -> one figure, S02a/S02b. New: S03 detection, S05 16S-ddPCR association.
+# SI, numbered in order of first citation in the main text; grouped by the section
+# that first cites them. Figure S2 (chamber photographs) is in SI_PHOTOS.
 SI <- c(
   # Methods
   "Figure_S01_moisture-overlay"          = "outputs/figures/original/supplementary/figS1_moisture_overlay.png",
@@ -46,7 +48,7 @@ SI <- c(
   "Figure_S11_taxonomy-pmoa"             = "outputs/figures/original/supplementary/figS2_taxonomy_pmoa_heatmap.png",
   # Results 6: inferred function
   "Figure_S12_faprotax"                  = "outputs/figures/original/supplementary/figS3_faprotax_heatmaps.png",
-  "Figure_S13_picrust-mcra-no-methanogen" = "outputs/figures/original/main/fig6_picrust_mcra_no_mcra_heatmap.png",  # the submitted main Fig 6
+  "Figure_S13_picrust-mcra-no-methanogen" = "outputs/figures/original/main/fig6_picrust_mcra_no_mcra_heatmap.png",
   "Figure_S14_picrust-mcra-all"          = "outputs/figures/original/supplementary/figS4_picrust_mcra_all_heatmap.png",
   "Figure_S15_picrust-pmoa"              = "outputs/figures/original/supplementary/figS5_picrust_pmoa_heatmap.png",
   "Figure_S10_taxonomy-mcra"             = "outputs/figures/original/supplementary/figS6_taxonomy_mcra_heatmap.png",
@@ -69,39 +71,35 @@ SI <- c(
   # Discussion
   "Figure_S25_plant-traits"              = "outputs/figures/generated/plant_traits.png")
 
-# Photographs that are numbered SI figures (static: exempt from the staleness check)
+# Photographs (static: exempt from the staleness check) and the photo plate of Figure S20
 SI_PHOTOS <- c(
   "Figure_S02a_semirigid-chamber"        = "data/raw/photos/semirigid_chamber.jpg",
   "Figure_S02b_rigid-chamber"            = "data/raw/photos/rigid_chamber.jpg",
   "Figure_S20_black-oak-cross-sections"  = "outputs/figures/generated/figS_black_oak_cross_sections.png")
 
-# Manuscript tables. Table S1 = primer sequences, not assembled here. Dropped:
-# pmoA/mmoX by compartment/species (intermediate), pathway classification (method lives in code: 02_picrust_pathway_associations.R).
+# Manuscript tables with one data source. Not assembled here: Table S1 (ddPCR assays)
+# and Table S7 (literature identifications), written in the manuscript, and Table S4,
+# composed in the manuscript from outputs/data/methanotroph_resolution*.csv
+# (code/07_molecular/03_methanotroph_resolution.R).
 TABLES <- c(
   "Table_1_campaign-summary"             = "outputs/data/campaign_counts.csv",
   "Table_S2_known-putative-taxa"         = "outputs/data/known_putative_taxa_table.csv",
   "Table_S5_ddpcr-16s-concordance"       = "outputs/data/tbl_ddpcr_16s_concordance.csv",
   "Table_S5_ddpcr-16s-concordance-view"  = "outputs/figures/generated/tbl_ddpcr_16s_concordance.png",
-  "Table_S6_dbh-by-species-campaign"     = "outputs/data/dbh_by_species_campaign.csv")
+  "Table_S6_dbh-by-species-campaign"     = "outputs/data/dbh_by_species_campaign.csv",
+  "Table_S8_species-trait-sources"       = "data/tables/species_trait_sources.csv")
 # Not rebuilt by run_all: mmo_capacity_screen.R queries NCBI, so the run shown in the
 # SI is committed (code/lib/mmo_capacity_screen_README.md) and exempt from the staleness check.
 TABLES_STATIC <- c(
-  "Table_S3_mmo-capacity-screen"         = "code/lib/mmo_capacity_screen_table_S5_2026-09-30.csv")
+  "Table_S3_mmo-capacity-screen"         = "code/lib/mmo_capacity_screen_table_S3_2026-09-30.csv")
 
-# Photo plates — separate section (NOT SI data figures); chamber photos to be added
-PHOTOS <- c()   # the black-oak plate is SI Figure S19 (SI_PHOTOS)
+# Photo plates outside the numbered SI figures (none at present)
+PHOTOS <- c()
 
-# STALENESS REFERENCE. copy_set used to test only file.exists(), so a generator that
-# failed left its previous output in place and the assembler shipped it while reporting
-# success. That is exactly what happened to Figure 6: fig06_hydrogenotrophy.R
-# aborted on a missing input from 2026-07-23 onward, and its six-day-old PNG was
-# copied into the manuscript set on every run. "Exists" is not "current".
-# The reference is the marker run_all.R writes when it starts, so "stale" means "its
-# generator did not produce it during the last full pipeline run". Keying off
-# canonical_budget.csv instead was tried and over-warns: re-running one CORE script by
-# hand makes every figure in the set look stale, including the many that do not depend
-# on the budget at all, and a check that always fires is a check nobody reads.
-# Photographs are genuinely static and are exempt.
+# STALENESS. "Exists" is not "current": a generator that fails leaves its previous
+# output in place. The reference is the marker run_all.R writes when it starts, so
+# "stale" means "its generator did not produce it during the last pipeline run".
+# Photographs and the committed NCBI screen table are exempt.
 STALE_REF <- local({
   mk <- "outputs/.pipeline_run_started"
   if (file.exists(mk)) file.mtime(mk) else NA
@@ -124,7 +122,7 @@ copy_set <- function(map, dest, check_stale = TRUE) {
 }
 m1 <- copy_set(MAIN, mainD); m2 <- copy_set(SI, siD) + copy_set(SI_PHOTOS, siD, check_stale = FALSE)
 m3 <- copy_set(PHOTOS, photoD, check_stale = FALSE); m4 <- copy_set(TABLES, tableD) + copy_set(TABLES_STATIC, tableD, check_stale = FALSE)
-cat(sprintf("Assembled %d main + %d SI + %d photo + %d table (%d missing; missing = original-pipeline figs, run generate_all_figures.R).\n",
+cat(sprintf("Assembled %d main + %d SI + %d photo + %d table (%d missing; regenerate with: Rscript code/make_figures.R).\n",
             length(MAIN)-m1, length(SI)+length(SI_PHOTOS)-m2, length(PHOTOS)-m3, length(TABLES)+length(TABLES_STATIC)-m4, m1+m2+m3+m4))
 if (length(stale_list)) {
   cat(sprintf("\n  !! %d assembled file(s) PREDATE this pipeline run (started %s) -- their\n",
@@ -140,7 +138,7 @@ if (length(stale_list)) {
 
 # MANIFEST.md — regenerated from the maps each run so it can never drift
 man <- c("# Revised manuscript figure set (auto-generated by zz_assemble_figures.R)",
-         "", "SI order = order of first citation in the manuscript text (2026-10-01).", "")
+         "", "SI order = order of first citation in the manuscript text.", "")
 sect <- function(title, map, dest) c(paste0("## ", title), "", "| Figure | Source |", "|---|---|",
   vapply(names(map), function(nm) sprintf("| %s | `%s`%s |", nm, map[[nm]],
     if (!file.exists(map[[nm]])) " (missing — run code/make_figures.R)" else ""), character(1)), "")

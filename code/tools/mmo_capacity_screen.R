@@ -1,4 +1,3 @@
-source("code/lib/outputs.R")
 # ==============================================================================
 # mmo_capacity_screen.R
 # ------------------------------------------------------------------------------
@@ -18,8 +17,8 @@ source("code/lib/outputs.R")
 #
 # LIVE: queries NCBI E-utilities, so results drift as NCBI grows. The evidence the
 # definitions file cites is the committed snapshot code/lib/mmo_capacity_screen_2026-09-30.csv.
-# The 2026-09-30 run of this script is committed as code/lib/mmo_capacity_screen_table_S5_2026-09-30.csv
-# (SI Table S5); copy a new run there to update the table.
+# The 2026-09-30 run of this script is committed as code/lib/mmo_capacity_screen_table_S3_2026-09-30.csv
+# (SI Table S3); copy a new run there to update the table.
 # Not part of run_all.R (network). Needs the Bioconductor package pwalign.
 #
 # Output: outputs/data/mmo_capacity_screen.csv
@@ -29,6 +28,7 @@ source("code/lib/outputs.R")
 # Identities are pwalign PID1 (gaps count against identity), so they read lower than the
 # Biopython figures quoted in the snapshot; the verdicts do not change.
 # ==============================================================================
+source("code/lib/outputs.R")
 suppressMessages({library(jsonlite); library(Biostrings); library(pwalign)})
 E  <- "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
 eu <- function(path, ...) { Sys.sleep(0.4); paste(readLines(url(paste0(E, path, "?",

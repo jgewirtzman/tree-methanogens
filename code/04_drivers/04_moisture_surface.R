@@ -1,14 +1,11 @@
 #!/usr/bin/env Rscript
 # ==============================================================================
-# 04_moisture_surface.R
+# 04_moisture_surface.R -- the soil-moisture spatial pattern on the stand grid
 # ------------------------------------------------------------------------------
-# THE soil-moisture spatial pattern, on a regular plot-local grid.
-#
-# Built with a thin-plate spline over the 71 December survey points, chosen by
-# the comparison in 05_moisture_interpolation.R. Replaces akima::interp() at its
-# default linear = TRUE, which fits flat triangles between points -- the source of
-# the planar facets and creases in the Figure 9 soil panel -- and which is only
-# defined inside the convex hull, leaving 29% of the plot unfillable.
+# Stage C. A thin-plate spline over the 71 December 2020 survey points, on a regular
+# 2 m plot-local grid, chosen by the comparison in 05_moisture_interpolation.R
+# (akima's linear interpolation leaves planar facets and is undefined outside the
+# convex hull, 29% of the plot).
 #
 # Why TPS rather than the method with the lowest leave-one-out error. IDW power 2
 # scores best on LOO (RMSE 15.6 against 16.8) and is unusable: it places a
@@ -25,9 +22,8 @@
 # skill is poor -- LOO RMSE ~16 VWC% against a survey mean of 22.6 -- so 71 points
 # at 13 m median spacing support large-scale structure and nothing finer.
 #
-# Input: the survey points only. The old akima surface added stream points at an
-# assumed 100% VWC; this one does not, so the wet end is set by the wettest survey
-# readings (max 79.8%).
+# Input: the survey points only (no stream points at an assumed 100% VWC), so the wet
+# end is set by the wettest survey readings.
 #
 # Output: outputs/tables/moisture_surface_grid.csv
 #         outputs/models/moisture_surface_tps.rds (the fit, so Figure S1 draws this surface)

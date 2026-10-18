@@ -1,5 +1,4 @@
 #!/usr/bin/env Rscript
-source("code/lib/outputs.R")
 # ==============================================================================
 # 02_site.R -- data/tables/site.csv: the stand reference point and plot geometry
 # ------------------------------------------------------------------------------
@@ -10,6 +9,7 @@ source("code/lib/outputs.R")
 # quadrats), the denominator of the budget.
 # Writes data/tables/site.csv
 # ==============================================================================
+source("code/lib/outputs.R")
 suppressPackageStartupMessages(library(tidyverse))
 source("code/lib/geometry.R")
 OUT <- "data/tables"; dir.create(OUT, showWarnings = FALSE, recursive = TRUE)

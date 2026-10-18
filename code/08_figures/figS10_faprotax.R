@@ -1,42 +1,32 @@
 # ==============================================================================
-# FAPROTAX Functional Prediction Heatmaps (Figure S3)
+# figS10_faprotax.R -- Figure S12: FAPROTAX functional predictions in tree wood
+# ------------------------------------------------------------------------------
+# Stage E. Run from the repository root.
+#   (a) mean relative abundance of curated functions, heartwood vs sapwood, grouped by
+#       functional category
+#   (b) methane-related functions, fermentation and dark H2 oxidation by species
+#       (heartwood only)
+# FAPROTAX via microeco on the rarefied 16S wood samples (organelles removed,
+# rarefy_16s()), abundance-weighted; fill log10(% + 1), labels in %.
+# Inputs: the 16S phyloseq object (code/lib/build_phyloseq.R: data/tables/ and the
+#   ASV tree data/raw/16s/unrooted_tree.nwk); species names from data/tables/species.csv
+# Output: outputs/figures/original/supplementary/figS3_faprotax_heatmaps.png
 # ==============================================================================
-# Purpose: Creates a two-panel figure showing FAPROTAX functional predictions
-#   from 16S rRNA amplicon data:
-#     Panel (a): Average relative abundance of metabolisms per core type
-#                (Inner vs Outer), grouped by functional category
-#     Panel (b): Average relative abundance of selected metabolisms per species
-#                (heartwood only)
-#
-# Pipeline stage: 4 — Publication Figures
-#
-# Inputs:
-#   - OTU_table.txt (from data/raw/16s/)
-#   - unrooted_tree.nwk (from data/raw/16s/)
-#   - tree_16s_mapping_dada2_corrected.txt (from data/raw/16s/)
 library(phyloseq)
 library(microeco)
 library(tidyverse)
 library(patchwork)
-
-# 16S phyloseq assembly: single definition in code/lib/build_phyloseq.R.
-# All nine copies of this ~45-line block produced an identical object
-# (71,511 taxa / 587 samples / 6,427,747 counts) before consolidation.
 source("code/lib/build_phyloseq.R")
-.ps16   <- build_16s_phyloseq()
-no_mito <- .ps16$ps
-phylo_tree <- .ps16$tree
+source("code/lib/tables_read.R")
 
-# Rename ASVs and rarefy
+# ==============================================================================
+# STEP 1: 16S relative abundance (rarefied)
+# ==============================================================================
+
+no_mito <- build_16s_phyloseq()$ps
 taxa_names(no_mito) <- paste0("ASV", seq(ntaxa(no_mito)))
-set.seed(46814)
-ps.rare <- rarefy_even_depth(no_mito, sample.size = 3500)
-
-# Transform to relative abundance (0-100% scale)
-ps.ra <- transform_sample_counts(ps.rare, function(x) x / sum(x) * 100)
-
-# Set proper taxonomy column names
-colnames(tax_table(ps.ra)) <- c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species")
+ps.rare <- rarefy_16s(no_mito)
+ps.ra <- transform_sample_counts(ps.rare, function(x) x / sum(x) * 100)   # percent
 
 # ==============================================================================
 # STEP 2: Filter for wood samples (keep ALL species)
@@ -100,8 +90,6 @@ perc_species <- t_func_sp$res_spe_func_perc
 # STEP 5: Curate metabolisms and categories
 # ==============================================================================
 
-# Species code → full species name mapping
-source("code/lib/tables_read.R")
 species_names <- SPECIES_ABBREV   # "A. rubrum", from data/tables/species.csv
 
 # Define the curated set of metabolisms and their categories for panel (a)
@@ -280,8 +268,6 @@ combined <- p_a / p_b +
     tag_prefix = "(",
     tag_suffix = ")"
   )
-
-print(combined)
 
 ggsave("outputs/figures/original/supplementary/figS3_faprotax_heatmaps.png",
        combined, width = 14, height = 12, dpi = 300)

@@ -3,28 +3,27 @@
 # ------------------------------------------------------------------------------
 # Reads data/tables/ only (built earlier in stage B by code/tables/) plus code/lib:
 #   species, site, collars, inventory_stems, trees, flux_stem, flux_soil,
-#   weather, moisture_survey, stream_points.
+#   weather.
 #
-# Builds the PLACEHOLDER_* objects 02_rf_models.R reads:
+# Builds the list rf_workflow_data, read by 02_rf_models.R and the stage-C scripts:
 #   TREE_JULY   2021 multi-height campaign + 2023 cross-species campaign
 #   TREE_YEAR   monthly survey 2020-21 (semi-rigid chambers)
 #   SOIL_YEAR   monthly soil collars 2020-21
-#   MOISTURE_DEC_RASTER / MOISTURE_LOOKUP_XY   December 2020 moisture surface
-#   DRIVERS     monthly air and soil temperature
-#   TAXONOMY, PLOT_AREA, geodetic functions and constants
+#   DRIVERS     monthly air and soil temperature climatologies (stand predictions)
+# Flux columns (stem_flux_nmol_m2_s, soil_flux_nmol_m2_s) are CH4 in nmol m-2 s-1.
 #
 # Stem rows are flux_stem deployments (measurement_id), one row each. Trees are
 # trees.csv's: tree_id, species_code and dbh_cm, and the position of the tree's
 # census stem (or its GPS point), so one physical tree has one id, species, DBH and
 # position across campaigns.
-# Training on the conditions at the measurement (2026-10-17). Air temperature
-# (flux_stem / flux_soil air_temp_C, the value measured at the deployment) is carried
-# but is not a predictor of the locked forests (dropped 2026-10-17; the with-air
-# forests are the sensitivity 05_model/15_rf_air_temperature_test.R). The monthly 24-h
-# tower climatologies (section 11) drive the stand predictions only. Soil temperature and VWC: attached
-# from data/tables/soil_readings.csv by code/lib/soil_fill.R attach_soil() -- the one
-# soil rule -- with soil_match recording how each was found ("none": no reading
-# within 3 days; the value stays NA here). Run from code/05_model/ (workdir = script).
+# Conditions at the measurement: air temperature is flux_stem / flux_soil air_temp_C,
+# the value measured at the deployment (carried, not a predictor of the forests; the
+# with-air forests are the sensitivity 05_model/15_rf_air_temperature_test.R). Soil
+# temperature and VWC are attached from data/tables/soil_readings.csv by
+# code/lib/soil_fill.R attach_soil() -- the one soil rule -- with soil_match recording
+# how each was found ("none": no reading within 3 days; the value stays NA). The
+# monthly 24-h tower climatologies (section 10) drive the stand predictions only.
+# Run from code/05_model/ (workdir = script).
 #
 # "# KNOWN:" marks current behaviour that is a candidate for revision.
 #
@@ -35,7 +34,6 @@ suppressPackageStartupMessages({
   library(dplyr)
   library(readr)
   library(lubridate)
-  library(akima)
 })
 
 cat("=== RF WORKFLOW DATA IMPORT (data/tables) ===\n")
@@ -72,26 +70,17 @@ TREES    <- rd("trees")
 FLUX     <- rd("flux_stem")
 FLUX_S   <- rd("flux_soil")
 WEATHER  <- rd("weather")
-MOIST    <- rd("moisture_survey")
-STREAM   <- rd("stream_points")
 stopifnot(nrow(SITE) == 1)
 # KNOWN: CH4 flux (flux_stem, flux_soil) and the 2023 field-sheet covariates are
 #   readr's parse of the processed flux files, as the model has always read them;
 #   readr misreads some long decimals (up to ~1e-13 relative).
 
 # =============================================================================
-# 1. TAXONOMY
+# 1. MODEL SPECIES (species.csv)
 # =============================================================================
-TAXONOMY <- data.frame(
-  species_code = MODEL_SPECIES,
-  species = SPECIES$species[match(MODEL_SPECIES, SPECIES$species_code)],
-  genus   = SPECIES$genus[match(MODEL_SPECIES, SPECIES$species_code)],
-  family  = SPECIES$family[match(MODEL_SPECIES, SPECIES$species_code)],
-  order   = SPECIES$order[match(MODEL_SPECIES, SPECIES$species_code)],
-  class   = SPECIES$class[match(MODEL_SPECIES, SPECIES$species_code)])
-stopifnot(!anyNA(TAXONOMY))
-species_mapping <- setNames(TAXONOMY$species, TAXONOMY$species_code)
-cat("Taxonomy:", nrow(TAXONOMY), "species\n")
+species_mapping <- setNames(SPECIES$species[match(MODEL_SPECIES, SPECIES$species_code)], MODEL_SPECIES)
+stopifnot(!anyNA(species_mapping))
+cat("Model species:", length(species_mapping), "\n")
 
 # =============================================================================
 # 2. GEODETIC CONSTANTS (site.csv)
@@ -161,10 +150,9 @@ tree_attr <- function(tree_id) {
                              paste(unique(tree_id[is.na(a$species)]), collapse = ", "), call. = FALSE)
   a
 }
-PLOT_AREA <- num(SITE$plot_side_m)^2
 
 # =============================================================================
-# 4. TOWER RECORD (the monthly 24-h air-temperature climatology, section 11)
+# 4. TOWER RECORD (the monthly 24-h air-temperature climatology, section 10)
 # =============================================================================
 # Hourly records by local true time (weather.csv timestamp: the end of the hour; the
 # local wall-clock digits, as wall()). Training rows take the air temperature measured
@@ -197,13 +185,13 @@ TREE_JULY_2021 <- h21 %>%
     measurement_id, tree_id, in_rf_training = in_rf_training == "TRUE",
     species = a21$species, species_code = a21$species_code,
     Date = wall(start_time), month = month(Date), year = year(Date),
-    stem_flux_umol_m2_s = num(CH4_flux_nmol_m2_s),
+    stem_flux_nmol_m2_s = num(CH4_flux_nmol_m2_s),
     air_temp_C = num(air_temp_C),
     soil_temp_C = s21$soil_temp_C, soil_moisture_abs = s21$soil_moisture_abs, soil_match = s21$soil_match,
     dbh_m = deployment_dbh_m(h21), dbh_source = deployment_dbh_source(h21), chamber_type = "rigid",
     measurement_height_cm = ifelse(num(height_cm) %in% c(50, 125, 200), num(height_cm), NA_real_),
     x = a21$x, y = a21$y) %>%
-  filter(!is.na(stem_flux_umol_m2_s))
+  filter(!is.na(stem_flux_nmol_m2_s))
 stopifnot(!anyNA(TREE_JULY_2021$Date))
 cat(sprintf("2021 campaign: %d deployments on %d trees (50 cm %d, 125 cm %d, 200 cm %d, 75 cm or root crown %d)\n",
             nrow(TREE_JULY_2021), n_distinct(TREE_JULY_2021$tree_id),
@@ -223,11 +211,11 @@ TREE_JULY_2023 <- y23 %>%
     measurement_id, tree_id, in_rf_training = in_rf_training == "TRUE",
     species = a23$species, species_code = a23$species_code,
     Date = as.POSIXct(date, tz = "UTC"), month = month(Date), year = year(Date),
-    stem_flux_umol_m2_s = num(CH4_flux_nmol_m2_s),
+    stem_flux_nmol_m2_s = num(CH4_flux_nmol_m2_s),
     air_temp_C = num(air_temp_C),
     soil_temp_C = s23$soil_temp_C, soil_moisture_abs = s23$soil_moisture_abs, soil_match = s23$soil_match,
     dbh_m = deployment_dbh_m(y23), dbh_source = deployment_dbh_source(y23), chamber_type = "rigid", x = a23$x, y = a23$y) %>%
-  filter(!is.na(stem_flux_umol_m2_s))
+  filter(!is.na(stem_flux_nmol_m2_s))
 cat(sprintf("2023 campaign: %d deployments on %d trees (%d without a position)\n", nrow(TREE_JULY_2023),
             n_distinct(TREE_JULY_2023$tree_id), sum(is.na(TREE_JULY_2023$x))))
 
@@ -256,11 +244,11 @@ TREE_YEAR <- mon %>%
     species = am$species, species_code = am$species_code,
     Date = if_else(untagged_rescue == "TRUE", as.POSIXct(paste(date, "12:00:00"), tz = "UTC"), wall(start_time)),
     month = month(Date), year = year(Date),
-    stem_flux_umol_m2_s = num(CH4_flux_nmol_m2_s),
+    stem_flux_nmol_m2_s = num(CH4_flux_nmol_m2_s),
     air_temp_C = num(air_temp_C),
     soil_temp_C = smo$soil_temp_C, soil_moisture_abs = smo$soil_moisture_abs, soil_match = smo$soil_match,
     chamber_type = "semirigid", dbh_m = deployment_dbh_m(mon), dbh_source = deployment_dbh_source(mon), x = am$x, y = am$y) %>%
-  filter(!is.na(stem_flux_umol_m2_s))
+  filter(!is.na(stem_flux_nmol_m2_s))
 stopifnot(!anyDuplicated(c(TREE_JULY$measurement_id, TREE_YEAR$measurement_id)))
 cat(sprintf("TREE_YEAR: %d deployments from %d trees; soil moisture for %d; %d without a position\n\n",
             nrow(TREE_YEAR), length(unique(TREE_YEAR$tree_id)), sum(!is.na(TREE_YEAR$soil_moisture_abs)),
@@ -282,63 +270,24 @@ SOIL_YEAR <- FLUX_S %>%
     Date = as.POSIXct(as.Date(date), tz = "UTC"),
     month = month(Date),
     year = year(Date),
-    soil_flux_umol_m2_s = num(CH4_flux_nmol_m2_s),
+    soil_flux_nmol_m2_s = num(CH4_flux_nmol_m2_s),
     air_temp_C = num(air_temp_C),
     soil_temp_C = ssy$soil_temp_C,
     soil_moisture_abs = ssy$soil_moisture_abs, soil_match = ssy$soil_match) %>%
-  filter(!is.na(soil_flux_umol_m2_s))
+  filter(!is.na(soil_flux_nmol_m2_s))
 n_before_stand <- nrow(SOIL_YEAR)
 SOIL_YEAR <- SOIL_YEAR %>% filter(site_id %in% in_stand_collar)
 SOIL_YEAR <- SOIL_YEAR %>%
   mutate(x = num(COLLARS$longitude[match(site_id, COLLARS$collar_id)]),
          y = num(COLLARS$latitude[match(site_id, COLLARS$collar_id)])) %>%
-  select(site_id, Date, month, year, soil_flux_umol_m2_s, air_temp_C,
+  select(site_id, Date, month, year, soil_flux_nmol_m2_s, air_temp_C,
          soil_temp_C, soil_moisture_abs, soil_match, x, y)
 stopifnot(!anyNA(SOIL_YEAR$x), !anyNA(SOIL_YEAR$y))
 cat(sprintf("SOIL_YEAR: %d deployments on %d collars (%d on out-of-stand collars dropped)\n\n",
             nrow(SOIL_YEAR), length(unique(SOIL_YEAR$site_id)), n_before_stand - nrow(SOIL_YEAR)))
 
 # =============================================================================
-# 10. DECEMBER 2020 MOISTURE RASTER
-# =============================================================================
-# Survey points plus the stream-channel flags, interpolated (akima, linear) onto a
-# 100 x 100 lon/lat grid. STREAM_VWC: no VWC was measured at the stream flags
-# (stream_points.csv); they are set to saturation, VWC = 1. This is the one place that
-# assumption is made. (The thin-plate moisture surface that drives the predictions,
-# 04_drivers/04_moisture_surface.R, uses the survey points only.)
-STREAM_VWC <- 1.0
-combined_moisture <- rbind(
-  data.frame(Longitude = num(MOIST$longitude), Latitude = num(MOIST$latitude), VWC = num(MOIST$soil_vwc_pct) / 100),
-  data.frame(Longitude = num(STREAM$longitude), Latitude = num(STREAM$latitude), VWC = STREAM_VWC))
-lon_range <- range(combined_moisture$Longitude)
-lat_range <- range(combined_moisture$Latitude)
-MOISTURE_DEC_RASTER <- interp(
-  x = combined_moisture$Longitude,
-  y = combined_moisture$Latitude,
-  z = combined_moisture$VWC,
-  xo = seq(lon_range[1], lon_range[2], length = 100),
-  yo = seq(lat_range[1], lat_range[2], length = 100),
-  duplicate = "mean"
-)
-
-# Lookup function for moisture at any x,y coordinate
-moisture_lookup_xy <- function(x, y) {
-  moisture_values <- numeric(length(x))
-  for(i in 1:length(x)) {
-    if(!is.na(x[i]) && !is.na(y[i])) {
-      lon_idx <- which.min(abs(MOISTURE_DEC_RASTER$x - x[i]))
-      lat_idx <- which.min(abs(MOISTURE_DEC_RASTER$y - y[i]))
-      moisture_values[i] <- MOISTURE_DEC_RASTER$z[lon_idx, lat_idx]
-    } else {
-      moisture_values[i] <- NA
-    }
-  }
-  return(moisture_values)
-}
-cat("December moisture raster:", length(MOISTURE_DEC_RASTER$x), "x", length(MOISTURE_DEC_RASTER$y), "\n")
-
-# =============================================================================
-# 11. MONTHLY DRIVERS
+# 10. MONTHLY DRIVERS
 # =============================================================================
 # The stand-prediction drivers (not training inputs): 24-h climatologies over the
 # climatology years (CLIM_YEARS; the years of the moisture climatology,
@@ -370,40 +319,21 @@ print(table(table = rep(c("TREE_JULY", "TREE_YEAR", "SOIL_YEAR"), c(nrow(TREE_JU
             soil_match = c(TREE_JULY$soil_match, TREE_YEAR$soil_match, SOIL_YEAR$soil_match)))
 
 # =============================================================================
-# 12. CHECKS AND SAVE
+# 11. CHECKS AND SAVE
 # =============================================================================
-need <- list(TREE_JULY = c("measurement_id", "tree_id", "species", "Date", "stem_flux_umol_m2_s", "x", "y"),
-             TREE_YEAR = c("measurement_id", "tree_id", "species", "Date", "stem_flux_umol_m2_s", "x", "y"),
-             SOIL_YEAR = c("site_id", "Date", "soil_flux_umol_m2_s", "x", "y"))
+need <- list(TREE_JULY = c("measurement_id", "tree_id", "species", "Date", "stem_flux_nmol_m2_s", "x", "y"),
+             TREE_YEAR = c("measurement_id", "tree_id", "species", "Date", "stem_flux_nmol_m2_s", "x", "y"),
+             SOIL_YEAR = c("site_id", "Date", "soil_flux_nmol_m2_s", "x", "y"))
 for (n in names(need)) {
   miss <- setdiff(need[[n]], names(get(n)))
   if (nrow(get(n)) == 0 || length(miss)) stop(n, " is empty or lacks: ", paste(miss, collapse = ", "))
 }
 
 rf_workflow_data <- list(
-  PLACEHOLDER_TREE_JULY = TREE_JULY,
-  PLACEHOLDER_TREE_YEAR = TREE_YEAR,
-  PLACEHOLDER_SOIL_YEAR = SOIL_YEAR,
-  PLACEHOLDER_MOISTURE_DEC_RASTER = MOISTURE_DEC_RASTER,
-  PLACEHOLDER_MOISTURE_LOOKUP_XY = moisture_lookup_xy,
-  PLACEHOLDER_DRIVERS = DRIVERS,
-  PLACEHOLDER_TAXONOMY = TAXONOMY,
-  PLACEHOLDER_PLOT_AREA = PLOT_AREA,
-  geodetic_transform = geodetic_transform,
-  geodetic_inverse = geodetic_inverse,
-  ref_lat = ref_lat,
-  ref_lon = ref_lon,
-  rotation_angle = rotation_angle,
-  earth_radius = earth_radius,
-  metadata = list(
-    coordinate_system = "WGS84 geodetic",
-    x_variable = "longitude (decimal degrees)",
-    y_variable = "latitude (decimal degrees)",
-    creation_date = Sys.time(),
-    data_years = unique(c(TREE_JULY$year, TREE_YEAR$year, SOIL_YEAR$year)),
-    n_species = length(unique(c(TREE_JULY$species, TREE_YEAR$species))),
-    script_version = "2024-12 with 2023 data and geodetic coordinates"
-  )
+  TREE_JULY = TREE_JULY,
+  TREE_YEAR = TREE_YEAR,
+  SOIL_YEAR = SOIL_YEAR,
+  DRIVERS = DRIVERS
 )
 save(rf_workflow_data, file = "../../data/processed/integrated/rf_workflow_input_data_with_2023.RData")
 cat("\nSaved data/processed/integrated/rf_workflow_input_data_with_2023.RData\n")

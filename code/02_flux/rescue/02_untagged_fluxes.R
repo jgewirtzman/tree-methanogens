@@ -1,25 +1,32 @@
 #!/usr/bin/env Rscript
 # ==============================================================================
-# 02_untagged_fluxes.R
-# Attaches the NOTES-based species + verified live/dead + corrected geometry (and the
-# auxfile's measurement ID) to the clicked measurements (untagged_manID.rds), re-keying
-# on start.time (stable, species-independent), overwrites the chamber geometry in manID, and recomputes
-# goFlux so fluxes use the correct Sc. Writes:
-#   data/processed/flux/untagged_rescue/untagged_monthly_fluxes.csv   (per measurement, canonical)
-#   data/processed/flux/untagged_rescue/untagged_monthly_trees.csv    (per tree; 7 trees, 6 dead + 1 live)
-# Prereq: 01_untagged_auxfile.R (writes untagged_auxfile.csv with species/dead/geometry).
+# 02_untagged_fluxes.R -- fluxes of the untagged monthly stems from their hand-picked windows
+# ------------------------------------------------------------------------------
+# Stage A; workdir: repository root. Runs after 01_untagged_auxfile.R.
+#
+# The hand-picked closure windows (untagged_manID.rds, code/tools/click_untagged_windows.R)
+# are matched to the auxfile by start time (a stable, species-independent key). Each
+# window takes its measurement ID, species, live/dead status, chamber geometry (Area,
+# Vtot) and chamber temperature from the auxfile, not the values saved at picking: the
+# picking-time IDs carry the species label of the time (e.g. UNTAG_Upland_BELE_20200826_1_1
+# for the dead red maple UNTAG_Upl_ACRU_dead). goFlux and best.flux are then re-run
+# (package defaults).
+# QC (per measurement): linear or HM r2 >= 0.7 and CH4 flux within -100 to 200 nmol m-2 s-1.
+#
+# Inputs:  data/raw/flux_windows/untagged/untagged_manID.rds
+#          data/processed/flux/untagged_rescue/untagged_auxfile.csv
+# Outputs (data/processed/flux/untagged_rescue/):
+#          untagged_monthly_fluxes.csv  per measurement
+#          untagged_monthly_trees.csv   per stem (median and mean of the QC'd CH4 fluxes)
 # ==============================================================================
-suppressMessages({library(goFlux);library(dplyr)}); options(warn=-1)
+suppressMessages({library(goFlux);library(dplyr)})
 manID<-readRDS("data/raw/flux_windows/untagged/untagged_manID.rds")
 aux<-read.csv("data/processed/flux/untagged_rescue/untagged_auxfile.csv",check.names=FALSE)
 aux$key<-aux$start.time_formatted
 stopifnot(!any(duplicated(aux$key)))                      # start.time is a unique measurement key
 manID$key<-format(as.POSIXct(manID$start.time_formatted,tz="UTC"),"%Y-%m-%d %H:%M:%S")
 mp<-aux %>% select(key, UniqueID_c=UniqueID, Area_c=Area, Vtot_c=Vtot, Tcham_c=Tcham, site, species, dead, Sample, Dstem)
-# UniqueID too comes from the auxfile: the click step's IDs carry the species label of the
-# time (e.g. UNTAG_Upland_BELE_20200826_1_1 for the dead red maple UNTAG_Upl_ACRU_dead);
-# the auxfile's are built from the corrected site, species, date and chamber, so an ID
-# names its tree's species
+# IDs, geometry and chamber temperature from the auxfile (see header)
 manID<-manID %>% select(-any_of(c("Area","Vtot","Tcham","site","species","Sample","Dstem"))) %>%
   left_join(mp,by="key") %>% rename(Area=Area_c, Vtot=Vtot_c, Tcham=Tcham_c)   # geometry and chamber temperature from the auxfile
 stopifnot(!anyNA(manID$Tcham), !anyNA(manID$UniqueID_c),
@@ -46,7 +53,7 @@ trees<-f %>% group_by(tree_id,site,Plot_Type,species,dead,dbh=Dstem) %>%
             CH4_median_qc=round(median(CH4_best.flux[QC],na.rm=TRUE),3),
             CH4_mean_qc=round(mean(CH4_best.flux[QC],na.rm=TRUE),3),.groups="drop") %>% arrange(Plot_Type,species)
 write.csv(trees,"data/processed/flux/untagged_rescue/untagged_monthly_trees.csv",row.names=FALSE)
-cat(sprintf("\n=== %d untagged monthly trees (%d dead + %d live) -> fold monthly 41 to %d ===\n",
-    nrow(trees),sum(trees$dead),sum(!trees$dead),41+nrow(trees)))
+cat(sprintf("\n=== %d untagged monthly stems (%d dead + %d live) ===\n",
+    nrow(trees),sum(trees$dead),sum(!trees$dead)))
 print(as.data.frame(trees))
 cat(sprintf("\nQC'd measurements: %d of %d\n",sum(f$QC,na.rm=TRUE),nrow(f)))

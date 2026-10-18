@@ -1,11 +1,9 @@
 #!/usr/bin/env Rscript
 # ==============================================================================
-# check_consistency.R   --   fast invariant check over the canonical outputs
+# check_consistency.R -- the consistency gate (stage G): invariants over the outputs
 # ------------------------------------------------------------------------------
-# run_all.R takes ~100 minutes and is the only end-to-end check the repo has, which
-# means in practice it does not get run and inconsistencies survive. This script
-# re-derives every canonical quantity from the files on disk and asserts the
-# invariants, in seconds. It RUNS NOTHING and WRITES NOTHING -- it only reads.
+# Re-derives the canonical quantities from the files on disk and asserts the
+# invariants, in seconds. It runs nothing and writes nothing -- it only reads.
 #
 # It is not a substitute for regenerating outputs. It answers a narrower question:
 # given whatever is on disk right now, do the pieces agree with each other?
@@ -158,8 +156,8 @@ if (!is.null(GCV)) {
 }
 
 # ------------------------------------------------------------------------------
-# DATA PLUMBING (added 2026-09-30). The checks above test whether outputs agree with
-# each other. These test the failure modes that slipped past them:
+# DATA PLUMBING. The checks above test whether outputs agree with each other. These
+# test failure modes those checks cannot see:
 #   - two scripts writing one file, so whichever ran last silently won (the 2021 and
 #     2023 tree-flux tables shared a name; the 2023 run overwrote the 2021 one)
 #   - a table whose rows quietly stop accounting for the measurements (Figure 3 read
@@ -172,10 +170,9 @@ cat("\n== pipeline manifest ==\n")
 PM <- read.csv("code/pipeline.csv", stringsAsFactors = FALSE)
 chk("every manifest script exists", all(file.exists(PM$script)),
     paste(PM$script[!file.exists(PM$script)], collapse = "; "))
-liveR <- setdiff(list.files("code", "\\.R$", recursive = TRUE, full.names = TRUE),
-                 list.files("code/archive", "\\.R$", recursive = TRUE, full.names = TRUE))
+liveR <- list.files("code", "\\.R$", recursive = TRUE, full.names = TRUE)
 exempt <- grepl("^code/(lib|tools)/", liveR) | grepl("/helper_", liveR) |
-          liveR %in% c("code/run_all.R", "code/make_figures.R", "code/02_flux/assemble_campaign_flux.R")
+          liveR %in% c("code/run_all.R", "code/make_figures.R")
 orphans <- setdiff(liveR[!exempt], PM$script)
 chk("every live script is run by the manifest (or is a helper, library file or tool)",
     !length(orphans), paste(orphans, collapse = "; "))
@@ -186,16 +183,16 @@ chk("manifest order follows each folder's numbering",
 
 cat("\n== data plumbing ==\n")
 
-# 1. one writer per file. Static scan of live code (archive excluded). A file may
-#    appear here only with the reason it is allowed.
-SEQUENTIAL_STAGES <- c(   # interactive 2020-21 soil processing: goFlux, then the December
-  # fix merges into the same files, then the geometry fix rewrites CH4. Run once, in that
-  # order, by hand; not part of run_all.R. The model reads the end state.
+# 1. one writer per file. Static scan of the code. A file may appear here only with
+#    the reason it is allowed.
+SEQUENTIAL_STAGES <- c(   # 2020-21 soil processing (stage A, in this order): goFlux
+  # (04_goflux_soils.R), then the December fix merges into the same files
+  # (05_fix_december.R), then the geometry fix rewrites CH4 (03_merge/01_fix_soil_flux.R).
+  # Later steps read the end state.
   "CH4_best_flux_lgr_results_soil.csv", "CH4_flux_lgr_results_soil.csv",
   "CO2_best_flux_lgr_results_soil.csv", "CO2_flux_lgr_results_soil.csv",
   "semirigid_tree_final_complete_dataset_soil.csv")
-live <- setdiff(list.files("code", "\\.R$", recursive = TRUE, full.names = TRUE),
-                list.files("code/archive", "\\.R$", recursive = TRUE, full.names = TRUE))
+live <- list.files("code", "\\.R$", recursive = TRUE, full.names = TRUE)
 wpat <- "(write\\.csv|write_csv|write\\.table|saveRDS|save|ggsave|fwrite|write_tsv)\\s*\\("
 # Scripts that write model files only into a temporary SANDBOX directory (never
 # outputs/models): they reuse the canonical file names by design.
@@ -286,7 +283,7 @@ RETIRED <- c("methanogen_tree_flux_complete_dataset.csv", "CH4_best_flux_lgr_res
 hits <- live[vapply(live, function(f) any(grepl(paste(gsub(".", "\\.", RETIRED, fixed = TRUE),
                                                       collapse = "|"), readLines(f, warn = FALSE))), TRUE)]
 hits <- setdiff(hits, "code/check_consistency.R")
-hits <- hits[!grepl("assemble_campaign_flux\\.R$|migrate_campaign_filenames\\.R$", hits)]   # name them by design
+hits <- hits[!grepl("helper_assemble_campaign_flux\\.R$|migrate_campaign_filenames\\.R$", hits)]   # name them by design
 chk("retired shared flux filenames absent from code", !length(hits), paste(hits, collapse = ", "))
 chk("retired shared flux filenames absent from data/processed/flux",
     !any(file.exists(file.path("data/processed/flux", RETIRED))),

@@ -1,57 +1,41 @@
 # ==============================================================================
-# Process Internal Gas Concentrations
-# ==============================================================================
-# Purpose: Processes gas chromatograph data for internal tree gas concentrations
-#   (CH4, CO2, N2O, O2) from extracted stem samples.
+# 03_process_internal_gas.R -- GC calibration of the 2021-22 internal stem-gas samples
+# ------------------------------------------------------------------------------
+# Stage A; workdir: this script's folder (code/01_import/).
 #
-# Calibration (revised 2026-09-30; ported from tree-gas-traits
-#   code/00a_process_ymf_gc.R). The previous version fitted one unweighted
-#   quadratic through all standards (0-60,340 ppm CH4) and set negative
-#   predictions to 0. That fit is dominated by the high standards, so
-#   near-ambient samples predicted < 0 and 92/157 trees (and the lab-air
-#   blanks) became CH4 = 0 ppm. Now:
-#   - CH4: weighted linear fit through N2 + SB1-SB5; above SB5, linear
-#     interpolation SB5 -> SB6 (SB6 is off-trend: response factor 6.0 vs
-#     4.1-4.5 for SB1-SB5)
+# CH4, CO2, N2O and O2 in gas drawn from stems, calibrated against the certified
+# standards run with them (the method of tree-gas-traits code/00a_process_ymf_gc.R):
+#   - CH4: weighted linear fit through N2 + SB1-SB5; above SB5, linear interpolation
+#     SB5 -> SB6 (SB6 is off-trend: response factor 6.0 vs 4.1-4.5 for SB1-SB5)
 #   - CO2, N2O: weighted quadratics
-#   - O2: weighted quadratic; NOT rescaled to the field "Ambient YYMMDD" vials
-#     (they read ~19.6% O2 against ~20.7% for fresh outdoor air, a likely
-#     storage effect; reported as QC only)
-#   - no clamp and no substitution: detection limits are computed and values
-#     are flagged (below LOD, near ambient), never overwritten. No tree sample
-#     falls below the CH4 LOD.
+#   - O2: weighted quadratic; not rescaled to the field "Ambient YYMMDD" vials (they
+#     read ~19.6% O2 against ~20.7% for fresh outdoor air, a likely storage effect;
+#     reported as QC only)
+#   - no clamp and no substitution: detection limits are computed and values are
+#     flagged (below LOD, near ambient, above SB5/SB6), never overwritten.
+# The two samples re-run (SH1_Redo, WA104_Redo) replace their first runs.
 #
-# Pipeline stage: 01 Tree Data Processing
-# Run after: None
-#
-# Inputs:
-#   - Internal Concentration.xlsx (from data/raw/internal_gas/)
-#
-# Outputs:
-#   - sample_data_only.csv
-#   - processed_GC_data_internal_conc.csv
-#   - internal_gas_calibration_check.csv (back-predicted standards)
+# Inputs:  data/raw/internal_gas/Internal Concentration.xlsx (sheets "Raw Data",
+#          "Standard Concentrations")
+# Outputs (data/processed/internal_gas/):
+#   processed_GC_data_internal_conc.csv   every injection, calibrated and flagged
+#   sample_data_only.csv                  tree samples only
+#   internal_gas_calibration_check.csv    back-predicted standards and check standard
 # ==============================================================================
 
-library(tidyverse)
-library(ggplot2)
-library(broom)
+library(dplyr)
+library(tidyr)
 library(readxl)
-library(gridExtra)
-library(viridis)
 
 # Load the data files
 raw_data <- read_excel('../../data/raw/internal_gas/Internal Concentration.xlsx', sheet = "Raw Data")
 standards_conc <- read_excel('../../data/raw/internal_gas/Internal Concentration.xlsx', sheet = "Standard Concentrations")
 
-# Handle redo samples - add this after loading raw_data but before creating GC_data
-
-# First, remove the original SH1 and WA104 samples (keep only the redo versions)
+# Re-run samples: drop the first runs of SH1 and WA104, keep the redos under the plain ID
 raw_data <- raw_data %>%
   filter(!(`Tree ID` == "SH1" & !grepl("Redo|redo", `Tree ID`, ignore.case = TRUE))) %>%
   filter(!(`Tree ID` == "WA104" & !grepl("Redo|redo", `Tree ID`, ignore.case = TRUE)))
 
-# Then rename the redo samples to remove the "_Redo" suffix
 raw_data <- raw_data %>%
   mutate(`Tree ID` = case_when(
     `Tree ID` == "SH1_Redo" ~ "SH1",
@@ -62,7 +46,6 @@ raw_data <- raw_data %>%
 # Clean column names for easier processing
 colnames(raw_data) <- make.names(colnames(raw_data))
 
-# Create a comprehensive dataset by merging FID and ECD data
 GC_data <- raw_data
 
 # Handle N2 samples - set O2 area to NA for N2 samples (since N2 has no O2)
@@ -212,23 +195,6 @@ calibration_check %>%
 write.csv(calibration_check, "../../data/processed/internal_gas/internal_gas_calibration_check.csv",
           row.names = FALSE)
 
-# Calibration plot: back-prediction error of each standard
-calibration_plot <- calibration_check %>%
-  filter(certified > 0) %>%
-  ggplot(aes(certified, rel_error * 100, colour = Species.ID == "Check Standard")) +
-  geom_hline(yintercept = 0, colour = "grey50") +
-  geom_point(alpha = 0.7) +
-  scale_x_log10() +
-  scale_colour_manual(values = c(`FALSE` = "black", `TRUE` = "red"),
-                      labels = c("Standards", "Check standard"), name = NULL) +
-  facet_wrap(~ gas, scales = "free") +
-  labs(x = "Certified concentration (ppm)", y = "Back-prediction error (%)",
-       title = "Internal gas calibration") +
-  theme_minimal() +
-  theme(panel.border = element_rect(color = "black", fill = NA, size = 1),
-        legend.position = "bottom")
-print(calibration_plot)
-
 # Check for unrealistic concentrations (>100% = 1,000,000 ppm)
 cat("\n=== Checking for Unrealistic Concentrations ===\n")
 high_co2 <- sum(GC_data$CO2_concentration > 1000000, na.rm = TRUE)
@@ -257,7 +223,7 @@ cat(sprintf("\nField ambient vials (n=%d): O2 %.0f ppm, CO2 %.0f ppm, CH4 %.2f p
             median(ambient_vials$CH4_concentration, na.rm = TRUE)))
 
 # ==============================================================================
-# Detection flags (replace the old zero clamp)
+# Detection flags
 # ==============================================================================
 # Values are kept as calibrated; nothing is clamped or substituted. Flags mark
 # below-LOD and near-ambient (< 3 ppm CH4) samples for sensitivity runs.
@@ -288,87 +254,6 @@ sample_data <- GC_data %>%
   filter(!Species.ID %in% excluded_patterns) %>%
   filter(!grepl("Std|Standard|Blank|blank|Ambient|SB|Outdoor Air|Oxygen", Species.ID, ignore.case = TRUE)) %>%
   filter(!is.na(CO2_concentration) | !is.na(CH4_concentration) | !is.na(N2O_concentration) | !is.na(O2_concentration))
-
-# Create distribution plots for each gas (with log scale, adding 0.1 to handle zeros)
-co2_dist <- ggplot(sample_data, aes(x = CO2_concentration + 0.1)) +
-  geom_histogram(bins = 30, fill = "steelblue", alpha = 0.7, color = "black") +
-  scale_x_log10(labels = scales::comma) +
-  labs(title = "CO2 Concentration Distribution",
-       x = "CO2 (ppm) - Log Scale", y = "Frequency") +
-  theme_minimal() +
-  theme(panel.border = element_rect(color = "black", fill = NA, size = 1))
-
-ch4_dist <- ggplot(sample_data, aes(x = CH4_concentration + 0.1)) +
-  geom_histogram(bins = 30, fill = "forestgreen", alpha = 0.7, color = "black") +
-  scale_x_log10(labels = scales::comma) +
-  labs(title = "CH4 Concentration Distribution",
-       x = "CH4 (ppm) - Log Scale", y = "Frequency") +
-  theme_minimal() +
-  theme(panel.border = element_rect(color = "black", fill = NA, size = 1))
-
-n2o_dist <- ggplot(sample_data, aes(x = N2O_concentration + 0.1)) +
-  geom_histogram(bins = 30, fill = "orange", alpha = 0.7, color = "black") +
-  scale_x_log10() +
-  labs(title = "N2O Concentration Distribution",
-       x = "N2O (ppm) - Log Scale", y = "Frequency") +
-  theme_minimal() +
-  theme(panel.border = element_rect(color = "black", fill = NA, size = 1))
-
-o2_dist <- ggplot(sample_data, aes(x = O2_concentration + 0.1)) +
-  geom_histogram(bins = 30, fill = "red", alpha = 0.7, color = "black") +
-  scale_x_log10(labels = scales::comma) +
-  labs(title = "O2 Concentration Distribution",
-       x = "O2 (ppm) - Log Scale", y = "Frequency") +
-  theme_minimal() +
-  theme(panel.border = element_rect(color = "black", fill = NA, size = 1))
-
-# Display distribution plots
-print(co2_dist)
-print(ch4_dist)
-print(n2o_dist)
-print(o2_dist)
-
-# Create GHG vs O2 plots
-co2_vs_o2 <- ggplot(sample_data, aes(x = O2_concentration, y = CO2_concentration)) +
-  geom_point(aes(color = Species.ID), alpha = 0.7, size = 2) +
-  geom_smooth(method = "lm", se = TRUE, color = "black", linetype = "dashed") +
-  scale_color_viridis_d(name = "Species") +
-  labs(title = "CO2 vs O2 Concentration",
-       x = "O2 (ppm)", y = "CO2 (ppm)") +
-  theme_minimal() +
-  theme(
-    panel.border = element_rect(color = "black", fill = NA, size = 1),
-    legend.position = "bottom"
-  )
-
-ch4_vs_o2 <- ggplot(sample_data, aes(x = O2_concentration, y = CH4_concentration)) +
-  geom_point(aes(color = Species.ID), alpha = 0.7, size = 2) +
-  geom_smooth(method = "lm", se = TRUE, color = "black", linetype = "dashed") +
-  scale_color_viridis_d(name = "Species") +
-  labs(title = "CH4 vs O2 Concentration",
-       x = "O2 (ppm)", y = "CH4 (ppm)") +
-  theme_minimal() +
-  theme(
-    panel.border = element_rect(color = "black", fill = NA, size = 1),
-    legend.position = "bottom"
-  )
-
-n2o_vs_o2 <- ggplot(sample_data, aes(x = O2_concentration, y = N2O_concentration)) +
-  geom_point(aes(color = Species.ID), alpha = 0.7, size = 2) +
-  geom_smooth(method = "lm", se = TRUE, color = "black", linetype = "dashed") +
-  scale_color_viridis_d(name = "Species") +
-  labs(title = "N2O vs O2 Concentration",
-       x = "O2 (ppm)", y = "N2O (ppm)") +
-  theme_minimal() +
-  theme(
-    panel.border = element_rect(color = "black", fill = NA, size = 1),
-    legend.position = "bottom"
-  )
-
-# Display GHG vs O2 plots
-print(co2_vs_o2)
-print(ch4_vs_o2)
-print(n2o_vs_o2)
 
 # Export processed data
 write.csv(GC_data, "../../data/processed/internal_gas/processed_GC_data_internal_conc.csv", row.names = FALSE)

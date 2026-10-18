@@ -1,23 +1,23 @@
 # ==============================================================================
-# 04_process_internal_gas_2024.R -- calibrate the October 2024 heartwood /
-# sapwood GC run
+# 04_process_internal_gas_2024.R -- GC calibration of the October 2024 heartwood /
+#                                   sapwood run
 # ------------------------------------------------------------------------------
+# Stage A; workdir: repository root.
+#
 # stem_gas_isotopes_picarro_run.csv (GC run 2024-10-10/11, paired heartwood and
-# sapwood samples) arrived with concentration columns computed elsewhere, and
-# they include negative CH4 and CO2. Same fault as the 2021 survey before
-# 03_process_internal_gas.R was recalibrated: a fit that does not respect the
-# low end. This mirrors tree-gas-traits code/00b_process_ymf_2024.R exactly:
-#   - standards: the certified tanks SB1, SB3, SB4, SB5 only (the a/b/c
-#     dilutions in this run have no recorded concentrations)
+# sapwood samples) arrived with concentration columns computed elsewhere, including
+# negative CH4 and CO2. They are recalibrated here by the method of
+# 03_process_internal_gas.R and tree-gas-traits code/00b_process_ymf_2024.R:
+#   - standards: the certified tanks SB1, SB3, SB4, SB5 only (the a/b/c dilutions in
+#     this run have no recorded concentrations)
 #   - CH4: weighted linear; CO2: weighted quadratic; weights 1/(conc + c0)^2
 #   - O2 and N2O: not calibrated (no O2 standards in this run)
-# The input file is left untouched. Calibrated columns go to a new file.
+# The input file is left untouched; the calibrated columns are added in a new file.
 #
-# Run from the repo root:  Rscript code/01_import/04_process_internal_gas_2024.R
-# Reads:  data/raw/internal_gas/stem_gas_isotopes_picarro_run.csv
-#         data/raw/internal_gas/Internal Concentration.xlsx (certified SB tanks)
-# Writes: data/processed/internal_gas/stem_gas_2024_calibrated.csv
-#         outputs/audit/internal_gas_2024_calibration.txt
+# Inputs:  data/raw/internal_gas/stem_gas_isotopes_picarro_run.csv
+#          data/raw/internal_gas/Internal Concentration.xlsx (certified SB tanks)
+# Outputs: data/processed/internal_gas/stem_gas_2024_calibrated.csv
+#          outputs/audit/internal_gas_2024_calibration.txt
 # ==============================================================================
 source("code/lib/outputs.R")
 suppressMessages({ library(readr); library(dplyr); library(readxl) })

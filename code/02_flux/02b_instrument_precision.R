@@ -1,9 +1,10 @@
 #!/usr/bin/env Rscript
-source("code/lib/outputs.R")
 # ==============================================================================
 # 02b_instrument_precision.R -- analyzer CH4 precision (sigma) per field period
 # (Methods S2, "Instrument precision"; read by 03_precision_and_detection.R)
 # ------------------------------------------------------------------------------
+# Stage A; workdir: repository root.
+#
 # sigma = MAD(dx) / sqrt(2), where dx is the difference between consecutive logged
 # CH4 (dry, ppb) readings over each field period's ENTIRE raw analyzer record.
 #   - R's mad() already applies the 1.4826 normal-consistency factor.
@@ -20,10 +21,10 @@ source("code/lib/outputs.R")
 # RData/ folder, so each period is imported in its own empty temporary directory;
 # importing from the repository root would pool all periods.
 #
-# Supersedes the constants hard-coded in 03_precision_and_detection.R before
-# 2026-10-09 (1.200, 1.725, 2.181 ppb), whose generating code was never committed.
-# Output: outputs/data/instrument_precision.csv
+# Inputs:  data/raw/lgr/{static_2021,static_2023,semirigid_2020-2021}/ (raw LGR3 records)
+# Outputs: outputs/data/instrument_precision.csv
 # ==============================================================================
+source("code/lib/outputs.R")
 suppressMessages({ library(goFlux); library(dplyr) })
 
 PERIODS <- data.frame(

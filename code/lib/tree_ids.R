@@ -49,3 +49,14 @@ fix_species_code <- function(x) {
   x[x %in% c("", "NA")] <- NA_character_
   ifelse(x %in% names(SPECIES_CODE_FIXES), SPECIES_CODE_FIXES[x], x)
 }
+
+# Sample name as written by the sequencing facility or the 16S map (tree spelling +
+# compartment [+ lab ID], e.g. "AB3slash5Inner", "WA103*Outer2a") -> samples.sample_id.
+# Names that are already sample_ids pass through; names matching no sample are NA.
+to_sample_id <- function(x, sample_ids) {
+  m <- stringr::str_match(x, "^(.*?)(Inner|Outer|Mineral|Organic)([0-9]+[a-e])?$")
+  tree <- gsub("star", "*", gsub("prime", "'", gsub("slash", "/", m[, 2])))
+  tid <- ifelse(tree == "RO7/8", "RO7slash8", ncbi_tree_id(tree))          # soil between RO7 and RO8
+  y <- ifelse(is.na(m[, 1]), x, paste0(tid, m[, 3], dplyr::coalesce(m[, 4], "")))
+  ifelse(y %in% sample_ids, y, NA_character_)
+}

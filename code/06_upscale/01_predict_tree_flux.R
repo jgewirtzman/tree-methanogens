@@ -1,39 +1,31 @@
 #!/usr/bin/env Rscript
 # ==============================================================================
-# 01_predict_tree_flux.R
+# 01_predict_tree_flux.R -- per-stem CH4 flux over the 0-2 m band (Fig 9b, budget)
 # ------------------------------------------------------------------------------
-# Per-stem CH4 flux predictions for the Figure 9 map panel and the tree budget.
+# Stage C; run from the repository root.
 #
-# INVENTORY: outputs/tables/inventory_stems.csv, built by 08_inventory_build.R
-#   from the raw ForestGEO tables. Run that first.
+# Inventory: outputs/tables/inventory_stems.csv (01_import/08_inventory_build.R).
+# Model: the stem forest (species, DBH, soil moisture, soil temperature, height),
+#   with a per-species calibration (code/lib/species_calibration.R).
+# Drivers: per-stem soil moisture = the stem's relative wetness on the moisture
+#   surface x the month's plot-wide level (as the soil grid); soil temperature = the
+#   monthly climatology (04_drivers/00_soil_temp_climatology.R).
 #
-#   THIS SCRIPT USED TO READ ITS OWN OUTPUT. It took the tree list from
-#   outputs/tables/tree_flux_predictions.csv -- the file it then overwrote -- so
-#   the list of mapped stems existed nowhere else in the repo, in a gitignored
-#   directory, and 03_budget_canonical.R wrote the SAME path with a different
-#   stem set. Running the two in the wrong order deleted 963 stems with no way
-#   to recover them. Both now read the inventory and neither writes it.
+# Height: the forest was trained at 50, 125 and 200 cm, so in height it is a step
+# function. The steps are detected (a 1 cm scan of 400 sampled stems), each stem is
+# evaluated once per constant interval, and the band mean is the width-weighted
+# mean of the intervals: exact. Below 50 cm the 50 cm value is held. Flux above 2 m
+# is not predicted here: 07_scaling_full_grid.R applies its vertical scenarios to
+# each stem's 2 m value and calibrated band profile, both written here.
 #
-# MODEL: the locked TreeRF (species, dbh_m, soil moisture, soil
-#   temperature, height; no air temperature since 2026-10-17).
+# TREE_PRED_SANDBOX=<dir>: models are read from <dir> and the tables written there
+# (used by 05_model/05_audit_training_population.R to score alternative forests).
 #
-# HEIGHT: the band integral is computed EXACTLY, not on a fine grid.
-#   The RF was trained at three heights only (50/125/200 cm, n = 146/143/145), so
-#   in height it is a step function: every stem takes 3-4 distinct values across
-#   50-200 cm and the transitions are at shared thresholds. Those breakpoints are
-#   detected here rather than assumed, then each stem is evaluated once per
-#   interval and the intervals are width-weighted. This is exact -- a 1 cm grid
-#   computes the same number 38x more slowly, and the 12.5 cm grid used earlier
-#   was simply wrong wherever a step fell inside a bin.
-#
-#   The RF resolves the MEASURED band and nothing else. Flux above 2 m is not its
-#   job: it cannot extrapolate (beyond the largest split every leaf returns the
-#   same value), so the vertical scenarios in 07_scaling_full_grid.R take over
-#   there, applied as shape ratios to each stem's own 2 m value. That anchor and
-#   the per-stem lateral area are written out here for the grid to consume.
-#
-# Output: outputs/tables/tree_flux_predictions.csv  (per-stem; map + budget + grid anchor)
-#         outputs/tables/tree_monthly_stand.csv     (stand monthly series)
+# Outputs (outputs/tables/, or the sandbox)
+#   tree_flux_predictions.csv     per stem: band mean flux, 2 m flux, band area, position
+#   tree_band_profile.csv         per stem: calibrated annual-mean flux per height interval
+#   tree_band_profile_edges.csv   the interval edges (cm)
+#   tree_monthly_stand.csv        stand monthly series (per m2 ground; breast height per m2 bark)
 # ==============================================================================
 source("code/lib/rf_spec.R")   # RF_NUM_TREES, RF_THREADS
 suppressPackageStartupMessages({library(ranger); library(dplyr)})
@@ -41,16 +33,13 @@ set.seed(42)
 source("code/lib/geometry.R")
 source("code/lib/species_levels.R")
 
-# SANDBOX (2026-09-30). With TREE_PRED_SANDBOX=<dir>, the models are read from <dir>
-# and the four tables are written there, so audits can score alternative forests
-# without touching outputs/models or outputs/tables. Unset: the canonical run.
 SANDBOX   <- Sys.getenv("TREE_PRED_SANDBOX")
 MODEL_DIR <- if (nzchar(SANDBOX)) SANDBOX else "outputs/models"
 TAB_DIR   <- if (nzchar(SANDBOX)) SANDBOX else "outputs/tables"
 load(file.path(MODEL_DIR, "RF_MODELS.RData"))
 load(file.path(MODEL_DIR, "TRAINING_DATA.RData"))
 load("data/processed/integrated/rf_workflow_input_data_with_2023.RData")
-DR <- rf_workflow_data$PLACEHOLDER_DRIVERS
+DR <- rf_workflow_data$DRIVERS
 d  <- tree_train_complete
 trained <- sort(unique(as.character(d$species_clean)))
 
@@ -59,15 +48,13 @@ if (!file.exists(INVFILE))
   stop("missing ", INVFILE, " -- run: Rscript code/01_import/08_inventory_build.R")
 INV <- read.csv(INVFILE, stringsAsFactors = FALSE)
 
-STEM_BAND_M   <- 2.00
-KALMIA_BAND_M <- 0.75      # shrub; matches compute_geometry() in 02_rf_models.R
-H_LO <- 50; H_HI <- 200    # cm, the RF's training range in height
+H_LO <- 50; H_HI <- 200    # cm, the forest's training range in height
 
 INV <- INV %>%
   filter(is.finite(dbh_m), dbh_m > 0) %>%
   mutate(sp = species_to_model_level(species, trained)) %>%
   as.data.frame()
-INV$band_m <- ifelse(INV$species %in% "Kalmia latifolia", KALMIA_BAND_M, STEM_BAND_M)
+INV$band_m <- band_length_m(INV$species)   # geometry.R: 2 m; Kalmia 0.75 m
 INV$A_stem_m2 <- pi * INV$dbh_m * INV$band_m
 
 cat(sprintf("stems %d | in stand %d | located %d\n",
@@ -80,32 +67,11 @@ NOLEV <- INV$sp == NO_LEVEL
 cat(sprintf("  %d stems with no level: band-area weights over %d levels (largest %s %.3f)\n",
             sum(NOLEV), sum(LEVEL_W > 0), names(which.max(LEVEL_W)), max(LEVEL_W)))
 
-# --- moisture: PER STEM, from the same surface and climatology as the soil term -
-# This used to be one plot-mean scalar applied to all 8,006 stems, built from raw
-# campaign monthly means of soil_moisture_at_tree. That was wrong twice over.
-#
-# (1) It disagreed with the soil term. 02_predict_soil_surface.R drives the soil
-#     flux with the December TPS pattern scaled by the 2019-2022 climatology, cell
-#     by cell. The tree term used a different moisture history entirely -- campaign
-#     means with 2.5x the seasonal amplitude (0.239 against 0.097), built from as
-#     few as ~20 measurements a month, with December having no tree measurements at
-#     all. Two terms plotted in one budget figure must share a moisture history.
-#
-# (2) A single scalar puts every stem on the same side of every split. The forest
-#     is a step function in moisture, and with one value per month the whole stand
-#     falls off the same cliff at once: at June temperatures, predicted flux jumps
-#     from 0.0562 to 0.1204 between moisture 0.27 and 0.28, and the climatology's
-#     June level is 0.279. That produced a spurious June maximum 1.6x July's --
-#     an artifact of which side of one threshold a single number happened to land.
-#
-# The stand has a moisture FIELD, not a value. Each stem now takes its local
-# relative wetness from the TPS surface (vwc_rel, mean 1 over the stand) and that
-# is scaled by the monthly climatology level, exactly as the soil grid is. The
-# 34 unlocated in-stand stems (0.4%) take vwc_rel = 1, the stand mean; 5.3% of located
-# stems lie outside the survey hull and take extrapolated values (counts in
-# outputs/data/moisture_surface_coverage.csv). Averaging over ~8,000
-# stems spread across the field crosses many thresholds instead of one, so the
-# month-to-month curve reflects the climatology rather than a split location.
+# --- moisture: per stem, from the same surface and climatology as the soil term --
+# Each stem takes its local relative wetness from the moisture surface (vwc_rel, mean 1
+# over the stand) scaled by the month's climatology level, as the soil grid does.
+# Unlocated stems take vwc_rel = 1, the stand mean (counts of stems outside the survey
+# hull: outputs/data/moisture_surface_coverage.csv).
 GRIDFILE <- "outputs/tables/moisture_surface_grid.csv"
 CLIMFILE <- "outputs/tables/moisture_climatology_monthly.csv"
 for (f in c(GRIDFILE, CLIMFILE))
@@ -131,14 +97,7 @@ MOIST <- outer(INV$vwc_rel, CLIM$moisture[order(CLIM$mo)])
 cat(sprintf("monthly stand-mean moisture %.3f-%.3f (climatology, 2019-2022)\n",
             min(colMeans(MOIST)), max(colMeans(MOIST))))
 
-# --- soil temperature: multi-year climatology, not campaign means -------------
-# DRIVERS$soil_temp_C_mean is the mean of whenever somebody was in the field: 27
-# to 624 observations a month from as few as ONE visit, with January and March
-# absent entirely and linearly interpolated. 00_soil_temp_climatology.R replaces
-# it with a damped/lagged air-temperature model (trailing mean, window chosen by
-# leave-one-date-out CV; the fit is reported in that script's log) applied to the full
-# tower record over the climatology years (2019-2022), the record the monthly
-# air temperature comes from too.
+# --- soil temperature: the monthly climatology (00_soil_temp_climatology.R) -----
 STFILE <- "outputs/tables/soil_temp_climatology_monthly.csv"
 if (!file.exists(STFILE))
   stop("missing ", STFILE, " -- run code/04_drivers/00_soil_temp_climatology.R first")
@@ -147,33 +106,14 @@ stopifnot(nrow(STCLIM) == 12, all(is.finite(STCLIM$soil_temp_C)))
 DR$soil_temp_C_mean <- STCLIM$soil_temp_C[match(DR$month, STCLIM$mo)]
 
 # --- per-species calibration --------------------------------------------------
-# A regression forest minimises squared error, and that shrinks predictions toward
-# the conditional mean: low-flux species come out high and high-flux species low.
-# Correct for prediction, wrong for a SUM. Tsuga and Pinus strobus are both
-# low-flux and carry 54% of the band area between them, so uncorrected the stand
-# tree term is high (the area-weighted sum ratio under cross-validation is reported by
-# 05_model/12_model_family_comparison.R and 08_rf_calibration_sensitivity.R).
-#
-# The correction is the ratio of observed to OUT-OF-BAG predicted mean, per
-# species level. Using OOB predictions rather than fitted ones is what keeps this
-# from being circular. Under repeated 5-fold CV, where the correction is refitted
-# on each training fold, it brings the area-weighted sum ratio close to 1 while
-# keeping most of the forest's skill, and it reduces the residual bias across
-# diameter and moisture quartiles (current numbers: the logs of those scripts). That
-# matters because the correction is estimated at the covariate distribution of the
-# MEASUREMENTS and applied to inventory stems that are smaller and span all twelve
-# months. Calibrating on the predicted value instead -- linear or isotonic -- does
-# NOT work (sum ratio 1.11-1.13), because the shrinkage is structured by species
-# rather than by predicted magnitude. See 12_model_family_comparison.R.
-# NO CLAMP, BUT A MINIMUM SAMPLE (code/lib/species_calibration.R): levels with fewer
-# than 5 training measurements get ratio 1. An earlier version bounded the ratio to [0.2, 5] to guard against
-# levels with 1-3 records. On the current model it binds on NO level at all -- every
-# ratio falls inside [0.2, 5], so 08_rf_calibration_sensitivity.R measures the clamped
-# variant as changing the stand total by exactly 0.00%. It introduced an arbitrary
-# parameter that would have had to be defended. The unclamped ratio is what the
-# cross-validation in 12_model_family_comparison.R actually evaluated.
+# A regression forest shrinks predictions toward the conditional mean (low-flux
+# species high, high-flux species low), which is right for prediction and wrong for
+# a sum. Each species level's prediction is multiplied by observed / out-of-bag
+# predicted mean flux of its live training rows; levels with fewer than MIN_CAL_N
+# rows keep ratio 1 (code/lib/species_calibration.R). Evaluated under cross-validation
+# in 05_model/12_model_family_comparison.R and 08_rf_calibration_sensitivity.R.
 source("code/lib/species_calibration.R")   # min sample MIN_CAL_N; see that file
-.live <- if ("dead_stem" %in% names(d)) !d$dead_stem else rep(TRUE, nrow(d))   # calibrate on live stems
+.live <- !d$dead_stem   # calibrate on live stems
 cal <- species_calibration(d$species_clean[.live], d$stem_flux_corrected[.live], TreeRF$predictions[.live])
 cmap <- setNames(cal$ratio, cal$sp)
 INV$cal <- as.numeric(ifelse(is.na(cmap[INV$sp]), 1, cmap[INV$sp]))
@@ -192,7 +132,7 @@ pred_at <- function(h, mo, idx = seq_len(nrow(INV)), mult = cmap) predict_specie
   data.frame(dbh_m = INV$dbh_m[idx],
              soil_moisture_at_tree = MOIST[idx, mo],
              soil_temp_C = DR$soil_temp_C_mean[mo],       # predictor <- monthly climatology
-             air_temp_C = DR$air_temp_C_mean[mo],         # not a predictor of the locked forest (dropped 2026-10-17); used by the with-air sensitivity
+             air_temp_C = DR$air_temp_C_mean[mo],         # not a predictor of the stem forest; used by the with-air sensitivity
              height_cm = h,
              dead_stem = 0),   # inventory is live stems; ignored unless a variant uses it
   INV$sp[idx], LEVEL_W, mult)
@@ -216,8 +156,7 @@ cat(sprintf("height steps detected at %s cm -> %d constant intervals\n",
 # Lateral area of a cylinder accumulates uniformly with height (dA/dz = pi*D is
 # constant), so the flux-weighted band mean is the height-mean of f times the band
 # area. Below H_LO the model is out of training range and the H_LO value is held.
-# For Kalmia the band is 0.75 m, which lies entirely below the first step, so this
-# general form reproduces the old special case exactly.
+# For Kalmia the band is 0.75 m, entirely below the first step.
 band_len_cm <- INV$band_m * 100
 band_of <- function(F) {
   band <- matrix(0, nrow(INV), 12)
@@ -253,19 +192,10 @@ band_uncal <- band_of(F_uncal)
 band    <- band    * INV$cal
 flux_2m <- flux_2m * INV$cal
 
-# --- export the CALIBRATED band profile for 07_scaling_full_grid.R -----------
-# The grid needs each stem's within-band profile (to fit the per-stem decay rate
-# for exp_band_slope, and to report the band shape) and its 2 m anchor. It used to
-# rebuild both by re-running the forest itself, and that re-derivation drifted:
-#   - it drove the model from DRIVERS$soil_moisture_at_tree and
-#     DRIVERS$soil_temp_C_mean, i.e. the campaign means this script replaces above
-#     (one plot-mean value per month, December substituted from the soil collars,
-#     January and March absent and filled by approx(rule = 2)), and
-#   - it applied NO per-species calibration.
-# So 74% of the headline scenario -- the extrapolated term, which hangs entirely
-# off that anchor -- sat on a different basis from the 26% that came from this
-# script's canonical band. A single reported total cannot have its two components
-# on different footings, so the profile is exported here and consumed there.
+# --- export the calibrated band profile for 07_scaling_full_grid.R -------------
+# The grid reads each stem's within-band profile (for the per-stem decay rate of
+# exp_band_slope) and its 2 m anchor from here, so both terms of the whole-surface
+# total share drivers and calibration.
 PROF <- apply(F, c(1, 2), mean) * INV$cal        # n x K, annual mean, CALIBRATED
 stopifnot(nrow(PROF) == nrow(INV), ncol(PROF) == K)
 # 2 m anchor is the last interval of the profile, so the grid cannot disagree
@@ -293,20 +223,13 @@ OUT <- data.frame(
 OUT$flux_nmol_m2_s <- OUT$flux_band_nmol_m2_s
 write.csv(OUT, file.path(TAB_DIR, "tree_flux_predictions.csv"), row.names = FALSE)
 
-# Stand-level monthly series, per m2 GROUND: sum(flux x stem area) over the
-# budget set, divided by censused stand area. This is the tree counterpart of
-# the soil monthly series and the only place it is computed -- Figure 9 and the
-# canonical budget both read it rather than re-deriving it.
+# Stand monthly series (the only place it is computed; Figure 9 and the canonical
+# budget read it):
+#   tree_nmol_m2_s     the 0-2 m band's contribution per m2 of ground: sum(flux x stem
+#                      area) over the in-stand stems / stand area (a budget quantity)
+#   tree_bh_nmol_m2_s  the area-weighted mean flux at breast height per m2 of bark,
+#                      comparable to measured stem fluxes (Figure 9c)
 keep <- OUT$in_stand
-# Two monthly series, because they answer different questions:
-#   tree_nmol_m2_s  the 0-2 m band's contribution per m2 of GROUND -- a budget
-#                   quantity, only meaningful once summed and divided by plot area
-#   tree_bh_nmol_m2_s  the area-weighted mean flux at BREAST HEIGHT, per m2 of
-#                   WOODY SURFACE -- a measured quantity, directly comparable to
-#                   the map panel and to any other stem-flux study
-# Figure 9's seasonal panel uses the second: a per-ground-area tree series exists
-# only because we summed stem area and divided by plot area, and putting it beside
-# soil invites reading it as like-for-like when it is diluted by that denominator.
 BH_CM <- 130                                   # breast height, 1.3 m
 k_bh <- findInterval(BH_CM, edges, rightmost.closed = TRUE)
 bh <- F[, k_bh, ] * INV$cal                    # stems x months, calibrated

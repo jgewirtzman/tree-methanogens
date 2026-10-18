@@ -1,18 +1,24 @@
-source("code/lib/outputs.R")
 # ==============================================================================
-# Fig S25: plant traits and the stem methane-cycling community
-#   (a) Spearman correlations of the rule-selected traits with mcrA, pmoA + mmoX,
-#       the methanogen:methanotroph balance and net flux, across all ten gene-flux
-#       species (left) and the eight broadleaf species alone (right); * p < 0.05.
-#   (b) the three associations named in Results §9, conifers as open symbols.
-# Correlations come from code/09_tables_stats/25_plant-traits.R (traits_correlations.csv),
-# which also documents the trait inclusion and reporting rules; trait values from
-# data/tables/species_traits.csv (code/tables/07_species_traits.R); conifer status from species.csv. Descriptive,
-# n = 10 species.
-# (File name kept from the earlier numbering; it draws Figure S25.)
+# figS28_plant-traits.R -- Figure S25: plant traits and the stem methane-cycling community
+# ------------------------------------------------------------------------------
+# Stage E. Run from the repository root.
+#   (a) Spearman correlations of the rule-selected traits with mcrA, pmoA + mmoX, the
+#       methanogen:methanotroph ratio and net stem flux, across the gene-flux species
+#       (left) and the broadleaf species alone (right); * p < 0.05
+#   (b) the three associations named in the Results (trait-response pairs typed in
+#       `sel` below), conifers as open symbols; dashed line, linear fit to broadleaf
+#       species
+# Correlations and the trait inclusion rules come from
+# code/09_tables_stats/25_plant-traits.R; descriptive, n = 10 species.
+# Inputs: outputs/data/traits_correlations.csv, traits_included.csv (25_plant-traits.R);
+#   outputs/data/tree_species_moisture_niche.csv (09_tables_stats/09_tree-distribution.R);
+#   data/tables/species_traits.csv (code/tables/07_species_traits.R), species.csv
+#   (gymnosperm); species gene medians from code/lib/species_gene_data.R
 # Output: outputs/figures/generated/plant_traits.png
 # ==============================================================================
 suppressPackageStartupMessages({ library(tidyverse); library(patchwork); library(ggrepel) })
+source("code/lib/outputs.R")
+source("code/lib/tables_read.R")
 
 S <- read_csv("outputs/data/traits_correlations.csv", show_col_types = FALSE)
 inc <- read_csv("outputs/data/traits_included.csv", show_col_types = FALSE) %>% filter(included)
@@ -20,8 +26,9 @@ invisible(capture.output(suppressMessages(source("code/lib/species_gene_data.R")
 resp <- analysis_ratio %>% transmute(species_id, balance = median_log_ratio) %>%
   left_join(analysis_mcra %>% transmute(species_id, mcra = log10(value + 1)), by = "species_id") %>%
   left_join(analysis_meth %>% transmute(species_id, meth = log10(value + 1)), by = "species_id")
+SP <- read_table("species")
 tr <- read_csv("data/tables/species_traits.csv", show_col_types = FALSE) %>% rename(spcode = species_code) %>%
-  mutate(gymnosperm = as.numeric(read_table("species")$gymnosperm[match(spcode, read_table("species")$species_code)]))
+  mutate(gymnosperm = as.numeric(SP$gymnosperm[match(spcode, SP$species_code)]))
 niche <- read_csv("outputs/data/tree_species_moisture_niche.csv", show_col_types = FALSE) %>%
   mutate(spcode = names(SPECIES_NAMES)[match(species, SPECIES_NAMES)]) %>% select(spcode, vwc_realized = vwc_mean)
 dat <- resp %>% left_join(tr, by = c("species_id" = "spcode")) %>% left_join(niche, by = c("species_id" = "spcode"))
@@ -44,7 +51,6 @@ h1 <- hm(rho, p, "All ten species") + theme(legend.position = "none")
 h2 <- hm(rho_bl, p_bl, "Eight broadleaf species", strip = FALSE) + theme(axis.text.y = element_blank())
 
 # ---- (b) the associations named in the text ----------------------------------------------
-abbr <- function(id) vapply(strsplit(SPECIES_NAMES[id], " "), function(x) paste0(substr(x[1], 1, 1), ". ", x[2]), "")
 sel <- tribble(~trait, ~col, ~response, ~xlab,
   "Bark density",        "bark_density_gcm3",   "balance", "Bark density (g cm⁻³)",
   "Soil-moisture niche", "vwc_realized",        "mcra",    "Soil-moisture niche (% VWC)",
@@ -54,7 +60,7 @@ ylab <- c(balance = "Methanogen:methanotroph ratio (log₁₀)", mcra = "mcrA (l
 sp <- pmap(sel, function(trait, col, response, xlab) {
   s <- S %>% filter(trait == !!trait, response == !!response)
   dd <- dat %>% transmute(x = .data[[col]], y = .data[[response]], grp = if_else(gymnosperm == 1, "Conifer", "Broadleaf"),
-                          lab = abbr(species_id)) %>% filter(is.finite(x))
+                          lab = unname(SPECIES_ABBREV[species_id])) %>% filter(is.finite(x))
   ggplot(dd, aes(x, y)) +
     geom_smooth(data = filter(dd, grp == "Broadleaf"), method = "lm", formula = y ~ x, se = FALSE,
                 colour = "grey60", linetype = "dashed", linewidth = 0.4) +

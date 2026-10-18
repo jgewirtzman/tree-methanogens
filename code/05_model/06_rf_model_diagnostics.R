@@ -1,26 +1,18 @@
-source("code/lib/outputs.R")
 #!/usr/bin/env Rscript
 # ==============================================================================
-# 06_rf_model_diagnostics.R
+# 06_rf_model_diagnostics.R -- four-panel diagnostics of the fitted forests
 # ------------------------------------------------------------------------------
-# Baseline understanding of whatever RF configuration is currently saved.
-# Run this after every change to 02_rf_models.R so each version is interpretable
-# rather than a black box that emits a budget.
-#
-# Produces, for TreeRF and SoilRF:
-#   1. skill summary        OOB R2, raw-scale R2, mean ratio (bias), Spearman
-#   2. variable importance  permutation importance, which (unlike ranger's default
-#                           impurity importance) is not biased toward high-cardinality
-#                           and continuous predictors
-#   3. partial dependence   marginal response to each top predictor, back-transformed
-#                           to nmol m-2 s-1 so the y axis is interpretable
+# Stage D; run from the repository root. For the stem and soil forests:
+#   1. skill summary        OOB R2, mean ratio (bias), Spearman
+#   2. variable importance  permutation importance (impurity importance favours
+#                           high-cardinality and continuous predictors)
+#   3. partial dependence   marginal response to each top predictor, nmol m-2 s-1
 #   4. observed vs predicted, and residuals vs each predictor
 #
 # Outputs: outputs/rf_diagnostics_{tree,soil}.png
 #          outputs/data/rf_diagnostics_summary.csv
-#
-# Run from repo root:  Rscript code/05_model/06_rf_model_diagnostics.R
 # ==============================================================================
+source("code/lib/outputs.R")
 
 suppressMessages({library(ranger); library(dplyr); library(ggplot2); library(tidyr)})
 set.seed(42)
@@ -29,12 +21,11 @@ load("outputs/models/RF_MODELS.RData")
 load("outputs/models/TRAINING_DATA.RData")
 outdir <- "outputs"; dir.create(outdir, showWarnings = FALSE, recursive = TRUE)
 
-# NOTE: columns named *_umol_m2_s hold nmol m-2 s-1 (long-standing upstream misnomer).
 MODELS <- list(
   tree = list(rf = TreeRF, X = as.data.frame(X_tree),
               y = tree_train_complete$stem_flux_corrected,      label = "Tree stem"),
   soil = list(rf = SoilRF, X = as.data.frame(X_soil),
-              y = soil_train_complete$soil_flux_umol_m2_s,      label = "Soil")
+              y = soil_train_complete$soil_flux_nmol_m2_s,      label = "Soil")
 )
 
 # ---------------------------------------------------------------------------
@@ -45,11 +36,7 @@ perm_importance <- function(rf, X, y, n_rep = 5) {
   # Baseline and permuted scores are BOTH computed with predict() on the same rows,
   # so they are directly comparable. (Using rf$predictions for the baseline mixes OOB
   # with in-sample predictions and, if the row set differs at all, silently recycles.)
-  # NO transform. Both models are fitted on the MEASURED scale (the asinh was
-  # removed; the variable still named y_asinh in 02_rf_models.R holds raw values).
-  # This line used to be z <- asinh(y), which scored raw predictions against a
-  # transformed target -- so every permutation importance below was computed
-  # against the wrong reference.
+  # Both models are fitted on the measured scale (no transform).
   z <- y
   r2 <- function(p) 1 - sum((z - p)^2) / sum((z - mean(z))^2)
   base <- r2(predict(rf, X)$predictions)

@@ -1,15 +1,17 @@
 #!/usr/bin/env Rscript
 # ==============================================================================
-# figS19_black-oak-cross-sections.R  (SI)
+# figS19_black-oak-cross-sections.R -- Figure S20: cross-sections of the felled black oak
+# ------------------------------------------------------------------------------
+# Stage E. Run from the repository root.
 # Field photo plate: felled black-oak stem cross-sections by height (base -> top).
 # Documents the visible decay cone (basal rot cavity + discolouration near the
 # base, sound wood by ~6 m) that underlies the within-tree profiles in Fig 7 (the
 # mcrA/CH4/flux peak at 4-6 m is the leading edge of this cone). Photos are field
 # shots (ruler for scale); centre-cropped to square and labelled by height.
-# Input photos: data/raw/photos/black_oak_cross_sections/{height}.jpg (field photos, an input)
-# Writes outputs/figures/generated/figS_black_oak_cross_sections.png
+# Input: data/raw/photos/black_oak_cross_sections/{height}.jpg (field photos)
+# Output: outputs/figures/generated/figS_black_oak_cross_sections.png
 # ==============================================================================
-suppressMessages({library(jpeg);library(grid);library(gridExtra)});options(warn=-1)
+suppressMessages({library(jpeg);library(grid);library(gridExtra)})
 dir<-"data/raw/photos/black_oak_cross_sections"
 ord<-c("50cm","125cm","2m","4m","6m","8m","10m")
 labs<-c("0.5 m","1.25 m","2 m","4 m","6 m","8 m","10 m")

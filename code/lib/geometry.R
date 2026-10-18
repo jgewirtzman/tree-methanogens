@@ -1,51 +1,28 @@
 #!/usr/bin/env Rscript
 # ==============================================================================
-# geometry.R  --  THE stand geometry. Source this; never redefine plot area.
+# geometry.R -- the stand geometry, the canonical stem list and stem heights
 # ------------------------------------------------------------------------------
-# Every script that divides by a ground area, clips a surface, or draws the plot
-# outline must get that geometry from here. Before this module existed, plot area
-# was hardcoded as 200^2 in the budget while the soil surface was averaged over
-# its own larger, ragged extent, so the two terms of the budget described
-# different ground.
+# Source this; never redefine plot area. Every script that divides by a ground area,
+# clips a surface, or draws the plot outline takes the geometry from here.
 #
-# THE STAND IS NOT THE FULL SQUARE. The census is organised in 20 m quadrats, and
-# SEVEN OF THE 100 WERE NEVER CENSUSED -- they appear nowhere in the raw census
-# tables. The stand is the 93 that were:
+# The stand is not the full 200 m square. The census is organised in 20 m quadrats,
+# and seven of the 100 were never censused (they appear nowhere in the raw census
+# tables). The stand is the 93 that were:
 #
 #     quadrat (row, col, 0-indexed)   PX        PY
 #     q7  q8  q9                      140-200    0- 20
 #     q108 q109                       160-200   20- 40
 #     q208 q209                       160-200   40- 60
 #
-# giving a monotonic rectilinear staircase, 2,800 m2 excluded, stand 37,200 m2.
-#
-# THIS IS THE SURVEY DESIGN, NOT AN INFERENCE. An earlier version of this file
-# derived the gap by flood-filling empty 10 m cells from the bottom-right corner.
-# That was the wrong basis twice over: it produced a non-monotonic boundary with a
-# re-entrant step (an artifact of one 10 m cell that happened to hold two stems),
-# and in principle it could not distinguish a quadrat that was never walked from
-# one that was walked and found empty. Masking on the quadrat identifiers answers
-# that question directly.
-#
-# Three located stems fall inside the seven uncensused quadrats (one in q7, two in
-# q108) and are excluded with them. They are almost certainly stems recorded from
-# an adjoining quadrat, or carrying a few metres of coordinate error.
-#
-# Esri World Imagery shows continuous closed canopy over the block, so it is
-# unsurveyed forest, not absent forest: the stem census is deficient there but
-# soil flux genuinely applies. We exclude it from BOTH terms rather than pretend
-# either is complete over it, and the stand is defined as the censused ground.
-#
-# Consequence, and it differs by term:
-#   * the TREE term is a sum over discrete stems divided by ground area, so it
-#     scales with the denominator;
-#   * the SOIL term is the spatial MEAN of a predicted surface, so clipping does
-#     not renormalise it -- it changes only because the mean over the clipped
-#     domain differs from the mean over the old one.
-# The tree:soil ratio is therefore NOT invariant under this change.
+# a rectilinear staircase: 2,800 m2 excluded, stand 37,200 m2. Three located stems
+# fall inside the uncensused quadrats (one in q7, two in q108) and are excluded with
+# them. The block is closed-canopy forest (Esri World Imagery) whose stem census is
+# missing, so it is excluded from both the tree and the soil term.
+# The tree term is a sum over stems divided by ground area, so it scales with the
+# denominator; the soil term is the mean of a predicted surface over the stand.
 #
 # Coordinates: PX/PY are plot-local metres. The plot is rotated ~10 degrees from
-# north, so a lon/lat bounding box is NOT the plot -- always clip in PX/PY.
+# north, so a lon/lat bounding box is not the plot: always clip in PX/PY.
 # ==============================================================================
 
 PLOT_SIDE_M <- 200
@@ -94,7 +71,7 @@ in_square <- function(PX, PY) {
 #' 08_inventory_build.R), so test `located` separately from `in_stand`.
 in_stand <- function(PX, PY) in_square(PX, PY) & !in_gap(PX, PY)
 
-# Retained for readability at call sites that predate the staircase.
+# the name the inventory build uses
 in_notch <- in_gap
 NOTCH_AREA_M2 <- GAP_AREA_M2
 
@@ -113,10 +90,6 @@ stand_ring_local <- function() {
   # drop consecutive duplicates left by equal-threshold neighbours
   keep <- c(TRUE, (PX[-1] != head(PX, -1)) | (PY[-1] != head(PY, -1)))
   data.frame(PX = PX[keep], PY = PY[keep])
-}
-square_ring_local <- function() {
-  data.frame(PX = c(0, PLOT_SIDE_M, PLOT_SIDE_M, 0, 0),
-             PY = c(0, 0, PLOT_SIDE_M, PLOT_SIDE_M, 0))
 }
 
 # --- lon/lat projection -------------------------------------------------------
@@ -206,30 +179,21 @@ local({
 })
 
 # ==============================================================================
-# THE STAND'S STEMS, AND THEIR HEIGHTS. Source of both, so no script re-derives.
-# ------------------------------------------------------------------------------
-# WHY THIS IS HERE. Seven scripts loaded the stem list themselves, and five of them
-# reached for `rf_workflow_data$PLACEHOLDER_INVENTORY` with `A_PLOT <- 200*200`.
-# That object is fg19-only: 7,010 stems, with the ENTIRE bytag survey (961 stems)
-# missing, over the nominal square rather than the censused stand. So those scripts
-# reported a stand 12% short of stems on ground 7.5% too large -- 3,554 m2 of band
-# area and a stem-area index of 0.0888 against the canonical 4,325.9 and 0.1163,
-# i.e. 24% low. One of them, 04_wai_bottomup.R, is the sole
-# producer of the bottom-up woody area index, which came out 1.69/2.11/2.57 when the
-# canonical inventory gives 2.23/2.82/3.40 -- 32% low in a quantity that multiplies
-# roughly 70% of the headline scaling estimate.
-#
-# The height allometry was separately copy-pasted verbatim into five scripts. Its
-# scale coefficient is anchored on the 95th percentile of the inventory's own
-# diameters, so it silently differed by which stem list the script happened to load.
-#
-# Both now live here. Prefer canonical_inventory() and STAND_AREA_M2 over
-# `PLACEHOLDER_INVENTORY` / `PLACEHOLDER_PLOT_AREA`. Every script run_all.R reaches has
-# been migrated; four unreached model-selection scripts still read the placeholder
-# (rf_model_selection.R, rf_predictor_selection.R,
-# rf_predictor_significance.R, mdf_11_ambient_map.R) and are superseded by
-# 07_rf_predictor_selection.R.
+# THE STAND'S STEMS: the canonical stem list, stem heights, the measured band and
+# the bole:branch split of woody area. Scripts take these from here; none
+# re-derives them.
 # ==============================================================================
+
+# Measured band: stems 0-2 m; Kalmia latifolia (a shrub) over 0.75 m.
+STEM_BAND_M   <- 2.00
+KALMIA_BAND_M <- 0.75
+band_length_m <- function(species) ifelse(species %in% "Kalmia latifolia", KALMIA_BAND_M, STEM_BAND_M)
+
+# Woody area above the band: branch:stem area 3.35 (Whittaker & Woodwell; midpoint of
+# 2.7-4.0), so the bole carries 1/4.35 of it and branches 3.35/4.35.
+BRANCH_STEM_RATIO <- 3.35
+BOLE_FRACTION     <- 1 / (1 + BRANCH_STEM_RATIO)
+BRANCH_FRACTION   <- BRANCH_STEM_RATIO / (1 + BRANCH_STEM_RATIO)
 
 # Hulshof et al. 2015 Ecol Evol 5:1193-1204 exponents; site-specific scale.
 ALLOM_B_ANGIO <- 0.53
@@ -248,8 +212,8 @@ stem_height_m <- function(dbh_m, species, canopy_h = CANOPY_H_M) {
   1.37 + a * dbh_m^ifelse(gy, ALLOM_B_GYMNO, ALLOM_B_ANGIO)
 }
 
-#' THE stem list. Reads what 08_inventory_build.R wrote; adds dbh, H and band area.
-#' in_stand_only = TRUE gives the 8,006 stems the budget is defined over.
+#' The stem list. Reads what 08_inventory_build.R wrote; adds dbh, H and band area.
+#' in_stand_only = TRUE gives the stems the budget is defined over.
 canonical_inventory <- function(in_stand_only = TRUE,
                                 file = "outputs/tables/inventory_stems.csv") {
   # Callable from the repo root or from code/05_model/, whose scripts use ../../
@@ -263,9 +227,7 @@ canonical_inventory <- function(in_stand_only = TRUE,
   if (in_stand_only) INV <- INV[INV$in_stand, ]
   INV$dbh <- INV$dbh_m
   INV$H   <- stem_height_m(INV$dbh_m, INV$species)
-  # Kalmia is a shrub measured over 0.75 m, not 2 m -- matches the band used by
-  # 01_predict_tree_flux.R. %in% is NA-safe; 41 stems have species = NA.
-  INV$band_m     <- ifelse(INV$species %in% "Kalmia latifolia", 0.75, 2.00)
+  INV$band_m     <- band_length_m(INV$species)   # NA-safe: some stems have species NA
   INV$A_band_m2  <- pi * INV$dbh_m * INV$band_m
   INV
 }

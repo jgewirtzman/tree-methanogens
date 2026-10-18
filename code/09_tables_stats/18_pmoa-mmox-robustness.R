@@ -1,4 +1,3 @@
-source("code/lib/outputs.R")
 # ==============================================================================
 # Robustness of the central gene-flux results to splitting pmoA/mmoX
 # ==============================================================================
@@ -13,8 +12,8 @@ source("code/lib/outputs.R")
 # (analysis_mcra/pmoa/mmox/methanotroph/ratio; 10 species). Edits nothing.
 # Output: outputs/audit/pmoa_mmox_robustness.txt
 # ==============================================================================
+source("code/lib/outputs.R")
 suppressPackageStartupMessages({ library(tidyverse) })
-out <- "outputs"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
 
 invisible(capture.output(suppressMessages(
   source("code/07_molecular/helper_scale_dependent_gene_patterns.R"))))

@@ -1,5 +1,5 @@
 stage,script,workdir,fatal,purpose
-A,code/02_flux/static/01_prep_auxfile_2021.R,script,TRUE,2021 multi-height: goFlux aux file (first: 01_tree_id_consensus.R reads its flux_data_with_dimensions table)
+A,code/02_flux/static/01_prep_auxfile_2021.R,script,TRUE,2021 multi-height: goFlux aux file (runs first: 01_tree_id_consensus.R reads its flux_data_with_dimensions table)
 A,code/01_import/01_tree_id_consensus.R,script,TRUE,tree ID crosswalk and diameter consensus across sources
 A,code/01_import/02_process_wood_cores.R,script,TRUE,wood-core sectioning; density and moisture by radial position
 A,code/01_import/03_process_internal_gas.R,script,TRUE,GC calibration of 2021-22 internal-gas samples
@@ -11,7 +11,7 @@ A,code/02_flux/semirigid/03_prep_soil_auxfile.R,script,TRUE,monthly survey: goFl
 A,code/02_flux/semirigid/03_prep_tree_auxfile.R,script,TRUE,monthly survey: goFlux aux file for stems
 A,code/02_flux/semirigid/04_goflux_soils.R,script,TRUE,monthly survey: soil flux fits (goFlux)
 A,code/02_flux/semirigid/04_goflux_trees.R,script,TRUE,monthly survey: stem flux fits (goFlux)
-A,code/02_flux/semirigid/05_fix_december.R,script,TRUE,monthly survey: December 2020 files (date format)
+A,code/02_flux/semirigid/05_fix_december.R,script,TRUE,monthly survey: December 2020 soil fluxes from their own windows (replace the December rows)
 A,code/03_merge/01_fix_soil_flux.R,script,TRUE,soil flux re-fitted with corrected collar geometry (before the screens and detection limits read soil fluxes)
 A,code/02_flux/static/02_prep_auxfile_2023.R,script,TRUE,2023 cross-species: goFlux aux file
 A,code/02_flux/static/03_goflux_trees_2021.R,script,TRUE,2021 multi-height: stem flux fits (goFlux)
@@ -19,7 +19,7 @@ A,code/02_flux/static/04_goflux_trees_2023.R,script,TRUE,2023 cross-species: ste
 A,code/02_flux/rescue/01_untagged_auxfile.R,root,TRUE,untagged monthly stems: goFlux aux file from field sheets and chamber geometry
 A,code/02_flux/rescue/02_untagged_fluxes.R,root,TRUE,untagged monthly stems: fluxes from the hand-picked windows (untagged_manID.rds)
 A,code/02_flux/rescue/03_merge_untagged_monthly.R,root,TRUE,monthly survey file including the rescued untagged stems
-A,code/02_flux/01_apply_auxfile_vtot.R,root,TRUE,carry the 28 cm3 analyzer volume through every stored fit
+A,code/02_flux/01_apply_auxfile_vtot.R,root,TRUE,check stored fits' Vtot against their auxfiles (no-op in a run from raw; rescales on an analyzer-volume change)
 A,code/02_flux/02_qc_c0_screen.R,root,TRUE,procedural screen: chamber not at ambient at closure
 A,code/02_flux/02b_instrument_precision.R,root,TRUE,analyzer CH4 precision (sigma) per field period from the raw records
 A,code/02_flux/03_precision_and_detection.R,root,TRUE,analyzer precision; minimum detectable flux; detection status
@@ -55,6 +55,7 @@ C,code/04_drivers/01_wb_reference_et.R,root,TRUE,reference evapotranspiration fo
 C,code/04_drivers/02_moisture_climatology.R,root,TRUE,monthly plot-wide soil-moisture level
 C,code/04_drivers/04_moisture_surface.R,root,TRUE,relative soil-moisture pattern across the plot
 C,code/04_drivers/05_moisture_interpolation.R,root,FALSE,comparison of interpolation methods for the moisture surface
+C,code/04_drivers/06_moisture_elevation_check.R,root,FALSE,check: the moisture surface against GPS elevation
 C,code/06_upscale/01_predict_tree_flux.R,root,TRUE,per-stem predicted flux over the 0-2 m band
 C,code/06_upscale/02_predict_soil_surface.R,root,TRUE,soil flux surface across the stand
 C,code/06_upscale/03_budget_canonical.R,root,TRUE,measured-band budget; soil budget; monthly totals
@@ -92,18 +93,18 @@ D,code/09_tables_stats/11_variance-partition.R,root,FALSE,variance partition (Fi
 D,code/09_tables_stats/12_isotopes-canonical.R,root,FALSE,isotope source estimates and fractionation
 D,code/09_tables_stats/13_faprotax-caveats.R,root,FALSE,FAPROTAX coverage caveats
 D,code/09_tables_stats/14_multigene-models.R,root,FALSE,species-level multi-gene models
-D,code/09_tables_stats/15_s1s2-arcsinh.R,root,FALSE,tree- and species-level gene models (Methods S4-S5)
+D,code/09_tables_stats/15_s1s2-arcsinh.R,root,FALSE,tree- and species-level gene models (Methods S4)
 D,code/09_tables_stats/16_s1-rf-soil-arcsinh.R,root,FALSE,soil-gene check for tree-level models
 D,code/09_tables_stats/17_species-aggregation-rma.R,root,FALSE,species aggregation with measurement error
 D,code/09_tables_stats/18_pmoa-mmox-robustness.R,root,FALSE,pmoA/mmoX robustness checks
 D,code/09_tables_stats/19_gene-rf.R,root,FALSE,gene random forests on held-out trees (Methods S4)
 D,code/09_tables_stats/20_manuscript_statistics.R,root,FALSE,every quantitative statement in the text
-D,code/09_tables_stats/21_write_parameter_record.R,root,FALSE,generated scaling parameter record
 D,code/09_tables_stats/22_chamber-excess.R,root,FALSE,chamber excess over local ambient vs apparent uptake (SI Methods S2)
 D,code/09_tables_stats/23_si-table-workbook.R,root,FALSE,SI Tables S2 and S6 as an Excel workbook
 D,code/09_tables_stats/24_ddpcr-detection-precision.R,root,FALSE,SI Methods S3 table: mcrA detection and counting precision by threshold
 D,code/09_tables_stats/25_plant-traits.R,root,FALSE,Methods S5 and Fig S25: rule-based species trait correlations (all and broadleaf species) and multivariate check
 D,code/09_tables_stats/26_moss-lichen-cover.R,root,FALSE,Methods S2: moss/lichen cover score at the chamber vs stem flux (2023 survey)
+D,code/09_tables_stats/27_table-s3-mmo-screen.R,root,FALSE,Table S3: the committed NCBI genome screen for methane monooxygenase with each genus's Table S2 tier
 E,code/08_figures/fig01_temporal-flux.R,root,FALSE,Figure 1
 E,code/08_figures/fig02_height-flux.R,root,FALSE,Figure 2
 E,code/08_figures/fig03_variance-partition.R,root,FALSE,Figure 3
@@ -116,7 +117,6 @@ E,code/08_figures/fig08_radial-species.R,root,FALSE,Figure 8 (also writes Fig S2
 E,code/08_figures/fig09_budget.R,root,FALSE,Figure 9
 E,code/08_figures/figS01_moisture-overlay.R,root,FALSE,Figure S1
 E,code/08_figures/methodsS3_extraction_recovery.R,root,FALSE,SI Methods S3 schematic: target copies through DNA extraction (method-study recoveries)
-E,code/04_drivers/06_moisture_elevation_check.R,root,FALSE,check: moisture against elevation (reads the elevation table figS01 builds)
 E,code/08_figures/figS03_detection-limits.R,root,FALSE,Figure S3
 E,code/08_figures/figS04_mcra-probe-validation.R,root,FALSE,Figure S4
 E,code/08_figures/figS05_16s-ddpcr-association.R,root,FALSE,Figure S5

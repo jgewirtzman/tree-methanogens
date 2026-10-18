@@ -1,16 +1,26 @@
+# ==============================================================================
+# fig06_hydrogenotrophy.R -- Figure 6: hydrogenotrophic, syntrophy-fed methanogenesis
+# ------------------------------------------------------------------------------
+# Stage E. Run from the repository root, after figS14_taxonomy-mcra.R.
+#   (a) taxa: 16S families associated with mcrA (FDR < 0.05; the table of Figure S10),
+#       grouped as methanogen / associate or syntroph / other fermenter
+#   (b) function: FAPROTAX energy and redox functions, log2 heartwood / sapwood
+#   (c) pathways: PICRUSt2 MetaCyc pathways associated with mcrA (FDR < 0.05, < 10% of
+#       the pathway from mcrA-carrying ASVs), by functional category
+#   (d) isotopes: d13C-CH4 of whole-stem gas (density and samples sized by CH4) with
+#       the Keeling source and the ranges of the three methanogenic pathways
+# Colours: red = methanogen / mcrA-associated / C1; blue = aerobic / anti-correlated;
+# gold = syntrophic fermenters / fermentation; grey = other; purple = isotopes.
+# Inputs
+#   outputs/tables/family_mcra_associations_strict.csv       figS14_taxonomy-mcra.R
+#   outputs/data/FAPROTAX_all_functions_HW_SW.csv            07_molecular/01_faprotax_dump_HW_SW.R
+#   outputs/data/picrust/pathway_associations_mcra_no_mcra_otus.csv,
+#     pathway_associations_combined.csv                      07_molecular/02_picrust_pathway_associations.R
+#   outputs/data/ISOTOPES_sample_table.csv, ISOTOPES_summary.csv  09_tables_stats/12_isotopes-canonical.R
+# Output: outputs/figures/generated/fig_hydrogenotrophy.png
+# ==============================================================================
 source("code/lib/outputs.R")
-# ==============================================================================
-# Synthesis figure: hydrogenotrophic, syntrophy-fed methanogenesis.
-# Reproduces existing figures' EXACT data/filters (S6 strict, FAPROTAX/S3, Fig6, S9),
-# restyled into 4 panels with a SINGLE semantic colour scheme used consistently:
-#   purple = methanogenesis/methanogen/hydrogenotrophic   orange = fermentation/H2 source
-#   teal   = C1 metabolism / methylotrophy                amber  = H2 oxidation
-#   blue   = aerobic / methanotrophy                      grey   = other
-# Output: fig_hydrogenotrophy.png
-# ==============================================================================
-
 suppressPackageStartupMessages({ library(tidyverse); library(patchwork) })
-out <- "outputs"; dir.create(out, showWarnings = FALSE, recursive = TRUE)
 
 # ---- palette: red/blue diverging (as in the map figure) + orange + grey ------
 mlab <- function(b) sub("^-", "\u2212", format(b, trim = TRUE, drop0trailing = TRUE))   # true minus on axes
@@ -22,13 +32,13 @@ METH <- "#762a83"   # isotope panel (d) methanogen theme (unchanged)
 DENS_F <- "#d7c6e0" # isotope density fill (light purple)
 
 th <- theme_bw(base_size = 13) +
-  theme(plot.title = element_blank(),
+  theme(
         axis.title = element_text(size = 12), axis.text = element_text(size = 11.5),
         panel.grid.minor = element_blank(),
         legend.key.size = unit(0.45, "cm"), legend.text = element_text(size = 10.5),
         legend.title = element_text(size = 10.5))
 
-# ---- (a) TAXA (S6 STRICT family-mcrA associations, FDR < 0.05) ----------------
+# ---- (a) TAXA: family-mcrA associations (Figure S10), FDR < 0.05 ----------------
 # Three evidence-graded groups:
 #   Methanogen (red) | Associate / syntroph (gold) | Other fermenter (grey)
 source("code/lib/methanogen_families.R"); methanogen_fams <- METHANOGEN_FAMILIES
@@ -45,21 +55,20 @@ pa <- ggplot(fa, aes(t, family, color = group)) +
   geom_point(size = 3.6) +
   scale_color_manual(values = c(Methanogen = RED, `Associate / syntroph` = SYN, `Other fermenter` = OTH), name = NULL) +
   labs(x = expression("Co-occurrence with "*italic(mcrA)*" (t-statistic; FDR < 0.05)"), y = NULL) +
-  ggtitle(expression(bold("a  Taxa: methanogens + fermentative associates"))) + th +
+  th +
   theme(legend.position = "bottom", legend.margin = margin(0, 0, 0, 0), legend.text = element_text(size = 9.5), legend.key.size = unit(0.35, "cm"),
         legend.background = element_blank(),
         axis.text.y = element_text(face = "italic", size = 10))
 
-# ---- (b) FUNCTION (FAPROTAX HW/SW) — documented energy/redox-metabolism set ----
-# Values reproduced from the FAPROTAX pipeline (outputs/data/FAPROTAX_all_functions_HW_SW.csv).
-# Inclusion rule: energy/redox functions with mean rel. abundance >= 0.1% in a compartment;
-# host-association/pathogen/phototrophy and redundant parent annotations (generic chemoheterotrophy,
-# generic/CO2/methyl methanogenesis) excluded; hydrogenotrophic_methanogenesis shown as the
-# representative methanogenesis route. See panel_b_faprotax_selection.md.
+# ---- (b) FUNCTION (FAPROTAX, heartwood / sapwood) ------------------------------
+# Inclusion rule: energy/redox functions with mean relative abundance >= 0.1% in a
+# compartment; host-association, pathogen and phototrophy functions and redundant parent
+# annotations (generic chemoheterotrophy; generic, CO2 and methyl methanogenesis)
+# excluded; hydrogenotrophic_methanogenesis shown as the representative methanogenesis route.
 fap_all <- read.csv("outputs/data/FAPROTAX_all_functions_HW_SW.csv")
-# Methanogen ASVs are removed from every function except the methanogenesis reference row:
+# Methanogen ASVs are removed from every function except the methanogenesis row:
 # FAPROTAX files Methanobacteriaceae under dark H2 oxidation and Methanomassiliicoccaceae
-# under methylotrophy, which recounted the methanogens as independent functions (2026-10-02).
+# under methylotrophy, which would recount the methanogens as independent functions.
 fap_sel <- tribble(~func, ~disp,
   "hydrogenotrophic_methanogenesis", "H\u2082-trophic methanogenesis",
   "dark_hydrogen_oxidation",         "Dark hydrogen oxidation",
@@ -82,10 +91,11 @@ pb <- ggplot(fap, aes(lr, fn, fill = lr)) +
   scale_x_continuous(labels = mlab, expand = expansion(mult = c(0.08, 0.05))) +
   labs(x = expression(log[2]*"(heartwood / sapwood)"), y = NULL) + th
 
-# ---- (c) PATHWAY (Fig6 filter gc<0.10): a-priori FUNCTIONAL categories --------
-# Not top-t. Classify the full FDR<0.01, low-mcrA-contribution set by MetaCyc
-# function (membership independent of the association), drop housekeeping, show
-# representative pathways per mechanistic category. See panel_c_pathway_categories.md
+# ---- (c) PATHWAY: a-priori FUNCTIONAL categories --------------------------------
+# Not top-t. The pathways associated with mcrA (FDR < 0.05) with < 10% of their
+# abundance from mcrA-carrying ASVs are classified by MetaCyc function (membership
+# independent of the association); housekeeping is dropped and the four pathways with
+# the largest |t| are shown per category.
 ABLU <- "#92c5de"  # light blue: sulfur/nitrogen metabolism (negative, aerobic/oxidant-associated)
 p6 <- read.csv("outputs/data/picrust/pathway_associations_mcra_no_mcra_otus.csv")
 cb <- read.csv("outputs/data/picrust/pathway_associations_combined.csv")
@@ -93,8 +103,8 @@ contrib <- setNames(cb$mean_percent_from_mcra, cb$pathway)
 sig <- p6 %>% filter(!is.na(FDR), FDR < 0.05) %>%
   mutate(gc = ifelse(is.na(contrib[pathway]), 0, contrib[pathway])) %>% filter(gc < 0.10)
 classify_pw <- function(id, desc) { x <- tolower(paste(id, desc))
-  # A pathway goes in a category only when its MetaCyc function places it there unambiguously
-  # (2026-10-02): TCA variants of anaerobes and autotrophs (Fd-dependent, reductive, acetate-
+  # A pathway goes in a category only when its MetaCyc function places it there
+  # unambiguously: TCA variants of anaerobes and autotrophs (Fd-dependent, reductive, acetate-
   # producer, Helicobacter) and menaquinone (an anaerobic-respiration quinone) are not counted
   # as aerobic respiration; carbohydrate breakdown is labelled as such, not as fermentation.
   if (grepl("tca cycle (v|vi|vii|viii) |reductive tca|menaquin", x)) return("other")
@@ -124,13 +134,12 @@ pc <- ggplot(pwc, aes(t, lab, color = cat)) +
   geom_point(size = 3.2) + geom_vline(xintercept = 0, color = "grey50") +
   scale_color_manual(values = c(`C1 / carbon fixation`=RED, `Fermentation and carbohydrate breakdown`=SYN,
                                 `TCA cycle and aerobic respiration`=BLU, `Sulfur / nitrogen metabolism`=ABLU), name = NULL) +
-  labs(x = expression("Association with "*italic(mcrA)*" (t-statistic)"), y = NULL,
-       title = "c  Pathway (PICRUSt2): anaerobic C-metabolism tracks mcrA") + th +
+  labs(x = expression("Association with "*italic(mcrA)*" (t-statistic)"), y = NULL) + th +
   theme(legend.position = "bottom", legend.margin = margin(0, 0, 0, 0),
         legend.background = element_blank(),
         legend.text = element_text(size = 8), axis.text.y = element_text(size = 8.3, lineheight = 0.85))
 
-# ---- (d) ISOTOPES (Fig-S9 raincloud) + Keeling source; points sized by CH4 ----
+# ---- (d) ISOTOPES: d13C-CH4 raincloud + Keeling source; points sized by CH4 ----
 XLO <- -118; XHI <- 28
 iso <- read.csv("outputs/data/ISOTOPES_sample_table.csv")   # already screened (code/lib/isotope_samples.R)
 dens <- density(iso$d13CH4); dd <- data.frame(x = dens$x, y = dens$y/max(dens$y)*0.55) %>% filter(x >= XLO, x <= XHI)
@@ -157,8 +166,7 @@ pd <- ggplot() +
   annotate("text", x=keel, y=0.84, label="Keeling source (95% CI)", color=METH, size=3.2, fontface="bold", hjust=0.5) +
   brk(-110,-60, by, "Hydrogenotrophic") + brk(-65,-50, by-bs, "Acetoclastic") + brk(-70,-50, by-2*bs, "Methylotrophic") +
   scale_x_continuous(breaks=seq(-120,20,20), labels = mlab) + coord_cartesian(xlim=c(XLO,XHI), ylim=c(-0.92, 0.92), clip="off") +
-  labs(x=expression(delta^13*"C-CH"[4]*" (‰ VPDB)"), y=NULL,
-       title=expression(bold("d  Isotopes: "*delta^13*"C-CH"[4]*" depleted; source hydrogenotrophic"))) +
+  labs(x=expression(delta^13*"C-CH"[4]*" (‰ VPDB)"), y=NULL) +
   th + theme(axis.text.y=element_blank(), axis.ticks.y=element_blank(),
              legend.position="bottom", legend.margin=margin(0,0,0,0),
              legend.background=element_blank(),
@@ -167,6 +175,6 @@ pd <- ggplot() +
 fig <- wrap_plots(pa, pb, pc, free(pd), ncol = 2) + plot_layout(widths = c(1, 1), heights = c(0.8, 1.45)) +   # equal panel widths
   plot_annotation(tag_levels = 'a', tag_prefix = "(", tag_suffix = ")") & theme(plot.tag = element_text(face = "bold", size = 14))
 ggsave(out_path("fig_hydrogenotrophy.png"), fig, width = 10.5, height = 9.4, dpi = 300, bg = "white")   # near print size
-cat("Wrote fig_hydrogenotrophy.png (semantic palette; base_size 11)\n")
+cat("Wrote fig_hydrogenotrophy.png\n")
 cat("(a) families:", paste(as.character(fa$family), collapse=", "), "\n")
 cat("(c) categories:", paste(levels(droplevels(pwc$cat)), collapse=" | "), "\n")
