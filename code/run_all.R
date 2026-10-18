@@ -12,7 +12,7 @@
 #   C  drivers and scaling   climatologies, moisture surface, predictions, budget, grid
 #   D  analyses              model audits, molecular summaries, statistics and tables
 #   E  figures               one generator per paper figure, then the assembler
-#   F  archive               data/compiled/ datasets and their README
+#   F  archive               data/compiled/: result tables and the README of data/tables/
 #   G  gate                  check_consistency.R
 #
 # Usage (from the repository root)
@@ -29,7 +29,8 @@
 #   replaced on every lite run): code/, renv settings and the folder layout are copied,
 #   data/raw/ is linked (read only by the pipeline; checked unchanged afterwards) and, for
 #   a run that starts after stage A, the existing data/processed/ (and, after B,
-#   data/tables/, data/compiled/ and outputs/) are copied in. The pipeline then runs inside
+#   data/tables/, data/compiled/ and outputs/) are copied in; a run from raw gets only the
+#   archived PICRUSt2 pathway tables (data/processed/molecular/picrust/). The pipeline then runs inside
 #   the copy with PIPELINE_RUN_MODE=lite, so every write lands in the copy and the
 #   canonical outputs are never touched. Lite numbers are not results.
 #
@@ -85,6 +86,13 @@ if (LITE) {
   copy_in(c(cf, ".Rprofile", "renv.lock", "renv/activate.R", "renv/settings.json"))
   file.symlink(file.path(ROOT, "renv/library"), file.path(LR, "renv/library"))
   file.symlink(file.path(ROOT, "data/raw"), file.path(LR, "data/raw"))
+  # a run from raw needs, of data/processed/, only the archived PICRUSt2 pathway tables, and
+  # those only when data/raw/picrust/ is absent (01_import/06_picrust_pathways.R re-derives
+  # them otherwise; either way it checks them against their recorded checksums)
+  if (run_stages[1] == "A") {
+    pp <- "data/processed/molecular/picrust"
+    copy_in(file.path(pp, list.files(file.path(ROOT, pp), "[.]csv$")))
+  }
   # a run that starts after a stage reads what that stage left in the repository
   if (run_stages[1] != "A") {
     keep <- "data/processed"

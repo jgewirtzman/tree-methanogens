@@ -6,7 +6,8 @@
 #                        the ASVs predicted to carry mcrA or pmoA
 # picrust_pathway_info   pathway, description
 # Built in stage A by code/01_import/06_picrust_pathways.R from the PICRUSt2 predictions
-# (data/raw/picrust/, the large Zenodo download) into data/processed/molecular/picrust/.
+# (data/raw/picrust/, the optional large Zenodo download) into data/processed/molecular/picrust/,
+# or, without the download, checked there against recorded checksums.
 # This step checks them against the 16S library table and copies them byte for byte
 # (no value is re-parsed or rewritten).
 # Writes data/tables/{picrust_pathways, picrust_pathway_info}.csv
@@ -15,8 +16,8 @@ SRC <- "data/processed/molecular/picrust"; OUT <- "data/tables"
 f <- file.path(SRC, c("picrust_pathways.csv", "picrust_pathway_info.csv"))
 if (!all(file.exists(f)))
   stop("missing ", paste(f[!file.exists(f)], collapse = ", "),
-       ": from the Zenodo processed archive, or rebuilt by code/01_import/06_picrust_pathways.R",
-       " (stage A, needs data/raw/picrust/)", call. = FALSE)
+       ": from the Zenodo data archive, or rebuilt by code/01_import/06_picrust_pathways.R",
+       " (stage A, from data/raw/picrust/)", call. = FALSE)
 P <- utils::read.csv(f[1], colClasses = c("character", "character", "numeric", "numeric", "numeric"))
 I <- utils::read.csv(f[2], colClasses = "character")
 L <- utils::read.csv(file.path(OUT, "samples_16S.csv"), colClasses = "character", na.strings = "")

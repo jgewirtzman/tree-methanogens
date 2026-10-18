@@ -136,7 +136,7 @@ csv_files <- c(
     # (saved closure windows are inputs in data/raw/flux_windows/ and are never rewritten:
     # this step rescales the regenerated tables after every fit, so a rerun is identical)
     # assembled tables (the state files come last within each campaign)
-    "semirigid_tree_final_complete_dataset_soil_CORRECTED.csv", "semirigid_tree_final_complete_dataset_soil.csv",
+    "semirigid_tree_final_complete_dataset_soil.csv",
     "tree_flux_2021_multiheight.csv", "tree_flux_2023_cross_species.csv",
     "semirigid_tree_final_complete_dataset.csv")),
   file.path(RESC, "untagged_monthly_fluxes.csv"))

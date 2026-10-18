@@ -6,12 +6,15 @@
 # collars). measurement_id is the goFlux UniqueID; collar_id = <Plot letter>_<Plot Tag>
 # (collars.csv).
 #
-# Sources: data/processed/flux/semirigid_tree_final_complete_dataset_soil.csv (fits
-# with the collar geometry, 02_flux/semirigid/04_goflux_soils.R and 05_fix_december.R;
-# checked against the refit of 03_merge/01_fix_soil_flux.R through flux_FINAL); windows in
-# data/raw/flux_windows/lgr_manual_identification_results{,_december}_soil.csv;
-# detection from data/processed/flux/flux_FINAL.csv; closure screen from
+# Sources: data/processed/flux/semirigid_tree_final_complete_dataset_soil.csv (the one
+# soil fit, 02_flux/semirigid/04_goflux_soils.R; checked equal to flux_FINAL); windows in
+# data/raw/flux_windows/lgr_manual_identification_results_soil.csv; detection from
+# data/processed/flux/flux_FINAL.csv; closure screen from
 # data/processed/flux/qc_excluded_measurements.csv.
+#
+# ROW ORDER: the field-sheet order, with the 30 December 2020 deployments last. That is
+# the order the soil forest has always been trained on (until 2026-10-18 a separate
+# December fit appended them), and a forest's bootstrap depends on row order.
 #
 # TIMES: the analyzer clock was kept on local time in 2020-21 (as for the stems);
 # written as ISO 8601 local time with the America/New_York offset of the date.
@@ -39,17 +42,17 @@ OUT <- "data/tables"; WD <- "data/raw/flux_windows"
 num <- function(x) suppressWarnings(as.numeric(x))
 
 F_SOIL <- "data/processed/flux/semirigid_tree_final_complete_dataset_soil.csv"
-s <- read_flux_csv(F_SOIL, "CH4_best.flux") %>% filter(!is.na(CH4_best.flux))
+s <- read_flux_csv(F_SOIL, "CH4_best.flux") %>% filter(!is.na(CH4_best.flux)) %>%
+  arrange(startsWith(UniqueID, "202012"))   # December 2020 last (ROW ORDER, above)
 DET <- read.csv("data/processed/flux/flux_FINAL.csv") %>% filter(type == "soil")
 QX <- read.csv("data/processed/flux/qc_excluded_measurements.csv", stringsAsFactors = FALSE)
 COL <- read.csv(file.path(OUT, "collars.csv"), stringsAsFactors = FALSE)
 
-# ---- windows: December 2020 file first, then the main file ----------------------
-W <- bind_rows(read_windows(file.path(WD, "lgr_manual_identification_results_december_soil.csv")) %>% mutate(src = 1),
-               read_windows(file.path(WD, "lgr_manual_identification_results_soil.csv"), keep_all = TRUE) %>% mutate(src = 2)) %>%
+# ---- windows ----------------------------------------------------------------------
+W <- read_windows(file.path(WD, "lgr_manual_identification_results_soil.csv"), keep_all = TRUE) %>%
   left_join(DET %>% select(UniqueID, t_sec), by = "UniqueID") %>%
   mutate(fit = is.na(t_sec) | abs(as.numeric(win_end - win_start, units = "secs") + 1 - t_sec) < 0.5) %>%
-  group_by(UniqueID) %>% arrange(src, !fit, .by_group = TRUE) %>%
+  group_by(UniqueID) %>% arrange(!fit, .by_group = TRUE) %>%
   mutate(n_win = n_distinct(paste(win_start, win_end)), ok = any(fit)) %>% slice(1) %>% ungroup()
 stopifnot(all(W$ok[W$UniqueID %in% s$UniqueID]))
 

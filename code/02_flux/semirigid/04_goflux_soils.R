@@ -1,32 +1,32 @@
 # ==============================================================================
-# 04_goflux_soils.R -- monthly soil-collar CO2 and CH4 fluxes (goFlux)
+# 04_goflux_soils.R -- monthly soil-collar CO2 and CH4 fluxes (goFlux): the one soil fit
 # ------------------------------------------------------------------------------
 # Stage A; workdir: this script's folder (code/02_flux/semirigid/).
 #
-# Fits goFlux (linear and Hutchinson-Mosier) to each deployment's hand-picked closure
-# window and selects the model with best.flux(); the model selected when the data were
-# processed is then applied from flux_model_choices.csv (code/lib/flux_windows.R).
-# Every collar has one geometry: Area = SOIL_COLLAR_AREA_CM2 and Vtot = SOIL_VTOT_L
-# (code/lib/chamber_constants.R), not the values stored in the auxfile or the windows.
-# Tcham is the auxfile's (station air in true time), not the value saved with the windows.
+# Every soil deployment is fitted here, once, for both gases: goFlux (linear and
+# Hutchinson-Mosier) on its hand-picked closure window, best.flux(), then the model
+# selected when the data were processed, from flux_model_choices.csv
+# (code/lib/flux_windows.R). No later script refits or rescales these fluxes.
+#   Geometry  every collar: Area = SOIL_COLLAR_AREA_CM2, Vtot = SOIL_VTOT_L
+#             (code/lib/chamber_constants.R), not the values stored in the auxfile or the
+#             windows.
+#   Tcham     the auxfile's (station air in true time), not the value saved with the windows.
 #
-# Closure windows: data/raw/flux_windows/lgr_manual_identification_results_soil.csv.
-# Only when it is absent, or with FLUX_REPICK=1 in an interactive session, are the raw
-# LGR3 records read and the picker (goFlux::click.peak2) opened; the new windows go to
-# data/processed/flux/repicked/ (code/lib/flux_windows.R, code/tools/README.md).
-# Diagnostic plots only with FLUX_PLOTS=1.
-#
-# 05_fix_december.R then replaces the December 2020 rows, and 03_merge/01_fix_soil_flux.R
-# re-fits CH4 (writing CH4_flux / CH4_best_flux again).
+# Closure windows: data/raw/flux_windows/lgr_manual_identification_results_soil.csv, all
+# 288 deployments including the 30 of December 2020. Only when it is absent, or with
+# FLUX_REPICK=1 in an interactive session, are the raw LGR3 records read and the picker
+# (goFlux::click.peak2) opened; the new windows go to data/processed/flux/repicked/
+# (code/lib/flux_windows.R, code/tools/README.md). Diagnostic plots only with FLUX_PLOTS=1.
 #
 # Inputs:  data/raw/flux_windows/lgr_manual_identification_results_soil.csv
 #          data/raw/flux_windows/flux_model_choices.csv
 #          data/processed/flux/auxfile_goFlux_soilflux_with_weather.csv (Tcham)
 #          data/processed/flux/auxfile_goFlux_soilflux_with_weather_formatted.csv (table base)
 #          [re-pick only] data/raw/lgr/semirigid_2020-2021/ (raw LGR3 records)
-# Outputs (data/processed/flux/):
+# Outputs (data/processed/flux/), read by the screens, the detection limits and
+# code/tables/11_flux_soil.R:
 #          {CO2,CH4}_flux_lgr_results_soil.csv        goFlux results
-#          {CO2,CH4}_best_flux_lgr_results_soil.csv   best.flux results
+#          {CO2,CH4}_best_flux_lgr_results_soil.csv   best.flux results, recorded model choices
 #          semirigid_tree_final_complete_dataset_soil.csv  auxfile + CO2_/CH4_ best-flux columns
 # ==============================================================================
 

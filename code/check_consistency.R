@@ -193,13 +193,6 @@ cat("\n== data plumbing ==\n")
 
 # 1. one writer per file. Static scan of the code. A file may appear here only with
 #    the reason it is allowed.
-SEQUENTIAL_STAGES <- c(   # 2020-21 soil processing (stage A, in this order): goFlux
-  # (04_goflux_soils.R), then the December fix merges into the same files
-  # (05_fix_december.R), then the geometry fix rewrites CH4 (03_merge/01_fix_soil_flux.R).
-  # Later steps read the end state.
-  "CH4_best_flux_lgr_results_soil.csv", "CH4_flux_lgr_results_soil.csv",
-  "CO2_best_flux_lgr_results_soil.csv", "CO2_flux_lgr_results_soil.csv",
-  "semirigid_tree_final_complete_dataset_soil.csv")
 live <- list.files("code", "\\.R$", recursive = TRUE, full.names = TRUE)
 wpat <- "(write\\.csv|write_csv|write\\.table|saveRDS|save|ggsave|fwrite|write_tsv)\\s*\\("
 # Scripts that write model files only into a temporary SANDBOX directory (never
@@ -223,7 +216,6 @@ for (f in setdiff(live, SANDBOX_WRITERS)) {
   }
 }
 multi <- Filter(function(w) length(w) > 1, writers)
-multi <- multi[!names(multi) %in% SEQUENTIAL_STAGES]
 chk("every output file has exactly one writing script", !length(multi),
     if (length(multi)) paste(sprintf("%s <- %s", names(multi),
                                      vapply(multi, paste, "", collapse = " + ")), collapse = "; ") else
@@ -233,7 +225,7 @@ chk("every output file has exactly one writing script", !length(multi),
 #     stats scripts write outputs/. 02_qc_c0_screen.R rewrote data/compiled/ in place
 #     through a variable (f <- "data/compiled/..."), which the literal-path scan above
 #     cannot see, so paths held in variables are followed here.
-DATA_STAGES <- c("code/01_import", "code/02_flux", "code/03_merge", "code/tables", "code/zenodo", "code/tools", "code/05_model/01_load_and_prep_data.R")  # stages that build data/; tools/ holds the hand-run window picker
+DATA_STAGES <- c("code/01_import", "code/02_flux", "code/tables", "code/zenodo", "code/tools", "code/05_model/01_load_and_prep_data.R")  # stages that build data/; tools/ holds the hand-run window picker
 analysis <- live[!vapply(live, function(f) any(startsWith(f, DATA_STAGES)), TRUE) & !grepl("check_consistency", live)]
 writes_data <- character(0)
 for (f in analysis) {

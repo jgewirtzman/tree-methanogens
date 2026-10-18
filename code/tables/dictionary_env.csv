@@ -58,7 +58,7 @@ isotopes,d13CH4_permil,numeric,permil VPDB,NN,-1000;3000,delta13C of CH4 (HR_Del
 isotopes,CH4_ppm,numeric,ppm,NN,0;1e6,CH4 (HR_12CH4_dry_mean),Picarro
 isotopes,d13CO2_permil,numeric,permil VPDB,NN,-1000;3000,delta13C of CO2 (Delta_Raw_iCO2_mean; uncorrected),Picarro
 isotopes,CO2_ppm,numeric,ppm,NN,0;1e6,CO2 (12CO2_mean),Picarro
-isotopes,sample_type,character,,NN,,"whole tree, heartwood/sapwood pair, incubation, atmosphere or room air, standard",code/zenodo/01_compile_datasets.R rule
+isotopes,sample_type,character,,NN,,"whole tree, heartwood/sapwood pair, incubation, atmosphere or room air, standard",code/tables/33_isotopes.R rule
 isotopes,redone,logical,,NN,,The vial was re-run (_Redo) and this original is replaced,code/lib/isotope_samples.R
 isotopes,in_whole_tree_set,logical,,NN,,In the whole-tree delta13C set (code/lib/isotope_samples.R; 128 runs),code/lib/isotope_samples.R
 isotopes,exclusion_reason,character,,,,Why a run is not in the whole-tree set,code/lib/isotope_samples.R

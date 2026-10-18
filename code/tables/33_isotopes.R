@@ -8,7 +8,7 @@
 # CH4 = HR_12CH4_dry_mean, d13CO2 = Delta_Raw_iCO2_mean, CO2 = 12CO2_mean.
 #
 # sample_type, redone, in_whole_tree_set and exclusion_reason exactly as the
-# archived table (code/zenodo/01_compile_datasets.R); the whole-tree set is
+# earlier archived isotope table; the whole-tree set is
 # isotope_whole_tree_samples() of code/lib/isotope_samples.R (the one definition:
 # whole-tree single-borehole vials, no atmosphere / room air / incubations /
 # heartwood-sapwood pairs / standards, the re-run replaces the original,

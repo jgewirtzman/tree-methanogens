@@ -5,10 +5,21 @@
 # tables every stand-level and summary number in the paper is read from, so each can
 # be checked from the archive without rerunning the model. check_consistency.R
 # asserts their agreement with one another.
+#
+# data/compiled/ holds only results/ and README_data.md (03_generate_data_readme.R).
+# The data themselves are archived once, as data/tables/ (and data/raw/, data/processed/);
+# any other file in data/compiled/ is a leftover (until 2026-10-18 the archive held a
+# second copy of every table here) and is removed.
 # ==============================================================================
 out <- "data/compiled/results"
 dir.create(out, showWarnings = FALSE, recursive = TRUE)
 unlink(list.files(out, full.names = TRUE))
+stale <- setdiff(list.files("data/compiled", all.files = TRUE, no.. = TRUE),
+                 c("results", "README_data.md", ".gitkeep"))
+if (length(stale)) {
+  cat("removed from data/compiled/ (not part of the archive):", paste(stale, collapse = ", "), "\n")
+  unlink(file.path("data/compiled", stale), recursive = TRUE)
+}
 RESULTS <- c(
   # stand budget and scaling (Results 10, Fig 9, Figs S28-S29)
   "canonical_budget.csv"         = "outputs/data/canonical_budget.csv",

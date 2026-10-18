@@ -26,6 +26,9 @@
 #          asv_taxonomy_16S.csv, via code/lib/tables_read.R): the sample libraries of the main
 #          16S run (no mock, no "other" libraries); organelle ASVs removed
 # Outputs: outputs/data/known_putative_taxa_table.csv, kp_counts.txt
+#          pooled_share_pct: the taxon's reads summed over the study sample libraries, as a
+#          percentage of those libraries' non-organelle reads (a pooled share, not a mean of
+#          per-library relative abundances); n_ASVs: ASVs with reads in those libraries
 # ==============================================================================
 source("code/lib/outputs.R")
 
@@ -34,9 +37,8 @@ suppressPackageStartupMessages({ library(tidyverse) })
 source("code/lib/load_methanotroph_definitions.R")
 defs_rev  <- load_methanotroph_defs()                                     # revised (current)
 # Previous rule, for the Methylacidiphilaceae comparison: Methylacidiphilaceae counted as an exclusive
-# (Known) family. Built from the revised file rather than read from
-# data/compiled/methanotroph_definitions.csv, which is now byte-identical to the revised file
-# and so made the comparison report "moves 0 ASVs".
+# (Known) family. Built from the revised file (an archived copy of the original file had
+# become byte-identical to the revised one and so made the comparison report "moves 0 ASVs").
 defs_orig <- defs_rev
 defs_orig$Include_known[defs_orig$Taxon_rank == "Family" & defs_orig$Taxon == "Methylacidiphilaceae"] <- "YES"
 source("code/lib/tables_read.R")
@@ -45,11 +47,11 @@ source("code/lib/tables_read.R")
 # in those libraries are not detected and are left out
 A <- asv_reads("main", samples_only = TRUE)
 otu_mat <- A$cnt[rowSums(A$cnt, na.rm = TRUE) > 0, , drop = FALSE]
-# per-ASV total relative abundance (summed over samples, as % of all their non-organelle reads)
-asv_relabund <- (rowSums(otu_mat, na.rm = TRUE) / sum(A$tot)) * 100
+# per-ASV pooled share: reads summed over the libraries, as % of all their non-organelle reads
+asv_share <- (rowSums(otu_mat, na.rm = TRUE) / sum(A$tot)) * 100
 tx <- A$tax[rownames(otu_mat), ]
 tax <- tibble(feature_id = rownames(otu_mat), phylum = tx$Phylum, family = tx$Family, genus = tx$Genus,
-              relabund = asv_relabund[feature_id])
+              share = asv_share[feature_id])
 
 source("code/lib/methanogen_families.R")
 methanogen_families <- METHANOGEN_FAMILIES
@@ -69,10 +71,10 @@ tab <- tax %>% filter(!is.na(class_rev)) %>%
          display_taxon = coalesce(genus_res, family),
          level = if_else(!is.na(genus_res), "Genus", "Family")) %>%
   group_by(classification = class_rev, family, display_taxon, level) %>%
-  summarise(n_ASVs = n(), mean_relabund_pct = round(sum(relabund), 4), .groups = "drop") %>%
+  summarise(n_ASVs = n(), pooled_share_pct = round(sum(share), 4), .groups = "drop") %>%
   left_join(defs_rev %>% transmute(display_taxon = Taxon, source = Primary_source, note = Notes),
             by = "display_taxon") %>%
-  arrange(classification, desc(mean_relabund_pct))
+  arrange(classification, desc(pooled_share_pct))
 write.csv(tab, out_path("known_putative_taxa_table.csv"), row.names = FALSE)
 
 # ---- counts: original vs Methylacidiphilaceae-revised ------------------------
@@ -93,13 +95,13 @@ cat(sprintf("  Methylacidi-REVISED: Known = %d, Putative = %d  (total %d)\n",
 cat(sprintf("  -> reclassifying Methylacidiphilaceae Known->Putative moves %d ASVs.\n\n",
             c0["Methanotroph_Known"]-c1["Methanotroph_Known"]))
 cat(sprintf("Methanogen ASVs (n): %d\n\n", c1["Methanogen"]))
-cat("Top methanotroph taxa (revised classification), by mean relative abundance:\n")
+cat("Top methanotroph taxa (revised classification), by pooled share of non-organelle reads (%, ", ncol(otu_mat), " sample libraries):\n", sep = "")
 print(as.data.frame(tab %>% filter(grepl("Methanotroph", classification)) %>%
-  transmute(classification = sub("Methanotroph_","",classification), display_taxon, level, n_ASVs, mean_relabund_pct) %>%
+  transmute(classification = sub("Methanotroph_","",classification), display_taxon, level, n_ASVs, pooled_share_pct) %>%
   head(12)), row.names = FALSE)
 cat("\nMethanogen taxa:\n")
 print(as.data.frame(tab %>% filter(classification=="Methanogen") %>%
-  transmute(display_taxon, level, n_ASVs, mean_relabund_pct)), row.names = FALSE)
+  transmute(display_taxon, level, n_ASVs, pooled_share_pct)), row.names = FALSE)
 cat("\nNOTE: Methylacidiphilaceae now PUTATIVE (was Known) -- verified methanotrophy\n")
 cat("is restricted to thermoacidophilic geothermal members; mesophilic forest members are not\n")
 cat("known to oxidize CH4 (peatland & tree-stem genomes lack methanotrophy genes).\n")

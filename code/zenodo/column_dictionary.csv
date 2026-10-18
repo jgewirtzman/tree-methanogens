@@ -1,8 +1,0 @@
-dataset,column,type,unit,description
-methanotroph_definitions.csv,Category,character,NA,Evidence for methane monooxygenase capacity (free text)
-methanotroph_definitions.csv,Include_known,logical,NA,Counts toward Known methanotrophs
-methanotroph_definitions.csv,Include_putative,logical,NA,Counts toward Putative methanotrophs
-methanotroph_definitions.csv,Notes,character,NA,Rationale
-methanotroph_definitions.csv,Primary_source,character,NA,Literature source (Knief 2015 and references therein)
-methanotroph_definitions.csv,Taxon,character,NA,Family or genus name
-methanotroph_definitions.csv,Taxon_rank,character,NA,Taxonomic rank the rule applies to

@@ -25,18 +25,38 @@
 #         outputs/audit/picrust_pathways_build.txt
 # code/tables/24_picrust.R checks them against samples_16S and makes them the canonical
 # tables data/tables/picrust_pathways.csv and picrust_pathway_info.csv (as the flux fits
-# here in stage A become flux_stem.csv in stage B). They are in the Zenodo processed
-# archive, so stages B-G never need data/raw/picrust/.
+# here in stage A become flux_stem.csv in stage B).
+#
+# WITHOUT THE DOWNLOAD. The two files are in the Zenodo data archive
+# (data/processed/molecular/picrust/). When data/raw/picrust/ is absent this script
+# re-derives nothing: it checks that the archived files are there and match the checksums
+# recorded below, says so in the log, and stops with an error if either check fails. When
+# the download is present the files are re-derived and must match the same checksums.
 # ==============================================================================
 suppressPackageStartupMessages({ library(data.table); library(readr) })
 source("code/lib/build_phyloseq.R")          # is_organelle()
 source("code/lib/outputs.R")
 RAW <- "data/raw/picrust"
+OUT <- "data/processed/molecular/picrust"
+# md5 of the derived files (2026-10-18; update only with a deliberate change of the rule)
+MD5 <- c(picrust_pathways.csv     = "71ee04f597148ffcdf4aa03cea7d6443",
+         picrust_pathway_info.csv = "94fd0df5dec5570a44ae5f14a659690f")
+check_md5 <- function() {
+  f <- file.path(OUT, names(MD5))
+  got <- ifelse(file.exists(f), unname(tools::md5sum(f)), "missing")
+  if (any(got != MD5))
+    stop("PICRUSt2 pathway tables do not match the recorded checksums: ",
+         paste(sprintf("%s (%s)", f, got)[got != MD5], collapse = ", "), call. = FALSE)
+  cat(sprintf("checksums match the record: %s\n", paste(names(MD5), collapse = ", ")))
+}
 need <- file.path(RAW, c("path_abun_contrib.tsv", "KO_predicted.tsv", "path_abun_unstrat_descrip.tsv"))
-if (!all(file.exists(need)))
-  stop("PICRUSt2 predictions not found: ", paste(need[!file.exists(need)], collapse = ", "),
-       "\n  Download tree-methanogens_picrust.zip from the Zenodo record (README.md) and unzip it",
-       " at the repository root (it unpacks into data/raw/picrust/).", call. = FALSE)
+if (!all(file.exists(need))) {
+  cat("PICRUSt2 download not found (", paste(basename(need[!file.exists(need)]), collapse = ", "), " missing in ",
+      RAW, "/)\n", "using the archived PICRUSt2 pathway tables in ", OUT, "/; to re-derive them, download ",
+      "tree-methanogens_picrust.zip from the Zenodo record (README.md) and unzip it at the repository root\n", sep = "")
+  check_md5()
+  quit(save = "no", status = 0)
+}
 
 # ---- organelle ASVs (main-run taxonomy, as data/tables/asv_taxonomy_16S.csv) -----
 RANKS <- c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species")
@@ -79,7 +99,7 @@ U <- fread(file.path(RAW, "path_abun_unstrat_descrip.tsv"), select = c("pathway"
 stopifnot(!anyDuplicated(U$pathway), all(P$pathway %in% U$pathway))
 INFO <- U[pathway %in% P$pathway][order(pathway)]
 
-OUT <- "data/processed/molecular/picrust"; dir.create(OUT, showWarnings = FALSE, recursive = TRUE)
+dir.create(OUT, showWarnings = FALSE, recursive = TRUE)
 write_csv(P, file.path(OUT, "picrust_pathways.csv"), na = "")
 write_csv(INFO, file.path(OUT, "picrust_pathway_info.csv"), na = "")
 # what is written reads back to the same numbers (to the last bit or two: decimal text
@@ -97,3 +117,4 @@ cat(sprintf("picrust_pathways.csv: %d rows, %d libraries x %d pathways\n",
             nrow(P), uniqueN(P$library_id), uniqueN(P$pathway)))
 sink()
 cat(readLines(out_path("picrust_pathways_build.txt", "audit")), sep = "\n")
+check_md5()

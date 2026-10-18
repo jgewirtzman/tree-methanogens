@@ -9,6 +9,7 @@
 # short tables (S1, S3–S5, S7) are formatted in the SI tables document.
 #
 # Reads:  outputs/data/known_putative_taxa_table.csv (04_known-putative-table.R)
+#         data/tables/samples_16S.csv (the number of study sample libraries, for the legend)
 #         outputs/data/dbh_by_species_campaign.csv   (08_dbh_by_species_campaign.R)
 # Writes: outputs/tables/SI_Tables_S2_S6.xlsx
 # ==============================================================================
@@ -19,7 +20,13 @@ S2 <- read.csv(out_path("known_putative_taxa_table.csv"), stringsAsFactors = FAL
 S2$note <- sub("^Capacity rule [0-9-]+: *", "", S2$note)            # internal dating, not for readers
 S2$classification <- sub("^Methanotroph_", "Methanotroph, ", S2$classification)
 S2[is.na(S2)] <- ""
-names(S2) <- c("Class", "Family", "Taxon", "Level", "ASVs", "Share of all 16S reads, pooled (%)", "Source", "Note")
+stopifnot(identical(names(S2), c("classification", "family", "display_taxon", "level", "n_ASVs",
+                                 "pooled_share_pct", "source", "note")))
+names(S2) <- c("Class", "Family", "Taxon", "Level", "ASVs", "Share of non-organelle reads, pooled (%)", "Source", "Note")
+# the libraries the shares are pooled over: the study sample libraries of the main run, as
+# 04_known-putative-table.R reads them (asv_reads("main", samples_only = TRUE))
+L16 <- read.csv("data/tables/samples_16S.csv", stringsAsFactors = FALSE)
+N_LIB <- sum(L16$run == "main" & L16$library_type == "sample")
 
 S4 <- read.csv(out_path("dbh_by_species_campaign.csv"), stringsAsFactors = FALSE, check.names = FALSE)
 names(S4) <- c("Campaign", "Location", "Species", "Status", "Trees", "DBH (cm), mean ± SD")
@@ -31,7 +38,8 @@ LEG <- list(
           "methanotroph-containing families unresolved at genus level, and genera in those families whose capacity",
           "is untested (no sequenced genome), found in only some genomes (Methylovirgula), or represented by a single candidate homolog of unresolved source (Rhodoblastus; Table S3). Genera inside those families with no",
           "annotated methane monooxygenase among their NCBI protein records are listed in Table S3 and not counted.",
-          "ASVs: number of amplicon sequence variants in the full, unrarefied 16S table (all libraries); share: the taxon's reads as a percentage of all 16S reads pooled across libraries.",
+          sprintf(paste("ASVs: number of amplicon sequence variants with reads in the %d study sample libraries (unrarefied; organelle ASVs",
+                        "excluded); share: share of all non-organelle reads, pooled over the %d study sample libraries."), N_LIB, N_LIB),
           "Counts differ from Methods S3, which counts ASVs present in survey samples after rarefaction to 3,500 reads.")),
   `Table S6` = c("Table S6. Diameter at breast height of measured trees by campaign, location, species and status.",
     "Trees: number of individual trees; DBH: mean ± standard deviation across those trees (a single value where n = 1)."))

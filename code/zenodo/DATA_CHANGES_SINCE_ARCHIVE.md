@@ -29,8 +29,8 @@ The vendored `data/raw/external/tree-gas-traits/ymf_species_traits.csv` (copied 
 The goFlux fitting scripts re-fit from saved windows rather than opening the picker:
 `data/raw/flux_windows/lgr_manual_identification_{semirigid_tree,2023_cross_species}.csv`
 (recovered 2026-10-01 by `code/tools/rebuild_closure_windows.R`; never saved before),
-`lgr_manual_identification_2021_multiheight_final.csv`, `lgr_manual_identification_results_soil.csv`,
-`lgr_manual_identification_results_december_soil.csv`, and `flux_model_choices.csv`. Without them
+`lgr_manual_identification_2021_multiheight_final.csv`, `lgr_manual_identification_results_soil.csv`
+and `flux_model_choices.csv`. Without them
 stage A cannot run non-interactively.
 
 ## 1b. Hand-picked untagged-stem windows — must be uploaded
@@ -87,8 +87,8 @@ stage A's `02_flux/01_apply_auxfile_vtot.R` until 2026-10-17, a no-op in a run f
 
 ## 5. Archive structure changed (2026-10-01)
 
-`data/compiled/` is rebuilt by `code/zenodo/01_compile_datasets.R` (end of stage B) and
-`02_compile_results.R` (stage F). Retired: `semirigid_chamber_flux.csv`,
+`data/compiled/` was rebuilt by `code/zenodo/01_compile_datasets.R` (end of stage B; retired
+2026-10-18, see section 7) and `02_compile_results.R` (stage F). Retired: `semirigid_chamber_flux.csv`,
 `static_chamber_flux.csv`, `height_chamber_flux.csv`, `flux_measurements_tree.csv`,
 `flux_measurements_soil.csv` (replaced by `flux_stem.csv` and `flux_soil.csv`, one row per
 deployment with all flags) and `picrust_pathway_associations.csv` (moved to `results/`).
@@ -107,3 +107,16 @@ isotope summary, Tables 1 and S2-S5). The previous archive's monthly stem file o
 (the closure screen, `02_flux/02_qc_c0_screen.R`) were written to `outputs/data/`, which is not
 archived, so a run from the processed archive (`run_all.R --from B`) could not build the flux
 tables. They are now part of `data/processed/` and of the processed zip.
+
+## 7. One copy of each data item; one soil fit (2026-10-18)
+
+- The archive no longer copies `data/tables/*.csv` into `data/compiled/`: `data/tables/` is
+  archived as it is, and `data/compiled/` holds only `README_data.md` (documenting
+  `data/tables/`) and `results/`. `methanotroph_definitions.csv` is in the code
+  (`code/lib/`). Zips: data (`data/raw/` without `picrust/`, `data/tables/`, `data/processed/`,
+  `data/compiled/`), PICRUSt2 (optional), code (`code/zenodo/04_package_archive.sh`).
+- `data/raw/flux_windows/lgr_manual_identification_results_december_soil.csv` is retired
+  (`data/deprecated/raw/flux_windows/`; `data/raw/CORRECTIONS.md`): its 30 windows are also
+  in `lgr_manual_identification_results_soil.csv`. Leave it out of the next archive.
+- A run from raw without the PICRUSt2 zip uses the archived pathway tables in
+  `data/processed/molecular/picrust/`, checked against recorded checksums.

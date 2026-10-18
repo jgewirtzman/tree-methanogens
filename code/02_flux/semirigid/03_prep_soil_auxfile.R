@@ -8,9 +8,9 @@
 #
 # Area: SOIL_COLLAR_AREA_CM2 (25.43 cm interior diameter). Vtot as written here uses the
 # pre-correction chamber volume SOIL_CHAMBER_VOLUME_PRECORRECTION_L (17.75 L: cap 14.42 L
-# + collar headspace 3.33 L) + tubing + analyzer. No fit uses this Vtot: every soil fit
-# (04_goflux_soils.R, 05_fix_december.R, 03_merge/01_fix_soil_flux.R) sets Vtot to
-# SOIL_VTOT_L (7.53 L collar headspace; code/lib/chamber_constants.R).
+# + collar headspace 3.33 L) + tubing + analyzer. No fit uses this Vtot: the soil fit
+# (04_goflux_soils.R) sets Vtot to SOIL_VTOT_L (7.53 L collar headspace;
+# code/lib/chamber_constants.R).
 # Tcham: station hourly mean air temperature of the hour containing the start, in true
 #   time (logger clock converted by code/lib/weather_time.R, the rule of
 #   code/tables/06_weather.R), within 24 h; every deployment must have one (the build

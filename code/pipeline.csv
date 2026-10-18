@@ -9,10 +9,8 @@ A,code/02_flux/semirigid/01_calc_chamber_dims.R,script,TRUE,monthly survey: semi
 A,code/02_flux/semirigid/02_join_flux_geometry.R,script,TRUE,monthly survey: join deployments to chamber geometry
 A,code/02_flux/semirigid/03_prep_soil_auxfile.R,script,TRUE,monthly survey: goFlux aux file for soil
 A,code/02_flux/semirigid/03_prep_tree_auxfile.R,script,TRUE,monthly survey: goFlux aux file for stems
-A,code/02_flux/semirigid/04_goflux_soils.R,script,TRUE,monthly survey: soil flux fits (goFlux)
+A,code/02_flux/semirigid/04_goflux_soils.R,script,TRUE,monthly survey: soil CO2 and CH4 flux fits (goFlux; collar geometry; the one soil fit)
 A,code/02_flux/semirigid/04_goflux_trees.R,script,TRUE,monthly survey: stem flux fits (goFlux)
-A,code/02_flux/semirigid/05_fix_december.R,script,TRUE,monthly survey: December 2020 soil fluxes from their own windows (replace the December rows)
-A,code/03_merge/01_fix_soil_flux.R,script,TRUE,soil flux re-fitted with corrected collar geometry (before the screens and detection limits read soil fluxes)
 A,code/02_flux/static/02_prep_auxfile_2023.R,script,TRUE,2023 cross-species: goFlux aux file
 A,code/02_flux/static/03_goflux_trees_2021.R,script,TRUE,2021 multi-height: stem flux fits (goFlux)
 A,code/02_flux/static/04_goflux_trees_2023.R,script,TRUE,2023 cross-species: stem flux fits (goFlux)
@@ -22,7 +20,7 @@ A,code/02_flux/rescue/03_merge_untagged_monthly.R,root,TRUE,monthly survey file 
 A,code/02_flux/02_qc_c0_screen.R,root,TRUE,procedural screen: chamber not at ambient at closure
 A,code/02_flux/02b_instrument_precision.R,root,TRUE,analyzer CH4 precision (sigma) per field period from the raw records
 A,code/02_flux/03_precision_and_detection.R,root,TRUE,analyzer precision; minimum detectable flux; detection status
-A,code/01_import/06_picrust_pathways.R,root,TRUE,PICRUSt2 pathway abundances per 16S library (organelle ASVs out; without mcrA/pmoA carriers) -> data/processed/molecular/picrust/ (needs data/raw/picrust/)
+A,code/01_import/06_picrust_pathways.R,root,TRUE,PICRUSt2 pathway abundances per 16S library (organelle ASVs out; without mcrA/pmoA carriers) -> data/processed/molecular/picrust/ (re-derived when data/raw/picrust/ is present; else the archived tables are checked against their recorded checksums)
 B,code/tables/01_species.R,root,TRUE,canonical table: species (one row per species code)
 B,code/tables/02_site.R,root,TRUE,canonical table: site (stand reference point and geometry)
 B,code/tables/03_collars.R,root,TRUE,canonical table: soil collars
@@ -49,7 +47,6 @@ B,code/05_model/01_load_and_prep_data.R,script,TRUE,random-forest training table
 B,code/05_model/02_rf_models.R,script,TRUE,fit the stem and soil random forests
 B,code/05_model/03_export_canonical_tables.R,root,TRUE,measurement tables with training flags and exclusion reasons
 B,code/05_model/04_rf_grouped_cv.R,root,TRUE,held-out skill with whole trees or collars held out
-B,code/zenodo/01_compile_datasets.R,root,TRUE,copy data/tables/*.csv (and the methanotroph definitions) to data/compiled/ for the archive
 C,code/04_drivers/01_wb_reference_et.R,root,TRUE,reference evapotranspiration for the water balance
 C,code/04_drivers/02_moisture_climatology.R,root,TRUE,monthly plot-wide soil-moisture level
 C,code/04_drivers/04_moisture_surface.R,root,TRUE,relative soil-moisture pattern across the plot
