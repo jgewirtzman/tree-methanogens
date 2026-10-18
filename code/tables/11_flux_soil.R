@@ -12,9 +12,7 @@
 # data/processed/flux/flux_FINAL.csv; closure screen from
 # data/processed/flux/qc_excluded_measurements.csv.
 #
-# ROW ORDER: the field-sheet order, with the 30 December 2020 deployments last. That is
-# the order the soil forest has always been trained on (until 2026-10-18 a separate
-# December fit appended them), and a forest's bootstrap depends on row order.
+# ROW ORDER: by start time, then collar.
 #
 # TIMES: the analyzer clock was kept on local time in 2020-21 (as for the stems);
 # written as ISO 8601 local time with the America/New_York offset of the date.
@@ -42,8 +40,7 @@ OUT <- "data/tables"; WD <- "data/raw/flux_windows"
 num <- function(x) suppressWarnings(as.numeric(x))
 
 F_SOIL <- "data/processed/flux/semirigid_tree_final_complete_dataset_soil.csv"
-s <- read_flux_csv(F_SOIL, "CH4_best.flux") %>% filter(!is.na(CH4_best.flux)) %>%
-  arrange(startsWith(UniqueID, "202012"))   # December 2020 last (ROW ORDER, above)
+s <- read_flux_csv(F_SOIL, "CH4_best.flux") %>% filter(!is.na(CH4_best.flux))
 DET <- read.csv("data/processed/flux/flux_FINAL.csv") %>% filter(type == "soil")
 QX <- read.csv("data/processed/flux/qc_excluded_measurements.csv", stringsAsFactors = FALSE)
 COL <- read.csv(file.path(OUT, "collars.csv"), stringsAsFactors = FALSE)
@@ -91,6 +88,7 @@ out <- S %>% transmute(
                                !in_stand ~ "collar outside the modelled stand"),
   notes = as.character(Notes))
 
+out <- out %>% arrange(start_time, collar_id)   # ROW ORDER (above)
 F_OLD <- file.path(OUT, "flux_soil.csv")
 OLD <- if (file.exists(F_OLD)) read.csv(F_OLD, stringsAsFactors = FALSE) else NULL
 write_csv(out, file.path(OUT, "flux_soil.csv"), na = "")
