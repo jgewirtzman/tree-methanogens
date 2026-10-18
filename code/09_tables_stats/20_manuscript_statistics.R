@@ -1527,6 +1527,11 @@ local({
               sum(S$ratio > 1), nrow(S), 100 * mean(low[k] > bh[k])))
   record("band_low_gt_bh_species", sum(S$ratio > 1)); record("band_species_levels", nrow(S))
 })
+# Methods S6: "holding each stem's breast-height prediction across the band instead gives 3.0
+# rather than 5.4 mg"
+stat("  0-2 m band, height profile (mg CH4 m-2 yr-1)", round(canon("tree_measured_mg_m2_yr"), 2))
+stat("  0-2 m band, breast-height prediction held (mg CH4 m-2 yr-1)", round(canon("tree_at_bh_basis_mg_m2_yr"), 2))
+stat("  0-2 m band, 2-m prediction held (mg CH4 m-2 yr-1)", round(canon("tree_at_2m_basis_mg_m2_yr"), 2))
 
 # Methods S6: "tuning these settings, with selection nested inside cross-validation, changed
 # grouped R2 by about ..." (05_model/16_rf_hyperparameter_tuning.R)

@@ -35,6 +35,7 @@ rd <- function(p) if (file.exists(p)) utils::read.csv(p, stringsAsFactors = FALS
 
 B   <- rd("outputs/data/canonical_budget.csv")
 TRP <- rd("outputs/tables/tree_flux_predictions.csv")
+TRM <- rd("outputs/tables/tree_monthly_stand.csv")
 SOA <- rd("outputs/tables/soil_surface_annual.csv")
 G   <- rd("outputs/data/scaling_full_grid.csv")
 H   <- rd("outputs/data/scaling_headline.csv")
@@ -68,6 +69,11 @@ if (!is.null(TRP)) {
   t2m <- sum(S$flux_2m_nmol_m2_s * S$A_stem_m2) / v("stand_area_m2") * CONV
   chk("tree_at_2m_basis recomputes", near(t2m, v("tree_at_2m_basis_mg_m2_yr"), 1e-4),
       sprintf("%.6f vs %.6f", t2m, v("tree_at_2m_basis_mg_m2_yr")))
+  if (!is.null(TRM)) {   # independent route: the stand breast-height series (area-weighted per m2 bark)
+    tbh <- mean(TRM$tree_bh_nmol_m2_s) * v("stem_area_0_2m_m2") / v("stand_area_m2") * CONV
+    chk("tree_at_bh_basis recomputes", near(tbh, v("tree_at_bh_basis_mg_m2_yr"), 1e-4),
+        sprintf("%.6f vs %.6f", tbh, v("tree_at_bh_basis_mg_m2_yr")))
+  }
   chk("no GEN_* level lost (species ladder reached the inventory)",
       any(grepl("^GEN_", S$species_model)),
       sprintf("%d GEN_ stems", sum(grepl("^GEN_", S$species_model))))
