@@ -25,6 +25,7 @@
 #          the base of the assembled soil tables)
 # ==============================================================================
 
+source("../../lib/project_library.R")   # the project package library (renv.lock), however this script is started
 library(dplyr)
 library(readr)
 library(lubridate)

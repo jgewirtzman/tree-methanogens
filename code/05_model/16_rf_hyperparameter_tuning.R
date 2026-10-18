@@ -25,7 +25,7 @@
 #
 # Writes outputs/data/rf_hyperparameters.csv, outputs/audit/rf_hyperparameters.txt
 # ==============================================================================
-source("code/lib/outputs.R"); source("code/lib/rf_spec.R")   # RF_THREADS
+source("code/lib/outputs.R"); source("code/lib/rf_spec.R")   # RF_THREADS; RUN (code/lib/run_mode.R)
 suppressPackageStartupMessages(library(ranger))
 load("outputs/models/RF_MODELS.RData")
 load("outputs/models/TRAINING_DATA.RData")
@@ -33,8 +33,9 @@ stopifnot(identical(colnames(X_tree), TreeRF$forest$independent.variable.names),
           identical(colnames(as.data.frame(X_soil)), SoilRF$forest$independent.variable.names),
           nrow(X_tree) == TreeRF$num.samples, nrow(X_soil) == SoilRF$num.samples)
 
-NUM_TREES <- 1000; NREP <- 10; NFOLD <- 5; NINNER <- 5
-NODES <- c(1, 3, 5, 10, 20)
+# run sizes from code/lib/run_mode.R (full run: 1000 trees, 10 repeats, nodes 1, 3, 5, 10, 20)
+NUM_TREES <- RUN$tuning_num_trees; NREP <- RUN$tuning_repeats; NFOLD <- 5; NINNER <- 5
+NODES <- RUN$tuning_node_sizes
 r2 <- function(a, b) 1 - sum((a - b)^2) / sum((a - mean(a))^2)
 fit_pred <- function(X, y, tr, te, mtry, node) {
   m <- ranger(x = X[tr, , drop = FALSE], y = y[tr], num.trees = NUM_TREES, mtry = mtry,

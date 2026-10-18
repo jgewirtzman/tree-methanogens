@@ -23,6 +23,7 @@
 #   sensitivity 05_model/15_rf_air_temperature_test.R.
 # ==============================================================================
 
+source("../lib/project_library.R")   # the project package library (renv.lock), however this script is started
 source("../lib/rf_spec.R")   # RF_NUM_TREES, RF_THREADS
 source("../lib/dead_stems.R")
 suppressPackageStartupMessages({

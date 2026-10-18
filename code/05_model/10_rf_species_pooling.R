@@ -18,6 +18,7 @@
 # Output: outputs/data/species_pooling_cv.csv / .txt
 # ==============================================================================
 suppressPackageStartupMessages({library(ranger); library(dplyr)})
+source("code/lib/run_mode.R")   # RUN: run sizes
 set.seed(42)
 load("outputs/models/TRAINING_DATA.RData")
 
@@ -96,13 +97,13 @@ fitpred <- function(nm, tr, te) {
     lv <- sort(unique(c(a, b, "SPECIES_OTHER")))
     Xtr$species <- factor(a, levels = lv); Xte$species <- factor(b, levels = lv)
   }
-  m <- ranger(x = Xtr, y = y[tr], num.trees = 800, min.node.size = cfg$node,
+  m <- ranger(x = Xtr, y = y[tr], num.trees = RUN$refit_num_trees, min.node.size = cfg$node,
               mtry = max(1, floor(sqrt(ncol(Xtr)))), num.threads = 1, seed = 42)
   predict(m, Xte)$predictions
 }
 
 # --- repeated stratified k-fold ----------------------------------------------
-K_FOLD <- 5; N_REP <- 4
+K_FOLD <- 5; N_REP <- RUN$pooling_repeats   # code/lib/run_mode.R: 4 in the full run
 res <- list()
 for (nm in names(SCHEMES)) {
   pr <- matrix(NA_real_, nrow(d), N_REP)

@@ -11,7 +11,7 @@
 # Output: outputs/data/rf_grouped_cv.csv   (read by 06_upscale/03_budget_canonical.R)
 #         outputs/audit/rf_grouped_cv.txt
 # ==============================================================================
-source("code/lib/rf_spec.R")   # RF_NUM_TREES, RF_THREADS
+source("code/lib/rf_spec.R")   # RF_THREADS; RUN (code/lib/run_mode.R)
 suppressPackageStartupMessages({library(ranger)})
 
 load("outputs/models/RF_MODELS.RData")
@@ -25,7 +25,7 @@ load("outputs/models/TRAINING_DATA.RData")
 # 100, not 30 (2026-10-01): with a per-repeat SD of ~0.027 the 30-repeat mean has a
 # standard error of ~0.005, enough to flip the second decimal between runs; at 100 it
 # is ~0.003.
-NREP <- 100; NFOLD <- 5
+NREP <- RUN$grouped_cv_repeats; NFOLD <- 5   # code/lib/run_mode.R: 100 in the full run
 r2 <- function(a, b) 1 - sum((a - b)^2) / sum((a - mean(a))^2)
 
 # Score one locked spec: OOB (as reported) vs grouped CV (honest), NREP x NFOLD.

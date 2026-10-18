@@ -20,6 +20,7 @@
 #          data/processed/flux/chamber_geometry/combined_corrected_results.xlsx
 # ==============================================================================
 
+source("../../lib/project_library.R")   # the project package library (renv.lock), however this script is started
 library(readxl)
 library(writexl)
 library(dplyr)

@@ -14,7 +14,7 @@
 #
 # Output: outputs/data/rf_predictor_selection_current.csv / .txt
 # ==============================================================================
-source("code/lib/rf_spec.R")   # RF_NUM_TREES, RF_THREADS
+source("code/lib/rf_spec.R")   # RF_THREADS; RUN (code/lib/run_mode.R)
 suppressPackageStartupMessages({library(ranger)})
 
 load("outputs/models/RF_MODELS.RData")
@@ -22,7 +22,7 @@ load("outputs/models/TRAINING_DATA.RData")
 
 # 30 repeats -- see 04_rf_grouped_cv.R. At NREP = 5 the between-variant ranking here
 # was dominated by fold noise; differences must be read against the SE, not ranked.
-NREP <- 30; NFOLD <- 5
+NREP <- RUN$selection_cv_repeats; NFOLD <- 5   # code/lib/run_mode.R: 30 in the full run
 X0  <- as.data.frame(X_tree)
 y   <- tree_train_complete$y_flux
 grp <- as.character(tree_train_complete$tree_id)

@@ -32,6 +32,7 @@
 #          {CO2,CH4}_best_flux_december_lgr_results_soil.csv (December only)
 # ==============================================================================
 
+source("../../lib/project_library.R")   # the project package library (renv.lock), however this script is started
 library(goFlux)
 library(dplyr)
 library(readr)

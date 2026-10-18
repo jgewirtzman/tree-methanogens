@@ -59,6 +59,8 @@ Rscript code/check_consistency.R       # check that the outputs agree with one a
 
 A full run from raw data takes about 4.5 hours on a 12-core laptop; most of that time is the model audits in stage D.
 
+**Full and lite runs.** `Rscript code/run_all.R` is the full run: it makes the canonical outputs, the numbers in the paper. `Rscript code/run_all.R --lite --from raw` runs every script end to end in about 13 minutes (full: about 4.5 hours), as a test that the pipeline works after a change; its numbers are not results. Every run-size setting (forest sizes, cross-validation repeats, tuning grid, resampling loops, audit seeds, daily-driver sample) is in `code/lib/run_mode.R`, which holds the full values and the smaller lite ones. A lite run never writes into the repository: it builds a fresh copy at `--lite-root` (default `$TMPDIR/tree-methanogens-lite`, replaced by each lite run) holding `code/`, the renv settings and the folder layout, with `data/raw/` linked rather than copied, and runs the pipeline there. Its outputs are under that folder, and afterwards `run_all.R` checks that no file in `data/raw/` changed. In a lite run, `check_consistency.R` skips its two checks on result values but keeps every agreement and plumbing check.
+
 | Stage | What runs |
 |---|---|
 | A | raw → processed: import, flux fitting (goFlux), cleaning |

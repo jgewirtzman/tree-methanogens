@@ -1,9 +1,17 @@
 #!/usr/bin/env Rscript
 # ==============================================================================
-# 01_apply_auxfile_vtot.R -- carry a changed system volume (Vtot) through the stored
-#                            goFlux results without re-fitting
+# apply_auxfile_vtot.R -- carry a changed system volume (Vtot) through stored goFlux
+#                         results without re-fitting
 # ------------------------------------------------------------------------------
-# Stage A; workdir: repository root. Runs after every goFlux script and the rescue.
+# A hand-run tool, not a pipeline step (retired from stage A 2026-10-17). In a run from
+# raw every goFlux fit is made with its auxfile's Vtot, which carries ANALYZER_VOLUME_CM3
+# (code/lib/chamber_constants.R), so a change of the analyzer volume reaches every flux
+# by re-fitting, and this script found nothing to do (the 2026-10-17 run: ratio 1.0000
+# on all five campaigns). It remains for stored results that are not re-fitted, such as
+# an archive of data/processed/ written at the old 70 cm3: run from the repository root
+# after the auxfile scripts. Its file list does not cover every result file (not the
+# 2021 CO2 goFlux results, the 2023 CO2 best.flux and CH4 goFlux results, or the
+# semirigid stem result files); re-fitting is the complete route.
 #
 # Compares the Vtot each campaign's assembled table was fitted with ("state") against
 # the Vtot its auxfile now holds ("target"; for the soil collars, SOIL_VTOT_L in

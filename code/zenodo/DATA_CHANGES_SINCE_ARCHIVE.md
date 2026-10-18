@@ -80,9 +80,10 @@ figure and audit; then upload `data/` (`code/zenodo/04_package_archive.sh`).
 
 ## 4. Analyzer volume (merged 2026-09-30, fa7e721)
 
-After the auxfile scripts, `Rscript code/02_flux/01_apply_auxfile_vtot.R` rescales the stored goFlux
-results to the 28 cm³ analyzer volume (20 tables; idempotent). The flux tables in `data/processed/flux/`
-are at 28 cm³; an older archive is at 70 cm³ and needs this step.
+A run from raw fits every flux at the 28 cm³ analyzer volume (the auxfiles carry it). An older
+archive's `data/processed/flux/` is at 70 cm³: after the auxfile scripts, the hand-run tool
+`Rscript code/tools/apply_auxfile_vtot.R` rescales its stored goFlux results (idempotent; it was
+stage A's `02_flux/01_apply_auxfile_vtot.R` until 2026-10-17, a no-op in a run from raw).
 
 ## 5. Archive structure changed (2026-10-01)
 

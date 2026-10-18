@@ -20,6 +20,7 @@
 # Outputs: data/processed/flux/flux_with_geometry_fixed.csv (tagged stems only)
 #          outputs/audit/semirigid_chamber_dims.csv (the dimensions used per chamber)
 # ==============================================================================
+source("../../lib/project_library.R")   # the project package library (renv.lock), however this script is started
 suppressPackageStartupMessages({ library(readxl); library(dplyr); library(readr) })
 ROOT <- "../../.."
 source(file.path(ROOT, "code/lib/stem_chamber_geometry.R"))

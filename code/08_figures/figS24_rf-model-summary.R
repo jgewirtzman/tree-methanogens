@@ -10,7 +10,9 @@
 #          50 random 70/30 splits (20 permutations each). Importance is permutation,
 #          not ranger's impurity importance, which favours continuous predictors.
 #          Each split refits a forest with the fitted model's min.node.size and mtry
-#          but 800 trees (the fitted models have 10,000; code/lib/rf_spec.R).
+#          but 800 trees (the fitted models have 10,000). Splits, permutations and
+#          trees: RUN$importance_splits, $importance_permutations, $refit_num_trees
+#          (code/lib/run_mode.R; 50, 20 and 800 in the full run).
 #   (e, f) partial dependence for the predictors, 2nd-98th percentile, with a rug of
 #          the observed values (the tails rest on few measurements).
 # Inputs: outputs/models/RF_MODELS.RData (TreeRF, SoilRF) and TRAINING_DATA.RData
@@ -21,7 +23,7 @@
 source("code/lib/outputs.R")
 suppressMessages({library(dplyr); library(ranger); library(ggplot2)
                   library(patchwork); library(tidyr)})
-source("code/lib/rf_spec.R")   # RF_THREADS
+source("code/lib/rf_spec.R")   # RF_THREADS; RUN (code/lib/run_mode.R)
 set.seed(42)
 load("outputs/models/RF_MODELS.RData"); load("outputs/models/TRAINING_DATA.RData")
 
@@ -47,11 +49,11 @@ GROUPS <- list(
                 month = "month"))
 stopifnot(setequal(unlist(GROUPS$TreeRF), names(Xt)), setequal(unlist(GROUPS$SoilRF), names(Xs)))
 
-gimp <- function(fit, X, y, groups, lab, nsplit = 50, nrep = 20) {
+gimp <- function(fit, X, y, groups, lab, nsplit = RUN$importance_splits, nrep = RUN$importance_permutations) {
   k <- is.finite(y) & complete.cases(X); X <- X[k, , drop = FALSE]; y <- y[k]
   R <- replicate(nsplit, {
     tr <- sample(nrow(X), floor(0.7 * nrow(X)))
-    m  <- ranger(x = X[tr, , drop = FALSE], y = y[tr], num.trees = 800,
+    m  <- ranger(x = X[tr, , drop = FALSE], y = y[tr], num.trees = RUN$refit_num_trees,
                  min.node.size = fit$min.node.size, mtry = fit$mtry, num.threads = RF_THREADS,
                  seed = sample.int(1e6, 1))
     Xh <- X[-tr, , drop = FALSE]; yh <- y[-tr]

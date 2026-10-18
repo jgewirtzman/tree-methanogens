@@ -23,6 +23,7 @@
 #   internal_gas_calibration_check.csv    back-predicted standards and check standard
 # ==============================================================================
 
+source("../lib/project_library.R")   # the project package library (renv.lock), however this script is started
 library(dplyr)
 library(tidyr)
 library(readxl)

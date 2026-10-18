@@ -23,6 +23,17 @@ repo_path <- function(rel) {
   stop("cannot find the repository root from ", getwd(), call. = FALSE)
 }
 window_path <- function(name) repo_path(file.path("data/raw/flux_windows", name))
+
+# goFlux must be renv.lock's version: later versions compute the closure time, and so
+# the MDF, differently and converge Hutchinson-Mosier fits on other deployments
+# (code/lib/project_library.R).
+local({
+  want <- jsonlite::read_json(repo_path("renv.lock"))$Packages$goFlux$Version
+  got  <- if ("goFlux" %in% loadedNamespaces()) getNamespaceVersion("goFlux") else as.character(utils::packageVersion("goFlux"))
+  if (!identical(unname(got), want))
+    stop("goFlux ", got, " is loaded but renv.lock has ", want, "; run from the repository's ",
+         "package library (source code/lib/project_library.R first)", call. = FALSE)
+})
 repick_path <- function(name) {
   d <- repo_path("data/processed/flux/repicked"); dir.create(d, showWarnings = FALSE, recursive = TRUE)
   f <- file.path(d, name)

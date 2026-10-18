@@ -8,6 +8,7 @@
 | `repick_failed_2021_windows.R` | Interactive continuation of a 2021 picking session: re-picks the five deployments whose windows failed and writes `data/raw/flux_windows/lgr_manual_identification_2021_multiheight_final.csv`, the 2021 record. Needs the session's objects (`ow.lgr3.complete`, `manID_batches`). |
 | `migrate_campaign_filenames.R` | Once, on a data archive older than 2026-09-30, to rename the flux files to the per-campaign names (it identifies files by content). |
 | `mmo_capacity_screen.R` | Queries NCBI. Writes `outputs/data/mmo_capacity_screen.csv`; needs network access and drifts as NCBI grows. Table S3 is the committed 2026-09-30 run, `code/lib/mmo_capacity_screen_table_S3_2026-09-30.csv`; copy a new run there to update it. |
+| `apply_auxfile_vtot.R` | Only for stored goFlux results that are not re-fitted (e.g. an older archive of `data/processed/flux/` at the 70 cm³ analyzer volume): rescales their flux columns to the auxfiles' Vtot without re-fitting. A run from raw re-fits every flux with the current volume, so it has nothing to do there (it was a stage-A step until 2026-10-17). |
 | `write_parameter_record.R` | After a full run, refreshes the generated headline block of the authors' private parameter record (`code/revision/notes/scaling_parameters.md`, not in this repository); exits if the file is absent. |
 
 **Re-picking closure windows.** Saved windows in `data/raw/flux_windows/` are inputs and no

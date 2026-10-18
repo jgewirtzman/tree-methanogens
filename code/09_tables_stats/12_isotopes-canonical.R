@@ -42,6 +42,7 @@ bulk_ch4 <- med(d$d13CH4); bulk_co2 <- med(wt$d13CO2); bulk_eps <- med(wt$eps_C)
 # ---- 3. CH4 SOURCE -----------------------------------------------------------
 # (a) Keeling: d13CH4 ~ 1/CH4, intercept = source, by MM robust regression
 dk <- d %>% mutate(invCH4 = 1/ch4_ppm)
+set.seed(42)   # the MM fit starts from a resampled S-estimate (MASS::lqs); seeded, so it is the same every run
 mm <- MASS::rlm(d13CH4 ~ invCH4, data = dk, method = "MM", maxit = 100)
 keel_src <- unname(coef(mm)[1]); keel_se <- summary(mm)$coefficients[1, 2]
 keel_ci <- keel_src + c(-1, 1) * qnorm(0.975) * keel_se

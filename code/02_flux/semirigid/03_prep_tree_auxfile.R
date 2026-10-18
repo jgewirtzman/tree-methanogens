@@ -24,6 +24,7 @@
 #          the base of the assembled monthly stem table)
 # ==============================================================================
 
+source("../../lib/project_library.R")   # the project package library (renv.lock), however this script is started
 library(dplyr)
 library(readr)
 library(lubridate)

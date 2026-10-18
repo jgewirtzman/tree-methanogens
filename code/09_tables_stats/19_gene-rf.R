@@ -11,6 +11,7 @@
 # Outputs: outputs/data/gene_rf_cv.csv, outputs/audit/gene_rf_cv.txt
 # ==============================================================================
 source("code/lib/outputs.R")
+source("code/lib/run_mode.R")   # RUN: run sizes
 suppressWarnings(suppressMessages(source("code/07_molecular/helper_scale_dependent_gene_patterns.R")))
 suppressPackageStartupMessages({ library(dplyr); library(ranger) })
 
@@ -41,7 +42,7 @@ cv_r2 <- function(vars, folds) {
   }
   1 - sum((D$y - pred)^2) / sum((D$y - mean(D$y))^2)
 }
-set.seed(42); NREP <- 30
+set.seed(42); NREP <- RUN$gene_cv_repeats   # code/lib/run_mode.R: 30 in the full run
 FOLDS <- replicate(NREP, sample(rep(1:5, length.out = nrow(D))), simplify = FALSE)
 R <- sapply(names(MODELS), function(nm) sapply(FOLDS, function(f) cv_r2(MODELS[[nm]], f)))
 

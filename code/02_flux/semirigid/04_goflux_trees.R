@@ -27,6 +27,7 @@
 #          semirigid_tree_final_complete_dataset.csv  (assemble_campaign("semirigid_tree"))
 # ==============================================================================
 
+source("../../lib/project_library.R")   # the project package library (renv.lock), however this script is started
 library(goFlux)
 library(dplyr)
 library(readr)

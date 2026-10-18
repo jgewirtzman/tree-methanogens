@@ -22,6 +22,7 @@
 #   tree_core_filled_statistics.csv  mean and SD by species and section
 # ==============================================================================
 
+source("../lib/project_library.R")   # the project package library (renv.lock), however this script is started
 library(dplyr)
 library(readr)
 

@@ -13,6 +13,7 @@
 # Output: outputs/data/species_fallback_loso.csv / .txt
 # ==============================================================================
 suppressPackageStartupMessages({library(ranger); library(dplyr)})
+source("code/lib/run_mode.R")   # RUN: run sizes
 set.seed(42)
 load("outputs/models/TRAINING_DATA.RData")
 
@@ -55,7 +56,7 @@ fitpred <- function(scheme, tr, te) {
     Xtr$species <- factor(lab_tr, levels = lv)
     Xte$species <- factor(lab_te, levels = lv)
   }
-  m <- ranger(x = Xtr, y = y[tr], num.trees = 800, min.node.size = 5,
+  m <- ranger(x = Xtr, y = y[tr], num.trees = RUN$refit_num_trees, min.node.size = 5,
               mtry = max(1, floor(sqrt(ncol(Xtr)))), num.threads = 1, seed = 42)
   predict(m, Xte)$predictions
 }

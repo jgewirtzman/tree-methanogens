@@ -11,13 +11,21 @@
 # Each check prints PASS or FAIL with the numbers, and the exit status is non-zero
 # if anything failed, so it can gate a commit.
 #
+# In a lite run (code/lib/run_mode.R) the checks on the values of results (the
+# direction of the net balance, OOB above grouped CV) are skipped: lite forests are
+# small and their numbers are not results. Every check of agreement between files,
+# and every plumbing check, still runs.
+#
 #   Rscript code/check_consistency.R
 # ==============================================================================
 source("code/lib/geometry.R")
 source("code/lib/monthly_cols.R")
+source("code/lib/run_mode.R")   # RUN_MODE
 
 FAILS <- 0L
-chk <- function(label, ok, detail = "") {
+# result = TRUE: a check on a result's value, not on agreement; skipped in a lite run
+chk <- function(label, ok, detail = "", result = FALSE) {
+  if (result && RUN_MODE == "lite") { cat(sprintf("  [SKIP] %-56s (lite run)\n", label)); return(invisible(NA)) }
   cat(sprintf("  [%s] %-56s %s\n", if (ok) "PASS" else "FAIL", label, detail))
   if (!ok) FAILS <<- FAILS + 1L
   invisible(ok)
@@ -106,7 +114,7 @@ if (!is.null(G)) {
       all(abs(G$total_mg - (G$measured_mg + G$extrapolated_mg)) < 1e-9))
   chk("net = soil + total (all rows)",
       all(abs(G$net_mg - (v("soil_mg_m2_yr") + G$total_mg)) < 1e-6))
-  chk("sink in every combination", all(G$net_mg < 0), sprintf("%d/%d", sum(G$net_mg < 0), nrow(G)))
+  chk("sink in every combination", all(G$net_mg < 0), sprintf("%d/%d", sum(G$net_mg < 0), nrow(G)), result = TRUE)
   if (!is.null(H)) {
     chk("named pair is decline = exponential, hold = constant",
         identical(H$case, c("decline", "hold")) && identical(H$flux, c("exponential", "constant")),
@@ -152,7 +160,7 @@ if (!is.null(GCV)) {
   chk("OOB exceeds grouped CV (expected; flags if reversed)",
       v("tree_r2_oob") > v("tree_r2_grouped_cv"),
       sprintf("OOB %.4f vs grouped %.4f, ratio %.2fx",
-              v("tree_r2_oob"), v("tree_r2_grouped_cv"), v("tree_r2_oob")/v("tree_r2_grouped_cv")))
+              v("tree_r2_oob"), v("tree_r2_grouped_cv"), v("tree_r2_oob")/v("tree_r2_grouped_cv")), result = TRUE)
 }
 
 # ------------------------------------------------------------------------------
@@ -339,5 +347,6 @@ GS <- rd("data/processed/internal_gas/sample_data_only.csv")
 if (!is.null(GS)) chk("no internal-gas CH4 is exactly 0 (the old clamp)", !any(GS$CH4_concentration == 0, na.rm = TRUE),
                       sprintf("%d zeros", sum(GS$CH4_concentration == 0, na.rm = TRUE)))
 
-cat(sprintf("\n%s  %d check(s) failed\n\n", if (FAILS == 0L) "ALL CONSISTENT." else "INCONSISTENT.", FAILS))
+cat(sprintf("\n%s  %d check(s) failed%s\n\n", if (FAILS == 0L) "ALL CONSISTENT." else "INCONSISTENT.", FAILS,
+            if (RUN_MODE == "lite") " (lite run: result-value checks skipped)" else ""))
 if (FAILS > 0L) quit(status = 1L)

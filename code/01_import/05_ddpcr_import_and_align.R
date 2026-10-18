@@ -22,9 +22,13 @@ base_path <- "data/raw/ddpcr/Data Files/"
 raw_data_path <- file.path(base_path, "Raw Data")
 
 # ---- sample metadata (plate guides) -------------------------------------------------
+# Sample.Archived is read as text: the guides record it as "x" (wood), TRUE/FALSE
+# (organic soil) or blank (mineral soil), so read by type it is a factor in some guides
+# and logical in others, and the bind set the organic rows to NA. It is kept as recorded.
 guide_files <- c("inner_guide.csv", "outer_guide.csv", "mineral_guide.csv", "organic_guide.csv")
 metadata <- do.call(rbind, lapply(guide_files, function(f)
-  read.csv(file.path(base_path, f), skip = 1, header = TRUE, stringsAsFactors = TRUE)))
+  read.csv(file.path(base_path, f), skip = 1, header = TRUE, stringsAsFactors = TRUE,
+           colClasses = c(Sample.Archived = "character"))))
 
 # Inner.Core.Sample.ID holds species code, material_core type and lab ID
 metadata$species <- substr(metadata$Inner.Core.Sample.ID, 1, 4)

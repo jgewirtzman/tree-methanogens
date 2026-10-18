@@ -28,6 +28,7 @@
 #          tree_flux_2021_multiheight.csv  (assemble_campaign("2021_multiheight"))
 # ==============================================================================
 
+source("../../lib/project_library.R")   # the project package library (renv.lock), however this script is started
 library(goFlux)
 library(dplyr)
 library(readr)

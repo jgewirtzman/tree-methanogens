@@ -8,41 +8,54 @@
 #   2. the stand total moves with the restored deployments (2023 non-numeric tags,
 #      untagged monthly stems) by more than random-forest seed noise.
 #
-# For each training population x seed it refits the TreeRF with the canonical
-# hyper-parameters, scores it through 01_predict_tree_flux.R in SANDBOX mode
-# (temporary directory; outputs/models and outputs/tables are never touched), and
-# reports out-of-bag R2 and the measured-band stand total.
+# For each training population x seed it refits the TreeRF with the fitted forest's
+# specification (its predictors, num.trees and min.node.size; mtry floor(sqrt(p))),
+# scores it through 01_predict_tree_flux.R in SANDBOX mode (temporary directory;
+# outputs/models and outputs/tables are never touched), and reports out-of-bag R2 and
+# the measured-band stand total. The canonical population (live_only: the rows of
+# flux_stem.in_rf_training) at seed 42 must reproduce the fitted forest's out-of-bag
+# predictions and the budget's measured-band total exactly; the script stops otherwise.
+# Seeds: RUN$audit_seeds (code/lib/run_mode.R; 42, 1, 2 in the full run).
 #
 # Run from the repo root after 02_rf_models.R and the CORE chain (it needs the
 # inventory, moisture surface and climatologies):
 #   Rscript code/05_model/05_audit_training_population.R
-# ~1 min per fit. Writes outputs/audit/training_population_audit.{txt,csv}
+# ~8 min per fit at 10,000 trees. Writes outputs/audit/training_population_audit.{txt,csv}
 # ==============================================================================
-source("code/lib/rf_spec.R")   # RF_NUM_TREES, RF_THREADS
+source("code/lib/rf_spec.R")   # RF_THREADS; RUN (code/lib/run_mode.R)
 source("code/lib/outputs.R"); source("code/lib/geometry.R")
 suppressMessages({ library(ranger); library(dplyr) })
 
 load("outputs/models/TRAINING_CANDIDATES.RData")     # tree_train_candidates, dead flagged
 e <- new.env(); load("outputs/models/RF_MODELS.RData", envir = e)
 CONV  <- 86400 * 365.25 * 16e-6
-SEEDS <- c(42, 1, 2)
+SEEDS <- RUN$audit_seeds
+stopifnot(SEEDS[1] == 42)                           # the seed of 02_rf_models.R
 cand  <- tree_train_candidates
 restored <- grepl("^Ash[0-9]+$|^UNTAG_", cand$tree_id)   # 2023 ash and untagged; monthly untagged
 
+# The stem forest's predictors, built as 02_rf_models.R builds X_tree (a missing height,
+# 75 cm and root crown, is 125 cm), and checked against the fitted forest's own list.
 design <- function(d, with_dead = FALSE) {
   X <- data.frame(species = factor(d$species_clean), dbh_m = d$dbh_m,
                   soil_moisture_at_tree = d$soil_moisture_at_tree,
-                  soil_temp_C = d$soil_temp_C, air_temp_C = d$air_temp_C,
+                  soil_temp_C = d$soil_temp_C,
                   height_cm = ifelse(is.na(d$measurement_height_cm), 125, d$measurement_height_cm))
+  stopifnot(identical(names(X), e$TreeRF$forest$independent.variable.names))
   if (with_dead) X$dead_stem <- as.numeric(d$dead_stem)
   X
 }
 
+# live_only is the canonical training set; the others add the dead stems (with or
+# without a live/dead predictor) or drop the restored deployments.
+train <- cand$in_rf_training
 VARIANTS <- list(
-  live_only           = list(keep = !cand$dead_stem,             dead_pred = FALSE),
-  all_stems           = list(keep = rep(TRUE, nrow(cand)),       dead_pred = FALSE),
-  live_dead_predictor = list(keep = rep(TRUE, nrow(cand)),       dead_pred = TRUE),
-  live_no_restored    = list(keep = !cand$dead_stem & !restored, dead_pred = FALSE))
+  live_only           = list(keep = train,                       dead_pred = FALSE),
+  all_stems           = list(keep = train | cand$dead_stem,      dead_pred = FALSE),
+  live_dead_predictor = list(keep = train | cand$dead_stem,      dead_pred = TRUE),
+  live_no_restored    = list(keep = train & !restored,           dead_pred = FALSE))
+B <- read.csv(out_path("canonical_budget.csv"), stringsAsFactors = FALSE)
+BAND_CANONICAL <- B$value[B$quantity == "tree_measured_mg_m2_yr"]
 
 rows <- list()
 for (v in names(VARIANTS)) for (s in SEEDS) {
@@ -59,6 +72,9 @@ for (v in names(VARIANTS)) for (s in SEEDS) {
   P <- read.csv(file.path(sb, "tree_flux_predictions.csv"))
   P <- P[P$in_stand %in% c(TRUE, "TRUE"), ]
   band <- sum(P$flux_band_nmol_m2_s * P$A_stem_m2) / STAND_AREA_M2 * CONV
+  if (v == "live_only" && s == 42)   # the canonical forest, refitted
+    stopifnot(identical(TreeRF$predictions, e$TreeRF$predictions),
+              abs(band / BAND_CANONICAL - 1) < 1e-9)
   rows[[length(rows) + 1]] <- data.frame(variant = v, seed = s, rows = nrow(d), dead_rows = sum(d$dead_stem),
                                          oob_r2 = round(TreeRF$r.squared, 4), band_mg = round(band, 3), status = st)
   unlink(sb, recursive = TRUE)
@@ -75,7 +91,8 @@ cat("TRAINING POPULATION AUDIT (code/05_model/05_audit_training_population.R)\n"
 cat(sprintf("built %s; seeds %s; measured-band stand total in mg CH4 m-2 yr-1\n\n",
             format(Sys.time(), "%Y-%m-%d %H:%M"), paste(SEEDS, collapse = ", ")))
 print(as.data.frame(S), row.names = FALSE)
-cat("\nlive_only is the canonical training set (seed 42 reproduces 02_rf_models.R).\n")
+cat(sprintf("\nlive_only is the canonical training set: at seed 42 it reproduces 02_rf_models.R\n(identical out-of-bag predictions; band %.3f mg = canonical_budget.csv, checked).\n",
+            R$band_mg[R$variant == "live_only" & R$seed == 42]))
 cat("A live/dead predictor is only worth keeping if it moves live_dead_predictor away from\n")
 cat("all_stems; restored rows matter if live_no_restored lies outside live_only's seed range.\n")
 sink()

@@ -8,7 +8,7 @@
 # and predictors, num.trees, min.node.size 5, mtry = floor(sqrt(number of predictors)),
 # seed 42 -- and reports, for the locked and the with-air forests:
 #   OOB R2 and grouped-CV R2 with its SD (the 100 x 5 grouped CV of 04_rf_grouped_cv.R,
-#   its own function, evaluated from that file);
+#   its own function, evaluated from that file; repeats RUN$grouped_cv_repeats);
 #   the stand budget (soil sink per m2 ground, tree band, tree % of soil), driven by the
 #   24-h monthly tower climatologies of the main scaling and, for the with-air forests,
 #   also by DAYTIME air (the tower mean over the measurement hours: the 5th-95th
@@ -36,7 +36,7 @@ run_setup <- function(f) {
 # grouped_cv() exactly as 04_rf_grouped_cv.R defines it
 for (e in parse("code/05_model/04_rf_grouped_cv.R")) if (is.call(e) && identical(e[[1]], as.name("<-")) &&
     as.character(e[[2]]) %in% c("NREP", "NFOLD", "r2", "grouped_cv")) eval(e, globalenv())
-stopifnot(exists("grouped_cv"), NREP == 100, NFOLD == 5)
+stopifnot(exists("grouped_cv"), NREP == RUN$grouped_cv_repeats, NFOLD == 5)
 
 fit <- function(X, y) ranger(x = as.data.frame(X), y = y, num.trees = RF_NUM_TREES, min.node.size = 5,
   mtry = floor(sqrt(ncol(X))), importance = "impurity", num.threads = RF_THREADS, oob.error = TRUE, seed = 42)

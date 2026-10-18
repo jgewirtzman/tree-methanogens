@@ -22,16 +22,17 @@
 #
 # SOIL: every cell of the stand surface. STEMS: a seeded random subsample of N_STEMS
 # in-stand inventory stems, 0-2 m band (the band integral of 01_predict_tree_flux.R),
-# calibrated, area-weighted.
+# calibrated, area-weighted. Run sizes from code/lib/run_mode.R: N_STEMS 300 and every
+# day in the full run (lite: fewer stems, every 30th day).
 #
 # Writes outputs/data/sens_daily_drivers.csv, outputs/audit/sens_daily_drivers.txt
 # ==============================================================================
-source("code/lib/outputs.R")
+source("code/lib/outputs.R"); source("code/lib/run_mode.R")
 run_setup <- function(f) {
   L <- readLines(f); m <- grep("^# ---- END OF SETUP", L)[1]; stopifnot(!is.na(m))
   eval(parse(text = L[seq_len(m - 1)]), envir = globalenv())
 }
-N_STEMS <- 300; SEED <- 20261017
+N_STEMS <- RUN$daily_driver_stems; DAY_STEP <- RUN$daily_driver_day_step; SEED <- 20261017
 CONV <- 86400 * 365.25 * 16e-6
 
 # ---- daily drivers ---------------------------------------------------------------------
@@ -39,7 +40,9 @@ STD <- read.csv("outputs/tables/soil_temp_daily.csv", stringsAsFactors = FALSE)
 MD  <- read.csv("outputs/tables/moisture_daily.csv", stringsAsFactors = FALSE)
 DD <- merge(STD[, c("date", "air_C", "soil_temp_C", "window_days")], MD[, c("date", "moisture")], by = "date")
 DD <- DD[is.finite(DD$air_C) & is.finite(DD$soil_temp_C) & is.finite(DD$moisture), ]
+DD <- DD[seq(1, nrow(DD), by = DAY_STEP), ]
 DD$month <- as.integer(substr(DD$date, 6, 7))
+stopifnot(setequal(DD$month, 1:12))
 cat(sprintf("daily drivers: %d days with air, soil temperature and moisture (%s to %s); soil-temperature window %d d\n",
             nrow(DD), min(DD$date), max(DD$date), DD$window_days[1]))
 month_mean <- function(v, mo) mean(tapply(v, mo, mean))     # months weigh equally

@@ -25,6 +25,7 @@
 #          data/processed/flux/goflux_auxfile.csv
 # ==============================================================================
 
+source("../../lib/project_library.R")   # the project package library (renv.lock), however this script is started
 library(dplyr)
 library(readr)
 library(purrr)

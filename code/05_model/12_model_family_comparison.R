@@ -42,6 +42,7 @@
 # Output: outputs/data/model_family_comparison.csv / .txt
 # ==============================================================================
 suppressPackageStartupMessages({library(dplyr); library(ranger); library(mgcv)})
+source("code/lib/run_mode.R")   # RUN: run sizes
 set.seed(42)
 load("outputs/models/TRAINING_DATA.RData")
 source("code/lib/geometry.R")
@@ -56,7 +57,7 @@ y <- d$stem_flux_corrected
 sp <- as.character(X0$species); X0$species <- factor(sp)
 cat(sprintf("rows %d | species levels %d\n\n", nrow(X0), nlevels(X0$species)))
 
-rf_fit <- function(tr) ranger(x = X0[tr, , drop = FALSE], y = y[tr], num.trees = 800,
+rf_fit <- function(tr) ranger(x = X0[tr, , drop = FALSE], y = y[tr], num.trees = RUN$refit_num_trees,
   min.node.size = 5, mtry = max(1, floor(sqrt(ncol(X0)))), num.threads = 1,
   seed = 42, keep.inbag = FALSE)
 
@@ -101,7 +102,7 @@ FIT <- list(
                        newdata = X0[te, , drop = FALSE]))
   })
 
-K <- 5; REP <- 3
+K <- 5; REP <- RUN$family_repeats   # code/lib/run_mode.R: 3 in the full run
 PRED <- setNames(lapply(names(FIT), function(z) matrix(NA_real_, nrow(X0), REP)), names(FIT))
 for (rep in seq_len(REP)) {
   set.seed(200 + rep)

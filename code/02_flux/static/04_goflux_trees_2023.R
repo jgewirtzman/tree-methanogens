@@ -26,6 +26,7 @@
 #          tree_flux_2023_cross_species.csv  (assemble_campaign("2023_cross_species"))
 # ==============================================================================
 
+source("../../lib/project_library.R")   # the project package library (renv.lock), however this script is started
 library(goFlux)
 library(dplyr)
 library(readr)

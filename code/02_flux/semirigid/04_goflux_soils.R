@@ -30,6 +30,7 @@
 #          semirigid_tree_final_complete_dataset_soil.csv  auxfile + CO2_/CH4_ best-flux columns
 # ==============================================================================
 
+source("../../lib/project_library.R")   # the project package library (renv.lock), however this script is started
 library(goFlux)
 library(dplyr)
 library(readr)
