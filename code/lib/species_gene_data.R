@@ -34,7 +34,10 @@ ymf2023 <- flux_stem_campaign("2023_cross_species")
 area_weighted_gene <- function(gene_inner, gene_outer, dbh_cm) {
   R <- dbh_cm / 2
   if (!is.finite(R) || R <= 0) return(NA_real_)
-  r1 <- min(5, R); r2 <- max(R - 5, r1)
+  # Cores were cut into an outer 5-cm segment (sapwood) and an inner segment (heartwood):
+  # sapwood value in the outer 5 cm, heartwood value within min(5 cm, R - 5 cm) of the pith,
+  # linear in radius between. A tree of radius <= 5 cm is all sapwood.
+  r1 <- min(5, max(R - 5, 0)); r2 <- max(R - 5, r1)
   S <- r1^2 + r1 * r2 + r2^2
   gene_outer + (gene_inner - gene_outer) * (S / (3 * R^2))
 }
