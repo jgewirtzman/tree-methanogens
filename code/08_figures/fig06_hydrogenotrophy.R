@@ -73,6 +73,7 @@ pa <- ggplot(fa, aes(t, family, color = group)) +
 # FAPROTAX files Methanobacteriaceae under dark H2 oxidation and Methanomassiliicoccaceae
 # under methylotrophy, which would recount the methanogens as independent functions.
 # Bars: log2 of the unrounded pooled shares; asterisks: paired Wilcoxon per tree, BH FDR
+# (the test is described in the caption, not on the panel)
 # (01_faprotax_dump_HW_SW.R). Non-significant bars carry no mark.
 source("code/lib/fig6b_functions.R")
 fap <- FIG6B_FUNCTIONS %>% left_join(read.csv("outputs/data/FAPROTAX_HW_SW_tests.csv"), by = "func") %>%
@@ -83,8 +84,6 @@ pb <- ggplot(fap, aes(lr, fn, fill = lr)) +
   geom_col() + geom_vline(xintercept = 0, color = "grey50") +
   geom_text(aes(x = lr + sign(lr) * 0.12, label = stars, hjust = ifelse(lr > 0, 0, 1)),
             vjust = 0.75, size = 4.6, color = "grey20") +
-  annotate("text", x = max(fap$lr) + 0.45, y = 2.1, hjust = 1, size = 3, color = "grey25", lineheight = 0.95,
-           label = "Paired Wilcoxon (per tree),\nBH FDR: * < 0.05,\n** < 0.01, *** < 0.001") +
   scale_fill_gradient2(low = BLU, mid = "grey93", high = RED, midpoint = 0, guide = "none") +
   scale_x_continuous(labels = mlab, expand = expansion(mult = c(0.14, 0.10))) +
   labs(x = expression(log[2]*"(heartwood / sapwood)"), y = NULL) + th
