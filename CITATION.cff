@@ -7,6 +7,8 @@ authors:
     given-names: Jonathan
     orcid: "https://orcid.org/0000-0003-3959-3758"
     affiliation: Yale University
+version: 0.2.0
+date-released: 2026-10-18
 doi: 10.5281/zenodo.18779715
 repository-code: "https://github.com/jgewirtzman/tree-methanogens"
 license: MIT

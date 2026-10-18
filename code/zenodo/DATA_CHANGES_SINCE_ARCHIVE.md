@@ -120,3 +120,14 @@ tables. They are now part of `data/processed/` and of the processed zip.
   in `lgr_manual_identification_results_soil.csv`. Leave it out of the next archive.
 - A run from raw without the PICRUSt2 zip uses the archived pathway tables in
   `data/processed/molecular/picrust/`, checked against recorded checksums.
+
+## 8. Raw corrections and renamed census files (2026-10-03 to 2026-10-18)
+
+- Every value corrected in a raw file is listed, with the original value and the reason, in
+  `data/raw/CORRECTIONS.md`; the archive carries the corrected files.
+- The plot census files lost their `ForestGEO_` prefix (the stand is a permanent plot at
+  Yale-Myers Forest, not an official ForestGEO plot); contents unchanged:
+  `data/raw/inventory/ForestGEO_data2021UPDATE_6_21_DW{,_2019,_byplot,_bytag}.csv` →
+  `plot_census_2021UPDATE_6_21_DW{,_2019,_byplot,_bytag}.csv`, and
+  `data/raw/environmental/ForestGEO_Data_Final_2019.csv` → `plot_census_Data_Final_2019.csv`.
+  An older archive has the old names; rename them before running the current code.
