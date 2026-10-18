@@ -85,7 +85,7 @@ pb <- ggplot(fap, aes(lr, fn, fill = lr)) +
   geom_text(aes(x = lr + sign(lr) * 0.12, label = stars, hjust = ifelse(lr > 0, 0, 1)),
             vjust = 0.75, size = 4.6, color = "grey20") +
   scale_fill_gradient2(low = BLU, mid = "grey93", high = RED, midpoint = 0, guide = "none") +
-  scale_x_continuous(labels = mlab, expand = expansion(mult = c(0.14, 0.10))) +
+  scale_x_continuous(labels = mlab, expand = expansion(mult = c(0.14, 0.16))) +
   labs(x = expression(log[2]*"(heartwood / sapwood)"), y = NULL) + th
 
 # ---- (c) PATHWAY: a-priori FUNCTIONAL categories --------------------------------
