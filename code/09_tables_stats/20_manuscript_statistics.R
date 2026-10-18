@@ -414,6 +414,21 @@ gene_stats(ymf2021$ddpcr_mcra_probe_Organic_loose, "Organic soil")
 # copies per gram (scaled to the whole lysate) it is ~3,600 for 100 mg of wood and ~1,900 for 250 mg of soil.
 source("code/lib/ddpcr_constants.R")
 LOD_CONC <- DDPCR_LOD_COPIES_PER_UL
+
+# Cover letter: absolute gene-abundance measurements by ddPCR = QC-passing runs of the three
+# functional assays (probe mcrA, pmoA, mmoX), one per sample and gene
+sub_header("ddPCR functional-gene measurements (probe mcrA, pmoA, mmoX; QC pass; one per sample and gene)")
+n_gene_meas <- read_table("ddpcr") %>%
+  filter(qc_pass, (gene == "mcrA" & assay == "probe") | gene %in% c("pmoA", "mmoX")) %>%
+  distinct(sample_id, gene) %>%
+  inner_join(read_table("samples") %>% dplyr::select(sample_id, campaign), by = "sample_id") %>%
+  count(campaign, gene)
+for (i in seq_len(nrow(n_gene_meas)))
+  stat(sprintf("    %s %s", n_gene_meas$campaign[i], n_gene_meas$gene[i]), n_gene_meas$n[i])
+stat("  2021 survey, all three genes", sum(n_gene_meas$n[n_gene_meas$campaign == "2021_survey"]))
+stat("  all campaigns, all three genes", sum(n_gene_meas$n))
+record("n_ddpcr_gene_measurements_survey", sum(n_gene_meas$n[n_gene_meas$campaign == "2021_survey"]))
+record("n_ddpcr_gene_measurements_all", sum(n_gene_meas$n))
 sub_header("mcrA (probe, loose): samples at or above the limit of detection (3 copies per reaction)")
 # every 2021 probe-mcrA run that passed QC (data/tables/ddpcr.csv; position and mass from samples.csv)
 cg <- read_table("ddpcr") %>% filter(gene == "mcrA", assay == "probe", qc_pass, !is.na(copies_per_uL_rxn)) %>%

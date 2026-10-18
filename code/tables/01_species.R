@@ -63,8 +63,8 @@ stopifnot(!anyDuplicated(SP$species_code), !anyDuplicated(SP$species))
 codes <- function(x) unique(na.omit(fix_species_code(x)))
 rd <- function(f, ...) read.csv(f, check.names = FALSE, stringsAsFactors = FALSE, ...)
 used <- list(
-  census_2019   = codes(rd("data/raw/inventory/ForestGEO_data2021UPDATE_6_21_DW_2019.csv", fileEncoding = "UTF-8-BOM")$Species_Code),
-  census_bytag  = codes(rd("data/raw/inventory/ForestGEO_data2021UPDATE_6_21_DW_bytag.csv", fileEncoding = "UTF-8-BOM")$`Species (4 char)`),
+  census_2019   = codes(rd("data/raw/inventory/plot_census_2021UPDATE_6_21_DW_2019.csv", fileEncoding = "UTF-8-BOM")$Species_Code),
+  census_bytag  = codes(rd("data/raw/inventory/plot_census_2021UPDATE_6_21_DW_bytag.csv", fileEncoding = "UTF-8-BOM")$`Species (4 char)`),
   monthly       = codes(rd("data/raw/inventory/spatial_data/YM_trees_measured.csv.csv", fileEncoding = "UTF-8-BOM")$Species),
   flux_2021     = codes(rd("data/processed/flux/tree_flux_2021_multiheight.csv")$species),
   flux_2023     = codes(rd("data/raw/field_data/static_chamber_field/Compiled YMF Data 2023 - Sheet1.csv")$`Species Code`),

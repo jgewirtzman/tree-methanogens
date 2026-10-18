@@ -77,11 +77,11 @@ repair_dbh <- function(cm) {
 
 num <- function(x) suppressWarnings(as.numeric(x))
 
-fg19 <- read.csv(file.path(RAW, "ForestGEO_data2021UPDATE_6_21_DW_2019.csv"), stringsAsFactors = FALSE)
+fg19 <- read.csv(file.path(RAW, "plot_census_2021UPDATE_6_21_DW_2019.csv"), stringsAsFactors = FALSE)
 # fileEncoding strips the byte-order mark the file starts with. Without it the first
 # column is "X...Quadrat" under a C locale and "Quadrat" under UTF-8, so the
 # uncensused-quadrat check below passed or failed depending on the shell's locale.
-btag <- read.csv(file.path(RAW, "ForestGEO_data2021UPDATE_6_21_DW_bytag.csv"), stringsAsFactors = FALSE,
+btag <- read.csv(file.path(RAW, "plot_census_2021UPDATE_6_21_DW_bytag.csv"), stringsAsFactors = FALSE,
                  fileEncoding = "UTF-8-BOM")
 
 A <- fg19 %>% transmute(
@@ -265,8 +265,8 @@ cat(sprintf("\nwritten: %s  (%d rows)\n", OUT, nrow(INV)))
 # which raw files were read, their checksums, and exactly which rows were altered.
 PROV <- "outputs/audit/inventory_provenance.txt"
 dir.create(dirname(PROV), showWarnings = FALSE, recursive = TRUE)
-srcs <- file.path(RAW, c("ForestGEO_data2021UPDATE_6_21_DW_2019.csv",
-                         "ForestGEO_data2021UPDATE_6_21_DW_bytag.csv"))
+srcs <- file.path(RAW, c("plot_census_2021UPDATE_6_21_DW_2019.csv",
+                         "plot_census_2021UPDATE_6_21_DW_bytag.csv"))
 md5 <- tryCatch(tools::md5sum(srcs), error = function(e) setNames(rep(NA, length(srcs)), srcs))
 con <- file(PROV, "w")
 wr <- function(...) cat(sprintf(...), file = con)
