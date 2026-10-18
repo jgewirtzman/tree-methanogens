@@ -6,8 +6,8 @@
 #       methanogen:methanotroph ratio and net stem flux, across the gene-flux species
 #       (left) and the broadleaf species alone (right); * p < 0.05
 #   (b) the three associations named in the Results (trait-response pairs typed in
-#       `sel` below), conifers as open symbols; dashed line, linear fit to broadleaf
-#       species
+#       `sel` below), conifers as open symbols; dashed line in every panel, linear fit to
+#       the eight broadleaf species (it spans their range only)
 # Correlations and the trait inclusion rules come from
 # code/09_tables_stats/25_plant-traits.R; descriptive, n = 10 species.
 # Inputs: outputs/data/traits_correlations.csv, traits_included.csv (25_plant-traits.R);
@@ -65,9 +65,12 @@ sp <- pmap(sel, function(trait, col, response, xlab) {
     geom_smooth(data = filter(dd, grp == "Broadleaf"), method = "lm", formula = y ~ x, se = FALSE,
                 colour = "grey60", linetype = "dashed", linewidth = 0.4) +
     geom_point(aes(shape = grp), size = 2, fill = "white", stroke = 0.7) +
-    geom_text_repel(aes(label = lab), size = 2.1, fontface = "italic", seed = 1, box.padding = 0.25) +
+    geom_text_repel(aes(label = lab), size = 2.1, fontface = "italic", seed = 1, box.padding = 0.4,
+                    point.padding = 0.15, force = 3, max.overlaps = Inf, min.segment.length = 0.3,
+                    segment.size = 0.2, segment.colour = "grey55") +
     scale_shape_manual(values = c(Broadleaf = 16, Conifer = 21), name = NULL) +
-    scale_y_continuous(expand = expansion(mult = c(0.08, 0.12))) +
+    scale_x_continuous(expand = expansion(mult = c(0.14, 0.10))) +   # room for labels at both edges
+    scale_y_continuous(expand = expansion(mult = c(0.10, 0.12))) +
     labs(x = xlab, y = ylab[[response]], subtitle = sprintf("all: ρ = %.2f (p = %.3f)\nbroadleaf: ρ = %.2f (p = %.3f)",
                                                            s$rho, s$p, s$rho_bl, s$p_bl)) +
     theme_bw(base_size = 8.5) + theme(panel.grid.minor = element_blank(), plot.subtitle = element_text(size = 7.5)) })
