@@ -107,6 +107,19 @@ R <- do.call(rbind, lapply(names(GROUPS), function(g) {
 }))
 write.csv(R, out_path("methanotroph_resolution.csv"), row.names = FALSE)
 
+# Methods S3: resolved Beijerinckiaceae genera with no annotated MMO (Table S3) against all
+# Known methanotrophs, mean share of the community in wood
+known_share <- setNames(R$mean_pct[R$grouping == "Genus: Known"], R$compartment[R$grouping == "Genus: Known"])
+NM <- do.call(rbind, lapply(c(NONMT_GENERA, "all"), function(g) {
+  a <- rownames(tax)[tax$Family %in% "Beijerinckiaceae" & (if (g == "all") tax$Genus %in% NONMT_GENERA else tax$Genus %in% g)]
+  do.call(rbind, lapply(c("Heartwood", "Sapwood"), function(k) {
+    x <- if (length(a)) colSums(rel[a, smp$col[smp$comp == k], drop = FALSE]) else 0
+    data.frame(genus = g, compartment = k, mean_pct = mean(x), known_pct = known_share[[k]],
+               fold_vs_known = mean(x) / known_share[[k]])
+  }))
+}))
+write.csv(NM, out_path("methanotroph_nonmmo_genera.csv"), row.names = FALSE)
+
 # placement summary, weighted by abundance in each compartment
 P$heartwood <- rowMeans(rel[P$asv, smp$col[smp$comp == "Heartwood"], drop = FALSE])
 P$sapwood   <- rowMeans(rel[P$asv, smp$col[smp$comp == "Sapwood"], drop = FALSE])
@@ -165,4 +178,5 @@ print(P %>% group_by(placed) %>% summarise(ASVs = n(), heartwood = round(sum(hea
                                           mineral = round(sum(mineral), 3), organic = round(sum(organic), 3)) %>% as.data.frame(), row.names = FALSE)
 cat("\nnearest resolved genus (all unresolved ASVs):\n"); print(sort(table(P$nearest_genus), decreasing = TRUE))
 cat("\nSENSITIVITY: Known + Placed (% of community) by placement threshold\n"); print(SENS, row.names = FALSE, digits = 3)
+cat("\nNON-MMO Beijerinckiaceae genera vs all Known methanotrophs, wood (mean % of community)\n"); print(NM, row.names = FALSE, digits = 3)
 cat("\nBLACK OAK by tissue:\n"); B$mean_pct <- round(B$mean_pct, 3); print(B, row.names = FALSE)

@@ -113,6 +113,24 @@ load("outputs/models/TRAINING_DATA.RData")  # tree_train_complete, X_tree, X_soi
 
 cat("  All data loaded.\n")
 
+# ==============================================================================
+# METHODS: closure windows (Methods, Flux measurements) and the moisture survey (Methods S1)
+# ==============================================================================
+section_header("METHODS: closure windows and moisture-survey spacing")
+local({
+  w <- c(read_table("flux_stem")$closure_s, read_table("flux_soil")$closure_s); w <- w[!is.na(w)] / 60
+  q <- quantile(w, c(0.05, 0.5, 0.95))
+  cat(sprintf("  fitted closure windows, stem + soil (n = %d): median %.1f min; 5th-95th percentile %.1f-%.1f min\n",
+              length(w), q[2], q[1], q[3]))
+  record("closure_window_median_min", q[[2]]); record("closure_window_p05_min", q[[1]]); record("closure_window_p95_min", q[[3]])
+  m <- read_table("moisture_survey"); m <- m[order(m$point_id), ]
+  y <- (m$latitude - mean(m$latitude)) * 111320
+  x <- (m$longitude - mean(m$longitude)) * 111320 * cos(mean(m$latitude) * pi / 180)
+  step <- sqrt(diff(x)^2 + diff(y)^2); D <- as.matrix(dist(cbind(x, y))); diag(D) <- Inf
+  cat(sprintf("  moisture survey: %d points; consecutive points median %.1f m apart (steps < 45 m); nearest neighbour median %.1f m\n",
+              nrow(m), median(step[step < 45]), median(apply(D, 1, min))))
+})
+
 
 # ==============================================================================
 # SECTION 1: TEMPORAL FLUX PATTERNS (Figure 1)
