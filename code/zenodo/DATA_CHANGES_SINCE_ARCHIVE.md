@@ -24,14 +24,13 @@ Recorded 2026-09-30.
 
 The vendored `data/raw/external/tree-gas-traits/ymf_species_traits.csv` (copied from the companion tree-gas-traits repository by the now-removed `code/tools/vendor_traits.R`) is no longer used: it moved to `data/deprecated/tree-gas-traits_vendored_2026-10-14/` on 2026-10-14 and should be left out of the next archive.
 
-## 1a. Closure windows and model choices — must be uploaded (now in data/raw/flux_windows/)
+## 1a. Closure windows — must be uploaded (now in data/raw/flux_windows/)
 
 The goFlux fitting scripts re-fit from saved windows rather than opening the picker:
 `data/raw/flux_windows/lgr_manual_identification_{semirigid_tree,2023_cross_species}.csv`
 (recovered 2026-10-01 by `code/tools/rebuild_closure_windows.R`; never saved before),
-`lgr_manual_identification_2021_multiheight_final.csv`, `lgr_manual_identification_results_soil.csv`
-and `flux_model_choices.csv`. Without them
-stage A cannot run non-interactively.
+`lgr_manual_identification_2021_multiheight_final.csv` and `lgr_manual_identification_results_soil.csv`.
+Without them stage A cannot run non-interactively.
 
 ## 1b. Hand-picked untagged-stem windows — must be uploaded
 
@@ -47,7 +46,7 @@ Hand-made or imported inputs that had been kept in `data/processed/` now live in
 
 | file | now in |
 |---|---|
-| closure windows (5), `flux_model_choices.csv` | `data/raw/flux_windows/` |
+| closure windows (4) | `data/raw/flux_windows/` |
 | `untagged_manID.rds`, `untagged_fluxes.csv` | `data/raw/flux_windows/untagged/` |
 | `flux_data_TEMP.csv` (2021 field compilation) | `data/raw/field_data/legacy/` |
 | `Compiled YMF Data 2023 - Sheet1.csv` | `data/raw/field_data/static_chamber_field/` |
@@ -131,3 +130,17 @@ tables. They are now part of `data/processed/` and of the processed zip.
   `plot_census_2021UPDATE_6_21_DW{,_2019,_byplot,_bytag}.csv`, and
   `data/raw/environmental/ForestGEO_Data_Final_2019.csv` → `plot_census_Data_Final_2019.csv`.
   An older archive has the old names; rename them before running the current code.
+
+## 9. Fluxes refitted with per-day analyzer precision (2026-11-04)
+
+- goFlux is now the fork v0.5.0.9003 (https://doi.org/10.5281/zenodo.23383778; pinned in
+  `renv.lock`). Analyzer precision is estimated for each field day from the second differences
+  of the closures (`code/02_flux/02b_instrument_precision.R`, which now runs before the fits and
+  writes `data/processed/flux/analyzer_sigma_by_day.csv`); every closure is fitted with its
+  day's precision and best.flux chooses the linear or Hutchinson–Mosier fit afresh.
+- The minimum detectable flux is 1.96σ/t × flux term (was 1.645σ/t × flux term with σ per field
+  period).
+- `data/raw/flux_windows/flux_model_choices.csv` (the model choices recorded with goFlux 0.2.0 at
+  the datasheet precision) is no longer read: it moved to `data/deprecated/raw/flux_windows/`
+  (`data/raw/CORRECTIONS.md`). Leave it out of the next archive.
+

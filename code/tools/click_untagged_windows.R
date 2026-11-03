@@ -64,7 +64,7 @@ cat("\n>>> Now click the", length(ow), "windows interactively, in 2 batches, e.g
 
 # ---- 5. fluxes + save (run after clicking) ----------------------------------
 compute_and_save <- function(manID) {
-  # goFlux 0.2.0: goFlux() gives LM/HM fluxes; best.flux() selects the best model
+  # goFlux() gives LM/HM fluxes; best.flux() selects the best model
   ch4 <- best.flux(goFlux(manID, "CH4dry_ppb")); co2 <- best.flux(goFlux(manID, "CO2dry_ppm"))
   out <- auxfile %>%
     select(UniqueID, site, species, Sample, Dstem, Area, Vtot) %>%

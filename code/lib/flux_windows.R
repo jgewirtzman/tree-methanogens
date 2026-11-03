@@ -1,19 +1,19 @@
 # ==============================================================================
-# flux_windows.R -- saved closure windows and model choices for the goFlux scripts
+# flux_windows.R -- saved closure windows and the fitting precision for the goFlux scripts
 # ------------------------------------------------------------------------------
 # Closure windows are picked by hand with goFlux::click.peak2() and are part of the
 # record: every goFlux fitting script loads its saved window file and re-fits from it.
 # The picker opens only when no saved file exists, or when FLUX_REPICK=1 is set, and
 # only in an interactive session -- a pipeline run never stops at a prompt.
 #
-# Model choices: goFlux 0.2.0 (renv.lock) converges the Hutchinson-Mosier fit on some
-# deployments where the version used when these data were processed (2025) did not,
-# and so selects differently for ~9% of deployments. The selection made at the time
-# is recorded in data/raw/flux_windows/flux_model_choices.csv and applied here, so a
-# re-fit reproduces the stored fluxes. (Built by code/tools/rebuild_closure_windows.R.)
+# Fitting precision: every fit uses the analyzer precision (sigma) of its field day,
+# measured from the closures by 02_flux/02b_instrument_precision.R, with conf = 0.95, so
+# that goFlux's MDF column (and with it the HM curvature bound kappa.max and best.flux's
+# MDF criterion) is 1.96 sigma / t x flux term, while best.flux's RMSE, MAE and SE
+# criteria compare the fit with sigma itself. best.flux() then selects LM or HM.
 #
-# Where they live: saved windows and model choices are inputs, in data/raw/flux_windows/,
-# and no pipeline script writes there. A re-pick (FLUX_REPICK=1) writes its windows to
+# Where they live: saved windows are inputs, in data/raw/flux_windows/, and no pipeline
+# script writes there. A re-pick (FLUX_REPICK=1) writes its windows to
 # data/processed/flux/repicked/; copy them into data/raw/flux_windows/ to adopt them.
 # ==============================================================================
 # Paths from the repository root, valid from the root or a script's own folder.
@@ -62,17 +62,17 @@ load_windows <- function(path) {
   m
 }
 
-apply_model_choices <- function(best, gas, path) {
-  if (!file.exists(path)) stop("recorded model choices not found: ", path, call. = FALSE)
-  mc <- read.csv(path, stringsAsFactors = FALSE); mc <- mc[mc$gas == gas, ]
-  k <- match(best$UniqueID, mc$UniqueID); has <- !is.na(k)
-  ch <- mc$model[k[has]]
-  changed <- sum(best$model[has] != ch, na.rm = TRUE)
-  best$model[has] <- ch
-  best$best.flux[has] <- ifelse(ch == "HM", best$HM.flux[has], best$LM.flux[has])
-  cat(sprintf("%s: applied %d recorded model choices (%d differ from this goFlux version's choice)\n",
-              gas, sum(has), changed))
-  best
+# Set each closure's CH4 and CO2 precision to its field day's sigma (02b) before goFlux().
+SIGMA_CONF <- 0.95
+set_day_sigma <- function(manID) {
+  S <- read.csv(repo_path("data/processed/flux/analyzer_sigma_by_day.csv"), stringsAsFactors = FALSE)
+  k <- match(format(manID$POSIX.time, "%Y-%m-%d", tz = "UTC"), S$day)
+  if (anyNA(k[manID$flag == 1]))
+    stop("no analyzer sigma for ", length(unique(manID$UniqueID[is.na(k) & manID$flag == 1])),
+         " closures; run code/02_flux/02b_instrument_precision.R", call. = FALSE)
+  manID$CH4_prec <- S$sigma_CH4_ppb[k]
+  manID$CO2_prec <- S$sigma_CO2_ppm[k]
+  manID
 }
 
 # Diagnostic plots (one PDF page per deployment) are slow and are not a data product:

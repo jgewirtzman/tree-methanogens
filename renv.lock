@@ -2033,13 +2033,14 @@
     },
     "goFlux": {
       "Package": "goFlux",
-      "Version": "0.2.0",
+      "Version": "0.5.0.9003",
       "Source": "GitHub",
       "RemoteType": "github",
       "RemoteHost": "api.github.com",
+      "RemoteUsername": "jgewirtzman",
       "RemoteRepo": "goFlux",
-      "RemoteUsername": "Qepanna",
-      "RemoteSha": "9c0b3168d697624b8f38eef532bfe8e6be305847",
+      "RemoteRef": "dd36b345f59537693a16202265ce5b32ba7f7c28",
+      "RemoteSha": "dd36b345f59537693a16202265ce5b32ba7f7c28",
       "Requirements": [
         "AICcmodavg",
         "R",
@@ -2069,9 +2070,10 @@
         "tibble",
         "tidyr",
         "toOrdinal",
-        "utils"
+        "utils",
+        "zoo"
       ],
-      "Hash": "dd2a14a8eec06632f0d1e272934ade64"
+      "Hash": "fa40327e925cea742b57f2b825e54256"
     },
     "googledrive": {
       "Package": "googledrive",
@@ -4750,6 +4752,21 @@
       "Source": "Bioconductor",
       "Repository": "Bioconductor 3.20",
       "Hash": "89bfb698d6eb2fdf03c923ffd32e0c3f"
+    },
+    "zoo": {
+      "Package": "zoo",
+      "Version": "1.8-15",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "grDevices",
+        "graphics",
+        "lattice",
+        "stats",
+        "utils"
+      ],
+      "Hash": "3f85ec88dadbaa3301917cea59727329"
     }
   }
 }

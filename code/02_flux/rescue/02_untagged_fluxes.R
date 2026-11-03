@@ -9,17 +9,19 @@
 # window takes its measurement ID, species, live/dead status, chamber geometry (Area,
 # Vtot) and chamber temperature from the auxfile, not the values saved at picking: the
 # picking-time IDs carry the species label of the time (e.g. UNTAG_Upland_BELE_20200826_1_1
-# for the dead red maple UNTAG_Upl_ACRU_dead). goFlux and best.flux are then re-run
-# (package defaults).
+# for the dead red maple UNTAG_Upl_ACRU_dead). goFlux and best.flux are then re-run with
+# the precision of each closure's field day (code/lib/flux_windows.R set_day_sigma).
 # QC (per measurement): linear or HM r2 >= 0.7 and CH4 flux within -100 to 200 nmol m-2 s-1.
 #
 # Inputs:  data/raw/flux_windows/untagged/untagged_manID.rds
 #          data/processed/flux/untagged_rescue/untagged_auxfile.csv
+#          data/processed/flux/analyzer_sigma_by_day.csv (02_flux/02b_instrument_precision.R)
 # Outputs (data/processed/flux/untagged_rescue/):
 #          untagged_monthly_fluxes.csv  per measurement
 #          untagged_monthly_trees.csv   per stem (median and mean of the QC'd CH4 fluxes)
 # ==============================================================================
 suppressMessages({library(goFlux);library(dplyr)})
+source("code/lib/flux_windows.R")
 manID<-readRDS("data/raw/flux_windows/untagged/untagged_manID.rds")
 aux<-read.csv("data/processed/flux/untagged_rescue/untagged_auxfile.csv",check.names=FALSE)
 aux$key<-aux$start.time_formatted
@@ -36,7 +38,8 @@ cat("measurement IDs re-labelled to the corrected species:", sum(manID$UniqueID 
 manID$UniqueID<-manID$UniqueID_c; manID$UniqueID_c<-NULL
 cat("re-keyed", length(unique(manID$key)), "measurements to notes-based species/geometry\n")
 
-ch4<-goFlux(manID,"CH4dry_ppb"); ch4b<-best.flux(ch4); co2b<-best.flux(goFlux(manID,"CO2dry_ppm"))
+manID<-set_day_sigma(manID)
+ch4<-goFlux(manID,"CH4dry_ppb",conf=SIGMA_CONF); ch4b<-best.flux(ch4); co2b<-best.flux(goFlux(manID,"CO2dry_ppm",conf=SIGMA_CONF))
 meta<-manID %>% distinct(UniqueID,key,site,species,dead,Sample,Dstem,Area,Vtot)
 f<-meta %>%
   left_join(ch4 %>% transmute(UniqueID,CH4_LM.r2=LM.r2,CH4_HM.r2=HM.r2),by="UniqueID") %>%

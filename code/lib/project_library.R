@@ -5,11 +5,9 @@
 # repository root. A script that runs from its own folder (manifest workdir = script)
 # inherits the project library when run_all.R starts it, but started by hand from that
 # folder (cd code/02_flux/static; Rscript 03_goflux_trees_2021.R) it used to load the
-# user library instead. The two differ: the user library's goFlux (0.5) takes the
-# closure time of a record as its range plus one logging interval, renv.lock's (0.2.0)
-# as its last elapsed second plus 1 s. For the 2021 campaign, logged every 5 s, every
-# closure came out 4 s longer and every MDF smaller; best.flux also chose differently
-# on some deployments.
+# user library instead, whose goFlux can differ from renv.lock's (0.5.0.9003, the
+# jgewirtzman fork): goFlux versions differ in how they take the closure time of a
+# record and in which model best.flux selects, so a fit must run on the pinned version.
 #
 # Sourced first, before any library(), by every workdir = script script: activates the
 # project library when it is not the active one (nothing happens under run_all.R).

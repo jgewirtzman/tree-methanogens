@@ -20,7 +20,7 @@ The data: 1,200 stem and 288 soil chamber deployments (2020–2023, goFlux fits 
 
 The PICRUSt2 download is needed only to re-derive `data/processed/molecular/picrust/picrust_pathways.csv` and `picrust_pathway_info.csv`, which are in the data zip. Without it, a run from raw uses those two files, checks them against checksums recorded in `code/01_import/06_picrust_pathways.R` and says so in `outputs/logs/06_picrust_pathways.txt`. The 16S reads are in the NCBI SRA (BioProject [PRJNA1124946](https://www.ncbi.nlm.nih.gov/bioproject/PRJNA1124946)); the pipeline starts from the ASV table. Git tracks only the folder layout of `data/` and `outputs/`.
 
-**Environment.** R 4.4.3; every package is pinned in `renv.lock` (including goFlux 0.2.0 from GitHub). Start R at the repository root and run `renv::restore()` first. Run under a UTF-8 locale (some column names contain µ and °); if `locale` shows `LC_CTYPE="C"`, prefix commands with `LC_ALL=en_US.UTF-8`.
+**Environment.** R 4.4.3; every package is pinned in `renv.lock` (including goFlux 0.5.0.9003 from GitHub, jgewirtzman/goFlux, doi:10.5281/zenodo.23383778). Start R at the repository root and run `renv::restore()` first. Run under a UTF-8 locale (some column names contain µ and °); if `locale` shows `LC_CTYPE="C"`, prefix commands with `LC_ALL=en_US.UTF-8`.
 
 **Running.** From the repository root:
 
@@ -39,7 +39,7 @@ The full run (about 4.5 hours from raw, mostly the model audits) makes the canon
 
 `code/pipeline.csv` lists every step in run order with its stage and purpose; `code/run_all.R` runs it.
 
-- **A, raw → processed** (`code/01_import/`, `code/02_flux/`): flux fitting from the analyzer traces with goFlux, from the hand-picked closure windows and recorded model choices in `data/raw/flux_windows/`, then the closure screen, analyzer precision and detection limits; GC calibration of internal gas; ddPCR import; tree-ID crosswalk and wood cores; the reduction of the PICRUSt2 predictions to pathway abundances per library.
+- **A, raw → processed** (`code/01_import/`, `code/02_flux/`): flux fitting from the analyzer traces with goFlux, from the hand-picked closure windows in `data/raw/flux_windows/`, each fitted with its field day's analyzer precision (measured from the closures first), then the closure screen and detection limits; GC calibration of internal gas; ddPCR import; tree-ID crosswalk and wood cores; the reduction of the PICRUSt2 predictions to pathway abundances per library.
 - **B, canonical tables** (`code/tables/`): `data/tables/`, one table per kind of observation, every row kept and flagged; then the random-forest training rows, fit and held-out skill (`code/05_model/`).
 - **C–E, analyses**: drivers and scaling (`04_drivers/`, `06_upscale/`), audits, molecular analyses and statistics (`05_model/`, `07_molecular/`, `09_tables_stats/`), figures (`08_figures/`).
 - **F–G, archive and checks**: `data/compiled/` (`code/zenodo/`), `validate_tables.R`, `check_consistency.R`.

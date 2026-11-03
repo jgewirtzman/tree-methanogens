@@ -4,9 +4,9 @@
 # Stage A; workdir: this script's folder (code/02_flux/semirigid/).
 #
 # Every soil deployment is fitted here, once, for both gases: goFlux (linear and
-# Hutchinson-Mosier) on its hand-picked closure window, best.flux(), then the model
-# selected when the data were processed, from flux_model_choices.csv
-# (code/lib/flux_windows.R). No later script refits or rescales these fluxes.
+# Hutchinson-Mosier) on its hand-picked closure window, with the precision of its field
+# day (code/lib/flux_windows.R set_day_sigma), then best.flux(). No later script refits or
+# rescales these fluxes.
 #   Geometry  every collar: Area = SOIL_COLLAR_AREA_CM2, Vtot = SOIL_VTOT_L
 #             (code/lib/chamber_constants.R), not the values stored in the auxfile or the
 #             windows.
@@ -19,14 +19,14 @@
 # (code/lib/flux_windows.R, code/tools/README.md). Diagnostic plots only with FLUX_PLOTS=1.
 #
 # Inputs:  data/raw/flux_windows/lgr_manual_identification_results_soil.csv
-#          data/raw/flux_windows/flux_model_choices.csv
+#          data/processed/flux/analyzer_sigma_by_day.csv (02_flux/02b_instrument_precision.R)
 #          data/processed/flux/auxfile_goFlux_soilflux_with_weather.csv (Tcham)
 #          data/processed/flux/auxfile_goFlux_soilflux_with_weather_formatted.csv (table base)
 #          [re-pick only] data/raw/lgr/semirigid_2020-2021/ (raw LGR3 records)
 # Outputs (data/processed/flux/), read by the screens, the detection limits and
 # code/tables/11_flux_soil.R:
 #          {CO2,CH4}_flux_lgr_results_soil.csv        goFlux results
-#          {CO2,CH4}_best_flux_lgr_results_soil.csv   best.flux results, recorded model choices
+#          {CO2,CH4}_best_flux_lgr_results_soil.csv   best.flux results
 #          semirigid_tree_final_complete_dataset_soil.csv  auxfile + CO2_/CH4_ best-flux columns
 # ==============================================================================
 
@@ -43,7 +43,6 @@ source("../../lib/flux_windows.R")
 options(digits.secs = 6)
 
 data_path <- "../../../data/raw/lgr/semirigid_2020-2021"
-MC_PATH <- window_path("flux_model_choices.csv")
 WIN <- window_path("lgr_manual_identification_results_soil.csv")
 
 lgr3_auxfile <- read_csv("../../../data/processed/flux/auxfile_goFlux_soilflux_with_weather.csv",
@@ -95,8 +94,9 @@ if (use_saved_windows(WIN)) {
 }
 
 # ---- fluxes ---------------------------------------------------------------------------
-CO2_flux_lgr3 <- goFlux(dataframe = manID.lgr3, gastype = "CO2dry_ppm", H2O_col = "H2O_ppm", warn.length = 60)
-CH4_flux_lgr3 <- goFlux(dataframe = manID.lgr3, gastype = "CH4dry_ppb", H2O_col = "H2O_ppm", warn.length = 60)
+manID.lgr3 <- set_day_sigma(manID.lgr3)
+CO2_flux_lgr3 <- goFlux(dataframe = manID.lgr3, gastype = "CO2dry_ppm", H2O_col = "H2O_ppm", warn.length = 60, conf = SIGMA_CONF)
+CH4_flux_lgr3 <- goFlux(dataframe = manID.lgr3, gastype = "CH4dry_ppb", H2O_col = "H2O_ppm", warn.length = 60, conf = SIGMA_CONF)
 write_csv(CO2_flux_lgr3, "../../../data/processed/flux/CO2_flux_lgr_results_soil.csv")
 write_csv(CH4_flux_lgr3, "../../../data/processed/flux/CH4_flux_lgr_results_soil.csv")
 
@@ -104,8 +104,8 @@ best_flux <- function(flux_result)
   best.flux(flux.result = flux_result,
             criteria = c("MAE", "RMSE", "AICc", "SE", "g.factor", "kappa", "MDF", "nb.obs", "intercept", "p-value"),
             intercept.lim = NULL, g.limit = 2, p.val = 0.05, k.ratio = 1, warn.length = 60)
-CO2_best_lgr3 <- apply_model_choices(best_flux(CO2_flux_lgr3), "CO2", MC_PATH)
-CH4_best_lgr3 <- apply_model_choices(best_flux(CH4_flux_lgr3), "CH4", MC_PATH)
+CO2_best_lgr3 <- best_flux(CO2_flux_lgr3)
+CH4_best_lgr3 <- best_flux(CH4_flux_lgr3)
 write_csv(CO2_best_lgr3, "../../../data/processed/flux/CO2_best_flux_lgr_results_soil.csv")
 write_csv(CH4_best_lgr3, "../../../data/processed/flux/CH4_best_flux_lgr_results_soil.csv")
 

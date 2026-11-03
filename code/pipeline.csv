@@ -5,6 +5,7 @@ A,code/01_import/02_process_wood_cores.R,script,TRUE,wood-core sectioning; densi
 A,code/01_import/03_process_internal_gas.R,script,TRUE,GC calibration of 2021-22 internal-gas samples
 A,code/01_import/04_process_internal_gas_2024.R,root,TRUE,GC calibration of the 2024 heartwood/sapwood run
 A,code/01_import/05_ddpcr_import_and_align.R,root,TRUE,import ddPCR runs and align to sample metadata
+A,code/02_flux/02b_instrument_precision.R,root,TRUE,analyzer precision (sigma) per field day from the closures (second differences); read by every goFlux fit
 A,code/02_flux/semirigid/01_calc_chamber_dims.R,script,TRUE,monthly survey: semi-rigid chamber area and volume
 A,code/02_flux/semirigid/02_join_flux_geometry.R,script,TRUE,monthly survey: join deployments to chamber geometry
 A,code/02_flux/semirigid/03_prep_soil_auxfile.R,script,TRUE,monthly survey: goFlux aux file for soil
@@ -18,7 +19,6 @@ A,code/02_flux/rescue/01_untagged_auxfile.R,root,TRUE,untagged monthly stems: go
 A,code/02_flux/rescue/02_untagged_fluxes.R,root,TRUE,untagged monthly stems: fluxes from the hand-picked windows (untagged_manID.rds)
 A,code/02_flux/rescue/03_merge_untagged_monthly.R,root,TRUE,monthly survey file including the rescued untagged stems
 A,code/02_flux/02_qc_c0_screen.R,root,TRUE,procedural screen: chamber not at ambient at closure
-A,code/02_flux/02b_instrument_precision.R,root,TRUE,analyzer CH4 precision (sigma) per field period from the raw records
 A,code/02_flux/03_precision_and_detection.R,root,TRUE,analyzer precision; minimum detectable flux; detection status
 A,code/01_import/06_picrust_pathways.R,root,TRUE,PICRUSt2 pathway abundances per 16S library (organelle ASVs out; without mcrA/pmoA carriers) -> data/processed/molecular/picrust/ (re-derived when data/raw/picrust/ is present; else the archived tables are checked against their recorded checksums)
 B,code/tables/01_species.R,root,TRUE,canonical table: species (one row per species code)

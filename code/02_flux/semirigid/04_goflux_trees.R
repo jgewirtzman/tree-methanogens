@@ -4,8 +4,8 @@
 # Stage A; workdir: this script's folder (code/02_flux/semirigid/).
 #
 # Fits goFlux (linear and Hutchinson-Mosier) to each deployment's hand-picked closure
-# window and selects the model with best.flux(); the model selected when the data were
-# processed is then applied from flux_model_choices.csv (code/lib/flux_windows.R).
+# window, with the precision of its field day (code/lib/flux_windows.R set_day_sigma), and
+# selects the model with best.flux().
 # Chamber temperature and geometry (Tcham, Area, Vtot) come from the current auxfile
 # (station air in true time; the chamber used that day, code/lib/stem_chamber_geometry.R),
 # not from the values saved with the windows.
@@ -18,7 +18,7 @@
 # code/02_flux/helper_assemble_campaign_flux.R.
 #
 # Inputs:  data/raw/flux_windows/lgr_manual_identification_semirigid_tree.csv
-#          data/raw/flux_windows/flux_model_choices.csv
+#          data/processed/flux/analyzer_sigma_by_day.csv (02_flux/02b_instrument_precision.R)
 #          data/processed/flux/auxfile_goFlux_with_weather.csv (03_prep_tree_auxfile.R)
 #          [re-pick only] data/raw/lgr/semirigid_2020-2021/ (raw LGR3 records)
 # Outputs (data/processed/flux/):
@@ -39,7 +39,6 @@ source("../../lib/flux_windows.R")
 options(digits.secs = 6)
 
 data_path <- "../../../data/raw/lgr/semirigid_2020-2021"
-MC_PATH <- window_path("flux_model_choices.csv")
 WIN <- window_path("lgr_manual_identification_semirigid_tree.csv")
 
 lgr3_auxfile <- read_csv("../../../data/processed/flux/auxfile_goFlux_with_weather.csv", show_col_types = FALSE)
@@ -90,8 +89,9 @@ if (use_saved_windows(WIN)) {
 }
 
 # ---- fluxes ---------------------------------------------------------------------------
-CO2_flux_lgr3 <- goFlux(dataframe = manID.lgr3, gastype = "CO2dry_ppm", H2O_col = "H2O_ppm", warn.length = 60)
-CH4_flux_lgr3 <- goFlux(dataframe = manID.lgr3, gastype = "CH4dry_ppb", H2O_col = "H2O_ppm", warn.length = 60)
+manID.lgr3 <- set_day_sigma(manID.lgr3)
+CO2_flux_lgr3 <- goFlux(dataframe = manID.lgr3, gastype = "CO2dry_ppm", H2O_col = "H2O_ppm", warn.length = 60, conf = SIGMA_CONF)
+CH4_flux_lgr3 <- goFlux(dataframe = manID.lgr3, gastype = "CH4dry_ppb", H2O_col = "H2O_ppm", warn.length = 60, conf = SIGMA_CONF)
 write_csv(CO2_flux_lgr3, "../../../data/processed/flux/CO2_flux_lgr_results_semirigid_tree.csv")
 write_csv(CH4_flux_lgr3, "../../../data/processed/flux/CH4_flux_lgr_results_semirigid_tree.csv")
 
@@ -99,8 +99,8 @@ best_flux <- function(flux_result)
   best.flux(flux.result = flux_result,
             criteria = c("MAE", "RMSE", "AICc", "SE", "g.factor", "kappa", "MDF", "nb.obs", "intercept", "p-value"),
             intercept.lim = NULL, g.limit = 2, p.val = 0.05, k.ratio = 1, warn.length = 60)
-CO2_best_lgr3 <- apply_model_choices(best_flux(CO2_flux_lgr3), "CO2", MC_PATH)
-CH4_best_lgr3 <- apply_model_choices(best_flux(CH4_flux_lgr3), "CH4", MC_PATH)
+CO2_best_lgr3 <- best_flux(CO2_flux_lgr3)
+CH4_best_lgr3 <- best_flux(CH4_flux_lgr3)
 write_csv(CO2_best_lgr3, "../../../data/processed/flux/CO2_best_flux_lgr_results_semirigid_tree.csv")
 write_csv(CH4_best_lgr3, "../../../data/processed/flux/CH4_best_flux_lgr_results_semirigid_tree.csv")
 cat("\nCO2 quality: OK", sum(CO2_best_lgr3$quality.check == "OK", na.rm = TRUE),
