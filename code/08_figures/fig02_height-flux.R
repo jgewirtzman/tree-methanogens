@@ -43,18 +43,11 @@ merged_data <- survey_2021_trees(soil = TRUE)   # 2021 survey per tree (data/tab
 # 2. PREPARE DATA
 # ==============================================================================
 
-# Publication colors -- red for positive height effect, blue for negative
-colors_pub <- c(
-  "Significant Negative" = "#4575B4",
-  "Significant Positive" = "#D73027",
-  "Non-significant" = "grey60"
-)
-
-shapes_pub <- c(
-  "Significant Negative" = 16,
-  "Significant Positive" = 16,
-  "Non-significant" = 1
-)
+# Height effects: filled for p < 0.05, open otherwise (the convention of Figure 3c); the
+# y-axis gives the direction
+colors_pub <- c(sig = "#4575B4", ns = "grey60")
+shapes_pub <- c(sig = 16, ns = 1)
+sig_labels <- c(expression(p < 0.05), expression(p >= 0.05))
 
 boxplot_color <- "#756BB1"
 
@@ -174,12 +167,7 @@ plot_data_middle <- species_results %>%
   mutate(
     species_label = factor(species_label_with_n, levels = sort(unique(species_label_with_n))),
     significant = ifelse(is.na(height_p), FALSE, height_p < 0.05),
-    negative_trend = ifelse(is.na(height_coef), FALSE, height_coef < 0),
-    color_group = case_when(
-      significant & negative_trend ~ "Significant Negative",
-      significant & !negative_trend ~ "Significant Positive",
-      TRUE ~ "Non-significant"
-    )
+    color_group = ifelse(significant, "sig", "ns")
   ) %>%
   arrange(height_coef)
 
@@ -192,8 +180,8 @@ p_middle <- ggplot(plot_data_middle,
   geom_errorbar(aes(ymin = height_coef * 100 - 1.96 * height_se * 100,
                     ymax = height_coef * 100 + 1.96 * height_se * 100),
                 width = 0.3, linewidth = 0.5, alpha = 0.8) +
-  scale_color_manual(values = colors_pub, name = "") +
-  scale_shape_manual(values = shapes_pub, name = "") +
+  scale_color_manual(values = colors_pub, breaks = c("sig", "ns"), labels = sig_labels, name = "") +
+  scale_shape_manual(values = shapes_pub, breaks = c("sig", "ns"), labels = sig_labels, name = "") +
   scale_y_continuous(labels = function(b) sub("-", "\u2212", format(b, drop0trailing = TRUE, trim = TRUE))) +
   labs(
     x = "",
