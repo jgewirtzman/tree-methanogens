@@ -184,13 +184,14 @@ p_middle <- ggplot(plot_data_middle,
   scale_shape_manual(values = shapes_pub, breaks = c("sig", "ns"), labels = sig_labels, name = "") +
   scale_y_continuous(labels = function(b) sub("-", "\u2212", format(b, drop0trailing = TRUE, trim = TRUE))) +
   labs(
-    x = "",
+    x = NULL,
     y = expression(atop("Height effect",
                         "(nmol m"^-2*" s"^-1*" per m)"))
   ) +
   theme_minimal(base_size = 9) +
   theme(
     axis.text.x = element_blank(),
+    axis.ticks.length.x = unit(0, "pt"),
     axis.title.y = element_text(size = 8, lineheight = 1.1),
     axis.text.y = element_text(size = 8),
     legend.position = "right",
@@ -199,7 +200,7 @@ p_middle <- ggplot(plot_data_middle,
     legend.margin = margin(l = -5),
     panel.grid.minor = element_blank(),
     panel.grid.major.x = element_line(linewidth = 0.3, color = "gray85"),
-    plot.margin = margin(t = 2, r = 5, b = 0, l = 2)
+    plot.margin = margin(t = 12, r = 5, b = 0, l = 2)
   )
 
 # ==============================================================================
@@ -296,7 +297,7 @@ p_bottom <- ggplot(heatmap_data, aes(x = species_label_no_n, y = variable, fill 
   scale_fill_gradient2(low = "white", mid = "lightblue", high = "#4575B4",
                        midpoint = 0, na.value = "grey90",
                        name = "Z-score") +
-  labs(x = "", y = "") +
+  labs(x = NULL, y = NULL) +
   theme_minimal(base_size = 9) +
   theme(
     axis.text.x = element_text(size = 7.5, angle = 35, hjust = 1, face = "italic"),
@@ -321,7 +322,8 @@ combined_plot <- (p_top_gg / p_middle / p_bottom) +
                   tag_prefix = "(",
                   tag_suffix = ")",
                   theme = theme(plot.tag = element_text(size = 11, face = "bold"))) &
-  theme(plot.tag = element_text(size = 11, face = "bold"))
+  theme(plot.tag = element_text(size = 11, face = "bold"),
+        plot.tag.position = c(0, 1))   # tags inside each panel's corner, so (b) and (c) sit flush
 
 ggsave("outputs/figures/generated/fig2_final.png", plot = combined_plot, width = 7, height = 7, units = "in", dpi = 300, bg = "white")
 cat("Wrote outputs/figures/generated/fig2_final.png\n")
