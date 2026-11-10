@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 # ==============================================================================
 # 25_plant-traits.R -- species traits vs the stem methane-cycling community
-# (Results §9, Methods S5, Fig S25 via code/08_figures/figS28_plant-traits.R)
+# (Results §9, Methods S5, Fig S24 via code/08_figures/figS28_plant-traits.R)
 # ------------------------------------------------------------------------------
 # Unit: the ten gene-flux species (at least five trees with genes and five flux
 # measurements). Responses: species medians of area-weighted mcrA, pmoA + mmoX,

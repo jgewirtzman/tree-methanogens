@@ -91,7 +91,7 @@ cat("    => anaerobic/production functions (methanogenesis, H2 oxidation, fermen
 cat("       ENRICHED in heartwood; aerobic/consumption functions (aerobic chemoheterotrophy,\n")
 cat("       methanotrophy) are enriched in sapwood -- the expected core/outer gradient. IN-STUDY\n")
 cat("       corroboration = OUR ddPCR compartment split (methanogens Inner, methanotrophs Outer)\n")
-cat("       + OUR internal CH4~O2 negative correlation (Fig S8). NOTE: paired depth-resolved HW/SW\n")
+cat("       + OUR internal CH4~O2 negative correlation (Fig S16). NOTE: paired depth-resolved HW/SW\n")
 cat("       O2 PROFILES are the companion Nature paper (Arnold & Gewirtzman 2025), NOT measured\n")
 cat("       here; this study has single internal (bark-to-pith) gas per tree, ~1-22%% O2, variable.\n")
 sink()

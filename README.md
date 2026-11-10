@@ -71,26 +71,26 @@ Scripts are in `code/08_figures/` unless a folder is given; the assembler `zz_as
 
 | Figure | Script | Figure | Script |
 |---|---|---|---|
-| 1 | `fig01_temporal-flux.R` | S13–S15 | `figS11-13_picrust-heatmaps.R` |
-| 2 | `fig02_height-flux.R` | S16–S17 | `figS15-16_internal-gas.R` |
-| 3 | `fig03_variance-partition.R` | S18 | `figS17_isotope-sources.R` |
-| 4, S8 | `fig04_gene-abundance.R` | S19 | `figS18_stem-deterioration.R` |
-| 5 | `fig05_methane-cycling.R` | S20 | `figS19_black-oak-cross-sections.R` |
-| 6 | `fig06_hydrogenotrophy.R` | S21 | `figS20_black-oak-methanome.R` |
-| 7 | `fig07_decay-methanogenesis.R` | S22 | `figS21_scale-dependent-genes.R` |
-| 8, S24 | `fig08_radial-species.R` | S23 | `figS22_radial-sections.R` |
-| 9 | `fig09_budget.R` | S25 | `figS28_plant-traits.R` |
-| S1 | `figS01_moisture-overlay.R` | S26 | `figS24_rf-model-summary.R` |
-| S2a, S2b | photographs (`data/raw/photos/`) | S27 | `figS25_rf-calibration.R` |
-| S3 | `figS03_detection-limits.R` | S28 | `figS27_scaling-profiles.R` |
-| S4 | `figS04_mcra-probe-validation.R` | S29 | `figS26_scaling-heatmap.R` |
-| S5 | `figS05_16s-ddpcr-association.R` | Methods S3 | `methodsS3_extraction_recovery.R` |
-| S6 | `figS06_height-slope-moisture.R` | Table 1 | `09_tables_stats/02_campaign_counts.R` |
-| S7 | `09_tables_stats/09_tree-distribution.R` | Table S2 | `09_tables_stats/04_known-putative-table.R` |
-| S9 | `figS08_pmoa-mmox.R` | Table S3 | `09_tables_stats/27_table-s3-mmo-screen.R` |
-| S10 | `figS14_taxonomy-mcra.R` | Table S4 | `07_molecular/03_methanotroph_resolution.R` |
-| S11 | `figS09_taxonomy-pmoa.R` | Table S5 | `09_tables_stats/05_table_ddpcr-16s-concordance.R` |
-| S12 | `figS10_faprotax.R` | Table S6 | `09_tables_stats/08_dbh_by_species_campaign.R` |
+| 1 | `fig01_temporal-flux.R` | S15–S16 | `figS15-16_internal-gas.R` |
+| 2 | `fig02_height-flux.R` | S17 | `figS17_isotope-sources.R` |
+| 3 | `fig03_variance-partition.R` | S18 | `figS18_stem-deterioration.R` |
+| 4, S7 | `fig04_gene-abundance.R` | S19 | `figS19_black-oak-cross-sections.R` |
+| 5 | `fig05_methane-cycling.R` | S20 | `figS20_black-oak-methanome.R` |
+| 6 | `fig06_hydrogenotrophy.R` | S21 | `figS21_scale-dependent-genes.R` |
+| 7 | `fig07_decay-methanogenesis.R` | S22 | `figS22_radial-sections.R` |
+| 8, S23 | `fig08_radial-species.R` | S24 | `figS28_plant-traits.R` |
+| 9 | `fig09_budget.R` | S25 | `figS24_rf-model-summary.R` |
+| S1 | `figS01_moisture-overlay.R` | S26 | `figS25_rf-calibration.R` |
+| S2a, S2b | photographs (`data/raw/photos/`) | S27 | `figS27_scaling-profiles.R` |
+| S3 | `figS04_mcra-probe-validation.R` | S28 | `figS26_scaling-heatmap.R` |
+| S4 | `figS05_16s-ddpcr-association.R` | Methods S3 | `methodsS3_extraction_recovery.R` |
+| S5 | `figS06_height-slope-moisture.R` | Table 1 | `09_tables_stats/02_campaign_counts.R` |
+| S6 | `09_tables_stats/09_tree-distribution.R` | Table S2 | `09_tables_stats/04_known-putative-table.R` |
+| S8 | `figS08_pmoa-mmox.R` | Table S3 | `09_tables_stats/27_table-s3-mmo-screen.R` |
+| S9 | `figS14_taxonomy-mcra.R` | Table S4 | `07_molecular/03_methanotroph_resolution.R` |
+| S10 | `figS09_taxonomy-pmoa.R` | Table S5 | `09_tables_stats/05_table_ddpcr-16s-concordance.R` |
+| S11 | `figS10_faprotax.R` | Table S6 | `09_tables_stats/08_dbh_by_species_campaign.R` |
+| S12–S14 | `figS11-13_picrust-heatmaps.R` | | |
 
 Tables S2 and S6 also go to `outputs/tables/SI_Tables_S2_S6.xlsx` (`09_tables_stats/23_si-table-workbook.R`); Table S8 is `data/tables/species_trait_sources.csv`. Every number quoted in the text is computed by `09_tables_stats/20_manuscript_statistics.R` into `outputs/audit/manuscript_statistics.txt`.
 

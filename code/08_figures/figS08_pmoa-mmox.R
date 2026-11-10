@@ -23,8 +23,13 @@
 suppressPackageStartupMessages({ library(tidyverse); library(patchwork) })
 source("code/lib/outputs.R")
 source("code/lib/ddpcr_constants.R")
+source("code/lib/fig_style.R")   # SI house style: theme_si(), COMP_COLS, si_save()
+# COMP4 keeps the compartment order the statistics are computed in (the permutation
+# draws below depend on it); the figure shows the SI labels and order of COMP_COLS.
 COMP4 <- c(Heartwood = "#a6611a", Sapwood = "#dfc27d", Organic = "#018571", Mineral = "#80cdc1")
-WOODC <- c("Heartwood", "Sapwood"); SOILC <- c("Organic", "Mineral")
+DISP  <- c(Heartwood = "Heartwood", Sapwood = "Sapwood", Mineral = "Mineral soil", Organic = "Organic soil")
+COLK  <- setNames(COMP_COLS[DISP], names(DISP))   # colour by internal compartment name
+WOODC <- c("Heartwood", "Sapwood"); SOILC <- c("Mineral", "Organic")   # panel and annotation order
 
 source("code/lib/tables_read.R")
 W <- dna_samples("2021_survey") %>%
@@ -50,25 +55,39 @@ compstat <- lapply(names(COMP4), function(k) {
   data.frame(comp = k, slope = o, r2 = summary(m0)$r.squared, p = summary(m0)$coef[2, 4], permp = permp, n = nrow(s))
 }) %>% bind_rows()
 
-th <- theme_bw(base_size = 11) +
-  theme(aspect.ratio = 1, panel.grid.minor = element_blank())
+th <- theme_si() + theme(aspect.ratio = 1)
+# one annotation block per compartment, two lines each, stacked from a corner (npc units)
+ann_block <- function(p, lines1, lines2, cols, corner = "topleft") {
+  top <- corner == "topleft"; n <- length(lines1); step <- 0.05; gap <- 0.025
+  y0 <- if (top) 0.97 else 0.03 + 2 * n * step + (n - 1) * gap   # top of the stack
+  for (i in seq_len(n)) {
+    y1 <- y0 - (i - 1) * (2 * step + gap)
+    x <- if (top) 0.03 else 0.97; hj <- if (top) 0 else 1
+    p <- p + annotate("text", x = I(x), y = I(y1), label = lines1[i], hjust = hj, vjust = 1, size = 3, colour = cols[i]) +
+      annotate("text", x = I(x), y = I(y1 - step), label = lines2[i], hjust = hj, vjust = 1, size = 3,
+               colour = cols[i], parse = TRUE)
+  }
+  p
+}
+# darker text for the pale compartments so the annotation stays readable on white
+darken <- function(col, f = 0.72) { m <- grDevices::col2rgb(col) * f; grDevices::rgb(m[1, ], m[2, ], m[3, ], maxColorValue = 255) }
+ink <- function(k) unname(ifelse(k %in% c("Sapwood", "Mineral"), darken(COLK[k]), COLK[k]))
 fmtp <- function(p) ifelse(p < 0.001, "<0.001", sprintf("=%.2f", p))
 fmtr <- function(r) ifelse(r < 0.001, "<0.001", sprintf("=%.3f", r))
 permlab <- function(p) ifelse(p < 0.001, "<0.001", sprintf("=%.2f", p))
 
 # ---- (b),(c) coupling by compartment ------------------------------------------
-decouple_panel <- function(comps, basis) {
+decouple_panel <- function(comps, basis, corner) {
   dd <- dec %>% filter(comp %in% comps)
   p <- ggplot(dd, aes(lp1, lm1, color = comp)) +
     geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "grey50") +
-    geom_point(alpha = 0.55, size = 1.5) +
+    geom_point(alpha = 0.55, size = 1.2) +
     geom_smooth(method = "lm", formula = y~x, se = FALSE, linewidth = 0.9) +
-    scale_color_manual(values = COMP4[comps], name = NULL)
-  for (i in seq_along(comps)) {
-    k <- comps[i]; r <- decstat[decstat$comp == k, ]
-    p <- p + annotate("text", x = -Inf, y = Inf, hjust = -0.06, vjust = 1.3 + (i-1)*1.7, size = 3.3, color = COMP4[[k]],
-                      label = gsub("([=<])(?=[0-9])", "\\1 ", sprintf("%s (n = %d): slope %.2f, R\u00b2 %s, p %s", k, r$n, r$slope, fmtr(r$r2), fmtp(r$p)), perl = TRUE))
-  }
+    scale_color_manual(values = COLK[comps], name = NULL)
+  r <- decstat[match(comps, decstat$comp), ]
+  p <- ann_block(p, sprintf("%s (n = %d)", DISP[comps], r$n),
+                 sprintf("slope~'%.2f,'~R^2~'%s,'~p~'%s'", r$slope, sub("([=<])", "\\1 ", fmtr(r$r2)), sub("([=<])", "\\1 ", fmtp(r$p))),
+                 ink(comps), corner)
   p + coord_fixed(ratio = 1, xlim = lim, ylim = lim) +
     labs(x = bquote(log[10]~italic(pmoA)~"(copies g"^-1*" "*.(basis)*" + 1)"),
          y = bquote(log[10]~italic(mmoX)~"(copies g"^-1*" "*.(basis)*" + 1)")) + th + theme(legend.position = "none")
@@ -76,16 +95,15 @@ decouple_panel <- function(comps, basis) {
 
 # ---- (d),(e) composition by compartment --------------------------------------
 comp_panel <- function(comps) {
-  d <- cc %>% filter(comp %in% comps); st <- compstat %>% filter(comp %in% comps)
+  d <- cc %>% filter(comp %in% comps); st <- compstat[match(comps, compstat$comp), ]
   p <- ggplot(d, aes(size, bal, color = comp)) +
     geom_smooth(method = "lm", formula = y~x, se = TRUE, linewidth = 0.9) +
-    geom_point(alpha = 0.5, size = 1.4) +
-    scale_color_manual(values = COMP4[comps], name = NULL)
-  for (i in seq_len(nrow(st))) {
-    r <- st[i, ]
-    p <- p + annotate("text", x = -Inf, y = Inf, hjust = -0.05, vjust = 1.3 + (i-1)*1.6, size = 3.3, color = COMP4[[r$comp]],
-                      label = gsub("([=<])(?=[0-9])", "\\1 ", sprintf("%s: slope %.2f, R\u00b2 = %.2f, permutation p %s", r$comp, r$slope, r$r2, permlab(r$permp)), perl = TRUE))
-  }
+    geom_point(alpha = 0.5, size = 1.2) +
+    scale_color_manual(values = COLK[comps], name = NULL) +
+    scale_y_continuous(expand = expansion(mult = c(0.05, 0.36)))   # headroom for the annotation
+  p <- ann_block(p, sprintf("%s: slope %.2f", DISP[st$comp], st$slope),
+                 sprintf("R^2~'= %.2f,'~permutation~p~'%s'", st$r2, sub("([=<])", "\\1 ", permlab(st$permp))),
+                 ink(st$comp), "topleft")
   p + labs(x = expression("Size, "*frac(1,2)*"(log"[10]*" "*italic(pmoA)*" + log"[10]*" "*italic(mmoX)*")"),
            y = expression("log"[10]*"("*italic(pmoA)*" / "*italic(mmoX)*")")) + th + theme(legend.position = "none")
 }
@@ -99,22 +117,22 @@ sep <- dec %>% select(comp, pmoA = pmoa_g, mmoX = mmox_g) %>%
   mutate(across(c(med, lo, hi), ~ pmax(.x, 1)),
          gene = factor(gene, levels = c("pmoA", "mmoX"), labels = c("pmoA (pMMO)", "mmoX (sMMO)")),
          comp = factor(comp, levels = names(COMP4)))
-p_sep <- ggplot(sep, aes(comp, med, color = comp, shape = gene)) +
+p_sep <- ggplot(sep, aes(factor(DISP[as.character(comp)], levels = COMP_LEVELS), med, color = comp, shape = gene)) +
   geom_pointrange(aes(ymin = lo, ymax = hi), position = position_dodge(width = 0.5),
-                  size = 0.55, linewidth = 0.8) +
-  scale_color_manual(values = COMP4, guide = "none") +
+                  size = 0.45, linewidth = 0.8) +
+  scale_color_manual(values = COLK, guide = "none") +
   scale_shape_manual(values = c("pmoA (pMMO)" = 16, "mmoX (sMMO)" = 17), name = NULL,
                      labels = c(expression(italic(pmoA)*" (pMMO)"), expression(italic(mmoX)*" (sMMO)"))) +
-  scale_y_log10(labels = scales::label_number(big.mark = ",")) +
+  scale_y_log10(breaks = 10^(0:9), labels = function(b) parse(text = paste0("10^", log10(b)))) +
   labs(x = NULL, y = expression("Copies g"^-1*" (median, IQR)")) +
-  theme_bw(base_size = 11) + theme(panel.grid.minor = element_blank(), legend.position = "top")
+  theme_si() + theme(legend.position = "inside", legend.position.inside = c(.01, .97),
+                     legend.justification = c(0, 1), legend.direction = "horizontal",
+                     legend.background = element_rect(fill = alpha("white", .8), colour = NA))
 write.csv(sep, out_path("pmoa_mmox_by_compartment.csv"), row.names = FALSE)
 
-pa <- p_sep; pb0 <- decouple_panel(WOODC, "dry"); pc0 <- decouple_panel(SOILC, "fresh")
+pa <- p_sep; pb0 <- decouple_panel(WOODC, "dry", "topleft"); pc0 <- decouple_panel(SOILC, "fresh", "bottomright")
 pd0 <- comp_panel(WOODC); pe0 <- comp_panel(SOILC)
-fig <- pa / ((pb0 | pc0) / (pd0 | pe0)) + plot_layout(heights = c(0.45, 2)) +
-  plot_annotation(tag_levels = "a", tag_prefix = "(", tag_suffix = ")") &
-  theme(plot.tag = element_text(face = "bold", size = 13))
-ggsave(out_path("figS10_final.png"), fig, width = 9.4, height = 12.2, dpi = 300, bg = "white")
+fig <- pa / ((pb0 | pc0) / (pd0 | pe0)) + plot_layout(heights = c(0.42, 2)) + si_tags()
+si_save(out_path("figS10_final.png"), fig, height = 10.4)
 print(decstat); print(compstat[, c("comp","slope","r2","permp","n")])
 cat("Wrote figS10_final.png\n")

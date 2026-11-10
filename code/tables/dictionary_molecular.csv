@@ -15,7 +15,7 @@ samples,notes,character,,,,Notes from the extraction guide (weighing and sample 
 samples,source,character,,NN,,"Record the sample comes from: extraction guide, 16S library map (sequenced but not in the guides), felled-oak extraction sheet",20_samples.R
 ddpcr,sample_id,character,,PK,,Sample (FK samples.sample_id),21_ddpcr.R
 ddpcr,gene,character,,PK,,"mcrA, pmoA, mmoX, 16S_archaea, 16S_bacteria",QX200 export Target
-ddpcr,assay,character,,PK,,probe (mcrA; ddPCR Supermix for Probes) or EvaGreen (all others and the EvaGreen mcrA assay of Fig. S4),QX200 export Supermix
+ddpcr,assay,character,,PK,,probe (mcrA; ddPCR Supermix for Probes) or EvaGreen (all others and the EvaGreen mcrA assay of Fig. S3),QX200 export Supermix
 ddpcr,plate_id,character,,PK,,"ddPCR run: the loose export's file name without _loose.csv (data/raw/ddpcr/Data Files/Raw Data/); black_oak_mcrA for the felled oak",21_ddpcr.R
 ddpcr,ddpcr_well,character,,NN,,Well on the ddPCR plate,QX200 export
 ddpcr,accepted_droplets,integer,count,,0;30000,Accepted droplets,QX200 export

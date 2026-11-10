@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 # ==============================================================================
 # 07_species_traits.R -- canonical tables: species traits from archived TRY and GWDD
-# records (Methods S5; read by code/09_tables_stats/25_plant-traits.R and Fig S25)
+# records (Methods S5; read by code/09_tables_stats/25_plant-traits.R and Fig S24)
 # ------------------------------------------------------------------------------
 # Species: the 16 codes of code/lib/trait_species.csv; binomials (as in TRY
 # AccSpeciesName and GWDD `species`) from data/tables/species.csv. Conifer status is

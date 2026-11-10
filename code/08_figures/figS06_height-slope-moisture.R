@@ -26,6 +26,7 @@
 suppressPackageStartupMessages({ library(tidyverse); library(patchwork); library(lme4) })
 source("code/lib/outputs.R")
 source("code/lib/tables_read.R")
+source("code/lib/fig_style.R")   # SI house style: theme_si(), si_tags(), si_save()
 # 2021 survey per tree: flux by height (flux_stem.csv), species (trees.csv), landscape
 # position, soil VWC at the tree (attach_soil(), code/lib/soil_fill.R)
 tp <- survey_2021_trees(soil = TRUE) %>% mutate(landscape_position = plot)
@@ -69,28 +70,30 @@ sp_env <- height_coef %>% inner_join(sp_mcra, by = "species") %>% filter(!is.na(
 ct_mcra <- cor.test(sp_env$coef, sp_env$log_mcra)
 
 # ---- Figures -----------------------------------------------------------------
+# B. alleghaniensis drawn identically (colour, alpha, size) in both panels
+BIRCH_COL <- "firebrick"; PT_ALPHA <- .7; PT_SIZE <- 1.8
 p1 <- ggplot(slopes, aes(VWC_mean, height_slope)) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "gray60") +
-  geom_point(aes(color = species == "Betula alleghaniensis"), alpha = .7, size = 2) +
+  geom_point(aes(color = species == "Betula alleghaniensis"), alpha = PT_ALPHA, size = PT_SIZE) +
   geom_smooth(method = "lm", se = TRUE, color = "black", formula = y ~ x) +
-  scale_color_manual(values = c(`FALSE` = "gray50", `TRUE` = "firebrick"),
+  scale_color_manual(values = c(`FALSE` = "gray50", `TRUE` = BIRCH_COL),
                      labels = c("Other species", expression(italic("B. alleghaniensis"))), name = NULL) +
   labs(x = "Soil VWC (%)", y = expression("Height slope (nmol m"^-2*" s"^-1*" per m)")) +
-  theme_bw(base_size = 12)
+  theme_si() +
+  theme(legend.position = "inside", legend.position.inside = c(.02, .02), legend.justification = c(0, 0),
+        legend.background = element_rect(fill = alpha("white", .8), colour = NA),
+        legend.text = element_text(hjust = 0))
 
 # Birch check: B. alleghaniensis flux (base height) vs VWC
 birch <- slopes %>% filter(species == "Betula alleghaniensis")
 p2 <- ggplot(birch, aes(VWC_mean, flux_base)) +
-  geom_point(size = 2.5, color = "firebrick") +
+  geom_point(size = PT_SIZE, alpha = PT_ALPHA, color = BIRCH_COL) +
   geom_smooth(method = "lm", se = TRUE, color = "black", formula = y ~ x) +
   labs(x = "Soil VWC (%)", y = expression(CH[4]~"flux at the lowest height (nmol m"^-2*" s"^-1*")")) +
-  theme_bw(base_size = 12)
+  theme_si()
 
 # statistics (r, p, n for each panel) are in the SI caption, from the summary below
-ggsave(out_path("height_slope_vs_moisture.png"),
-       (p1 | p2) + patchwork::plot_annotation(tag_levels = "a", tag_prefix = "(", tag_suffix = ")") &
-         theme(plot.tag = element_text(size = 14, face = "bold")),
-       width = 12, height = 5, dpi = 300)
+si_save(out_path("height_slope_vs_moisture.png"), (p1 | p2) + si_tags(), height = 3.8)
 
 # ---- Summary -----------------------------------------------------------------
 sink(out_path("height_slope_moisture_summary.txt"))

@@ -134,7 +134,7 @@ pearson_ratio <- cor.test(analysis_ratio$median_log_ratio,
 # ============================================================
 library(grid)
 
-# species colours (Fig S24)
+# species colours (Fig S23)
 species_in_data <- sort(unique(tree_level_complete$species))
 species_palette <- setNames(
   scales::viridis_pal()(length(species_in_data)),

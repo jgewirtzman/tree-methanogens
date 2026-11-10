@@ -122,8 +122,18 @@ fig <- plot_grid(pa, right, ncol = 2, rel_widths = c(1.15, 1), labels = c("(a)",
 ggsave(out_path("fig4_final.png"), fig, width = 10.5, height = 5, dpi = 300, bg = "white")   # near print size
 
 # ---------- Figure S8: all species, mcrA, pmoA and mmoX separately ----------
+# SI house style (code/lib/fig_style.R): theme_si(), 8 in wide, legend in sentence case.
+# Only this SI figure is restyled; dot_plot() and legend_of() above still draw Fig. 4.
+source("code/lib/fig_style.R")
 ps <- dot_plot(species_dots(wide, c("mcrA", "pmoA", "mmoX")))
-si <- plot_grid(ps, legend_of(ps), ncol = 1, rel_heights = c(1, 0.12)) +
-  theme(plot.background = element_rect(fill = "white", colour = NA))
-ggsave(out_path("figS_gene-abundance-species.png"), si, width = 12, height = 8, dpi = 300, bg = "white")
+si <- suppressMessages(ps +   # replaces dot_plot()'s shape scale (legend wording) and theme
+  scale_shape_manual(values = c(`TRUE` = 16, `FALSE` = 21), name = NULL, breaks = c("TRUE", "FALSE"),
+                     labels = c(`TRUE` = "Detected in at least half of samples", `FALSE` = "Detected in fewer than half")) +
+  guides(colour = guide_legend(order = 1, override.aes = list(shape = 16, size = 2.4)),
+         shape = guide_legend(order = 2, override.aes = list(size = 2.4))) +
+  theme_si() +
+  theme(panel.grid.major.y = element_line(colour = "grey92"),
+        legend.position = "bottom", legend.box = "vertical", legend.spacing.y = unit(0, "pt"),
+        legend.margin = margin(0, 0, 0, 0)))
+si_save(out_path("figS_gene-abundance-species.png"), si, height = 9)
 cat("Wrote Fig 4 and the all-species SI figure\n")

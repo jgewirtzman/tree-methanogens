@@ -17,6 +17,7 @@ suppressPackageStartupMessages({
   library(tidyverse)
   library(ggforce)
 })
+source("code/lib/fig_style.R")   # SI house style: theme_si(), si_save()
 
 # ---- Load data (canonical tables) ----
 # 2021 survey per tree (species and DBH from trees.csv), its wood genes long (loose
@@ -193,50 +194,43 @@ if(nrow(higher_sapwood) > 0) {
 }
 
 # Cross-sections: rows = species, columns = trees ordered by area-weighted mcrA
+# (SI house style: code/lib/fig_style.R)
 p_main <- ggplot(all_cloud, aes(x = x, y = y, fill = Clog)) +
   geom_raster(interpolate = TRUE) +
   scale_fill_viridis_c(
-    name = expression("log"[10]*"(mcrA)"),
-    option = "plasma"
+    name = expression(log[10] ~ italic(mcrA) ~ "(copies" ~ g^{-1} * ")"),
+    option = "plasma",
+    guide = guide_colourbar(theme = theme(legend.key.width = unit(10, "lines"),
+                                          legend.key.height = unit(0.7, "lines")))
   ) +
   geom_circle(
     data = all_cloud %>% distinct(species_label, tree_rank, R),
     aes(x0 = 0, y0 = 0, r = R),
-    inherit.aes = FALSE, color = "black", linewidth = 0.2  # Thinner borders
+    inherit.aes = FALSE, color = "black", linewidth = 0.2
   ) +
   facet_grid(species_label ~ tree_rank, switch = "both") +
   coord_equal() +
-  theme_minimal(base_size = 8) +  # Smaller base size
+  theme_si() +
   theme(
     axis.text = element_blank(),
     axis.title = element_blank(),
     axis.ticks = element_blank(),
     panel.grid = element_blank(),
-    # Reduce species label size and margins
-    strip.text.y.left = element_text(
-      angle = 0, 
-      face = "italic", 
-      size = 6.5,  # Smaller font
-      margin = margin(0, 0.5, 0, 0.5)  # Very minimal margins
-    ),
-    strip.text.x = element_text(
-      size = 5,  # Smaller column headers
-      margin = margin(0.5, 0, 0.5, 0)  # Minimal margins
-    ),
-    strip.background = element_rect(fill = NA, color = NA),  # Remove strip backgrounds
-    legend.position = "right",
-    legend.margin = margin(0, 0, 0, 0),  # Remove legend margins
-    legend.box.margin = margin(-3, 0, 0, 0),  # Pull legend closer
-    # Key adjustment: small positive spacing to avoid cutoff
-    panel.spacing.y = unit(0.02, "lines"),  # Very small spacing
-    panel.spacing.x = unit(0.01, "lines"),  # Minimal horizontal spacing
+    panel.border = element_blank(),
     panel.background = element_rect(fill = "white", color = NA),
-    plot.margin = margin(1, 1, 1, 1)  # Minimal plot margins
+    strip.background = element_blank(),
+    strip.placement = "outside",
+    strip.text.y.left = element_text(angle = 0, hjust = 1, face = "italic",
+                                     size = SI_BASE * 0.8, margin = margin(0, 3, 0, 0)),
+    strip.text.x.bottom = element_text(size = SI_BASE * 0.65, colour = "grey30",
+                                       margin = margin(1, 0, 0, 0)),
+    legend.position = "bottom",
+    legend.title.position = "top",
+    legend.margin = margin(0, 0, 0, 0),
+    panel.spacing.y = unit(1, "pt"),
+    panel.spacing.x = unit(1, "pt"),
+    plot.margin = margin(3, 3, 3, 3)
   )
 
-
-ggsave("outputs/figures/original/supplementary/figS13_tree_radial_sections.png",
-       p_main,
-       width = 12,
-       height = 5.1,
-       dpi = 300)
+si_save("outputs/figures/original/supplementary/figS13_tree_radial_sections.png",
+        p_main, height = 4.9)

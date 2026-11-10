@@ -25,6 +25,7 @@
 # ==============================================================================
 suppressMessages({library(dplyr); library(ggplot2); library(tidyr); library(patchwork)})
 source("code/lib/outputs.R")
+source("code/lib/fig_style.R")   # SI house style: theme_si(), si_tags(), si_save()
 FX <- read.csv(out_path("scaling_flux_shapes.csv"),   stringsAsFactors = FALSE)
 BP <- read.csv(out_path("scaling_band_profile.csv"),  stringsAsFactors = FALSE)
 KN <- read.csv(out_path("scaling_shape_kernels.csv"), stringsAsFactors = FALSE)
@@ -51,9 +52,7 @@ stopifnot(identical(HL$case, c("decline", "hold")), length(unique(HL$branch)) ==
 REP_BRANCH <- HL$branch[1]; REP_BOLE <- HL$bole[1]
 
 COLF <- setNames(c("#b2182b","#d6604d","#f4a582","#92c5de","#4393c3","#2166ac"), FO)
-th <- theme_bw(base_size = 11) +
-  theme(panel.grid.minor = element_blank(), legend.title = element_blank(),
-        legend.key.size = unit(0.45, "cm"), legend.text = element_text(size = 9.5))
+th <- theme_si() + theme(legend.title = element_blank())
 FLUX_LAB <- c(constant = "Constant", exp_band_slope = "Per-stem exponential", power = "Power",
               exponential = "Exponential", linear_floored = "Linear, floored at zero",
               linear_bounded_median = "Linear into uptake")
@@ -79,8 +78,10 @@ pa <- ggplot() + bandrect +
   geom_path(data = Bb, aes(v, z), colour = "grey10", linewidth = 1.3) +
   scale_colour_manual(values = COLF, breaks = FO, labels = FLUX_LAB) +
   scale_y_continuous(limits = c(0, 26), expand = c(0, 0)) +
-  labs(y = "Height (m)", x = expression(CH[4]~"flux (nmol m"^-2*" s"^-1*")")) +
-  th + theme(legend.position = "right")
+  labs(y = "Height (m)", x = expression(CH[4]~flux~(nmol~m^{-2}~s^{-1}))) +
+  th + theme(legend.position = "inside", legend.position.inside = c(0.98, 0.98),
+             legend.justification = c(1, 1), legend.background = element_rect(fill = "white", colour = NA),
+             legend.text = element_text(size = rel(0.8)), legend.key.size = unit(0.75, "lines"))
 
 # ---- one canopy-height tree, built from the raw kernels ----------------------
 NU <- length(unique(KN$u)); dz <- H_TREE/NU
@@ -97,17 +98,18 @@ TREE <- tb %>% inner_join(tr, by = "u", relationship = "many-to-many") %>%
 pb <- ggplot(TREE %>% filter(bole == REP_BOLE), aes(area_per_m, z, fill = part)) +
   bandrect +
   geom_area(orientation = "y", position = "stack", colour = NA) +
-  scale_fill_manual(values = c(bole = "#8c6d46", branch = "#4d9221")) +
+  scale_fill_manual(values = c(bole = "#8c6d46", branch = "#4d9221"),
+                    labels = c(bole = "Bole", branch = "Branch")) +
   facet_wrap(~branch, nrow = 1, labeller = as_labeller(BRANCH_LAB)) +
   scale_y_continuous(limits = c(0, 26), expand = c(0, 0)) +
   scale_x_continuous(expand = c(0, 0), breaks = c(0, 1, 2)) +
-  labs(x = expression("Woody area (m"^2*" per m of height)"), y = "Height (m)") +
-  th + theme(legend.position = "bottom", strip.text = element_text(size = 9.5),
-             axis.text = element_text(size = 9))
+  labs(x = expression(Woody~area~(m^2~per~m~of~height)), y = "Height (m)") +
+  th + theme(legend.position = "bottom", legend.margin = margin(0, 0, 0, 0),
+             strip.text = element_text(size = rel(0.8)))
 
 # the named pair (decline = exponential, hold = constant)
 C_FORMS <- HL$flux
-CASE_LAB <- setNames(sprintf("%s: flux %s above 2 m", FLUX_LAB[HL$flux],
+CASE_LAB <- setNames(sprintf("%s:\nflux %s above 2 m", FLUX_LAB[HL$flux],
                              ifelse(HL$case == "decline", "declines", "holds")), HL$flux)
 fx_of <- function(form) FX[FX$flux == form, ]
 
@@ -143,15 +145,17 @@ pd <- ggplot(PD, aes(y = z)) +
   geom_ribbon(aes(xmin = 0, xmax = integrand, fill = z <= BAND)) +
   # purple = measured, grey = extrapolated
   scale_fill_manual(values = c(`TRUE` = FLUX_PURPLE, `FALSE` = "grey72"),
-                    labels = c(`TRUE` = "measured (0-2 m)", `FALSE` = "extrapolated (>2 m)")) +
+                    labels = c(`TRUE` = "Measured (0\u20132 m)", `FALSE` = "Extrapolated (>2 m)"),
+                    breaks = c(TRUE, FALSE)) +
   geom_hline(yintercept = BAND, colour = "grey25", linewidth = 0.3, linetype = "dashed") +
   geom_text(data = LAB, aes(x = Inf, y = 24, label = sprintf("%.1f mg in total\n%.0f%% above 2 m", tot, above)),
-            hjust = 1.05, size = 3.4, colour = "grey20", inherit.aes = FALSE) +
+            hjust = 1.05, size = 3, colour = "grey20", inherit.aes = FALSE) +
   facet_wrap(~form, nrow = 1, labeller = as_labeller(CASE_LAB)) +
   scale_y_continuous(limits = c(0, 26), expand = c(0, 0)) +
   scale_x_continuous(expand = c(0, 0)) +
-  labs(x = expression("mg CH"[4]*" m"^-2*" yr"^-1*" per m of height"), y = "Height (m)") +
-  th + theme(legend.position = "bottom", strip.text = element_text(size = 9.5))
+  labs(x = expression(mg~CH[4]~m^{-2}~yr^{-1}~per~m~of~height), y = "Height (m)") +
+  th + theme(legend.position = "bottom", legend.margin = margin(0, 0, 0, 0),
+             panel.spacing.x = unit(0.9, "lines"), strip.text = element_text(size = rel(0.8)))
 
 # ---- d: leave-one-height-out cross-validation of the forms ---------------------
 CV <- read.csv(out_path("height_form_crossvalidation.csv"), stringsAsFactors = FALSE) %>%
@@ -164,14 +168,12 @@ pdcv <- ggplot(CV, aes(rmse, form)) +
   geom_segment(aes(x = min(CV$rmse) * 0.7, xend = rmse, yend = form), colour = "grey75") +
   geom_point(size = 2.6, colour = FLUX_PURPLE) +
   scale_x_log10() + facet_wrap(~test, ncol = 1) +
-  labs(x = expression("RMSE (nmol m"^-2*" s"^-1*", log scale)"), y = NULL) +
-  th + theme(strip.text = element_text(size = 9.5))
+  labs(x = expression(RMSE~(nmol~m^{-2}~s^{-1}*","~log~scale)), y = NULL) +
+  th
 
 # panels: (a) flux forms, (b) woody area for one canopy tree, (c) inventory sum, (d) cross-validation
-fig <- (pa | pb) / (pd | pdcv) + plot_layout(widths = c(1, 1.3)) +
-  plot_annotation(tag_levels = "a", tag_prefix = "(", tag_suffix = ")") &
-  theme(plot.tag = element_text(size = 14, face = "bold"))
-ggsave(out_path("fig_scaling_profiles.png"), fig, width = 15, height = 14, dpi = 300, bg = "white")
+fig <- (pa | pb) / (pd | pdcv) + plot_layout(widths = c(1, 1.3)) + si_tags()
+si_save(out_path("fig_scaling_profiles.png"), fig, height = 9.5)
 
 cat(sprintf("one tree: H %g m, DBH %.3f m, conic stem surface %.1f m2\n", H_TREE, D_TREE, CONIC))
 cat(sprintf("  area split bole %.2f : branch %.2f (W&W branch:stem %.2f)\n", BOLE_FRACTION, BRANCH_FRACTION, BRANCH_STEM_RATIO))

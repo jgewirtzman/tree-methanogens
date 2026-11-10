@@ -18,6 +18,7 @@ library(tidyverse)
 library(patchwork)
 source("code/lib/build_phyloseq.R")
 source("code/lib/tables_read.R")
+source("code/lib/fig_style.R")   # SI house style: theme_si(), si_tags(), si_save()
 
 # ==============================================================================
 # STEP 1: 16S relative abundance (rarefied)
@@ -194,7 +195,7 @@ panel_b_data <- panel_b_info %>%
   )
 
 # ==============================================================================
-# STEP 8: Create panel (a) heatmap
+# STEP 8: Shared plot pieces (SI house style, code/lib/fig_style.R)
 # ==============================================================================
 
 # Log-transform percentages for fill so low values are visible
@@ -206,70 +207,77 @@ panel_b_data <- panel_b_data %>%
 
 log_max <- max(c(panel_a_long$log_pct, panel_b_data$log_pct), na.rm = TRUE)
 
-p_a <- ggplot(panel_a_long, aes(x = Core_Type, y = display_name, fill = log_pct)) +
-  geom_tile(color = "white", linewidth = 0.8) +
-  geom_text(aes(label = round(Percentage, 2)), size = 3.5, color = "white") +
-  facet_grid(category ~ ., scales = "free_y", space = "free_y", switch = "y") +
-  scale_fill_gradientn(
-    colours = c("#1a1a2e", "#16213e", "#533483", "#e94560", "#f5a623"),
-    limits = c(0, log_max),
-    name = expression(log[10]*"(% + 1)")
-  ) +
-  scale_x_discrete(position = "bottom") +
-  labs(x = "Compartment", y = NULL) +
-  theme_minimal(base_size = 11) +
+# display labels only (markdown via ggtext): subscripts, sentence case, long names wrapped
+FUN_LAB <- c("methanogenesis by CO2 reduction with H2" =
+               "methanogenesis by CO<sub>2</sub><br>reduction with H<sub>2</sub>",
+             "methanogenesis by reduction of methyl compounds with H2" =
+               "methanogenesis by reduction of<br>methyl compounds with H<sub>2</sub>")
+fun_lab <- function(x) ifelse(x %in% names(FUN_LAB), FUN_LAB[x], x)
+CAT_LAB <- c("Energy source" = "Energy source", "CH4 cycling" = "CH<sub>4</sub> cycling",
+             "C-cycle" = "C cycle", "N-cycle" = "N cycle", "S-cycle" = "S cycle",
+             "Others" = "Other")
+
+fill_scale <- scale_fill_gradientn(
+  colours = c("#1a1a2e", "#16213e", "#533483", "#e94560", "#f5a623"),
+  limits = c(0, log_max),
+  name = expression(log[10] * "(% + 1)"),
+  guide = guide_colourbar(theme = theme(legend.key.width = unit(9, "lines"),
+                                        legend.key.height = unit(0.7, "lines")))
+)
+
+heat_theme <- theme_si() +
   theme(
     strip.placement = "outside",
-    strip.text.y.left = element_text(angle = 0, face = "bold", size = 10),
-    axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
-    axis.text.y = element_text(size = 9),
+    strip.background = element_blank(),
+    strip.text.y.left = ggtext::element_markdown(angle = 0, hjust = 1, size = SI_BASE * 0.85),
+    axis.text.y = ggtext::element_markdown(size = SI_BASE * 0.8, halign = 1, lineheight = 0.95),
+    axis.text = element_text(colour = "black"),
+    axis.ticks = element_blank(),
+    panel.border = element_blank(),
     panel.grid = element_blank(),
-    legend.position = "right",
-    plot.margin = margin(5, 5, 5, 5)
+    panel.spacing.y = unit(4, "pt"),
+    legend.position = "bottom",
+    legend.title.position = "top",
+    plot.margin = margin(4, 4, 4, 4)
   )
 
 # ==============================================================================
-# STEP 9: Create panel (b) heatmap
+# STEP 9: Panel (a): heartwood vs sapwood
+# ==============================================================================
+
+p_a <- ggplot(panel_a_long, aes(x = Core_Type, y = display_name, fill = log_pct)) +
+  geom_tile(color = "white", linewidth = 0.8) +
+  geom_text(aes(label = round(Percentage, 2)), size = 8.5 / .pt, color = "white") +
+  facet_grid(category ~ ., scales = "free_y", space = "free_y", switch = "y",
+             labeller = labeller(category = CAT_LAB)) +
+  fill_scale +
+  scale_y_discrete(labels = fun_lab) +
+  labs(x = NULL, y = NULL) +
+  heat_theme
+
+# ==============================================================================
+# STEP 10: Panel (b): species (heartwood)
 # ==============================================================================
 
 p_b <- ggplot(panel_b_data, aes(x = species_label, y = display_name, fill = log_pct)) +
-  geom_tile(color = "white", linewidth = 0.8) +
-  geom_text(aes(label = round(Percentage, 2)), size = 2.2, color = "white") +
-  facet_grid(category ~ ., scales = "free_y", space = "free_y", switch = "y") +
-  scale_fill_gradientn(
-    colours = c("#1a1a2e", "#16213e", "#533483", "#e94560", "#f5a623"),
-    limits = c(0, log_max),
-    name = expression(log[10]*"(% + 1)")
-  ) +
+  geom_tile(color = "white", linewidth = 0.6) +
+  geom_text(aes(label = round(Percentage, 2)), size = 7 / .pt, color = "white") +
+  facet_grid(category ~ ., scales = "free_y", space = "free_y", switch = "y",
+             labeller = labeller(category = CAT_LAB)) +
+  fill_scale +
+  scale_y_discrete(labels = fun_lab) +
   labs(x = "Species (heartwood)", y = NULL) +
-  theme_minimal(base_size = 11) +
-  theme(
-    strip.placement = "outside",
-    strip.text.y.left = element_text(angle = 0, face = "bold", size = 10),
-    axis.text.x = element_text(angle = 45, hjust = 1, size = 9, face = "italic"),
-    axis.text.y = element_text(size = 9),
-    panel.grid = element_blank(),
-    legend.position = "right",
-    plot.margin = margin(5, 5, 5, 5)
-  )
+  heat_theme +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, face = "italic"))
 
 # ==============================================================================
-# STEP 10: Combine panels and save
+# STEP 11: Combine panels and save
 # ==============================================================================
 
-tag_theme <- theme(plot.tag = element_text(size = 12, face = "bold"))
-p_a <- p_a + tag_theme
-p_b <- p_b + tag_theme
+combined <- (p_a / p_b) + plot_layout(heights = c(18, 8.6), guides = "collect") + si_tags() &
+  theme(legend.position = "bottom")
 
-combined <- p_a / p_b +
-  plot_layout(heights = c(2, 1.2), guides = "collect") +
-  plot_annotation(
-    tag_levels = "a",
-    tag_prefix = "(",
-    tag_suffix = ")"
-  )
-
-ggsave("outputs/figures/original/supplementary/figS3_faprotax_heatmaps.png",
-       combined, width = 14, height = 12, dpi = 300)
+si_save("outputs/figures/original/supplementary/figS3_faprotax_heatmaps.png",
+        combined, height = 10.8)
 
 cat("\nSaved figS3_faprotax_heatmaps.png to outputs/figures/original/supplementary/\n")

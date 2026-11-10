@@ -1,5 +1,5 @@
 # ==============================================================================
-# figS14_taxonomy-mcra.R -- Figure S10: 16S families associated with mcrA in wood
+# figS14_taxonomy-mcra.R -- Figure S9: 16S families associated with mcrA in wood
 # ------------------------------------------------------------------------------
 # Stage E. Run from the repository root.
 # Row-scaled relative abundance of the 20 most abundant families, plus any other family
@@ -22,9 +22,10 @@ OUT_PNG    <- "outputs/figures/original/supplementary/figS6_taxonomy_mcra_heatma
 library(phyloseq)
 library(tidyverse)
 library(lme4)
-library(pheatmap)
 source("code/lib/build_phyloseq.R")
 source("code/lib/tables_read.R")
+source("code/lib/fig_style.R")       # SI house style
+source("code/lib/fig_si_heatmap.R")  # si_feature_heatmap()
 
 # ==============================================================================
 # STEP 1: 16S relative abundance (rarefied), wood samples with the gene and 16S >= 100
@@ -122,50 +123,31 @@ cat("  Additional significant not in top 20:",
 # ==============================================================================
 # STEP 5: Heatmap: samples ordered by the gene, families by t
 # ==============================================================================
+# SI house style (code/lib/fig_style.R); the heatmap is si_feature_heatmap()
+# (code/lib/fig_si_heatmap.R): row z-scores of relative abundance, as pheatmap(scale = "row").
 
 ordered_samples <- rownames(wood[order(wood[[GENE_COL]]), ])
 heatmap_data <- percent_filt[ordered_samples, display_families]
 
-LOG_LABEL <- paste0("log10(", GENE_LABEL, ")"); ASSOC_LABEL <- paste0(GENE_LABEL, " assoc.")
 wood$log10_gene <- log10(1 + wood[[GENE_COL]])
 wood$compartment <- ifelse(wood$core_type == "Inner", "Heartwood", "Sapwood")
-ann_col <- wood[ordered_samples, c("compartment", "log10_gene"), drop = FALSE]
-colnames(ann_col) <- c("Compartment", LOG_LABEL)
 
 fdr_vec <- setNames(pvals$FDR, pvals$family)[display_families]
-ann_row <- data.frame(ifelse(is.na(fdr_vec), "NS", ifelse(fdr_vec < 0.01, "FDR < 0.01",
-                             ifelse(fdr_vec < 0.05, "FDR < 0.05", "NS"))),
-                      row.names = display_families)
-colnames(ann_row) <- ASSOC_LABEL
-
-ann_colors <- setNames(list(c(Heartwood = "#5D4037", Sapwood = "#BCAAA4"),
-                            colorRampPalette(c("#f0f0f0", "#7b9fc2", "#1a3a5c"))(100),
-                            c("FDR < 0.01" = "#b71c1c", "FDR < 0.05" = "#ef9a9a", "NS" = "#f0f0f0")),
-                       c("Compartment", LOG_LABEL, ASSOC_LABEL))
-heatmap_colors <- colorRampPalette(c("#3b4cc0", "#7092d5", "#c5d5ea", "#f7f7f7",
-                                     "#f5c5a3", "#e8845a", "#b40426"))(100)   # diverging, row z-scores
+fdr_class <- setNames(ifelse(is.na(fdr_vec), "NS", ifelse(fdr_vec < 0.01, "FDR < 0.01",
+                             ifelse(fdr_vec < 0.05, "FDR < 0.05", "NS"))), display_families)
 
 ordered_families <- pvals %>% filter(family %in% display_families) %>% arrange(t) %>% pull(family)
 heatmap_data <- heatmap_data[, ordered_families]
-ann_row <- ann_row[ordered_families, , drop = FALSE]
 
-png(OUT_PNG, width = 13, height = max(7, length(display_families) * 0.35 + 3), units = "in", res = 300)
-pheatmap(t(heatmap_data),
-         color = heatmap_colors,
-         scale = "row",
-         annotation_col = ann_col,
-         annotation_row = ann_row,
-         annotation_colors = ann_colors,
-         show_colnames = FALSE,
-         cluster_cols = FALSE,
-         cluster_rows = FALSE,
-         treeheight_row = 0,
-         labels_row = ordered_families,
-         annotation_names_row = TRUE,
-         fontsize_row = 9,
-         fontsize = 10,
-         fontsize_col = 8,
-         border_color = NA,
-         main = "")
-dev.off()
+ROW_IN <- 0.19
+p_hm <- si_feature_heatmap(
+  t(heatmap_data), row_labels = ordered_families, gene = GENE_LABEL,
+  log_gene = wood[ordered_samples, "log10_gene"],
+  compartment = wood[ordered_samples, "compartment"],
+  row_class = fdr_class[ordered_families],
+  row_class_cols = c("FDR < 0.01" = "#b71c1c", "FDR < 0.05" = "#ef9a9a", "NS" = "#f0f0f0"),
+  row_class_labels = c("FDR < 0.01", "FDR < 0.05", "Not significant"),
+  row_class_title = bquote(italic(.(GENE_LABEL)) ~ association),
+  row_in = ROW_IN, row_text = 9)
+si_save(OUT_PNG, p_hm, height = length(ordered_families) * ROW_IN + 1.6)
 cat("\nHeatmap saved:", OUT_PNG, "\n")

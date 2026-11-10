@@ -1,6 +1,6 @@
 # ==============================================================================
 # fig08_radial-species.R -- Figure 8 (radial gene distributions and species-level
-#                           gene-flux relationships) and Figure S24 (mcrA vs
+#                           gene-flux relationships) and Figure S23 (mcrA vs
 #                           methanotrophs)
 # ------------------------------------------------------------------------------
 # Figure 8
@@ -10,7 +10,8 @@
 #   (d-f) species median flux against species median mcrA, pmoA + mmoX and the
 #         mcrA : methanotroph ratio; (g) R2 of the five species-level gene models
 #         (code/07_molecular/helper_scale_dependent_gene_patterns.R)
-# Figure S24: log10 (pmoA + mmoX) against log10 mcrA, per tree and per species.
+# Figure S23: log10 (pmoA + mmoX) against log10 mcrA, per tree and per species median;
+#   SI house style, points broadleaf / conifer (code/lib/fig_style.R).
 # Reads data/tables/ through the two helpers (run from the repository root).
 # Outputs: outputs/figures/original/main/fig8_radial_species_comparison.png,
 #          outputs/figures/original/supplementary/figS14_mcra_vs_methanotroph.png
@@ -251,103 +252,78 @@ ggsave("outputs/figures/original/main/fig8_radial_species_comparison.png",
        side_by_side, width = 14, height = 9.5, dpi = 300, limitsize = FALSE)
 
 # ============================================================
-# FIGURE S24: mcrA vs (pmoA + mmoX), tree and species level
+# FIGURE S23: mcrA vs (pmoA + mmoX), tree and species level
+# SI house style (code/lib/fig_style.R), sourced here so the Figure 8 code above is unaffected
 # ============================================================
-# ------------------------------------------------------------
-# INDIVIDUAL TREE LEVEL: mcrA vs methanotroph_total
-# ------------------------------------------------------------
+source("code/lib/fig_style.R")
+# "r = 0.01, p = 0.938" with a true minus sign
+r_p_label <- function(ct) sub("-", "−", sprintf("r = %.2f, p %s", ct$estimate,
+  ifelse(ct$p.value < 0.001, "< 0.001", sprintf("= %.3f", ct$p.value))), fixed = TRUE)
+lab_mcra_x <- expression(log[10] ~ italic(mcrA))
+lab_meth_y <- expression(log[10] * (italic(pmoA) + italic(mmoX)))
+rp_text <- function(lab) annotate("text", x = Inf, y = Inf, label = lab, hjust = 1.05, vjust = 1.5, size = 3)
 
-# Calculate correlation
+# ------------------------------------------------------------
+# INDIVIDUAL TREES: mcrA vs methanotroph_total
+# ------------------------------------------------------------
 cor_tree_mcra_methanotroph <- cor.test(
   tree_level_complete$log_tree_mcra,
   tree_level_complete$log_methanotroph
 )
 
-# Create plot (NO trendline - not significant)
+# (NO trendline - not significant)
 p_tree_mcra_vs_methanotroph <- ggplot(tree_level_complete,
                                       aes(y = log_methanotroph,
                                           x = log_tree_mcra,
-                                          color = species)) +
-  geom_point(size = 2.5, alpha = 0.6) +
-  scale_color_manual(values = species_palette, name = "Species") +
-  annotate("label", x = Inf, y = Inf,
-           label = sprintf("r = %.3f\np = %.3f",
-                           cor_tree_mcra_methanotroph$estimate,
-                           cor_tree_mcra_methanotroph$p.value),
-           hjust = 1.1, vjust = 1.1, size = 3.5,
-           fill = "white", alpha = 0.9) +
-  labs(
-    title = "Individual Tree Level",
-    y = expression(log[10]~(pmoA+mmoX)),
-    x = expression(log[10]~mcrA)
-  ) +
-  theme_pub_gene +
-  theme(
-    legend.position = "right",
-    legend.text = element_text(face = "italic", size = 8),
-    legend.title = element_text(size = 9),
-    plot.title = element_text(hjust = 0.5, face = "bold")
-  )
+                                          color = species_group(species))) +
+  geom_point(size = 1.6, alpha = 0.7) +
+  scale_color_manual(values = GROUP_COLS, name = NULL) +
+  rp_text(r_p_label(cor_tree_mcra_methanotroph)) +
+  scale_y_continuous(expand = expansion(mult = c(0.05, 0.12))) +
+  labs(title = "Individual trees", y = lab_meth_y, x = lab_mcra_x) +
+  theme_si()
 
 # ------------------------------------------------------------
-# SPECIES LEVEL: median mcrA vs median methanotroph
+# SPECIES MEDIANS: median mcrA vs median methanotroph
 # ------------------------------------------------------------
-
-# Combine mcrA and methanotroph data for species-level analysis
 species_mcra_methanotroph <- analysis_mcra %>%
   dplyr::select(species, species_id, median_mcra, q25_mcra, q75_mcra) %>%
   left_join(
-    analysis_methanotroph %>% 
+    analysis_methanotroph %>%
       dplyr::select(species, median_methanotroph, q25_methanotroph, q75_methanotroph),
     by = "species"
   )
 
-# Calculate correlation
 cor_species_mcra_methanotroph <- cor.test(
   log10(species_mcra_methanotroph$median_mcra + 1),
   log10(species_mcra_methanotroph$median_methanotroph + 1)
 )
 
-# Create plot (NO trendline - not significant)
+# (NO trendline - not significant)
 p_species_mcra_vs_methanotroph <- ggplot(species_mcra_methanotroph,
                                          aes(y = log10(median_methanotroph + 1),
-                                             x = log10(median_mcra + 1),
-                                             color = species)) +
-  geom_point(size = 3.5, alpha = 0.85) +
-  scale_color_manual(values = species_palette) +
-  geom_text_repel(aes(label = species), size = 3, fontface = "italic", seed = 42,
+                                             x = log10(median_mcra + 1))) +
+  geom_point(aes(color = species_group(species)), size = 2.4, alpha = 0.9, show.legend = FALSE) +
+  scale_color_manual(values = GROUP_COLS, name = NULL) +
+  geom_text_repel(aes(label = species), size = 2.8, fontface = "italic", color = "black", seed = 42,
                   box.padding = 0.3, max.overlaps = 20) +
-  annotate("label", x = Inf, y = Inf,
-           label = sprintf("r = %.3f\np = %.3f",
-                           cor_species_mcra_methanotroph$estimate,
-                           cor_species_mcra_methanotroph$p.value),
-           hjust = 1.1, vjust = 1.1, size = 3.5,
-           fill = "white", alpha = 0.9) +
-  labs(
-    title = "Species Level",
-    y = expression(log[10]~median~(pmoA+mmoX)),
-    x = expression(log[10]~median~mcrA)
-  ) +
-  theme_pub_gene +
-  theme(
-    plot.title = element_text(hjust = 0.5, face = "bold"),
-    legend.position = "none"
-  )
+  rp_text(r_p_label(cor_species_mcra_methanotroph)) +
+  scale_x_continuous(expand = expansion(mult = c(0.12, 0.12))) +
+  scale_y_continuous(expand = expansion(mult = c(0.06, 0.14))) +
+  labs(title = "Species medians", y = lab_meth_y, x = lab_mcra_x) +
+  theme_si()
 
 # ------------------------------------------------------------
-# COMBINE AND SAVE
+# COMBINE AND SAVE (tags as si_tags() intends; si_tags() itself returns NULL)
 # ------------------------------------------------------------
+mcra_vs_methanotroph_layout <- (p_tree_mcra_vs_methanotroph | p_species_mcra_vs_methanotroph) +
+  plot_layout(guides = "collect") +
+  plot_annotation(tag_levels = "a", tag_prefix = "(", tag_suffix = ")") &
+  theme(plot.tag = element_text(size = SI_BASE + 1, face = "bold"), legend.position = "bottom",
+        legend.margin = margin(0, 0, 0, 0))
 
-# Side-by-side layout with panel labels
-mcra_vs_methanotroph_layout <- (p_tree_mcra_vs_methanotroph |
-  p_species_mcra_vs_methanotroph) +
-  plot_annotation(tag_levels = "a",
-                  tag_prefix = "(",
-                  tag_suffix = ")",
-                  theme = theme(plot.tag = element_text(size = 11, face = "bold")))
-
-ggsave("outputs/figures/original/supplementary/figS14_mcra_vs_methanotroph.png", mcra_vs_methanotroph_layout,
-       width = 13, height = 5.5, dpi = 300)
+si_save("outputs/figures/original/supplementary/figS14_mcra_vs_methanotroph.png",
+        mcra_vs_methanotroph_layout, height = 4.2)
 
 
 # Print summary

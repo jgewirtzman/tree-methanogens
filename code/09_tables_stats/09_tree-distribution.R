@@ -85,10 +85,21 @@ grDevices::pdf(NULL)   # arrangeGrob() measures text on the open device; without
 g <- gridExtra::arrangeGrob(p_niche, gridExtra::arrangeGrob(p_comp, p_dbh, ncol = 1), ncol = 2,
                             widths = c(1.3, 1))
 ggsave(out_path("tree_distribution_panels.png"), g, width = 13, height = 7, dpi = 140)
-# panel A (species soil-moisture niches) standalone -> SI figure
-# title/subtitle stripped for publication (moves to caption)
-ggsave(out_path("tree_species_moisture_niche.png"),
-       p_niche + labs(title = NULL, subtitle = NULL), width = 6.8, height = 6.2, dpi = 200)
+# panel A (species soil-moisture niches) standalone -> SI figure, in the SI house style
+# (code/lib/fig_style.R): broadleaf / conifer colours (= angiosperm / gymnosperm here),
+# no title (the caption has it), 8 in wide
+source("code/lib/fig_style.R")
+p_niche_si <- ggplot(tp_v %>% mutate(group = recode(group, Angiosperm = "Broadleaf", Gymnosperm = "Conifer")),
+                     aes(VWC_mean, species, color = group)) +
+  geom_boxplot(outlier.shape = NA, alpha = .5) +
+  geom_point(position = position_jitter(width = 0, height = .15, seed = 1), size = 1, alpha = .5) +
+  scale_color_manual(values = GROUP_COLS) +
+  labs(x = "Soil VWC (%)", y = NULL, color = NULL) +
+  theme_si() +
+  theme(axis.text.y = element_text(face = "italic"),
+        legend.position = "inside", legend.position.inside = c(.99, .02), legend.justification = c(1, 0),
+        legend.background = element_rect(fill = alpha("white", .8), colour = NA))
+si_save(out_path("tree_species_moisture_niche.png"), p_niche_si, height = 5.4)
 
 # ---- Forest-inventory context (full census) ----------------------------------
 # data/tables/inventory_stems.csv (both census sources merged); its diameter is in cm,

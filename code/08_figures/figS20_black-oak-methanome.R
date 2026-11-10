@@ -18,6 +18,8 @@
 # Output: outputs/figures/generated/black_oak_methanome_revised.png
 # ==============================================================================
 library(tidyverse)
+library(patchwork)
+source("code/lib/fig_style.R")   # SI house style: theme_si(), si_tags(), si_save()
 source("code/lib/tables_read.R")
 source("code/lib/methanogen_families.R")
 source("code/lib/load_methanotroph_definitions.R")
@@ -67,26 +69,42 @@ taxon_labels <- function(v) do.call(expression, lapply(v, function(x) {
   if (gen == "") bquote(.(paste0(p[1], " (genus unresolved)"))) else bquote(.(paste0(p[1], ": ")) * italic(.(gen)))
 }))
 
-groups <- c("Methanogen", "Methanotroph (Known)", "Methanotroph (Putative)")
-groups <- groups[groups %in% hm$Group]
-hm$Panel <- factor(hm$Group, levels = groups,
-                   labels = paste0("(", letters[seq_along(groups)], ") ", groups))
-# one plot faceted by group: columns align across panels and rows keep equal height
-p <- ggplot(hm, aes(Media, Row_Label, fill = fill_pct)) +
-  geom_tile(colour = "white") +
-  geom_point(data = filter(hm, pct == 0), aes(shape = "Not detected"), alpha = 0) +   # legend key for grey
-  facet_grid(Panel ~ ., scales = "free_y", space = "free_y") +
-  scale_y_discrete(labels = taxon_labels) +
-  scale_fill_viridis_c(option = "C", trans = "log10", limits = range(BREAKS), breaks = BREAKS,
-                       labels = pct_lab, na.value = "grey85", oob = scales::squish,
-                       name = "Relative abundance\n(% of non-organelle\n16S reads)") +
-  scale_shape_manual(values = 15, name = NULL) +
-  guides(fill = guide_colourbar(order = 1, barheight = unit(40, "mm")),
-         shape = guide_legend(order = 2, override.aes = list(alpha = 1, size = 6, colour = "grey85"))) +
-  labs(x = NULL, y = NULL) +
-  theme_minimal(base_size = 11) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1), panel.grid = element_blank(),
-        strip.text.y = element_text(angle = 0, hjust = 0, face = "bold"),
-        panel.spacing.y = unit(4, "mm"))
+# one panel per group (patchwork, SI house style: code/lib/fig_style.R); all panels share
+# the tissue columns and the colour scale, and each row has the same height
+GROUPS <- c(Methanogen = "Methanogens", `Methanotroph (Known)` = "Known methanotrophs",
+            `Methanotroph (Putative)` = "Putative methanotrophs")
+groups <- names(GROUPS)[names(GROUPS) %in% hm$Group]
+tissue_lab <- function(x) paste0(substr(x, 1, 1), tolower(substring(x, 2)))   # sentence case
+ROW_IN <- 0.2
 
-ggsave("outputs/figures/generated/black_oak_methanome_revised.png", p, width = 11, height = 5, dpi = 300, bg = "white")
+# panel tags si_tags(); each tag sits at the top-left corner on the line of the group name
+panel_for <- function(g, last) {
+  d <- filter(hm, Group == g)
+  ggplot(d, aes(Media, Row_Label, fill = fill_pct)) +
+    geom_tile(colour = "white") +
+    geom_point(data = filter(d, pct == 0), aes(shape = "Not detected"), alpha = 0) +   # legend key for grey
+    scale_x_discrete(labels = tissue_lab, drop = FALSE) +
+    scale_y_discrete(labels = taxon_labels) +
+    scale_fill_viridis_c(option = "C", trans = "log10", limits = range(BREAKS), breaks = BREAKS,
+                         labels = pct_lab, na.value = "grey85", oob = scales::squish,
+                         name = "Relative abundance\n(% of non-organelle\n16S reads)") +
+    scale_shape_manual(values = 15, name = NULL, limits = "Not detected") +
+    guides(fill = guide_colourbar(order = 1, theme = theme(legend.key.height = unit(30, "mm"))),
+           shape = guide_legend(order = 2, override.aes = list(alpha = 1, size = 5, colour = "grey85"))) +
+    labs(x = NULL, y = NULL, title = GROUPS[[g]]) +
+    theme_si() +
+    theme(panel.grid = element_blank(), panel.border = element_blank(),
+          axis.ticks = element_blank(),
+          axis.text = element_text(colour = "black"),
+          axis.text.x = if (last) element_text(angle = 45, hjust = 1) else element_blank(),
+          plot.title = element_text(size = SI_BASE, face = "plain", margin = margin(l = 24, b = 3)),
+          plot.tag.location = "plot", plot.tag.position = c(0, 1),
+          plot.tag = element_text(hjust = 0, vjust = 1),
+          plot.title.position = "plot")
+}
+n_rows <- sapply(groups, function(g) n_distinct(hm$Row_Label[hm$Group == g]))
+p <- wrap_plots(lapply(seq_along(groups), function(i) panel_for(groups[i], i == length(groups))),
+                ncol = 1, heights = n_rows, guides = "collect") + si_tags()
+
+si_save("outputs/figures/generated/black_oak_methanome_revised.png", p,
+        height = sum(n_rows) * ROW_IN + 0.35 * length(groups) + 0.9)

@@ -15,8 +15,8 @@ suppressPackageStartupMessages({library(ggplot2); library(dplyr); library(patchw
 source("code/lib/flux_transform.R")   # flux_asinh10()
 ccc <- function(o,p) 2*cov(o,p)/(var(o)+var(p)+(mean(o)-mean(p))^2)
 e <- new.env(); load("outputs/models/TRAINING_DATA.RData", envir=e)
-th <- theme_bw(base_size=10)+theme(panel.grid.minor=element_blank(),
-        plot.subtitle=element_text(size=8), plot.title=element_text(size=10.5))
+source("code/lib/fig_style.R")       # SI house style: theme_si(), si_tags(), si_save(), COL_*
+th <- theme_si() + theme(plot.subtitle=element_text(size=rel(0.85), lineheight=1.05))
 
 # observed (y_flux) and out-of-bag predicted (pred_flux) flux, nmol m-2 s-1 (02_rf_models.R)
 flux <- function(df) list(o=df$y_flux, p=df$pred_flux)
@@ -30,8 +30,8 @@ obsvpred <- function(d, title, sub, col, brks){
   g + geom_point(size=2.6,color=col) +
       scale_x_continuous(breaks=flux_asinh10(brks),labels=brks,limits=lim) +
       scale_y_continuous(breaks=flux_asinh10(brks),labels=brks,limits=lim) + coord_equal() +
-      labs(x=expression("Predicted CH"[4]*" (nmol m"^-2*" s"^-1*")"),
-           y=expression("Observed CH"[4]), title=title, subtitle=sub) + th
+      labs(x=expression(Predicted~CH[4]~flux~(nmol~m^{-2}~s^{-1})),
+           y=expression(Observed~CH[4]~flux~(nmol~m^{-2}~s^{-1})), title=title, subtitle=sub) + th
 }
 
 ## calibration by predicted decile
@@ -39,11 +39,11 @@ cal <- function(df, title, col, brks){
   f<-flux(df); ok<-is.finite(f$o)&is.finite(f$p); o<-f$o[ok]; p<-f$p[ok]
   d <- tibble(o,p) %>% mutate(b=ntile(p,10)) %>% group_by(b) %>%
        summarise(mp=mean(p),mo=mean(o),se=sd(o)/sqrt(n()),.groups="drop")
-  obsvpred(d,title,sprintf("OOB R2 = %.2f | CCC = %.2f | mean pred/obs = %.2f",
+  obsvpred(d,title,sprintf("Out-of-bag R\u00b2 = %.2f, CCC = %.2f,\nmean predicted/observed = %.2f",
            1-mean((o-p)^2)/var(o),ccc(o,p),mean(p)/mean(o)),col,brks)
 }
-pa <- cal(e$tree_train_complete,"(a) Stem flux","#b2182b",c(0,0.05,0.1,0.2,0.4))
-pb <- cal(e$soil_train_complete,"(b) Soil flux","#2166ac",c(-3,-1,-0.3,0))
+pa <- cal(e$tree_train_complete,"Stems",COL_STEM,c(0,0.05,0.1,0.2,0.4))
+pb <- cal(e$soil_train_complete,"Soils",COL_SOIL,c(-3,-1,-0.3,0,0.3,1))
 
-ggsave("outputs/figures/generated/figS_rf_calibration.png", pa|pb, width=8.8, height=4.6, dpi=200, bg="white")
+si_save("outputs/figures/generated/figS_rf_calibration.png", (pa|pb) + si_tags(), height=4.6)
 cat("wrote outputs/figures/generated/figS_rf_calibration.png\n")

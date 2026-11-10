@@ -34,6 +34,7 @@ source("code/lib/outputs.R")
 # shells) they are silently dropped from the PNG.
 invisible(Sys.setlocale("LC_CTYPE", "en_US.UTF-8"))
 source("code/lib/tables_read.R"); source("code/lib/build_phyloseq.R")   # RAREFY_DEPTH
+source("code/lib/fig_style.R")   # SI house style: theme_si(), si_save()
 
 # ---- 16S: relative abundance of each group, per sample -----------------------
 # denominator: the library's non-organelle reads (asv_reads(): mitochondria and
@@ -98,29 +99,40 @@ R$gene  <- factor(R$gene, levels = c("pmoA","mmoX","mcrA"),
 R$compartment <- factor(R$compartment, levels = COMPS)
 R$tested <- !is.na(R$rho)
 R$label  <- ifelse(R$tested, sprintf("%+.2f%s\n[%d]", R$rho, R$sig, R$n_present),
-                   sprintf("n+ %d", R$n_present))
+                   sprintf("[%d]", R$n_present))   # untested: samples where the group is present
 R$ink    <- ifelse(R$tested & abs(R$rho) > 0.33, "inverse", "primary")
+
+# long row names wrapped onto two lines (labels only; the group names in the CSV are unchanged)
+row_lab <- c("Ammonia-oxidizing archaea (Nitrososphaeraceae)" = "Ammonia-oxidizing archaea\n(Nitrososphaeraceae)",
+             "NC10 (Methylomirabilaceae; anaerobic)" = "NC10 (Methylomirabilaceae;\nanaerobic)",
+             "Methylacidiphilaceae, genus unresolved" = "Methylacidiphilaceae,\ngenus unresolved")
+wrap_row <- function(x) ifelse(x %in% names(row_lab), row_lab[x], x)
+# genus names italic (ggtext markdown; line breaks as <br>)
+genus_md <- c("Lichenibacterium (1174-901-12)" = "*Lichenibacterium* (1174-901-12)",
+              "Roseiarcus" = "*Roseiarcus*", "Methylobacterium" = "*Methylobacterium*")
+row_md <- function(x) gsub("\n", "<br>", ifelse(x %in% names(genus_md), genus_md[x], wrap_row(x)))
 
 p <- ggplot(R, aes(compartment, group)) +
   geom_tile(data = R[R$tested, ], aes(fill = rho), colour = "white", linewidth = 1) +
   geom_tile(data = R[!R$tested, ], fill = NA, colour = "#b9b8b3", linewidth = .35,
             linetype = "22", width = .9, height = .85) +
-  geom_text(aes(label = label, colour = ink), size = 2.9, lineheight = .9) +
+  geom_text(aes(label = label, colour = ink), size = 2.7, lineheight = .9) +
+  scale_y_discrete(labels = row_md) +
   scale_colour_manual(values = c(primary = "#1a1a19", inverse = "#ffffff"), guide = "none") +
   scale_fill_gradient2(low = "#2a78d6", mid = "#f0efec", high = "#e34948", midpoint = 0,
                        limits = c(-.5, .5), oob = scales::squish,
                        name = "Spearman ρ", breaks = c(-.5, -.25, 0, .25, .5)) +
   facet_grid(tier ~ gene, scales = "free", space = "free", labeller = labeller(gene = label_parsed)) +
   labs(x = NULL, y = NULL) +   # key (BH across all tests; dagger; dashed cells) is in the SI caption
-  theme_minimal(base_size = 10) +
-  theme(panel.grid = element_blank(),
-        strip.text.y = element_text(angle = 0, hjust = 0, face = "bold"),
-        strip.text.x = element_text(size = 11),
-        axis.text.x  = element_text(angle = 30, hjust = 1),
+  theme_si() +
+  theme(panel.grid = element_blank(), panel.border = element_blank(), axis.ticks = element_blank(),
+        strip.text.y = element_text(angle = -90),
+        axis.text.y  = ggtext::element_markdown(lineheight = .9, halign = 1),
+        axis.text.x  = element_text(angle = 35, hjust = 1),
         legend.position = "bottom", legend.key.width = unit(1.4, "cm"),
-        plot.background = element_rect(fill = "white", colour = NA))
-ggsave(out_path("figSI_16s_ddpcr_association.png"), p, width = 9.5, height = 6.4, dpi = 300, bg = "white",
-       device = ragg::agg_png)   # ragg: the default png device drops the rho and dagger glyphs
+        legend.title = element_text(vjust = .8))
+si_save(out_path("figSI_16s_ddpcr_association.png"), p, height = 7,
+        device = ragg::agg_png)   # ragg: the default png device drops the rho and dagger glyphs
 cat("Wrote figSI_16s_ddpcr_association.png and 16s_ddpcr_association.csv\n")
 cat(sprintf("%d tests; %d significant after BH (q<.05); %d nominal only\n",
             sum(R$tested), sum(R$q < .05, na.rm = TRUE), sum(R$p < .05 & R$q >= .05, na.rm = TRUE)))

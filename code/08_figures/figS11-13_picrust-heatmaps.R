@@ -1,5 +1,5 @@
 # ==============================================================================
-# figS11-13_picrust-heatmaps.R -- Figures S13, S14, S15: MetaCyc pathways associated
+# figS11-13_picrust-heatmaps.R -- Figures S12, S13, S14: MetaCyc pathways associated
 # with mcrA and pmoA
 # ------------------------------------------------------------------------------
 # Stage E. Run from the repository root.
@@ -25,7 +25,8 @@
 # ==============================================================================
 
 library(tidyverse)
-library(pheatmap)
+source("code/lib/fig_style.R")       # SI house style
+source("code/lib/fig_si_heatmap.R")  # si_feature_heatmap(): row z-scores, as pheatmap(scale = "row")
 
 # ==============================================================================
 # STEP 1: Load metadata and pathway abundances
@@ -53,34 +54,22 @@ percent <- percent[, colSums(percent > 0) > 20]
 # STEP 2: Shared heatmap aesthetics
 # ==============================================================================
 
-## Heatmap color palette (cool blue – white – warm red, diverging)
-heatmap_colors <- colorRampPalette(c("#3b4cc0", "#7092d5", "#c5d5ea",
-                                      "#f7f7f7",
-                                      "#f5c5a3", "#e8845a", "#b40426"))(100)
-
-## Annotation colours (as the family heatmaps, Figures S10-S11)
-ann_colors_for <- function(gene_label) setNames(list(
-  c(Heartwood = "#5D4037", Sapwood = "#BCAAA4"),
-  colorRampPalette(c("#f0f0f0", "#7b9fc2", "#1a3a5c"))(100),
-  c("FDR < 0.01" = "#b71c1c", "FDR < 0.05" = "#ef9a9a", "NS" = "#f0f0f0")),
-  c("Compartment", paste0("log10(", gene_label, ")"), paste0(gene_label, " assoc.")))
+## Colours, scaling and layout: si_feature_heatmap() (code/lib/fig_si_heatmap.R), shared
+## with the family heatmaps (Figs S9-S10); compartments in COMP_COLS (code/lib/fig_style.R).
 
 # ==============================================================================
 # STEP 3: Heatmap generation function
 # ==============================================================================
 
 make_pathway_heatmap <- function(pvals_file, meta_df, gene_col, gene_label,
-                                  ann_colors, output_file,
+                                  output_file,
                                   fdr_threshold = 0.01,
                                   max_gene_contrib = NULL,
                                   contrib_file = NULL,
                                   contrib_col = NULL,
                                   row_contrib_bar = FALSE,
                                   row_contrib_threshold = 0.50,
-                                  show_row_ann_names = TRUE,
-                                  border_color = NA,
-                                  cellheight = 10, fontsize_row = 8,
-                                  fig_width = 13) {
+                                  row_in = 0.15, row_text = 8) {
 
   ## Load pre-computed association results
   pvals <- read.csv(pvals_file, stringsAsFactors = FALSE)
@@ -137,22 +126,14 @@ make_pathway_heatmap <- function(pvals_file, meta_df, gene_col, gene_label,
   wood$log10_gene <- log10(1 + wood[[gene_col]])
   wood$compartment <- ifelse(wood$core_type == "Inner", "Heartwood", "Sapwood")
 
-  ann_col <- wood[ordered_samples, c("compartment", "log10_gene"), drop = FALSE]
-  colnames(ann_col) <- c("Compartment", paste0("log10(", gene_label, ")"))
-
-  ## Row annotations (optional: gene-ASV contribution bar)
-  ann_row <- NA
+  ## Row annotation (optional: gene-ASV contribution bar)
+  contrib_flag <- NULL; contrib_title <- NULL
   if (row_contrib_bar && !is.null(contrib_lookup)) {
     contrib_vals <- contrib_lookup[sig$pathway]
     contrib_vals[is.na(contrib_vals)] <- 0
-    contrib_label <- paste0(">", round(row_contrib_threshold * 100), "% from ",
-                            gene_label, " ASVs")
-    ann_row <- data.frame(
-      contrib_flag = ifelse(contrib_vals >= row_contrib_threshold, "Yes", "No"),
-      row.names = sig$pathway
-    )
-    colnames(ann_row) <- contrib_label
-    ann_colors[[contrib_label]] <- c("Yes" = "#b71c1c", "No" = "#f0f0f0")
+    contrib_flag <- ifelse(contrib_vals >= row_contrib_threshold, "Yes", "No")
+    contrib_title <- bquote(.(paste0(">", round(row_contrib_threshold * 100), "% from")) ~
+                              italic(.(gene_label)) ~ ASVs)
   }
 
   ## Row labels: pathway descriptions
@@ -161,37 +142,20 @@ make_pathway_heatmap <- function(pvals_file, meta_df, gene_col, gene_label,
   # MetaCyc descriptions carry HTML entities (e.g. "&beta;-alanine"); render the characters
   for (ent in names(HTML_ENT)) row_labels <- gsub(ent, HTML_ENT[[ent]], row_labels, fixed = TRUE)
 
-  ## Figure dimensions: driven by cellheight for tight packing
-  ## Annotation bar + legend + margins need ~1.0 in
-  fig_height <- max(4, nrow(sig) * cellheight / 72 + 1.0)
+  ## Figure height: row_in per pathway + top bars, legends and margins (~1.6 in)
+  fig_height <- nrow(sig) * row_in + 1.6
 
   ## Generate the heatmap. On error, close every device this call may have left open and
   ## delete the half-written file, then stop: a later script must not draw into an open
   ## device, and the assembler must not copy a stale PNG.
   tryCatch({
-    png(output_file, width = fig_width, height = fig_height,
-        units = "in", res = 300)
-
-    pheatmap(t(sig_percent),
-             color = heatmap_colors,
-             scale = "row",
-             annotation_col = ann_col,
-             annotation_row = if (is.data.frame(ann_row)) ann_row else NA,
-             annotation_colors = ann_colors,
-             show_colnames = FALSE,
-             cluster_cols = FALSE,
-             cluster_rows = FALSE,
-             treeheight_row = 0,
-             labels_row = row_labels,
-             annotation_names_row = show_row_ann_names,
-             fontsize_row = fontsize_row,
-             fontsize = 10,
-             fontsize_col = 8,
-             cellheight = cellheight,
-             border_color = border_color,
-             main = "")
-
-    dev.off()
+    p_hm <- si_feature_heatmap(
+      t(sig_percent), row_labels = row_labels, gene = gene_label,
+      log_gene = wood[ordered_samples, "log10_gene"],
+      compartment = wood[ordered_samples, "compartment"],
+      row_class = contrib_flag, row_class_cols = c(Yes = "#b71c1c", No = "#f0f0f0"),
+      row_class_title = contrib_title, row_in = row_in, row_text = row_text)
+    si_save(output_file, p_hm, height = fig_height)
     cat("Saved:", output_file, "\n")
   }, error = function(e) {
     while (dev.cur() != 1L) try(dev.off(), silent = TRUE)
@@ -216,14 +180,13 @@ make_pathway_heatmap(
   meta_df = meta,
   gene_col = "mcra_probe_loose",
   gene_label = "mcrA",
-  ann_colors = ann_colors_for("mcrA"),
   output_file = "outputs/figures/original/main/fig6_picrust_mcra_no_mcra_heatmap.png",
   fdr_threshold = 0.001,
   max_gene_contrib = 0.10,
   contrib_file = file.path(results_dir, "pathway_associations_combined.csv"),
   contrib_col = "mean_percent_from_mcra",
-  cellheight = 10,
-  fontsize_row = 7
+  row_in = 0.15,
+  row_text = 8
 )
 
 ## --- Figure S14: mcrA (no-mcrA ASVs), FDR < 0.01 ---
@@ -233,17 +196,14 @@ make_pathway_heatmap(
   meta_df = meta,
   gene_col = "mcra_probe_loose",
   gene_label = "mcrA",
-  ann_colors = ann_colors_for("mcrA"),
   output_file = "outputs/figures/original/supplementary/figS4_picrust_mcra_all_heatmap.png",
   fdr_threshold = 0.01,
   contrib_file = file.path(results_dir, "pathway_associations_combined.csv"),
   contrib_col = "mean_percent_from_mcra",
   row_contrib_bar = TRUE,
   row_contrib_threshold = 0.50,
-  show_row_ann_names = FALSE,
-  border_color = "#e0e0e0",
-  cellheight = 8,
-  fontsize_row = 6
+  row_in = 0.092,
+  row_text = 6.5
 )
 
 ## --- Figure S15: pmoA (no-pmoA ASVs), FDR < 0.01 ---
@@ -253,17 +213,14 @@ make_pathway_heatmap(
   meta_df = meta,
   gene_col = "pmoa_loose",
   gene_label = "pmoA",
-  ann_colors = ann_colors_for("pmoA"),
   output_file = "outputs/figures/original/supplementary/figS5_picrust_pmoa_heatmap.png",
   fdr_threshold = 0.01,
   contrib_file = file.path(results_dir, "pathway_associations_pmoa_combined.csv"),
   contrib_col = "mean_percent_from_pmoa",
   row_contrib_bar = TRUE,
   row_contrib_threshold = 0.50,
-  show_row_ann_names = FALSE,
-  border_color = "#e0e0e0",
-  cellheight = 12,
-  fontsize_row = 8
+  row_in = 0.17,
+  row_text = 8.5
 )
 
 cat("\nAll heatmaps complete.\n")

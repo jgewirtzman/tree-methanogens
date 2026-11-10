@@ -20,6 +20,7 @@
 # ==============================================================================
 suppressMessages({library(dplyr); library(ggplot2); library(tidyr); library(patchwork)})
 source("code/lib/outputs.R")
+source("code/lib/fig_style.R")   # SI house style: theme_si(), si_tags(), si_save(), COL_*
 R <- read.csv(out_path("scaling_full_grid.csv"), stringsAsFactors = FALSE)
 
 FO <- c("constant","exp_band_slope","power","exponential","linear_floored",
@@ -36,27 +37,39 @@ R$bole   <- factor(R$bole,   levels = sort(unique(R$bole)))
 N_COMB <- nrow(R)
 LIM  <- max(abs(R$total_mg)) * c(-1, 1)
 
-DIV <- scale_fill_gradient2(low = "#2166ac", mid = "white", high = "#b2182b",
+DIV <- scale_fill_gradient2(low = COL_UPTAKE, mid = "white", high = COL_EMIT,
                             midpoint = 0, limits = LIM,
-                            name = expression("mg CH"[4]*" m"^-2*" yr"^-1))
+                            name = expression(atop(mg~CH[4], m^{-2}~yr^{-1})))
 # readable names for the grid's codes; * marks the form the climbed tree contradicts
 FLUX_LAB <- c(constant = "Constant", exp_band_slope = "Per-stem exponential", power = "Power",
               exponential = "Exponential", linear_floored = "Linear, floored at zero",
               linear_bounded_median = "Linear into uptake *")
-BRANCH_LAB <- c(uniform_all = "Uniform, whole stem", uniform_top50 = "Uniform, upper half",
-                gaussian_50 = "Gaussian at 50% height", gaussian_75 = "Gaussian at 75% height")
+BRANCH_LAB <- c(uniform_all = "Uniform,\nwhole stem", uniform_top50 = "Uniform,\nupper half",
+                gaussian_50 = "Gaussian at\n50% height", gaussian_75 = "Gaussian at\n75% height")
 stopifnot(setequal(names(FLUX_LAB), FO), setequal(names(BRANCH_LAB), levels(R$branch)))
-WAI_LAB <- function(v) gsub(" \\((.*)\\)", ", \\1", sub("^([0-9.]+) (.*)$", "\\1\n\\2", v))
-th <- theme_minimal(base_size = 11) +
-  theme(panel.grid = element_blank(),
-        axis.text.x = element_text(angle = 30, hjust = 1, size = 9.5),
-        axis.text.y = element_text(size = 10))
+# WAI level "<value> <source>": the value on the first line, the source spelled out
+# below it (W&W = Whittaker & Woodwell 1967, Brookhaven oak-pine forest; the bottom-up
+# trio from 04_wai_bottomup.R). Matched by the source text, never by the digits.
+WAI_SRC <- c(`W&W Brookhaven (low bound)` = "Whittaker &\nWoodwell 1967\n(Brookhaven),\nlow bound",
+             `Gauci 2024 (high bound)`    = "Gauci et al.\n2024,\nhigh bound",
+             `bottom-up, low`             = "Bottom-up,\nlow",
+             `bottom-up, this stand`      = "Bottom-up,\nthis stand",
+             `bottom-up, high`            = "Bottom-up,\nhigh")
+WAI_LAB <- function(v) {
+  num <- sub("^([0-9.]+) .*$", "\\1", v); src <- sub("^[0-9.]+ ", "", v)
+  stopifnot(all(src %in% names(WAI_SRC)))
+  paste0(num, "\n", WAI_SRC[src])
+}
+th <- theme_si() +
+  theme(panel.grid = element_blank(), panel.border = element_blank(), axis.ticks = element_blank(),
+        axis.text.x = element_text(size = rel(0.85), lineheight = 0.95, vjust = 1, colour = "black"),
+        axis.text.y = element_text(colour = "black"))
 
 # ---- a: flux x WAI -----------------------------------------------------------
 A <- R %>% group_by(flux, WAI) %>% summarise(m = median(total_mg), .groups = "drop")
 pa <- ggplot(A, aes(WAI, flux, fill = m)) +
   geom_tile(colour = "white", linewidth = 0.6) +
-  geom_text(aes(label = sprintf("%.0f", m)), size = 3.6) + DIV +
+  geom_text(aes(label = sprintf("%.0f", m)), size = 3) + DIV +
   scale_y_discrete(labels = FLUX_LAB) + scale_x_discrete(labels = WAI_LAB) +
   labs(x = "Woody area index", y = "Flux form above 2 m") + th
 
@@ -64,9 +77,9 @@ pa <- ggplot(A, aes(WAI, flux, fill = m)) +
 B <- R %>% group_by(flux, branch) %>% summarise(m = median(total_mg), .groups = "drop")
 pb <- ggplot(B, aes(branch, flux, fill = m)) +
   geom_tile(colour = "white", linewidth = 0.6) +
-  geom_text(aes(label = sprintf("%.0f", m)), size = 3.6) + DIV +
-  scale_y_discrete(labels = NULL) + scale_x_discrete(labels = BRANCH_LAB) +
-  labs(x = "Branch-area placement", y = NULL) + th
+  geom_text(aes(label = sprintf("%.0f", m)), size = 3) + DIV +
+  scale_y_discrete(labels = FLUX_LAB) + scale_x_discrete(labels = BRANCH_LAB) +
+  labs(x = "Branch-area placement", y = "Flux form above 2 m") + th
 
 # ---- c: leverage, the range each assumption spans with the others held fixed -----
 FACT <- c("flux","WAI","branch","bole")
@@ -87,15 +100,15 @@ ASSUMP_LAB <- c(flux = "Flux form above 2 m", WAI = "Woody area index", branch =
 LEVS$assumption <- factor(LEVS$assumption, levels = LEVS$assumption)
 LEV$assumption  <- factor(LEV$assumption,  levels = levels(LEVS$assumption))
 pc <- ggplot(LEV, aes(assumption, range_mg)) +
-  geom_boxplot(width = 0.5, outlier.size = 0.8, fill = "#d1e5f0", colour = "grey35", linewidth = 0.4) +
+  geom_boxplot(width = 0.5, outlier.size = 0.8, fill = "grey88", colour = "grey35", linewidth = 0.4) +
   coord_flip() + scale_x_discrete(labels = ASSUMP_LAB) +
-  labs(x = NULL, y = expression("Range in whole-surface total (mg CH"[4]*" m"^-2*" yr"^-1*")")) +
-  theme_minimal(base_size = 11) + theme(panel.grid.major.y = element_blank(), axis.text.y = element_text(size = 10.5))
+  labs(x = NULL, y = expression(Range~"in"~whole*"-"*surface~total~(mg~CH[4]~m^{-2}~yr^{-1}))) +
+  theme_si() + theme(panel.grid.major.y = element_blank(), axis.text.y = element_text(colour = "black"))
 
-fig <- (pa | pb) / pc + plot_layout(heights = c(1, 0.42), guides = "collect") +
-  plot_annotation(tag_levels = "a", tag_prefix = "(", tag_suffix = ")") &
-  theme(plot.tag = element_text(size = 14, face = "bold"), legend.position = "right")
-ggsave(out_path("fig_scaling_heatmap.png"), fig, width = 13, height = 9, dpi = 300, bg = "white")
+# stacked, so the spelled-out WAI sources have room under each column
+fig <- pa / pb / pc + plot_layout(heights = c(1, 1, 0.62), guides = "collect") + si_tags() &
+  theme(legend.position = "right")
+si_save(out_path("fig_scaling_heatmap.png"), fig, height = 8.6)
 
 # Both leverage statistics, for the text: the range of the median total across an
 # assumption's levels (main text, Methods S7), and the median range with all other

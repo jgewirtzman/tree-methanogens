@@ -15,6 +15,7 @@
 # ==============================================================================
 suppressMessages({library(ggplot2); library(scales)})
 source("code/lib/tables_read.R")
+source("code/lib/fig_style.R")   # SI house style: theme_si(), si_save()
 dd <- read_table("ddpcr"); smp <- read_table("samples")
 wood <- smp$sample_id[smp$campaign == "2021_survey" & smp$material == "wood"]
 dd <- dd[dd$qc_pass & dd$gene == "mcrA" & dd$sample_id %in% wood & !is.na(dd$copies_per_uL_rxn), ]
@@ -23,24 +24,24 @@ per_sample <- function(assay) { x <- dd[dd$assay == assay, ]
 a <- per_sample("EvaGreen"); b <- per_sample("probe")
 names(a)<-c("sample_id","eg"); names(b)<-c("sample_id","pr")
 m <- merge(a,b,by="sample_id"); m <- m[is.finite(m$eg)&is.finite(m$pr),]
-m$cat <- with(m, ifelse(eg>0 & pr>0, "both detect",
+m$cat <- with(m, ifelse(eg>0 & pr>0, "Detected by both",
                  ifelse(eg>0 & pr==0, "EvaGreen only (probe = 0)",
-                 ifelse(eg==0 & pr>0, "probe only", "both = 0"))))
+                 ifelse(eg==0 & pr>0, "Probe only", "Neither"))))
 sig <- 0.05; pslog <- pseudo_log_trans(sigma=sig, base=10)
 set.seed(1); zj <- function(n) runif(n, -sig*0.5, sig*0.5)
 m$egp <- ifelse(m$eg==0, zj(nrow(m)), m$eg); m$prp <- ifelse(m$pr==0, zj(nrow(m)), m$pr)
 topmax <- max(c(m$eg, m$pr))
 pos <- m[m$eg>0 & m$pr>0, ]
-lab <- sprintf("both detect: n=%d, r=%.2f, slope=%.2f\nEvaGreen only (false +): %d\nprobe only: %d",
+lab <- sprintf("Detected by both: n = %d, r = %.2f, slope = %.2f\nEvaGreen only (false positive): %d\nProbe only: %d",
                nrow(pos), cor(log10(pos$eg),log10(pos$pr)), coef(lm(log10(pr)~log10(eg),data=pos))[2],
-               sum(m$cat=="EvaGreen only (probe = 0)"), sum(m$cat=="probe only"))
-cols <- c("both detect"="#2c7fb8","EvaGreen only (probe = 0)"="#d95f02",
-          "probe only"="#7570b3","both = 0"="grey55")
+               sum(m$cat=="EvaGreen only (probe = 0)"), sum(m$cat=="Probe only"))
+cols <- c("Detected by both"="#2c7fb8","EvaGreen only (probe = 0)"="#d95f02",
+          "Probe only"="#7570b3","Neither"="grey55")
 brk <- c(0,0.1,1,10,100,1e3,1e4,1e5,1e6)
 lbl <- c("0",expression(10^-1),expression(10^0),expression(10^1),expression(10^2),
          expression(10^3),expression(10^4),expression(10^5),expression(10^6))
-eglab <- expression(EvaGreen~italic(mcrA)~assay~"(literature)"~~copies~mu*L^{-1})
-prlab <- expression(Probe~italic(mcrA)~assay~"(this study)"~~copies~mu*L^{-1})
+eglab <- expression(EvaGreen~italic(mcrA)~assay*","~literature~(copies~mu*L^{-1}))
+prlab <- expression(Probe~italic(mcrA)~assay*","~this~study~(copies~mu*L^{-1}))
 
 # x/y: plotted columns (non-detects jittered); xr/yr: the measured columns for the fit
 build <- function(xp, yp, xr, yr, xlab, ylab, out){
@@ -55,11 +56,11 @@ build <- function(xp, yp, xr, yr, xlab, ylab, out){
     scale_x_continuous(trans=pslog, breaks=brk, labels=lbl, limits=c(-sig,topmax)) +
     scale_y_continuous(trans=pslog, breaks=brk, labels=lbl, limits=c(-sig,topmax)) +
     scale_colour_manual(values=cols, name=NULL) +
-    annotate("text", x=0, y=topmax, label=lab, hjust=0, vjust=1, size=3.2) +
+    annotate("text", x=0, y=topmax, label=lab, hjust=0, vjust=1, size=3, lineheight=1.05) +
     labs(x=xlab, y=ylab) +
-    theme_bw(base_size=11) + theme(legend.position=c(.99,.02), legend.justification=c(1,0),
-                                   legend.background=element_rect(fill=alpha("white",.7), colour=NA))
-  ggsave(out, p, width=7.4, height=6.3, dpi=300)
+    theme_si() + theme(legend.position="inside", legend.position.inside=c(.99,.02), legend.justification=c(1,0),
+                       legend.background=element_rect(fill=alpha("white",.8), colour=NA))
+  si_save(out, p, height=6.8)
 }
 build("egp","prp","eg","pr", eglab, prlab, "outputs/figures/generated/figS19_mcra_probe_validation.png")
 cat("wrote outputs/figures/generated/figS19_mcra_probe_validation.png\n")
