@@ -11,7 +11,8 @@
 #         mcrA : methanotroph ratio; (g) R2 of the five species-level gene models
 #         (code/07_molecular/helper_scale_dependent_gene_patterns.R)
 # Figure S23: log10 (pmoA + mmoX) against log10 mcrA, per tree and per species median;
-#   SI house style, points broadleaf / conifer (code/lib/fig_style.R).
+#   SI house style (code/lib/fig_style.R); points coloured by species in phylogenetic order
+#   (code/lib/phylo_palette.R), as in Fig. S16.
 # Reads data/tables/ through the two helpers (run from the repository root).
 # Outputs: outputs/figures/original/main/fig8_radial_species_comparison.png,
 #          outputs/figures/original/supplementary/figS14_mcra_vs_methanotroph.png
@@ -256,6 +257,15 @@ ggsave("outputs/figures/original/main/fig8_radial_species_comparison.png",
 # SI house style (code/lib/fig_style.R), sourced here so the Figure 8 code above is unaffected
 # ============================================================
 source("code/lib/fig_style.R")
+# species colours in phylogenetic order, from every 2021 survey species, as in Fig. S16
+source("code/lib/tables_read.R")
+source("code/lib/phylo_palette.R")
+phylo <- phylo_species_colours(na.omit(species_name(survey_2021_trees()$species_id)))
+s23_levels  <- phylo$order
+s23_palette <- phylo$colours[s23_levels]
+# limits keep every species' colour; breaks list only the species in this figure
+s23_scale <- function(...) scale_color_manual(values = s23_palette, limits = s23_levels,
+  breaks = intersect(s23_levels, unique(as.character(tree_level_complete$species))), ...)
 # "r = 0.01, p = 0.938" with a true minus sign
 r_p_label <- function(ct) sub("-", "−", sprintf("r = %.2f, p %s", ct$estimate,
   ifelse(ct$p.value < 0.001, "< 0.001", sprintf("= %.3f", ct$p.value))), fixed = TRUE)
@@ -275,9 +285,9 @@ cor_tree_mcra_methanotroph <- cor.test(
 p_tree_mcra_vs_methanotroph <- ggplot(tree_level_complete,
                                       aes(y = log_methanotroph,
                                           x = log_tree_mcra,
-                                          color = species_group(species))) +
-  geom_point(size = 1.6, alpha = 0.7) +
-  scale_color_manual(values = GROUP_COLS, name = NULL) +
+                                          color = species)) +
+  geom_point(size = 1.6, alpha = 0.75) +
+  s23_scale(name = "Species\n(phylogenetic order)") +
   rp_text(r_p_label(cor_tree_mcra_methanotroph)) +
   scale_y_continuous(expand = expansion(mult = c(0.05, 0.12))) +
   labs(title = "Individual trees", y = lab_meth_y, x = lab_mcra_x) +
@@ -303,8 +313,8 @@ cor_species_mcra_methanotroph <- cor.test(
 p_species_mcra_vs_methanotroph <- ggplot(species_mcra_methanotroph,
                                          aes(y = log10(median_methanotroph + 1),
                                              x = log10(median_mcra + 1))) +
-  geom_point(aes(color = species_group(species)), size = 2.4, alpha = 0.9, show.legend = FALSE) +
-  scale_color_manual(values = GROUP_COLS, name = NULL) +
+  geom_point(aes(color = species), size = 2.4, alpha = 0.9, show.legend = FALSE) +
+  s23_scale() +
   geom_text_repel(aes(label = species), size = 2.8, fontface = "italic", color = "black", seed = 42,
                   box.padding = 0.3, max.overlaps = 20) +
   rp_text(r_p_label(cor_species_mcra_methanotroph)) +
@@ -319,8 +329,9 @@ p_species_mcra_vs_methanotroph <- ggplot(species_mcra_methanotroph,
 mcra_vs_methanotroph_layout <- (p_tree_mcra_vs_methanotroph | p_species_mcra_vs_methanotroph) +
   plot_layout(guides = "collect") +
   plot_annotation(tag_levels = "a", tag_prefix = "(", tag_suffix = ")") &
-  theme(plot.tag = element_text(size = SI_BASE + 1, face = "bold"), legend.position = "bottom",
-        legend.margin = margin(0, 0, 0, 0))
+  theme(plot.tag = element_text(size = SI_BASE + 1, face = "bold"), legend.position = "right",
+        legend.text = element_text(face = "italic", size = rel(0.8)),
+        legend.title = element_text(size = rel(0.85)))
 
 si_save("outputs/figures/original/supplementary/figS14_mcra_vs_methanotroph.png",
         mcra_vs_methanotroph_layout, height = 4.2)

@@ -1,5 +1,5 @@
 # ==============================================================================
-# phylo_palette.R -- species colours in phylogenetic order (Figs S16-S17)
+# phylo_palette.R -- species colours in phylogenetic order (Figs S16, S23)
 # ------------------------------------------------------------------------------
 # Species are placed on the PhytoPhylo megatree (data/raw/external/phylogeny/,
 # Qian & Jin 2016), ordered by mean cophenetic distance to the other species

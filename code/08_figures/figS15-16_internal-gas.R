@@ -6,7 +6,8 @@
 #             mean +/- SE), species ordered by mean CH4, pseudo-log axis
 # Figure S16  (a) CO2 against CH4, (b) O2 against CH4, (c) heartwood mcrA against CH4,
 #             (d) stem flux at 50, 125 and 200 cm against CH4; linear fits with R2 and
-#             p; points coloured broadleaf / conifer (GROUP_COLS)
+#             p; points coloured by species in phylogenetic order (code/lib/phylo_palette.R,
+#             the same colours as Fig. S23)
 # Inputs: data/tables/ via code/lib/tables_read.R: survey_2021_trees() (internal_gas
 #   2021 whole-stem samples, flux_stem 2021 heights, ddpcr + samples, trees, species)
 # Outputs: outputs/figures/original/supplementary/figS7_internal_gas_beeswarm.png  (S15)
@@ -18,6 +19,7 @@ suppressPackageStartupMessages({
 })
 source("code/lib/tables_read.R")
 source("code/lib/fig_style.R")
+source("code/lib/phylo_palette.R")
 tree_all <- survey_2021_trees()   # 2021 survey per tree; species from trees.csv
 
 # Axis labels: ppm below 1%, % above ("0", "10 ppm", "1,000 ppm", "1%", "10%")
@@ -129,11 +131,14 @@ flux_conc_data <- tree_all %>%
     height_clean = factor(height_clean, levels = c("50 cm", "125 cm", "200 cm"))
   )
 
-# broadleaf / conifer grouping for the point colours
-grp <- function(d) mutate(d, Group = factor(species_group(as.character(Species_Latin)),
-                                            levels = names(GROUP_COLS)))
-conc_data <- grp(conc_data); o2_data <- grp(o2_data)
-mcra_data <- grp(mcra_data); flux_conc_data <- grp(flux_conc_data)
+# species colours in phylogenetic order, from every 2021 survey species so that
+# Fig. S23 (fig08_radial-species.R) gives each species the same colour
+phylo <- phylo_species_colours(na.omit(species_name(tree_all$species_id)))
+species_levels <- phylo$order
+species_palette <- phylo$colours[species_levels]
+sp <- function(d) mutate(d, Species_Latin = factor(as.character(Species_Latin), levels = species_levels))
+conc_data <- sp(conc_data); o2_data <- sp(o2_data)
+mcra_data <- sp(mcra_data); flux_conc_data <- sp(flux_conc_data)
 
 # Calculate correlations - CO2
 pearson1 <- cor.test(log10(conc_data$CH4_concentration + 1),
@@ -176,10 +181,14 @@ cat("S16 annotations:", label1, "|", label2, "|", label_mcra, "|",
 
 # ---- shared layers ----
 ch4_breaks <- c(0, 10, 100, 1000, 10000, 100000)
-pt_layer  <- function() geom_point(aes(color = Group), size = 1.5, alpha = 0.7)
+pt_layer  <- function() geom_point(aes(color = Species_Latin), size = 1.5, alpha = 0.75)
 fit_layer <- function() geom_smooth(method = "lm", formula = y ~ x, se = TRUE,
                                     color = "black", linewidth = 0.8)
-grp_scale <- function() scale_color_manual(values = GROUP_COLS, name = NULL, drop = FALSE)
+grp_scale <- function() scale_color_manual(values = species_palette, limits = species_levels,
+                                           breaks = species_levels, drop = FALSE,
+                                           name = "Species\n(phylogenetic order)",
+                                           guide = guide_legend(nrow = 4, byrow = FALSE,
+                                             override.aes = list(size = 2, alpha = 0.9)))
 stat_text <- function(lab, x = -Inf, hjust = -0.05)
   annotate("text", x = x, y = Inf, label = lab, hjust = hjust, vjust = 1.4,
            size = 3, parse = TRUE)
@@ -217,7 +226,7 @@ p4 <- ggplot(flux_conc_data, aes(x = CH4_concentration, y = CH4_flux)) +
   geom_text(data = flux_stats, aes(x = Inf, y = Inf, label = label),
             hjust = 1.05, vjust = 1.4, size = 3, inherit.aes = FALSE, parse = TRUE) +
   facet_wrap(~ height_clean, ncol = 3) +
-  grp_scale() +
+  grp_scale() + guides(color = "none") +   # one legend, from (a)-(c); (d) has no Kalmia
   scale_x_continuous(trans = scales::pseudo_log_trans(base = 10, sigma = 1),
                      breaks = c(10, 1000, 100000), minor_breaks = c(100, 10000),
                      labels = format_mixed_labels) +
@@ -234,8 +243,8 @@ final_plot <- ((p1 | p2 | p3) / p4) +
   plot_layout(guides = "collect") +
   plot_annotation(tag_levels = "a", tag_prefix = "(", tag_suffix = ")") &
   theme(plot.tag = element_text(size = SI_BASE + 1, face = "bold"),
-        legend.position = "bottom", legend.margin = margin(0, 0, 0, 0),
-        legend.box.margin = margin(-4, 0, 0, 0))
+        legend.position = "bottom", legend.text = element_text(face = "italic", size = rel(0.8)),
+        legend.title = element_text(size = rel(0.85)), legend.margin = margin(0, 0, 0, 0))
 
 si_save("outputs/figures/original/supplementary/figS8_internal_gas_profiles.png",
-        final_plot, height = 6.6)
+        final_plot, height = 7.4)
